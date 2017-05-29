@@ -53,53 +53,35 @@ osuweb.graphics = {
 }
 
 osuweb.mathutil = {
-	bezierCurve: function(pointArray, accuracy) {
-		let bx1 = p[0].x;
-		let by1 = p[0].y;
-		let bx2;
-		let by2;
+	bezierCurve: function(pointArray, t) {
+		var bx = 0, by = 0, n = pointArray.length - 1;
+                
+        for(var i = 0; i <= n; i++) {
+            bx += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].x;
+            by += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].y;
+        }
 
-		steps = 1 / steps;
-
-		for(float i = 0; i < 1; i += steps)
-		{
-			bx2 = by2 = 0;
-			for(let j = 0; j < nbPoint; j++)
-			{
-				bx2 += (int)(binomialCoef(nbPoint, j) * pow(1 - i, (float)nbPoint - j) * pow(i, j) * p[j].x);
-				by2 += (int)(binomialCoef(nbPoint, j) * pow(1 - i, (float)nbPoint - j) * pow(i, j) * p[j].y);
-			}
-
-			bresenhamLine(obj, bx1, by1, bx2, by2, red, green, blue);
-
-			bx1 = bx2;
-			by1 = by2;
-		}
-
-		// curve must end on the last anchor point
-		bresenhamLine(obj, bx1, by1, p[nbPoint - 1].x, p[nbPoint - 1].y, red, green, blue);
+        return {x: bx, y: by}
 	},
-	binomialCoef: function(n, k)
-	{
-		unsigned int r = 1;
+	binomialCoef: function(n, k) {
+		var r = 1;
 
-		if(k > n)
-			return 0;
+        if (k > n)
+            return 0;
 
-		for(unsigned int d = 1; d <= k; d++)
-		{
-			r *= n--;
-			r /= d;
-		}
+        for (var d = 1; d <= k; d++) {
+            r *= n--;
+            r /= d;
+        }
 
-		return r;
+        return r;
 	}
 }
 
 osuweb.graphics.scene = {
 	sceneSwitching: false,
 	scenes: {
-		sceneMainMenu
+		sceneMainMenu: "You havent edited this yet lol"
 	}
 }
 
@@ -165,7 +147,7 @@ skin = {
 		sliderbar: "sliderbar",
 		
 		// gameplay sounds
-		hitSound {
+		hitSound: {
 			standard: {
 				normal: {
 					hit: "normal-hitnormal",
@@ -180,7 +162,7 @@ skin = {
 					hit: "drum-hitnormal",
 					clap: "drum-hitclap",
 					whistle: "drum-hitwhistle",
-					finish: "drum-hitfinish"
+					finish: "drum-hitfinish",
 					sliderslide: "drum-sliderslide",
 					slidertick: "drum-slidertick",
 					sliderwhistle: "drum-sliderwhistle",
@@ -189,7 +171,7 @@ skin = {
 					hit: "soft-hitnormal",
 					clap: "soft-hitclap",
 					whistle: "soft-hitwhistle",
-					finish: "soft-hitfinish"
+					finish: "soft-hitfinish",
 					sliderslide: "soft-sliderslide",
 					slidertick: "soft-slidertick",
 					sliderwhistle: "soft-sliderwhistle",
@@ -221,7 +203,7 @@ skin = {
 		ready: "readys",
 		count3: "count3s",
 		count2: "count2s",
-		count1: "count1s"
+		count1: "count1s",
 		count: "count",
 		go: "gos",
 		sectionpass: "sectionpass",
@@ -287,6 +269,6 @@ skin = {
 	}
 }
 
-osuweb.graphics.skin.prototype.constructor = function(filePath) {
+/*osuweb.graphics.skin.prototype.constructor = function(filePath) {
 	
-}
+}*/
