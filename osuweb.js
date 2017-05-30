@@ -3,7 +3,268 @@ var osuweb = {
 	versionType: "alpha",
 };
 
+class Beatmap {
+	constructor(file) {
+		var reader = new FileReader();
+		reader.onload = function(progressEvent){
+			this.events = [];
+			this.timingPoints = [];
+			this.hitObjects = [];
+			this.colours = [];
+			
+		    var lines = this.result.split('\n');
+			
+			var section = "header";
+			var eventType = "";
+			
+		    for(var i = 0; i < lines.length; i++){
+		    	var line = lines[i].trim();
+				
+		        if(line.startsWith("osu file format v") && !line.endsWith("14")) console.log("The beatmap version seems to be older than supported. We could run into issue here!");
+		    	
+				if(line == "[General]") {
+					section = "general";
+					continue;
+				}
 				if(line == "[Metadata]") {
+					section = "metadata";
+					continue;
+				}
+				if(line == "[Difficulty]")  {
+					section = "difficulty";
+					continue;
+				}
+				if(line == "[Events]")  {
+					section = "events";
+					continue;
+				}
+				if(line == "[TimingPoints]")  {
+					section = "timing";
+					continue;
+				}
+				if(line == "[HitObjects]")  {
+					section = "hitObjects";
+					continue;
+				}
+				if(line == "[Colours]")  {
+					section = "colours";
+					continue;
+				}
+				
+				if(section != "timing" && section != "hitObjects") {
+					if(line.startsWith("AudioFileName")) this.audioFile=line.split(':')[1].trim();
+					if(line.startsWith("AudioLeadIn")) this.audioLeadIn=line.split(':')[1].trim();
+					if(line.startsWith("PreviewTime")) this.previewTime=line.split(':')[1].trim();
+					if(line.startsWith("Countdown")) this.countdown=line.split(':')[1].trim();
+					if(line.startsWith("SampleSet")) this.sampleSet=line.split(':')[1].trim();
+					if(line.startsWith("StackLeniency")) this.stackLeniency=line.split(':')[1].trim();
+					if(line.startsWith("Mode")) this.mode=line.split(':')[1].trim();
+					if(line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks=line.split(':')[1].trim();
+					if(line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard=line.split(':')[1].trim();
+					
+					if(line.startsWith("Title")) this.title=line.split(':')[1].trim();
+					if(line.startsWith("TitleUnicode")) this.titleUnicode=line.split(':')[1].trim();
+					if(line.startsWith("Artist")) this.artist=line.split(':')[1].trim();
+					if(line.startsWith("ArtistUnicode")) this.artistUnicode=line.split(':')[1].trim();
+					if(line.startsWith("Creator")) this.creator=line.split(':')[1].trim();
+					if(line.startsWith("Version")) this.version=line.split(':')[1].trim();
+					if(line.startsWith("Source")) this.source=line.split(':')[1].trim();
+					if(line.startsWith("Tags")) this.tags=line.split(':')[1].trim();
+					if(line.startsWith("BeatmapID")) this.beatmapID=line.split(':')[1].trim();
+					if(line.startsWith("BeatmapSetID")) this.beatmapSetID=line.split(':')[1].trim();
+					
+					if(line.startsWith("HPDrainRate")) this.HP=line.split(':')[1].trim();
+					if(line.startsWith("CircleSize")) this.CS=line.split(':')[1].trim();
+					if(line.startsWith("OverallDifficulty")) this.OD=line.split(':')[1].trim();
+					if(line.startsWith("ApproachRate")) this.AR=line.split(':')[1].trim();
+					if(line.startsWith("SliderMultiplier")) this.SV=line.split(':')[1].trim();
+					if(line.startsWith("SliderTickRate")) this.sliderTickRate=line.split(':')[1].trim();
+				}
+				if(section == "colours") {
+					var col = line.split(':')[1].trim().split(',');
+					
+					this.colours.push({
+						r: col[0],
+						g: col[1],
+						b: col[2],
+					});
+				}
+				if(section == "timing") {
+					var values = line.split(',');
+					
+					this.timingPoints.push({
+						offset: values[0],
+						msPerBeat: values[1],
+						BPM: 60000/values[1],
+						meter: values[2],
+						sampleType: values[3],
+						sampleSet: values[4],
+						volume: values[5],
+						inherited: values[6],
+						kiai: values[7],
+					});
+				}
+				if(section == "events") {
+					if(line.startsWith("//")) {
+						var eventType = line.substring(2);
+					}
+					
+					if(eventType == "Break Periods") {
+						var values = line.split(',');
+						
+						switch(values[0]) {
+							case "2":
+								var type = "break";
+								break;
+						}
+						
+						this.events.push({
+							type: type,
+							start: values[1],
+							end: values[2]
+						});
+					}
+				}
+				if(section == "hitObjects") {
+					var values = line.split(',');
+					// circle
+					if(values[3] == "1" || values[3] == "5") {
+						var circle = {
+							type: "circle",
+							newCombo: values[3] == "5",
+							x: parseInt(values[0], 10),
+							y: parseInt(values[1], 10),
+							time: parseInt(values[2], 10),
+							hitSound: parseInt(values[4], 10),
+						};
+						
+						// samplings
+						var SamplingValues = values[5].split(':');
+						
+						circle["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
+						
+						this.hitObjects.push(circle);
+					}
+					// slider
+					if(values[3] == "2" || values[3] == "6") {
+						var sliderPoints = values[5].split("|");
+					
+						var sliderType = sliderPoints[0];
+					
+						var sliderSections = [];
+						
+						var sliderSectionPoints = [];
+						
+						var lastPoint = null;
+						
+						for(var j = 1; j < sliderPoints.length; j++) {
+							var coords = sliderPoints[j].split(':');
+							
+							if(j == 0) {
+								// add first point
+								sliderSectionPoints.push({x: parseInt(values[0], 10), y: parseInt(values[1], 10)});
+							}
+							
+							var nextPoint = {x: parseInt(coords[0], 10), y: parseInt(coords[1], 10)}; 
+							
+							sliderSectionPoints.push(nextPoint);
+							
+							// end section if same point appears twice and start a new one if end is not reached
+							if(JSON.stringify(lastPoint) === JSON.stringify(nextPoint) || j + 1 == sliderPoints.length) {
+								if(sliderPoints.length == 3 && sliderSectionPoints.length == 3 && sliderType == "P") {
+									var sectionType = "circle";
+								}
+								else if(sliderSectionPoints.length == 2) {
+									var sectionType = "linear";
+								}
+								else {
+									var sectionType = "bezier";
+								}
+								
+								sliderSections.push({type: sectionType, values: sliderSectionPoints});
+								
+								sliderSectionPoints = [];
+								sliderSectionPoints.push(nextPoint);
+							}
+							
+							lastPoint = nextPoint;
+						}
+						
+						var slider = {
+							type: "slider",
+							newCombo: values[3] == "6",
+							x: parseInt(values[0], 10),
+							y: parseInt(values[1], 10),
+							time: parseInt(values[2], 10),
+							hitSound: parseInt(values[4], 10),
+							sections: sliderSections,
+							repeat: parseInt(values[6], 10),
+							length: parseFloat(values[7])
+						};
+						
+						if(values.length > 8) {
+							// edgeAdditions
+							var additionsValuesRaw = values[8].split('|');
+							
+							var additions = [];
+							
+							for(var j = 0; j < additionsValuesRaw; j++) {
+								additions.push(parseInt(additionsValuesRaw[j], 10));
+							}
+							
+							slider["additions"] = additions;
+							
+							// edge samplings
+							var edgeSamplings = [];
+							
+							var splitEdgeSampleSetsRaw = values[9].split('|');
+							
+							for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
+								var val = splitEdgeSampleSetsRaw[j].split(':');
+								
+								edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
+							} 
+							
+							slider["edgeSamplings"] = edgeSamplings;
+							
+							// body samplings
+							var sliderBodySamplingValues = values[10].split(':');
+							
+							slider["bodySamplings"] = {sampleSet: parseInt(sliderBodySamplingValues[0], 10), sampleSetAddition: parseInt(sliderBodySamplingValues[1], 10)};
+						}
+						
+						this.hitObjects.push(slider);
+					}
+					// spinner
+					if(values[3] == "8" || values[3] == "12") {
+						var spinner = {
+							type: "spinner",
+							newCombo: values[3] == "12",
+							x: parseInt(values[0], 10),
+							y: parseInt(values[1], 10),
+							time: parseInt(values[2], 10),
+							hitSound: parseInt(values[4], 10),
+							endTime: parseInt(values[5], 10),
+						};
+						
+						// samplings
+						var SamplingValues = values[6].split(':');
+						
+						spinner["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
+						
+						this.hitObjects.push(spinner);
+					}
+				}
+		    }
+			
+			
+			
+			console.log(JSON.stringify(this));
+		};
+		reader.readAsText(file);
+	}
+}
+
 osuweb.game = {
 	// 0 - Main Menu
 	// 1 - Song Select
@@ -46,6 +307,15 @@ osuweb.audio = {
 }
 
 osuweb.file = {
+	loadDir: function(onReturn) {
+		var input = $(document.createElement('input'));
+        input.attr("type", "file");
+        input.attr("id", "filepicker");
+        input.attr("name", "filelist");
+        input.attr("webkitdirectory", "true");
+		$('#filepicker').change(onReturn);
+        input.trigger('click');
+	},
 	loadFile: function(filePath, onLoad) {
 		if (input.files && input.files[0]) {
 			var reader = new FileReader();
