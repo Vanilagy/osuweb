@@ -20,6 +20,8 @@ class Beatmap {
 		    for(var i = 0; i < lines.length; i++){
 		    	var line = lines[i].trim();
 				
+				if(line == "") continue;
+				
 		        if(line.startsWith("osu file format v") && !line.endsWith("14")) console.log("The beatmap version seems to be older than supported. We could run into issue here!");
 		    	
 				if(line == "[General]") {
@@ -105,25 +107,21 @@ class Beatmap {
 					});
 				}
 				if(section == "events") {
-					if(line.startsWith("//")) {
-						var eventType = line.substring(2);
+					if(line.startsWith("//")) continue;
+					
+					var values = line.split(',');
+					
+					switch(values[0]) {
+						case "2":
+							var type = "break";
+							break;
 					}
 					
-					if(eventType == "Break Periods") {
-						var values = line.split(',');
-						
-						switch(values[0]) {
-							case "2":
-								var type = "break";
-								break;
-						}
-						
-						this.events.push({
-							type: type,
-							start: values[1],
-							end: values[2]
-						});
-					}
+					this.events.push({
+						type: type,
+						start: values[1],
+						end: values[2]
+					});
 				}
 				if(section == "hitObjects") {
 					var values = line.split(',');
