@@ -3,6 +3,7 @@ var osuweb = {
 	versionType: "alpha",
 };
 
+				if(line == "[Metadata]") {
 osuweb.game = {
 	// 0 - Main Menu
 	// 1 - Song Select
