@@ -330,7 +330,7 @@ osuweb.graphics = {
 }
 
 osuweb.mathutil = {
-	bezierCurve: function(pointArray, t) {
+	coordsOnBezier: function(pointArray, t) {
 		var bx = 0, by = 0, n = pointArray.length - 1;
                 
         for(var i = 0; i <= n; i++) {
