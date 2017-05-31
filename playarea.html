@@ -8,7 +8,7 @@
             #playarea {
                 width: 512px;
                 height: 392px;
-                border: 1px solid gray;
+                border: 1px solid white;
                 margin: auto;
                 margin-top: 30px;
             }
@@ -19,11 +19,11 @@
             }
             .hitCircleCanvas {
                 position: absolute;
-                background: blue;
+                border: 1px solid rgba(39, 0, 255, 0.25);
             }
             .sliderCanvas {
                 position: absolute;
-                background: magenta;
+                border: 1px solid rgba(255, 0, 255, 0.25);
             }
         </style>
     </head>
@@ -35,6 +35,7 @@
         <script src="osuweb.js"></script>
         <script>
             var width = Math.floor(window.innerWidth * 0.5 / 4) * 4;
+            width = 800;
             var height = width * 3 / 4;
             var playareaDom = document.getElementById("playarea");
             playareaDom.style.width = width, playareaDom.style.height = height;
@@ -45,7 +46,7 @@
             var csPixel = Math.round((109 - 9 * cs) / 640 * width);
             var halfCsPixel = csPixel / 2;
             var PI2 = Math.PI * 2;
-            var sliderTracePointDistance = 2;
+            var sliderTracePointDistance = 4;
             
             function appendHitCircle(data) {
                 var x = data.x,
@@ -64,152 +65,180 @@
                 objectContainerDom.appendChild(canvas);
             }
             
-            appendSlider({
-                sections: [
-                    {points: [
-                        {x: 100, y: 100},
-                        {x: 300, y: 200},
-                        {x: 150, y: 300}
-                    ]},
-                    {points: [
-                        {x: 150, y: 300},
-                        {x: 400, y: 400},
-                    ]},
-                    {points: [
-                        {x: 400, y: 400},
-                        {x: 400, y: 200},
-                        {x: 500, y: 50}
-                    ]}
-                ]
-            });
+            function benchmark(callback) {
+    console.log('Benchmarking "' + callback.toString() + '"...');
+    
+    var startDate = Date.now();
+    var times = 0;
+    
+    while (Date.now() - startDate < 3000) {
+        callback();
+        times++;
+    }
+    
+    var ellapsedTime = Date.now() - startDate;
+    console.log("Function exeucted " + Number((times / (ellapsedTime / 1000)).toFixed(5)) + " times a second.");
+    console.log("Average execution time: " + (ellapsedTime / times).toFixed(7) + " ms.");
+}
             
-            function appendSlider(data) {
-                var componentSections = data.sections;
+            var derp = new Slider({sections: [
+                {
+                    sectionType: "bezier",
+                    points: [
+                        {x: 100, y: 100},
+                        {x: 300, y: 300},
+                        {x: 100, y: 390},
+                        {x: 400, y: 200}
+                    ]
+                },
+                {
+                    sectionType: "bezier",
+                    points: [
+                        {x: 400, y: 200},
+                        {x: 700, y: 310},
+                        {x: 400, y: 420},
+                    ]
+                },
+                {
+                    sectionType: "linear",
+                    points: [
+                        {x: 400, y: 420},
+                        {x: 210, y: 100}
+                    ]
+                }
+            ]});
+            derp.append();
+            
+            function Slider(data) {
+                this.type = "slider";
+                this.time = data.time;
+                this.newCombo = data.newCombo;
+                this.x = data.x, this.y = data.y;
+                this.sections = data.sections;
+                this.repeat = data.repeat;
+                this.length = data.length;
+                
+                this.sliderPathPoints = [];
+                
+                function pushPos(pos) {
+                    this.sliderPathPoints.push(pos);
+                    
+                    this.minX = Math.min(this.minX, pos.x);
+                    this.minY = Math.min(this.minY, pos.y);
+                    this.maxX = Math.max(this.maxX, pos.x);
+                    this.maxY = Math.max(this.maxY, pos.y);
+                }
                 
                 var initialPointTracing = [],
-                    sliderShapePoints = [];
+                    minX, minY, maxX, maxY;
                 
-                for (var i = 0; i < componentSections.length; i++) {
-                    var ctrlPoints = componentSections[i].points;
+                if (this.sections[0].sectionType == "circle") {
+                    var points = this.sections[0].points;
                     
-                    for (var t = 0; t < 1; t = Math.round((t + 0.0001) * 10000) / 10000) {
-                        var pos = osuweb.mathutil.coordsOnBezier(ctrlPoints, t);
-                        initialPointTracing.push({
-                            x: pos.x * pixelRatio,
-                            y: pos.y * pixelRatio
+                    var centerPos = osuweb.mathutil.circleCenterPos(points[0], points[1], points[2]);
+                    var radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
+                    var a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
+                        a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
+                        a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
+                    
+                    var incre = sliderTracePointDistance / radius, condition;
+                    
+                    if (a1 < a2 && a2 < a3) { // Point order
+                        condition = function(x) {return x < a3};
+                    } else if ((a2 < a3 && a3 < a1) || (a3 < a1 && a1 < a2)) {
+                        condition = function(x) {return x < a3 + PI2};
+                    } else if (a3 < a1 && a1 < a2) {
+                        condition = function(x) {return x < a3 + PI2};
+                    } else if (a3 < a2 && a2 < a1) {
+                        condition = function(x) {return x > a3};
+                        incre *= -1;
+                    } else {
+                        condition = function(x) {return x > a3 - PI2};
+                        incre *= -1;
+                    }
+                    
+                    this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * pixelRatio;
+                    this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * pixelRatio;
+                    
+                    for (var angle = a1; condition(angle); angle += incre) {
+                        pushPos.bind(this)({
+                            x: (centerPos.x + radius * Math.cos(angle)) * pixelRatio,
+                            y: (centerPos.y + radius * Math.sin(angle)) * pixelRatio
                         });
                     }
-                }
-                
-                var passedDist = 0;
-                var minX, minY, maxX, maxY;
-                minX = maxX = initialPointTracing[0].x;
-                minY = maxY = initialPointTracing[0].y;
-                
-                sliderShapePoints[0] = initialPointTracing[0]; // Pushes startpoint to array
-                for (var i = 0; i < initialPointTracing.length - 1; i++) {
-                    var dist = Math.hypot(initialPointTracing[i + 1].x - initialPointTracing[i].x, initialPointTracing[i + 1].y - initialPointTracing[i].y);
+                } else {
+                    for (var i = 0; i < this.sections.length; i++) {
+                        for (var t = 0; t < 1; t = Math.round((t + 0.0001) * 10000) / 10000) {
+                            var pos = osuweb.mathutil.coordsOnBezier(this.sections[i].points, t);
+                            initialPointTracing.push({
+                                x: pos.x * pixelRatio,
+                                y: pos.y * pixelRatio
+                            });
+                        }
+                    }
+
+                    this.minX = this.maxX = initialPointTracing[0].x;
+                    this.minY = this.maxY = initialPointTracing[0].y;
                     
-                    passedDist += dist;
-                    if (passedDist >= sliderTracePointDistance) {
-                        pushPos(initialPointTracing[i]);
-                        passedDist = dist - passedDist;
+                    var passedDist = 0;
+                    this.sliderPathPoints[0] = initialPointTracing[0]; // Pushes startpoint to array
+                    for (var i = 0; i < initialPointTracing.length - 1; i++) {
+                        var dist = Math.hypot(initialPointTracing[i + 1].x - initialPointTracing[i].x, initialPointTracing[i + 1].y - initialPointTracing[i].y);
+                        passedDist += dist;
+                        
+                        if (passedDist >= sliderTracePointDistance) {
+                            pushPos.bind(this)(initialPointTracing[i]);
+                            passedDist = dist - passedDist;
+                        }
                     }
                 }
-                var endPos = componentSections[componentSections.length - 1].points[componentSections[componentSections.length - 1].points.length - 1];
-                pushPos({
+                
+                var endPos = this.sections[this.sections.length - 1].points[this.sections[this.sections.length - 1].points.length - 1];
+                pushPos.bind(this)({
                     x: endPos.x * pixelRatio,
                     y: endPos.y * pixelRatio
                 }); // Pushes endpoint to array
                 
-                function pushPos(pos) {
-                    sliderShapePoints.push(pos);
+                //console.log(this.sliderPathPoints.length);
+                
+                //////////
+                
+                this.append = function() {
+                    var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
                     
-                    minX = Math.min(minX, pos.x);
-                    minY = Math.min(minY, pos.y);
-                    maxX = Math.max(maxX, pos.x);
-                    maxY = Math.max(maxY, pos.y);
-                }
-                
-                var sliderWidth = maxX - minY, sliderHeight = maxY - minY;
-                
-                var canvas = document.createElement("canvas"); // Create local object canvas
-                canvas.setAttribute("width", sliderWidth + csPixel);
-                canvas.setAttribute("height", sliderHeight + csPixel);
-                canvas.className = "sliderCanvas";
-                canvas.style.left = (minX * pixelRatio - halfCsPixel) + "px", canvas.style.top = (minY * pixelRatio - halfCsPixel) + "px";
-                
-                var ctx = canvas.getContext("2d");
-                
-                ctx.beginPath();
-                ctx.moveTo(sliderShapePoints[0].x - minX + halfCsPixel, sliderShapePoints[0].y - minY + halfCsPixel);
-                for (var i = 1; i < sliderShapePoints.length; i++) {
-                    ctx.lineTo(sliderShapePoints[i].x - minX + halfCsPixel, sliderShapePoints[i].y - minY + halfCsPixel);
-                }
-                ctx.lineWidth = csPixel;
-                ctx.lineCap = "round";
-                ctx.strokeStyle = "white";
-                ctx.stroke();
-                
-                var sliderBodyRadius = halfCsPixel * 14.5 / 16;
-                
-                for (var i = 0; i <= sliderShapePoints.length; i += sliderShapePoints.length - 1) {
-                    var pos = sliderShapePoints[i];
-                    
-                    pos = {
-                        x: pos.x - minX + halfCsPixel,
-                        y: pos.y - minY + halfCsPixel
-                    };
-                    
-                    var gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, sliderBodyRadius);
-                    gradient.addColorStop(0, "gray");
-                    gradient.addColorStop(1, "black");
+                    var canvas = document.createElement("canvas"); // Create local object canvas
+                    canvas.setAttribute("width", sliderWidth + csPixel);
+                    canvas.setAttribute("height", sliderHeight + csPixel);
+                    canvas.className = "sliderCanvas";
+                    canvas.style.left = (this.minX - halfCsPixel) + "px", canvas.style.top = (this.minY - halfCsPixel) + "px";
+                    //canvas.style.display = "none";
+
+                    var ctx = canvas.getContext("2d");
 
                     ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, sliderBodyRadius, 0, Math.PI * 2);
-                    ctx.fillStyle = gradient;
-                    ctx.fill();
-                }
-                
-                ctx.lineWidth = 7;
-                ctx.lineCap = "butt";
-                for (var i = 0; i < sliderShapePoints.length; i++) {
-                    var pos = sliderShapePoints[i];
-                    var posBefore = sliderShapePoints[i - 1];
-                    
-                    if (i == 0) {
-                        posBefore = pos;
-                        pos = sliderShapePoints[i + 1];
+                    ctx.moveTo(this.sliderPathPoints[0].x - this.minX + halfCsPixel, this.sliderPathPoints[0].y - this.minY + halfCsPixel);
+                    for (var i = 1; i < this.sliderPathPoints.length; i++) {
+                        ctx.lineTo(this.sliderPathPoints[i].x - this.minX + halfCsPixel, this.sliderPathPoints[i].y - this.minY + halfCsPixel);
                     }
-                    
-                    pos = {
-                        x: pos.x - minX + halfCsPixel,
-                        y: pos.y - minY + halfCsPixel
-                    };
-                    posBefore = {
-                        x: posBefore.x - minX + halfCsPixel,
-                        y: posBefore.y - minY + halfCsPixel
-                    }
-
-                    var angle = Math.atan2(-1 / (posBefore.y - pos.y), 1 / (posBefore.x - pos.x));
-                    var offX1 = pos.x + Math.cos(angle) * sliderBodyRadius, offX2 = pos.x - Math.cos(angle) * sliderBodyRadius;
-                    var offY1 = pos.y + Math.sin(angle) * sliderBodyRadius, offY2 = pos.y - Math.sin(angle) * sliderBodyRadius;
-
-                    var gradient = ctx.createLinearGradient(offX1, offY1, offX2, offY2);
-                    gradient.addColorStop(0, "black"); 
-                    gradient.addColorStop(0.5, "gray"); 
-                    gradient.addColorStop(1, "black"); 
-
-                    ctx.beginPath();
-                    ctx.moveTo(offX1, offY1);
-                    ctx.lineTo(offX2, offY2);
-                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = csPixel;
+                    ctx.lineCap = "round";
+                    ctx.lineJoin="round";
+                    ctx.strokeStyle = "white";
                     ctx.stroke();
+
+                    var sliderBodyRadius = halfCsPixel * 14.5 / 16;
+                    ctx.lineCap = "round";
+                    for (var i = sliderBodyRadius; i > 1; i -= 2) {
+                        ctx.lineWidth = i * 2;
+                        var completionRgb = Math.floor((1 - (i / sliderBodyRadius)) * 75);
+                        ctx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", "  + completionRgb + ")";
+                        ctx.stroke();
+                    }
+
+                    drawCircle(ctx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY);
+
+                    objectContainerDom.appendChild(canvas);
                 }
-                
-                objectContainerDom.appendChild(canvas);
-                
-                console.log(minX, minY, maxX, maxY);
             }
             
             function drawCircle(context, x, y) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
@@ -227,7 +256,7 @@
                 context.fillStyle = radialGradient;
                 context.fill();
                 
-                var innerType = "whatever";
+                var innerType = "dot";
                 
                 if (innerType == "number") {
                     context.font = "lighter 35px Arial";

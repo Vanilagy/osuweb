@@ -352,7 +352,22 @@ osuweb.mathutil = {
         }
 
         return r;
-	}
+	},
+    circleCenterPos: function(p1, p2, p3) {
+        var yDelta_a = p2.y - p1.y,
+            xDelta_a = p2.x - p1.x,
+            yDelta_b = p3.y - p2.y,
+            xDelta_b = p3.x - p2.x,
+            center = {};
+        
+        var aSlope = yDelta_a / xDelta_a,
+            bSlope = yDelta_b / xDelta_b;
+        
+        center.x = (aSlope * bSlope * (p1.y - p3.y) + bSlope * (p1.x + p2.x) - aSlope * (p2.x + p3.x)) / (2 * (bSlope - aSlope));
+        center.y = -1 * (center.x - (p1.x + p2.x) / 2) / aSlope + (p1.y + p2.y) / 2;
+        
+        return center;
+    }
 }
 
 osuweb.graphics.scene = {
