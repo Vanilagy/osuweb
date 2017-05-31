@@ -1,18 +1,110 @@
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+var audioCtxTime = window.performance.now();
+
+var canvasCtx = document.getElementById("osuweb").getContext("2d");
+
+canvasCtx.canvas.width  = window.innerWidth - 2;
+canvasCtx.canvas.height = window.innerHeight - 2;
+  
 var osuweb = {
 	version: "2017.05.29.0000",
 	versionType: "alpha",
 };
 
+class BeatmapSet {
+	constructor(files) {
+		this.files = event.target.files;
+		this.audioFiles = [];
+		this.imageFiles = [];
+		this.difficulties = {};
+		
+		for(var i = 0; i < files.length; i++) {
+			var filename = files[i].name.toLowerCase();
+			
+			if(filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
+				this.audioFiles.push(files[i]);
+				continue;
+			}
+			if(filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
+				this.imageFiles.push(files[i]);
+				continue;
+			}
+			
+			const regex = /\[([^\[^\]]+)]\.osu$/g;
+			const str = files[i].webkitRelativePath;
+			let m;
+
+			while ((m = regex.exec(str)) !== null) {
+				// This is necessary to avoid infinite loops with zero-width matches
+				if (m.index === regex.lastIndex) {
+					regex.lastIndex++;
+				}
+				
+				// The result can be accessed through the `m`-variable.
+				m.forEach((match, groupIndex) => {
+					if(groupIndex == 1) {
+						this.difficulties[match] = files[i];
+					}
+				});
+			}
+		}
+		
+		this.selectDifficulty(Object.values(this.difficulties)[0], this.audioFiles, this.imageFiles);
+	}
+}
+
+BeatmapSet.prototype.selectDifficulty = function(difficultyFile, audioFiles, imageFiles) {
+	var beatmap = new Beatmap(difficultyFile, function() {
+		// find background image if it exists
+		var imageFile = null;
+		
+		for(var i = 0; i < beatmap.events.length; i++) {
+			if(beatmap.events[i].type == "image") {
+				var imageFileName = beatmap.events[i].file;
+				
+				for(var j = 0; j < imageFiles.length; j++) {
+					if(imageFiles[j].name == imageFileName) {
+						imageFile = imageFiles[j];
+						break;
+					}
+				}
+				
+				break;
+			}
+		}
+		
+		osuweb.file.loadFile(imageFile, function(e) {
+			$('body').attr('background-image', e);
+		});
+		
+		// find audio file
+		var audioFile = null;
+		
+		for(var i = 0; i < audioFiles.length; i++) {
+			if(audioFiles[i].name == beatmap["audioFile"]) {
+				audioFile = audioFiles[i];
+				break;
+			}
+		}
+		
+		var audio = new Audio(audioFile, function() {
+			audio.setLoop(beatmap["previewTime"] / 1000.0);
+			
+			audio.playAudioFromOffset(beatmap["previewTime"] / 1000.0);
+		});
+	});
+}
+
 class Beatmap {
-	constructor(file) {
+	constructor(file, callback) {
 		var reader = new FileReader();
-		reader.onload = function(progressEvent){
+		reader.onload = (function(e){
 			this.events = [];
 			this.timingPoints = [];
 			this.hitObjects = [];
 			this.colours = [];
 			
-		    var lines = this.result.split('\n');
+		    var lines = e.target.result.split('\n');
 			
 			var section = "header";
 			var eventType = "";
@@ -54,15 +146,15 @@ class Beatmap {
 				}
 				
 				if(section != "timing" && section != "hitObjects") {
-					if(line.startsWith("AudioFileName")) this.audioFile=line.split(':')[1].trim();
-					if(line.startsWith("AudioLeadIn")) this.audioLeadIn=line.split(':')[1].trim();
-					if(line.startsWith("PreviewTime")) this.previewTime=line.split(':')[1].trim();
-					if(line.startsWith("Countdown")) this.countdown=line.split(':')[1].trim();
-					if(line.startsWith("SampleSet")) this.sampleSet=line.split(':')[1].trim();
-					if(line.startsWith("StackLeniency")) this.stackLeniency=line.split(':')[1].trim();
-					if(line.startsWith("Mode")) this.mode=line.split(':')[1].trim();
-					if(line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks=line.split(':')[1].trim();
-					if(line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard=line.split(':')[1].trim();
+					if(line.startsWith("AudioFilename")) this.audioFile=line.split(':')[1].trim();
+					if(line.startsWith("AudioLeadIn")) this.audioLeadIn=parseInt(line.split(':')[1].trim(), 10);
+					if(line.startsWith("PreviewTime")) this.previewTime=parseInt(line.split(':')[1].trim(), 10);
+					if(line.startsWith("Countdown")) this.countdown=parseInt(line.split(':')[1].trim(), 10);
+					if(line.startsWith("SampleSet")) this.sampleSet=parseInt(line.split(':')[1].trim(), 10);
+					if(line.startsWith("StackLeniency")) this.stackLeniency=parseFloat(line.split(':')[1].trim());
+					if(line.startsWith("Mode")) this.mode=parseInt(line.split(':')[1].trim(), 10);
+					if(line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks=parseInt(line.split(':')[1].trim(), 10);
+					if(line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard=parseInt(line.split(':')[1].trim(), 10);
 					
 					if(line.startsWith("Title")) this.title=line.split(':')[1].trim();
 					if(line.startsWith("TitleUnicode")) this.titleUnicode=line.split(':')[1].trim();
@@ -112,16 +204,25 @@ class Beatmap {
 					var values = line.split(',');
 					
 					switch(values[0]) {
+						case "0":
+							this.events.push({
+								type: "image",
+								time: parseInt(values[1], 10),
+								file: values[2].substring(1,values[2].length - 1),
+								x: parseInt(values[3], 10),
+								y: parseInt(values[4], 10)
+							});
+							break;
 						case "2":
-							var type = "break";
+							this.events.push({
+								type: "break",
+								start: parseInt(values[1], 10),
+								end: parseInt(values[2], 10)
+							});
 							break;
 					}
 					
-					this.events.push({
-						type: type,
-						start: values[1],
-						end: values[2]
-					});
+					
 				}
 				if(section == "hitObjects") {
 					var values = line.split(',');
@@ -255,12 +356,62 @@ class Beatmap {
 				}
 		    }
 			
-			
-			
-			console.log(JSON.stringify(this));
-		};
+			callback();
+		}).bind(this);
 		reader.readAsText(file);
 	}
+}
+
+class Play {
+	constructor(beatmap, audio) {
+		
+	}
+}
+
+class Audio {
+	constructor(file, callback) {
+		var self = this;
+		
+		this.interlude = 0;
+		this.gainNode = audioCtx.createGain();
+		
+		var reader = new FileReader();
+		reader.onload = (function(e) {
+			audioCtx.decodeAudioData(e.target.result, (function(buffer) {
+				this.duration = buffer.duration;
+				
+			    this.source = audioCtx.createBufferSource();
+			    this.source.buffer = buffer;
+				this.source.connect(this.gainNode);
+			    this.gainNode.connect(audioCtx.destination); 
+				
+				callback();
+			}).bind(this), this.onError);
+		}).bind(this);
+		reader.readAsArrayBuffer(file);
+	}
+}
+
+Audio.prototype.playAudio = function(time = 0) {
+    this.source.start(time);
+}
+	
+Audio.prototype.playAudioFromOffset = function(offset, time = 0) {
+    this.source.start(time, offset);
+}
+
+Audio.prototype.setVolume = function(value) {
+    this.gainNode.value = value;
+}
+
+Audio.prototype.setLoop = function(start = -1, end = -1) {
+	this.source.loop = true;
+	this.source.loopStart = start == -1 ? 0 : start;
+	this.source.loopEnd = end == -1 ? this.duration : end;
+}
+
+Audio.prototype.onError = function(err) {
+	
 }
 
 osuweb.game = {
@@ -314,14 +465,12 @@ osuweb.file = {
 		$('#filepicker').change(onReturn);
         input.trigger('click');
 	},
-	loadFile: function(filePath, onLoad) {
-		if (input.files && input.files[0]) {
-			var reader = new FileReader();
+	loadFile: function(file, onLoad) {
+		var reader = new FileReader();
 
-			reader.onload = onLoad;
+		reader.onload = onLoad;
 
-			reader.readAsDataURL(input.files[0]);
-		}
+		reader.readAsDataURL(file);
 	}
 }
 
@@ -558,6 +707,12 @@ skin = {
 		
 		// scorebar
 		scorebarbg: "scorebar-bg",
+	}
+}
+
+osuweb.util = {
+	getHighResolutionContextTime: function() {
+		return window.performance.now() - audioCtxTime;
 	}
 }
 
