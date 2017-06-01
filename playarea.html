@@ -17,11 +17,16 @@
                 width: 100%;
                 height: 100%;
             }
-            .hitCircleCanvas {
+            .hitCircleContainer {
                 position: absolute;
-                border: 1px solid rgba(39, 0, 255, 0.25);
+                border: 1px solid rgba(39, 0, 255, 0.4);
             }
-            .sliderCanvas {
+            .sliderContainer canvas {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+            }
+            .sliderContainer {
                 position: absolute;
                 border: 1px solid rgba(255, 0, 255, 0.25);
             }
@@ -109,6 +114,33 @@
             ]});
             derp.append();
             
+            var herp = new Circle({x: 250, y: 400});
+            herp.append();
+            
+            function Circle(data) {
+                this.type = "circle";
+                this.time = data.time;
+                this.newCombo = data.newCombo;
+                this.x = data.x;
+                this.y = data.y;
+                
+                this.append = function() {
+                    var containerDiv = document.createElement("div");
+                    containerDiv.className = "hitCircleContainer";
+                    containerDiv.style.left = (this.x * pixelRatio - halfCsPixel) + "px", containerDiv.style.top = (this.y * pixelRatio - halfCsPixel) + "px";
+                    
+                    var baseCanvas = document.createElement("canvas"); // Create local object canvas
+                    baseCanvas.setAttribute("width", csPixel);
+                    baseCanvas.setAttribute("height", csPixel);
+
+                    var ctx = baseCanvas.getContext("2d");
+                    drawCircle(ctx, 0, 0);
+
+                    containerDiv.appendChild(baseCanvas);
+                    objectContainerDom.appendChild(containerDiv);
+                }
+            }
+            
             function Slider(data) {
                 this.type = "slider";
                 this.time = data.time;
@@ -117,6 +149,8 @@
                 this.sections = data.sections;
                 this.repeat = data.repeat;
                 this.length = data.length;
+                
+                this.completion = 0; // experimental
                 
                 this.sliderPathPoints = [];
                 
@@ -204,16 +238,19 @@
                 //////////
                 
                 this.append = function() {
+                    var containerDiv = document.createElement("div");
+                    containerDiv.className = "sliderContainer";
+                    containerDiv.style.left = (this.minX - halfCsPixel) + "px", containerDiv.style.top = (this.minY - halfCsPixel) + "px";
+                    
                     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
                     
-                    var canvas = document.createElement("canvas"); // Create local object canvas
-                    canvas.setAttribute("width", sliderWidth + csPixel);
-                    canvas.setAttribute("height", sliderHeight + csPixel);
-                    canvas.className = "sliderCanvas";
-                    canvas.style.left = (this.minX - halfCsPixel) + "px", canvas.style.top = (this.minY - halfCsPixel) + "px";
+                    var baseCanvas = document.createElement("canvas"); // Create local object canvas
+                    baseCanvas.setAttribute("width", sliderWidth + csPixel);
+                    baseCanvas.setAttribute("height", sliderHeight + csPixel);
+                    
                     //canvas.style.display = "none";
 
-                    var ctx = canvas.getContext("2d");
+                    var ctx = baseCanvas.getContext("2d");
 
                     ctx.beginPath();
                     ctx.moveTo(this.sliderPathPoints[0].x - this.minX + halfCsPixel, this.sliderPathPoints[0].y - this.minY + halfCsPixel);
@@ -237,7 +274,39 @@
 
                     drawCircle(ctx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY);
 
-                    objectContainerDom.appendChild(canvas);
+                    containerDiv.appendChild(baseCanvas);
+                    
+                    var overlay = document.createElement("canvas");
+                    overlay.setAttribute("width", sliderWidth + csPixel);
+                    overlay.setAttribute("height", sliderHeight + csPixel);
+                    
+                    var overlayCtx = overlay.getContext("2d");
+                    
+                    updateOverlay.bind(this)();
+                    function updateOverlay() {
+                        overlayCtx.clearRect(0, 0, sliderWidth + csPixel, sliderHeight + csPixel);
+                        
+                        var t = osuweb.mathutil.reflect(this.completion);
+                        var actualIdx = t * (this.sliderPathPoints.length - 1);
+                        var lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
+                        var lowerPos = this.sliderPathPoints[lowerIdx];
+                        var upperPos = this.sliderPathPoints[upperIdx];
+
+                        var x = lowerPos.x * (1 - (actualIdx - lowerIdx)) + upperPos.x * (actualIdx - lowerIdx); // Linear interpolation between two points
+                        var y = lowerPos.y * (1 - (actualIdx - lowerIdx)) + upperPos.y * (actualIdx - lowerIdx);
+                        x = x - this.minX + halfCsPixel, y = y- this.minY + halfCsPixel;
+                        
+                        overlayCtx.beginPath();
+                        overlayCtx.arc(x, y, sliderBodyRadius, 0, Math.PI * 2);
+                        overlayCtx.fillStyle = "magenta";
+                        overlayCtx.fill();
+                        
+                        this.completion += 0.0025;
+                        requestAnimationFrame(updateOverlay.bind(this));
+                    }
+                    
+                    containerDiv.appendChild(overlay);
+                    objectContainerDom.appendChild(containerDiv);
                 }
             }
             

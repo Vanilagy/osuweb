@@ -516,6 +516,13 @@ osuweb.mathutil = {
         center.y = -1 * (center.x - (p1.x + p2.x) / 2) / aSlope + (p1.y + p2.y) / 2;
         
         return center;
+    },
+    reflect: function(val) {
+        if (Math.floor(val) % 2 == 0) {
+            return val - Math.floor(val);
+        } else {
+            return 1 - (val - Math.floor(val));
+        }
     }
 }
 
