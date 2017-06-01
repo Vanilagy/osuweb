@@ -1,7 +1,7 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var audioCtxTime = window.performance.now();
 
-var canvasCtx = document.getElementById("osuweb").getContext("2d");
+//var canvasCtx = document.getElementById("osuweb").getContext("2d");
 
 /*
 canvasCtx.canvas.width  = window.innerWidth - 2;
