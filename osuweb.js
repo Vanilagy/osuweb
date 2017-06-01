@@ -1,10 +1,10 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var audioCtxTime = window.performance.now();
 
-var canvasCtx = document.getElementById("osuweb").getContext("2d");
+/*var canvasCtx = document.getElementById("osuweb").getContext("2d");
 
 canvasCtx.canvas.width  = window.innerWidth - 2;
-canvasCtx.canvas.height = window.innerHeight - 2;
+canvasCtx.canvas.height = window.innerHeight - 2;*/
   
 var osuweb = {
 	version: "2017.05.29.0000",
@@ -30,9 +30,9 @@ class BeatmapSet {
 				continue;
 			}
 			
-			const regex = /\[([^\[^\]]+)]\.osu$/g;
-			const str = files[i].webkitRelativePath;
-			let m;
+			var regex = /\[([^\[^\]]+)]\.osu$/g;
+			var str = files[i].webkitRelativePath;
+			var m;
 
 			while ((m = regex.exec(str)) !== null) {
 				// This is necessary to avoid infinite loops with zero-width matches
@@ -41,7 +41,7 @@ class BeatmapSet {
 				}
 				
 				// The result can be accessed through the `m`-variable.
-				m.forEach((match, groupIndex) => {
+				m.forEach(function(match, groupIndex){
 					if(groupIndex == 1) {
 						this.difficulties[match] = files[i];
 					}
@@ -392,11 +392,15 @@ class Audio {
 	}
 }
 
-Audio.prototype.playAudio = function(time = 0) {
+Audio.prototype.playAudio = function(time) {
+    if (time == undefined) time = 0;
+    
     this.source.start(time);
 }
 	
-Audio.prototype.playAudioFromOffset = function(offset, time = 0) {
+Audio.prototype.playAudioFromOffset = function(offset, time) {
+    if (time == undefined) time = 0;
+    
     this.source.start(time, offset);
 }
 
@@ -404,7 +408,10 @@ Audio.prototype.setVolume = function(value) {
     this.gainNode.value = value;
 }
 
-Audio.prototype.setLoop = function(start = -1, end = -1) {
+Audio.prototype.setLoop = function(start, end) {
+    if (start == undefined) start = -1;
+    if (end == undefined) end = -1;
+    
 	this.source.loop = true;
 	this.source.loopStart = start == -1 ? 0 : start;
 	this.source.loopEnd = end == -1 ? this.duration : end;
