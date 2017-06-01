@@ -487,11 +487,22 @@ osuweb.graphics = {
 
 osuweb.mathutil = {
 	coordsOnBezier: function(pointArray, t) {
-		var bx = 0, by = 0, n = pointArray.length - 1;
-                
-        for(var i = 0; i <= n; i++) {
-            bx += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].x;
-            by += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].y;
+        var bx = 0, by = 0, n = pointArray.length - 1; // degree
+        
+        if (n == 1) { // if linear
+            bx = (1 - t) * pointArray[0].x + t * pointArray[1].x;
+            by = (1 - t) * pointArray[0].y + t * pointArray[1].y;
+        } else if (n == 2) { // if quadratic
+            bx = (1 - t) * (1 - t) * pointArray[0].x + 2 * (1 - t) * t * pointArray[1].x + t * t * pointArray[2].x;
+            by = (1 - t) * (1 - t) * pointArray[0].y + 2 * (1 - t) * t * pointArray[1].y + t * t * pointArray[2].y;
+        } else if (n == 3) { // if cubic
+            bx = (1 - t) * (1 - t) * (1 - t) * pointArray[0].x + 3 * (1 - t) * (1 - t) * t * pointArray[1].x + 3 * (1 - t) * t * t * pointArray[2].x + t * t * t * pointArray[3].x;
+            by = (1 - t) * (1 - t) * (1 - t) * pointArray[0].y + 3 * (1 - t) * (1 - t) * t * pointArray[1].y + 3 * (1 - t) * t * t * pointArray[2].y + t * t * t * pointArray[3].y;
+        } else {
+            for(var i = 0; i <= n; i++) {
+                bx += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].x;
+                by += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].y;
+            }
         }
 
         return {x: bx, y: by}
