@@ -74,7 +74,11 @@ BeatmapSet.prototype.selectDifficulty = function(difficultyFile, audioFiles, ima
 		}
 		
 		osuweb.file.loadFile(imageFile, function(e) {
-			$('body').attr('background-image', e);
+			var img = new Image;
+			img.onload = function(){
+			  canvasCtx.drawImage(img,0,0,img.width,img.height,0,0,canvasCtx.canvas.width,canvasCtx.canvas.height);
+			};
+			img.src = e.target.result;
 		});
 		
 		// find audio file
