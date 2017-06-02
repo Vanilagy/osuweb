@@ -20,6 +20,11 @@
             .hitCircleContainer {
                 position: absolute;
             }
+            .hitCircleContainer canvas {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+            }
             .sliderContainer canvas {
                 position: absolute;
                 top: 0px;
@@ -27,6 +32,10 @@
             }
             .sliderContainer {
                 position: absolute;
+            }
+            @keyframes closeApproachCircle {
+                from {transform: scale(3)}
+                to {transform: scale(1)}
             }
         </style>
     </head>
@@ -37,66 +46,39 @@
         
         <script src="js/osuweb.js"></script>
         <script>
-            var width = Math.floor(window.innerWidth * 0.5 / 4) * 4;
-            width = 800;
-            var height = width * 3 / 4;
+            var ratio = 3 / 4;
+            var width = Math.floor(window.innerWidth * 0.55 / 4) * 4;
+            var height = width * ratio;
             var playareaDom = document.getElementById("playarea");
             playareaDom.style.width = width, playareaDom.style.height = height;
             var objectContainerDom = document.getElementById("objectContainer");
             
-            var pixelRatio = width / 640;
+            var pixelRatio = width / osuweb.graphics.playAreaDimensions.x;
             var cs = 4;
-            var csPixel = Math.round((109 - 9 * cs) / 640 * width);
+            var csPixel = Math.round((109 - 9 * cs) / osuweb.graphics.playAreaDimensions.x * width);
             var halfCsPixel = csPixel / 2;
+            var marginWidth = (osuweb.graphics.playAreaDimensions.x - osuweb.graphics.coordinateDimensions.x) / 2;
+            var marginHeight = marginWidth * ratio;
+            
+            var ar = 0;
+            var arMs = 1800 - 135 * ar;
+            
             var PI2 = Math.PI * 2;
             var sliderTracePointDistance = 5;
             
-            function appendHitCircle(data) {
-                var x = data.x,
-                    y = data.y,
-                    color = "#3c3cdd";
-                
-                var canvas = document.createElement("canvas"); // Create local object canvas
-                canvas.setAttribute("width", csPixel);
-                canvas.setAttribute("height", csPixel);
-                canvas.className = "hitCircleCanvas";
-                canvas.style.left = (x * pixelRatio - halfCsPixel) + "px", canvas.style.top = (y * pixelRatio - halfCsPixel) + "px";
-                
-                var ctx = canvas.getContext("2d");
-                drawCircle(ctx, 0, 0);
-                
-                objectContainerDom.appendChild(canvas);
-            }
-            
             var derp = new Slider({sections: [
                 {
-                    sectionType: "bezier",
+                    sectionType: "circle",
                     points: [
-                        {x: 100, y: 100},
-                        {x: 300, y: 300},
-                        {x: 100, y: 390},
-                        {x: 400, y: 200}
-                    ]
-                },
-                {
-                    sectionType: "bezier",
-                    points: [
-                        {x: 400, y: 200},
-                        {x: 700, y: 310},
-                        {x: 400, y: 420},
-                    ]
-                },
-                {
-                    sectionType: "linear",
-                    points: [
-                        {x: 400, y: 420},
-                        {x: 210, y: 100}
+                        {x: 256, y: 117},
+                        {x: 282, y: 186},
+                        {x: 255, y: 117}
                     ]
                 }
             ]});
-            derp.append();
+            //derp.append();
             
-            var herp = new Circle({x: 250, y: 400});
+            var herp = new Circle({x: 256, y: 117});
             herp.append();
             
             function Circle(data) {
@@ -107,9 +89,13 @@
                 this.y = data.y;
                 
                 this.append = function() {
-                    var containerDiv = document.createElement("div");
-                    containerDiv.className = "hitCircleContainer";
-                    containerDiv.style.left = (this.x * pixelRatio - halfCsPixel) + "px", containerDiv.style.top = (this.y * pixelRatio - halfCsPixel) + "px";
+                    this.containerDiv = document.createElement("div");
+                    this.containerDiv.className = "hitCircleContainer";
+                    this.containerDiv.style.left = ((this.x + marginWidth) * pixelRatio - halfCsPixel) + "px", this.containerDiv.style.top = ((this.y + marginHeight) * pixelRatio - halfCsPixel) + "px";
+                    
+                    this.containerDiv.style.display = "none";
+                    this.containerDiv.style.opacity = 0;
+                    this.containerDiv.style.transition = "opacity " + (arMs / 1000 / 3) + "s linear";
                     
                     var baseCanvas = document.createElement("canvas"); // Create local object canvas
                     baseCanvas.setAttribute("width", csPixel);
@@ -117,9 +103,26 @@
 
                     var ctx = baseCanvas.getContext("2d");
                     drawCircle(ctx, 0, 0);
+                    
+                    this.approachCircleCanvas = document.createElement("canvas");
+                    this.approachCircleCanvas.setAttribute("width", csPixel);
+                    this.approachCircleCanvas.setAttribute("height", csPixel);
+                    
+                    var approachCtx = this.approachCircleCanvas.getContext("2d");
+                    drawApproachCircle(approachCtx, 0, 0);
 
-                    containerDiv.appendChild(baseCanvas);
-                    objectContainerDom.appendChild(containerDiv);
+                    this.containerDiv.appendChild(baseCanvas);
+                    this.containerDiv.appendChild(this.approachCircleCanvas);
+                    objectContainerDom.appendChild(this.containerDiv);
+                }
+                
+                this.show = function(offset) {
+                    this.containerDiv.style.display = "block";
+                    this.containerDiv.style.transition = "opacity " + ((arMs - offset) / 1000 / 3) + "s linear";
+                    setTimeout(function() {
+                        this.containerDiv.style.opacity = 1;
+                        this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + arMs / 1000 + "s";
+                    }.bind(this));
                 }
             }
             
@@ -145,7 +148,7 @@
                     this.maxY = Math.max(this.maxY, pos.y);
                 }
                 
-                var initialPointTracing = [],
+                var passedLength = 0,
                     minX, minY, maxX, maxY;
                 
                 if (this.sections[0].sectionType == "circle") {
@@ -234,12 +237,13 @@
                                     }
 
                                     if (midT < 1) {
-                                        pushPos.bind(this)(p3);
-                                        leftT = midT;
-                                        rightT = leftT + 0.01;
-                                        p1 = p3;
-                                        p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
+                                       pushPos.bind(this)(p3);
                                     }
+                                    
+                                    leftT = midT;
+                                    rightT = leftT + 0.01;
+                                    p1 = p3;
+                                    p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
                                     
                                     break;
                                 }
@@ -258,7 +262,7 @@
                 this.append = function() {
                     var containerDiv = document.createElement("div");
                     containerDiv.className = "sliderContainer";
-                    containerDiv.style.left = (this.minX - halfCsPixel) + "px", containerDiv.style.top = (this.minY - halfCsPixel) + "px";
+                    containerDiv.style.left = (this.minX - halfCsPixel) + marginWidth * pixelRatio + "px", containerDiv.style.top = (this.minY - halfCsPixel) + marginHeight * pixelRatio + "px";
                     
                     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
                     
@@ -356,6 +360,14 @@
                     context.fillStyle = "white";
                     context.fill();
                 }
+            }
+            
+            function drawApproachCircle(context, x, y) {
+                context.beginPath(); // Draw circle base (will become border)
+                context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * ((14.5 / 16) + 1) / 2, 0, PI2);
+                context.strokeStyle = "red";
+                context.lineWidth = halfCsPixel * 1.5 / 16;
+                context.stroke();
             }
         </script>
     </body>

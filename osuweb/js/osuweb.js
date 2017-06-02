@@ -488,7 +488,14 @@ osuweb.file = {
 }
 
 osuweb.graphics = {
-
+    coordinateDimensions: {
+        x: 512,
+        y: 384
+    },
+    playAreaDimensions: {
+        x: 640,
+        y: 480
+    }
 }
 
 osuweb.mathutil = {
