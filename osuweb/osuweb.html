@@ -1,6 +1,7 @@
 <html>
     <head>
         <title>Playarea</title>
+        <meta charset="utf-8">
         <style>
             body {
                 background: black;
@@ -44,7 +45,9 @@
             <div id="objectContainer"></div>
         </div>
         
+        <script src="js/jszip.min.js"></script>
         <script src="js/osuweb.js"></script>
+        
         <script>
             var ratio = 3 / 4;
             var width = Math.floor(window.innerWidth * 0.55 / 4) * 4;
@@ -61,7 +64,10 @@
             var marginHeight = marginWidth * ratio;
             
             var ar = 0;
-            var arMs = 1800 - 135 * ar;
+            var arMs = 1800 - 120 * ar;
+            if (ar > 5) {
+                arMs = 1950 - 150 * ar;
+            }
             
             var PI2 = Math.PI * 2;
             var sliderTracePointDistance = 4;
@@ -308,15 +314,13 @@
                     var containerDiv = document.createElement("div");
                     containerDiv.className = "sliderContainer";
                     containerDiv.style.left = (this.minX - halfCsPixel) + marginWidth * pixelRatio + "px", containerDiv.style.top = (this.minY - halfCsPixel) + marginHeight * pixelRatio + "px";
-                    containerDiv.style.display = "none";
+                    //containerDiv.style.display = "none";
                     
                     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
                     
                     var baseCanvas = document.createElement("canvas"); // Create local object canvas
                     baseCanvas.setAttribute("width", sliderWidth + csPixel);
                     baseCanvas.setAttribute("height", sliderHeight + csPixel);
-                    
-                    //canvas.style.display = "none";
 
                     var ctx = baseCanvas.getContext("2d");
 

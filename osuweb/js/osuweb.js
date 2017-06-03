@@ -15,586 +15,6 @@ var currentBeatmap = null;
 var currentAudio = null;
 var currentSkin = null;
 
-class BeatmapSet {
-	constructor(files) {
-		this.files = files;
-		this.audioFiles = [];
-		this.imageFiles = [];
-		this.difficulties = {};
-
-		for(var i = 0; i < files.length; i++) {
-			var filename = files[i].name.toLowerCase();
-
-			if(filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
-				this.audioFiles.push(files[i]);
-				continue;
-			}
-			if(filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
-				this.imageFiles.push(files[i]);
-				continue;
-			}
-
-			var regex = /\[([^\[^\]]+)]\.osu$/g;
-			var str = files[i].webkitRelativePath;
-			var m;
-
-			while ((m = regex.exec(str)) !== null) {
-				// This is necessary to avoid infinite loops with zero-width matches
-				if (m.index === regex.lastIndex) {
-					regex.lastIndex++;
-				}
-
-				// The result can be accessed through the `m`-variable.
-				m.forEach((function(match, groupIndex){
-					if(groupIndex == 1) {
-						this.difficulties[match] = files[i];
-					}
-				}).bind(this));
-			}
-		}
-
-		this.selectDifficulty(Object.values(this.difficulties)[0], this.audioFiles, this.imageFiles);
-	}
-}
-
-BeatmapSet.prototype.selectDifficulty = function(difficultyFile, audioFiles, imageFiles) {
-    currentBeatmap = new Beatmap(difficultyFile, function() {
-		// find background image if it exists
-		var imageFile = null;
-
-		for(var i = 0; i < currentBeatmap.events.length; i++) {
-			if(currentBeatmap.events[i].type == "image") {
-				var imageFileName = currentBeatmap.events[i].file;
-
-				for(var j = 0; j < imageFiles.length; j++) {
-					if(imageFiles[j].name == imageFileName) {
-						imageFile = imageFiles[j];
-						break;
-					}
-				}
-
-				break;
-			}
-		}
-
-		osuweb.file.loadFile(imageFile, function(e) {
-			var img = new Image;
-			img.onload = function(){
-			  canvasCtx.drawImage(img,0,0,img.width,img.height,0,0,canvasCtx.canvas.width,canvasCtx.canvas.height);
-			};
-			img.src = e.target.result;
-		});
-
-		// find audio file
-		var audioFile = null;
-
-		for(var i = 0; i < audioFiles.length; i++) {
-			if(audioFiles[i].name == currentBeatmap["audioFile"]) {
-				audioFile = audioFiles[i];
-				break;
-			}
-		}
-
-		osuweb.file.loadAudio(audioFile, (function(a) {
-			currentAudio = a;
-		}).bind(this), (function() {
-            currentAudio.playAudioFromOffsetWithLoop(0, currentBeatmap["previewTime"] / 1000.0, currentBeatmap["previewTime"] / 1000.0);
-        }).bind(this));
-	});
-}
-
-class Beatmap {
-	constructor(file, callback) {
-		var reader = new FileReader();
-		reader.onload = (function(e){
-			this.events = [];
-			this.timingPoints = [];
-			this.hitObjects = [];
-			this.colours = [];
-
-			var timingPointIndex = 0;
-
-		    var lines = e.target.result.split('\n');
-
-			var section = "header";
-			var eventType = "";
-
-		    for(var i = 0; i < lines.length; i++){
-		    	var line = lines[i].trim();
-
-				if(line == "") continue;
-
-		        if(line.startsWith("osu file format v") && !line.endsWith("14")) console.log("The beatmap version seems to be older than supported. We could run into issue here!");
-
-				if(line == "[General]") {
-					section = "general";
-					continue;
-				}
-				if(line == "[Metadata]") {
-					section = "metadata";
-					continue;
-				}
-				if(line == "[Difficulty]")  {
-					section = "difficulty";
-					continue;
-				}
-				if(line == "[Events]")  {
-					section = "events";
-					continue;
-				}
-				if(line == "[TimingPoints]")  {
-					section = "timing";
-					continue;
-				}
-				if(line == "[HitObjects]")  {
-					section = "hitObjects";
-					continue;
-				}
-				if(line == "[Colours]")  {
-					section = "colours";
-					continue;
-				}
-
-				if(section != "timing" && section != "hitObjects") {
-					if(line.startsWith("AudioFilename")) this.audioFile=line.split(':')[1].trim();
-					if(line.startsWith("AudioLeadIn")) this.audioLeadIn=parseInt(line.split(':')[1].trim(), 10);
-					if(line.startsWith("PreviewTime")) this.previewTime=parseInt(line.split(':')[1].trim(), 10);
-					if(line.startsWith("Countdown")) this.countdown=parseInt(line.split(':')[1].trim(), 10);
-					if(line.startsWith("SampleSet")) this.sampleSet=parseInt(line.split(':')[1].trim(), 10);
-					if(line.startsWith("StackLeniency")) this.stackLeniency=parseFloat(line.split(':')[1].trim());
-					if(line.startsWith("Mode")) this.mode=parseInt(line.split(':')[1].trim(), 10);
-					if(line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks=parseInt(line.split(':')[1].trim(), 10);
-					if(line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard=parseInt(line.split(':')[1].trim(), 10);
-
-					if(line.startsWith("Title")) this.title=line.split(':')[1].trim();
-					if(line.startsWith("TitleUnicode")) this.titleUnicode=line.split(':')[1].trim();
-					if(line.startsWith("Artist")) this.artist=line.split(':')[1].trim();
-					if(line.startsWith("ArtistUnicode")) this.artistUnicode=line.split(':')[1].trim();
-					if(line.startsWith("Creator")) this.creator=line.split(':')[1].trim();
-					if(line.startsWith("Version")) this.version=line.split(':')[1].trim();
-					if(line.startsWith("Source")) this.source=line.split(':')[1].trim();
-					if(line.startsWith("Tags")) this.tags=line.split(':')[1].trim();
-					if(line.startsWith("BeatmapID")) this.beatmapID=line.split(':')[1].trim();
-					if(line.startsWith("BeatmapSetID")) this.beatmapSetID=line.split(':')[1].trim();
-
-					if(line.startsWith("HPDrainRate")) this.HP=line.split(':')[1].trim();
-					if(line.startsWith("CircleSize")) this.CS=line.split(':')[1].trim();
-					if(line.startsWith("OverallDifficulty")) this.OD=line.split(':')[1].trim();
-					if(line.startsWith("ApproachRate")) this.AR=line.split(':')[1].trim();
-					if(line.startsWith("SliderMultiplier")) this.SV=line.split(':')[1].trim();
-					if(line.startsWith("SliderTickRate")) this.sliderTickRate=line.split(':')[1].trim();
-				}
-				if(section == "colours") {
-					var col = line.split(':')[1].trim().split(',');
-
-					this.colours.push({
-						r: col[0],
-						g: col[1],
-						b: col[2],
-					});
-				}
-				if(section == "timing") {
-					var values = line.split(',');
-
-					this.timingPoints.push({
-                        index: timingPointIndex++,
-						offset: parseInt(values[0], 10),
-						msPerBeat: parseFloat(values[1]),
-						BPM: parseFloat(values[1]) > 0 ? 60000/values[1] : -1,
-						meter: parseInt(values[2], 10),
-						sampleType: parseInt(values[3], 10),
-						sampleSet: parseInt(values[4], 10),
-						volume: parseInt(values[5], 10),
-						inherited: parseFloat(values[1]) < 0,
-						kiai: parseInt(values[7], 10),
-					});
-				}
-				if(section == "events") {
-					if(line.startsWith("//")) continue;
-
-					var values = line.split(',');
-
-					switch(values[0]) {
-						case "0":
-							this.events.push({
-								type: "image",
-								time: parseInt(values[1], 10),
-								file: values[2].substring(1,values[2].length - 1),
-								x: parseInt(values[3], 10),
-								y: parseInt(values[4], 10)
-							});
-							break;
-						case "2":
-							this.events.push({
-								type: "break",
-								start: parseInt(values[1], 10),
-								end: parseInt(values[2], 10)
-							});
-							break;
-					}
-
-
-				}
-				if(section == "hitObjects") {
-					var values = line.split(',');
-					// circle
-					if(values[3] == "1" || values[3] == "5") {
-						var circle = {
-							type: "circle",
-							newCombo: values[3] == "5",
-							x: parseInt(values[0], 10),
-							y: parseInt(values[1], 10),
-							time: parseInt(values[2], 10),
-							hitSound: parseInt(values[4], 10),
-						};
-
-						// samplings
-						var SamplingValues = values[5].split(':');
-
-						circle["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
-
-						this.hitObjects.push(circle);
-					}
-					// slider
-					else if(values[3] == "2" || values[3] == "6") {
-						var sliderPoints = values[5].split("|");
-
-						var sliderType = sliderPoints[0];
-
-						var sliderSections = [];
-
-						var sliderSectionPoints = [];
-
-						var lastPoint = null;
-
-						for(var j = 1; j < sliderPoints.length; j++) {
-							var coords = sliderPoints[j].split(':');
-
-							if(j == 0) {
-								// add first point
-								sliderSectionPoints.push({x: parseInt(values[0], 10), y: parseInt(values[1], 10)});
-							}
-
-							var nextPoint = {x: parseInt(coords[0], 10), y: parseInt(coords[1], 10)};
-
-							sliderSectionPoints.push(nextPoint);
-
-							// end section if same point appears twice and start a new one if end is not reached
-							if(JSON.stringify(lastPoint) === JSON.stringify(nextPoint) || j + 1 == sliderPoints.length) {
-								if(sliderPoints.length == 3 && sliderSectionPoints.length == 3 && sliderType == "P") {
-									var sectionType = "circle";
-								}
-								else if(sliderSectionPoints.length == 2) {
-									var sectionType = "linear";
-								}
-								else {
-									var sectionType = "bezier";
-								}
-
-								sliderSections.push({type: sectionType, values: sliderSectionPoints});
-
-								sliderSectionPoints = [];
-								sliderSectionPoints.push(nextPoint);
-							}
-
-							lastPoint = nextPoint;
-						}
-
-						var slider = {
-							type: "slider",
-							newCombo: values[3] == "6",
-							x: parseInt(values[0], 10),
-							y: parseInt(values[1], 10),
-							time: parseInt(values[2], 10),
-							hitSound: parseInt(values[4], 10),
-							sections: sliderSections,
-							repeat: parseInt(values[6], 10),
-							length: parseFloat(values[7])
-						};
-
-						if(values.length > 8) {
-							// edgeAdditions
-							var additionsValuesRaw = values[8].split('|');
-
-							var additions = [];
-
-							for(var j = 0; j < additionsValuesRaw; j++) {
-								additions.push(parseInt(additionsValuesRaw[j], 10));
-							}
-
-							slider["additions"] = additions;
-
-							// edge samplings
-							var edgeSamplings = [];
-
-							var splitEdgeSampleSetsRaw = values[9].split('|');
-
-							for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
-								var val = splitEdgeSampleSetsRaw[j].split(':');
-
-								edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
-							}
-
-							slider["edgeSamplings"] = edgeSamplings;
-
-							// body samplings
-							var sliderBodySamplingValues = values[10].split(':');
-
-							slider["bodySamplings"] = {sampleSet: parseInt(sliderBodySamplingValues[0], 10), sampleSetAddition: parseInt(sliderBodySamplingValues[1], 10)};
-						}
-
-						this.hitObjects.push(slider);
-					}
-					// spinner
-					else if(values[3] == "8" || values[3] == "12") {
-						var spinner = {
-							type: "spinner",
-							newCombo: values[3] == "12",
-							x: parseInt(values[0], 10),
-							y: parseInt(values[1], 10),
-							time: parseInt(values[2], 10),
-							hitSound: parseInt(values[4], 10),
-							endTime: parseInt(values[5], 10),
-						};
-
-						// samplings
-						var SamplingValues = values[6].split(':');
-
-						spinner["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
-
-						this.hitObjects.push(spinner);
-					}
-				}
-		    }
-
-			callback();
-		}).bind(this);
-		reader.readAsText(file);
-	}
-}
-
-Beatmap.prototype.getNextNonInheritedTimingPoint = function(num) {
-    for(let i = num + 1; i < this.timingPoints.length; i++) {
-        if(!this.timingPoints[i].inherited) return this.timingPoints[i];
-    }
-
-    return null;
-}
-
-class Play {
-	constructor(beatmap, audio) {
-        this.audio = audio;
-        this.beatmap = beatmap;
-
-        this.audioStartTime = 0;
-        this.audioCurrentTime = 0;
-        this.currentMsPerBeat = 0;
-        this.metronome = null;
-        this.nextMetronome = null;
-        this.metronomeRunning = false;
-        this.currentTimingPoint = 0;
-
-        this.loop = new interval(1, (function() {
-            let time = osuweb.util.getHighResolutionContextTime();
-
-            if(this.audioStartTime <= time) {
-                this.audioCurrentTime = time - this.audioStartTime;
-
-                let nextNonInheritedTimingPoint = this.beatmap.getNextNonInheritedTimingPoint(this.currentTimingPoint);
-
-                if(this.nextMetronome == null && nextNonInheritedTimingPoint != null) {
-                    this.nextMetronome = new interval(nextNonInheritedTimingPoint.msPerBeat, this.metronomeTick.bind(this), this.audioStartTime + nextNonInheritedTimingPoint.offset);
-                }
-
-                if(this.metronome != null && !this.metronomeRunning && this.audioCurrentTime >= this.metronomeStart) {
-                    this.metronome.run();
-                    this.metronomeRunning = true;
-                }
-
-                else if(nextNonInheritedTimingPoint != null) {
-                    if(nextNonInheritedTimingPoint.offset <= this.audioCurrentTime) {
-                        this.currentTimingPoint = nextNonInheritedTimingPoint.index;
-                        this.currentMsPerBeat = nextNonInheritedTimingPoint.msPerBeat;
-                        console.log("MsPerBeat: "+this.currentMsPerBeat);
-
-                        this.metronome.stop();
-                        this.metronome = this.nextMetronome;
-                        this.nextMetronome = null;
-                        this.metronome.run();
-                    }
-                }
-            }
-        }).bind(this));
-	}
-}
-
-Play.prototype.metronomeTick = function() {
-    currentSkin.skinElements["normal-hitnormal"].playAudio(0);
-}
-
-Play.prototype.start = function() {
-    // stop running song
-    if(currentAudio != null) {
-        if(currentAudio.isRunning()) currentAudio.stop();
-        currentAudio = null;
-    }
-
-    // metronome start
-    this.metronomeStart = this.beatmap.timingPoints[0].offset
-    this.currentMsPerBeat = parseFloat(this.beatmap.timingPoints[0].msPerBeat);
-    console.log("MsPerBeat: "+this.currentMsPerBeat);
-
-    this.metronome = new interval(this.currentMsPerBeat, this.metronomeTick.bind(this));
-
-    this.audioStartTime = this.beatmap.audioLeadIn + osuweb.util.getHighResolutionContextTime();
-
-    currentAudio = this.audio;
-    this.audio.playAudio(0);
-
-    this.loop.run();
-}
-
-class Audio {
-	constructor(arrayBuffer, callback, bufferCount) {
-        this.gainNode = audioCtx.createGain();
-        this.gainNode.connect(audioCtx.destination);
-        this.buffer = null;
-        this.duration = arrayBuffer.duration;
-        this.creationCallback = callback;
-
-        if(bufferCount == undefined) bufferCount = 2;
-        this.sourceNodes = new Array(bufferCount);
-        this.currentNodeNumber = -1;
-        this.nextNodeNumber = 0;
-
-        audioCtx.decodeAudioData(arrayBuffer, (function(buffer) {
-            this.buffer = buffer;
-            this.duration = buffer.duration;
-
-            for(let i = 0; i < bufferCount; i++) {
-                this.createNode(i);
-            }
-        }).bind(this), this.onError);
-
-	}
-}
-
-Audio.prototype.createNode = function(index) {
-    let i = index;
-
-    this.sourceNodes[index] = audioCtx.createBufferSource();
-    this.sourceNodes[index].buffer = this.buffer;
-    // Recreate node on end
-    this.sourceNodes[index].onended = (function(e) {
-        this.currentNodeNumber = -1;
-        this.sourceNodes[index].disconnect();
-        this.createNode(i);
-    }).bind(this);
-
-    if(this.creationCallback != undefined && this.creationCallback != null) {
-        this.creationCallback();
-
-        this.creationCallback = null;
-    }
-}
-
-Audio.prototype.isRunning = function() {
-    return this.currentNodeNumber != -1;
-}
-
-Audio.prototype.playAudio = function(time) {
-    if (time == undefined) time = 0;
-
-    this.playAudioFromOffset(0, time);
-}
-
-Audio.prototype.playAudioFromOffset = function(time, offset) {
-    this.playAudioFromOffsetWithLoop(time, offset, -1, -1);
-}
-
-Audio.prototype.playAudioFromOffsetWithLoop = function(time, offset, loopStart, loopEnd) {
-    console.log(this.nextNodeNumber);
-
-    let enableLoop = false;
-
-    if(loopStart != undefined && loopStart != -1) {
-        this.sourceNodes[this.nextNodeNumber].loopStart = loopStart;
-        enableLoop = true;
-    }
-    if(loopEnd != undefined && loopEnd != -1) {
-        this.sourceNodes[this.nextNodeNumber].loopEnd = loopEnd;
-        enableLoop = true;
-    }
-
-    this.sourceNodes[this.nextNodeNumber].loop = enableLoop;
-
-    this.sourceNodes[this.nextNodeNumber].connect(this.gainNode);
-    this.sourceNodes[this.nextNodeNumber].start(time, Math.max(offset, 0));
-
-    this.currentNodeNumber = this.nextNodeNumber++;
-    this.nextNodeNumber %= this.sourceNodes.length;
-}
-
-Audio.prototype.stop = function(time) {
-    if (time == undefined) time = 0;
-
-    if(this.currentNodeNumber >= 0) {
-        this.sourceNodes[this.currentNodeNumber].stop(time);
-        this.sourceNodes[this.currentNodeNumber].disconnect();
-    }
-}
-
-Audio.prototype.setVolume = function(value) {
-    this.gainNode.value = value;
-}
-
-Audio.prototype.onError = function(err) {
-
-}
-
-class Skin {
-    constructor(oskOrDirectory) {
-        this.skinElements = {};
-
-        if (Object.prototype.toString.call(oskOrDirectory) === '[object Array]') {
-            alert('Array!');
-        }
-        // We're getting a skin file bois!
-        else {
-            zip.loadAsync(oskOrDirectory).then((function (zip) {
-                for(var key in zip.files) {
-                    // Get our keyname from filename
-                    let rawFileName = key.replace(/\.[^/.]+$/, "");
-
-                    // Determine how to read this entry
-                    let output = "string";
-
-                    if(key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) output = "arraybuffer";
-                    if(key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) output = "base64";
-
-                    zip.file(key).async(output).then((function(result) {
-                        if(output == "arraybuffer") {
-                            try {
-                                if(result.byteLength > 0) {
-                                    this.skinElements[rawFileName] = new Audio(result, function(){}, 5);
-                                }
-                            }
-                            catch(e) {
-                                console.log(rawFileName);
-                            }
-                        }
-                        else {
-                            this.skinElements[rawFileName] = result;
-                        }
-                    }).bind(this), (function(fuckme) {
-                        console.log(fuckme);
-                    }).bind(this));
-                }
-            }).bind(this));
-        }
-    }
-}
-
 var osuweb = {
     version: "2017.05.29.0000",
     versionType: "alpha",
@@ -748,6 +168,575 @@ osuweb.util = {
 	getHighResolutionContextTime: function() {
 		return window.performance.now() - audioCtxTime;
 	}
+}
+
+function BeatmapSet(files) {
+    this.files = files;
+    this.audioFiles = [];
+    this.imageFiles = [];
+    this.difficulties = {};
+
+    for(var i = 0; i < files.length; i++) {
+        var filename = files[i].name.toLowerCase();
+
+        if(filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
+            this.audioFiles.push(files[i]);
+            continue;
+        }
+        if(filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
+            this.imageFiles.push(files[i]);
+            continue;
+        }
+
+        var regex = /\[([^\[^\]]+)]\.osu$/g;
+        var str = files[i].webkitRelativePath;
+        var m;
+
+        while ((m = regex.exec(str)) !== null) {
+            // This is necessary to avoid infinite loops with zero-width matches
+            if (m.index === regex.lastIndex) {
+                regex.lastIndex++;
+            }
+
+            // The result can be accessed through the `m`-variable.
+            m.forEach((function(match, groupIndex){
+                if(groupIndex == 1) {
+                    this.difficulties[match] = files[i];
+                }
+            }).bind(this));
+        }
+    }
+
+    this.selectDifficulty(Object.values(this.difficulties)[0], this.audioFiles, this.imageFiles);
+}
+
+BeatmapSet.prototype.selectDifficulty = function(difficultyFile, audioFiles, imageFiles) {
+    currentBeatmap = new Beatmap(difficultyFile, function() {
+		// find background image if it exists
+		var imageFile = null;
+
+		for(var i = 0; i < currentBeatmap.events.length; i++) {
+			if(currentBeatmap.events[i].type == "image") {
+				var imageFileName = currentBeatmap.events[i].file;
+
+				for(var j = 0; j < imageFiles.length; j++) {
+					if(imageFiles[j].name == imageFileName) {
+						imageFile = imageFiles[j];
+						break;
+					}
+				}
+
+				break;
+			}
+		}
+
+		osuweb.file.loadFile(imageFile, function(e) {
+			var img = new Image;
+			img.onload = function(){
+			  canvasCtx.drawImage(img,0,0,img.width,img.height,0,0,canvasCtx.canvas.width,canvasCtx.canvas.height);
+			};
+			img.src = e.target.result;
+		});
+
+		// find audio file
+		var audioFile = null;
+
+		for(var i = 0; i < audioFiles.length; i++) {
+			if(audioFiles[i].name == currentBeatmap["audioFile"]) {
+				audioFile = audioFiles[i];
+				break;
+			}
+		}
+
+		osuweb.file.loadAudio(audioFile, (function(a) {
+			currentAudio = a;
+		}).bind(this), (function() {
+            currentAudio.playAudioFromOffsetWithLoop(0, currentBeatmap["previewTime"] / 1000.0, currentBeatmap["previewTime"] / 1000.0);
+        }).bind(this));
+	});
+}
+
+function Beatmap(file, callback) {
+    var reader = new FileReader();
+    reader.onload = (function(e){
+        this.events = [];
+        this.timingPoints = [];
+        this.hitObjects = [];
+        this.colours = [];
+
+        var timingPointIndex = 0;
+
+        var lines = e.target.result.split('\n');
+
+        var section = "header";
+        var eventType = "";
+
+        for(var i = 0; i < lines.length; i++){
+            var line = lines[i].trim();
+
+            if(line == "") continue;
+
+            if(line.startsWith("osu file format v") && !line.endsWith("14")) console.log("The beatmap version seems to be older than supported. We could run into issue here!");
+
+            if(line == "[General]") {
+                section = "general";
+                continue;
+            }
+            if(line == "[Metadata]") {
+                section = "metadata";
+                continue;
+            }
+            if(line == "[Difficulty]")  {
+                section = "difficulty";
+                continue;
+            }
+            if(line == "[Events]")  {
+                section = "events";
+                continue;
+            }
+            if(line == "[TimingPoints]")  {
+                section = "timing";
+                continue;
+            }
+            if(line == "[HitObjects]")  {
+                section = "hitObjects";
+                continue;
+            }
+            if(line == "[Colours]")  {
+                section = "colours";
+                continue;
+            }
+
+            if(section != "timing" && section != "hitObjects") {
+                if(line.startsWith("AudioFilename")) this.audioFile=line.split(':')[1].trim();
+                if(line.startsWith("AudioLeadIn")) this.audioLeadIn=parseInt(line.split(':')[1].trim(), 10);
+                if(line.startsWith("PreviewTime")) this.previewTime=parseInt(line.split(':')[1].trim(), 10);
+                if(line.startsWith("Countdown")) this.countdown=parseInt(line.split(':')[1].trim(), 10);
+                if(line.startsWith("SampleSet")) this.sampleSet=parseInt(line.split(':')[1].trim(), 10);
+                if(line.startsWith("StackLeniency")) this.stackLeniency=parseFloat(line.split(':')[1].trim());
+                if(line.startsWith("Mode")) this.mode=parseInt(line.split(':')[1].trim(), 10);
+                if(line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks=parseInt(line.split(':')[1].trim(), 10);
+                if(line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard=parseInt(line.split(':')[1].trim(), 10);
+
+                if(line.startsWith("Title")) this.title=line.split(':')[1].trim();
+                if(line.startsWith("TitleUnicode")) this.titleUnicode=line.split(':')[1].trim();
+                if(line.startsWith("Artist")) this.artist=line.split(':')[1].trim();
+                if(line.startsWith("ArtistUnicode")) this.artistUnicode=line.split(':')[1].trim();
+                if(line.startsWith("Creator")) this.creator=line.split(':')[1].trim();
+                if(line.startsWith("Version")) this.version=line.split(':')[1].trim();
+                if(line.startsWith("Source")) this.source=line.split(':')[1].trim();
+                if(line.startsWith("Tags")) this.tags=line.split(':')[1].trim();
+                if(line.startsWith("BeatmapID")) this.beatmapID=line.split(':')[1].trim();
+                if(line.startsWith("BeatmapSetID")) this.beatmapSetID=line.split(':')[1].trim();
+
+                if(line.startsWith("HPDrainRate")) this.HP=line.split(':')[1].trim();
+                if(line.startsWith("CircleSize")) this.CS=line.split(':')[1].trim();
+                if(line.startsWith("OverallDifficulty")) this.OD=line.split(':')[1].trim();
+                if(line.startsWith("ApproachRate")) this.AR=line.split(':')[1].trim();
+                if(line.startsWith("SliderMultiplier")) this.SV=line.split(':')[1].trim();
+                if(line.startsWith("SliderTickRate")) this.sliderTickRate=line.split(':')[1].trim();
+            }
+            if(section == "colours") {
+                var col = line.split(':')[1].trim().split(',');
+
+                this.colours.push({
+                    r: col[0],
+                    g: col[1],
+                    b: col[2],
+                });
+            }
+            if(section == "timing") {
+                var values = line.split(',');
+
+                this.timingPoints.push({
+                    index: timingPointIndex++,
+                    offset: parseInt(values[0], 10),
+                    msPerBeat: parseFloat(values[1]),
+                    BPM: parseFloat(values[1]) > 0 ? 60000/values[1] : -1,
+                    meter: parseInt(values[2], 10),
+                    sampleType: parseInt(values[3], 10),
+                    sampleSet: parseInt(values[4], 10),
+                    volume: parseInt(values[5], 10),
+                    inherited: parseFloat(values[1]) < 0,
+                    kiai: parseInt(values[7], 10),
+                });
+            }
+            if(section == "events") {
+                if(line.startsWith("//")) continue;
+
+                var values = line.split(',');
+
+                switch(values[0]) {
+                    case "0":
+                        this.events.push({
+                            type: "image",
+                            time: parseInt(values[1], 10),
+                            file: values[2].substring(1,values[2].length - 1),
+                            x: parseInt(values[3], 10),
+                            y: parseInt(values[4], 10)
+                        });
+                        break;
+                    case "2":
+                        this.events.push({
+                            type: "break",
+                            start: parseInt(values[1], 10),
+                            end: parseInt(values[2], 10)
+                        });
+                        break;
+                }
+
+
+            }
+            if(section == "hitObjects") {
+                var values = line.split(',');
+                // circle
+                if(values[3] == "1" || values[3] == "5") {
+                    var circle = {
+                        type: "circle",
+                        newCombo: values[3] == "5",
+                        x: parseInt(values[0], 10),
+                        y: parseInt(values[1], 10),
+                        time: parseInt(values[2], 10),
+                        hitSound: parseInt(values[4], 10),
+                    };
+
+                    // samplings
+                    var SamplingValues = values[5].split(':');
+
+                    circle["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
+
+                    this.hitObjects.push(circle);
+                }
+                // slider
+                else if(values[3] == "2" || values[3] == "6") {
+                    var sliderPoints = values[5].split("|");
+
+                    var sliderType = sliderPoints[0];
+
+                    var sliderSections = [];
+
+                    var sliderSectionPoints = [];
+
+                    var lastPoint = null;
+
+                    for(var j = 1; j < sliderPoints.length; j++) {
+                        var coords = sliderPoints[j].split(':');
+
+                        if(j == 0) {
+                            // add first point
+                            sliderSectionPoints.push({x: parseInt(values[0], 10), y: parseInt(values[1], 10)});
+                        }
+
+                        var nextPoint = {x: parseInt(coords[0], 10), y: parseInt(coords[1], 10)};
+
+                        sliderSectionPoints.push(nextPoint);
+
+                        // end section if same point appears twice and start a new one if end is not reached
+                        if(JSON.stringify(lastPoint) === JSON.stringify(nextPoint) || j + 1 == sliderPoints.length) {
+                            if(sliderPoints.length == 3 && sliderSectionPoints.length == 3 && sliderType == "P") {
+                                var sectionType = "circle";
+                            }
+                            else if(sliderSectionPoints.length == 2) {
+                                var sectionType = "linear";
+                            }
+                            else {
+                                var sectionType = "bezier";
+                            }
+
+                            sliderSections.push({type: sectionType, values: sliderSectionPoints});
+
+                            sliderSectionPoints = [];
+                            sliderSectionPoints.push(nextPoint);
+                        }
+
+                        lastPoint = nextPoint;
+                    }
+
+                    var slider = {
+                        type: "slider",
+                        newCombo: values[3] == "6",
+                        x: parseInt(values[0], 10),
+                        y: parseInt(values[1], 10),
+                        time: parseInt(values[2], 10),
+                        hitSound: parseInt(values[4], 10),
+                        sections: sliderSections,
+                        repeat: parseInt(values[6], 10),
+                        length: parseFloat(values[7])
+                    };
+
+                    if(values.length > 8) {
+                        // edgeAdditions
+                        var additionsValuesRaw = values[8].split('|');
+
+                        var additions = [];
+
+                        for(var j = 0; j < additionsValuesRaw; j++) {
+                            additions.push(parseInt(additionsValuesRaw[j], 10));
+                        }
+
+                        slider["additions"] = additions;
+
+                        // edge samplings
+                        var edgeSamplings = [];
+
+                        var splitEdgeSampleSetsRaw = values[9].split('|');
+
+                        for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
+                            var val = splitEdgeSampleSetsRaw[j].split(':');
+
+                            edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
+                        }
+
+                        slider["edgeSamplings"] = edgeSamplings;
+
+                        // body samplings
+                        var sliderBodySamplingValues = values[10].split(':');
+
+                        slider["bodySamplings"] = {sampleSet: parseInt(sliderBodySamplingValues[0], 10), sampleSetAddition: parseInt(sliderBodySamplingValues[1], 10)};
+                    }
+
+                    this.hitObjects.push(slider);
+                }
+                // spinner
+                else if(values[3] == "8" || values[3] == "12") {
+                    var spinner = {
+                        type: "spinner",
+                        newCombo: values[3] == "12",
+                        x: parseInt(values[0], 10),
+                        y: parseInt(values[1], 10),
+                        time: parseInt(values[2], 10),
+                        hitSound: parseInt(values[4], 10),
+                        endTime: parseInt(values[5], 10),
+                    };
+
+                    // samplings
+                    var SamplingValues = values[6].split(':');
+
+                    spinner["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
+
+                    this.hitObjects.push(spinner);
+                }
+            }
+        }
+
+        callback();
+    }).bind(this);
+    reader.readAsText(file);
+}
+
+Beatmap.prototype.getNextNonInheritedTimingPoint = function(num) {
+    for(var i = num + 1; i < this.timingPoints.length; i++) {
+        if(!this.timingPoints[i].inherited) return this.timingPoints[i];
+    }
+
+    return null;
+}
+
+function Play(beatmap, audio) {
+    this.audio = audio;
+    this.beatmap = beatmap;
+
+    this.audioStartTime = 0;
+    this.audioCurrentTime = 0;
+    this.currentMsPerBeat = 0;
+    this.metronome = null;
+    this.nextMetronome = null;
+    this.metronomeRunning = false;
+    this.currentTimingPoint = 0;
+
+    this.loop = new interval(1, (function() {
+        var time = osuweb.util.getHighResolutionContextTime();
+
+        if(this.audioStartTime <= time) {
+            this.audioCurrentTime = time - this.audioStartTime;
+
+            var nextNonInheritedTimingPoint = this.beatmap.getNextNonInheritedTimingPoint(this.currentTimingPoint);
+
+            if(this.nextMetronome == null && nextNonInheritedTimingPoint != null) {
+                this.nextMetronome = new interval(nextNonInheritedTimingPoint.msPerBeat, this.metronomeTick.bind(this), this.audioStartTime + nextNonInheritedTimingPoint.offset);
+            }
+
+            if(this.metronome != null && !this.metronomeRunning && this.audioCurrentTime >= this.metronomeStart) {
+                this.metronome.run();
+                this.metronomeRunning = true;
+            }
+
+            else if(nextNonInheritedTimingPoint != null) {
+                if(nextNonInheritedTimingPoint.offset <= this.audioCurrentTime) {
+                    this.currentTimingPoint = nextNonInheritedTimingPoint.index;
+                    this.currentMsPerBeat = nextNonInheritedTimingPoint.msPerBeat;
+                    console.log("MsPerBeat: "+this.currentMsPerBeat);
+
+                    this.metronome.stop();
+                    this.metronome = this.nextMetronome;
+                    this.nextMetronome = null;
+                    this.metronome.run();
+                }
+            }
+        }
+    }).bind(this));
+}
+
+Play.prototype.metronomeTick = function() {
+    currentSkin.skinElements["normal-hitnormal"].playAudio(0);
+}
+
+Play.prototype.start = function() {
+    // stop running song
+    if(currentAudio != null) {
+        if(currentAudio.isRunning()) currentAudio.stop();
+        currentAudio = null;
+    }
+
+    // metronome start
+    this.metronomeStart = this.beatmap.timingPoints[0].offset
+    this.currentMsPerBeat = parseFloat(this.beatmap.timingPoints[0].msPerBeat);
+    console.log("MsPerBeat: "+this.currentMsPerBeat);
+
+    this.metronome = new interval(this.currentMsPerBeat, this.metronomeTick.bind(this));
+
+    this.audioStartTime = this.beatmap.audioLeadIn + osuweb.util.getHighResolutionContextTime();
+
+    currentAudio = this.audio;
+    this.audio.playAudio(0);
+
+    this.loop.run();
+}
+
+function Audio(arrayBuffer, callback, bufferCount) {
+    this.gainNode = audioCtx.createGain();
+    this.gainNode.connect(audioCtx.destination);
+    this.buffer = null;
+    this.duration = arrayBuffer.duration;
+    this.creationCallback = callback;
+
+    if(bufferCount == undefined) bufferCount = 2;
+    this.sourceNodes = new Array(bufferCount);
+    this.currentNodeNumber = -1;
+    this.nextNodeNumber = 0;
+
+    audioCtx.decodeAudioData(arrayBuffer, (function(buffer) {
+        this.buffer = buffer;
+        this.duration = buffer.duration;
+
+        for(var i = 0; i < bufferCount; i++) {
+            this.createNode(i);
+        }
+    }).bind(this), this.onError);
+}
+
+Audio.prototype.createNode = function(index) {
+    var i = index;
+
+    this.sourceNodes[index] = audioCtx.createBufferSource();
+    this.sourceNodes[index].buffer = this.buffer;
+    // Recreate node on end
+    this.sourceNodes[index].onended = (function(e) {
+        this.currentNodeNumber = -1;
+        this.sourceNodes[index].disconnect();
+        this.createNode(i);
+    }).bind(this);
+
+    if(this.creationCallback != undefined && this.creationCallback != null) {
+        this.creationCallback();
+
+        this.creationCallback = null;
+    }
+}
+
+Audio.prototype.isRunning = function() {
+    return this.currentNodeNumber != -1;
+}
+
+Audio.prototype.playAudio = function(time) {
+    if (time == undefined) time = 0;
+
+    this.playAudioFromOffset(0, time);
+}
+
+Audio.prototype.playAudioFromOffset = function(time, offset) {
+    this.playAudioFromOffsetWithLoop(time, offset, -1, -1);
+}
+
+Audio.prototype.playAudioFromOffsetWithLoop = function(time, offset, loopStart, loopEnd) {
+    console.log(this.nextNodeNumber);
+
+    var enableLoop = false;
+
+    if(loopStart != undefined && loopStart != -1) {
+        this.sourceNodes[this.nextNodeNumber].loopStart = loopStart;
+        enableLoop = true;
+    }
+    if(loopEnd != undefined && loopEnd != -1) {
+        this.sourceNodes[this.nextNodeNumber].loopEnd = loopEnd;
+        enableLoop = true;
+    }
+
+    this.sourceNodes[this.nextNodeNumber].loop = enableLoop;
+
+    this.sourceNodes[this.nextNodeNumber].connect(this.gainNode);
+    this.sourceNodes[this.nextNodeNumber].start(time, Math.max(offset, 0));
+
+    this.currentNodeNumber = this.nextNodeNumber++;
+    this.nextNodeNumber %= this.sourceNodes.length;
+}
+
+Audio.prototype.stop = function(time) {
+    if (time == undefined) time = 0;
+
+    if(this.currentNodeNumber >= 0) {
+        this.sourceNodes[this.currentNodeNumber].stop(time);
+        this.sourceNodes[this.currentNodeNumber].disconnect();
+    }
+}
+
+Audio.prototype.setVolume = function(value) {
+    this.gainNode.value = value;
+}
+
+Audio.prototype.onError = function(err) {
+
+}
+
+function Skin(oskOrDirectory) {
+    this.skinElements = {};
+
+    if (Object.prototype.toString.call(oskOrDirectory) === '[object Array]') {
+        alert('Array!');
+    }
+    // We're getting a skin file bois!
+    else {
+        zip.loadAsync(oskOrDirectory).then((function (zip) {
+            for(var key in zip.files) {
+                // Get our keyname from filename
+                var rawFileName = key.replace(/\.[^/.]+$/, "");
+
+                // Determine how to read this entry
+                var output = "string";
+
+                if(key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) output = "arraybuffer";
+                if(key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) output = "base64";
+
+                zip.file(key).async(output).then((function(result) {
+                    if(output == "arraybuffer") {
+                        try {
+                            if(result.byteLength > 0) {
+                                this.skinElements[rawFileName] = new Audio(result, function(){}, 5);
+                            }
+                        }
+                        catch(e) {
+                            console.log(rawFileName);
+                        }
+                    }
+                    else {
+                        this.skinElements[rawFileName] = result;
+                    }
+                }).bind(this), (function(fuckme) {
+                    console.log(fuckme);
+                }).bind(this));
+            }
+        }).bind(this));
+    }
 }
 
 function interval(duration, fn, baseline){
