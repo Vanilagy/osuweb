@@ -1,7 +1,7 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var audioCtxTime = window.performance.now();
 
-//var canvasCtx = document.getElementById("osuweb").getContext("2d");
+var canvasCtx = document.getElementById("osuweb").getContext("2d");
 
 var zip = new JSZip();
 
@@ -709,7 +709,7 @@ function Skin(oskOrDirectory) {
         zip.loadAsync(oskOrDirectory).then((function (zip) {
             for(var key in zip.files) {
                 // Get our keyname from filename
-                var rawFileName = key.replace(/\.[^/.]+$/, "");
+                let rawFileName = key.replace(/\.[^/.]+$/, "");
 
                 // Determine how to read this entry
                 var output = "string";
