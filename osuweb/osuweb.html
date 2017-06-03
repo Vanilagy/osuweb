@@ -64,19 +64,27 @@
             var arMs = 1800 - 135 * ar;
             
             var PI2 = Math.PI * 2;
-            var sliderTracePointDistance = 5;
+            var sliderTracePointDistance = 4;
             
             var derp = new Slider({sections: [
                 {
-                    sectionType: "circle",
+                    sectionType: "bezier",
                     points: [
                         {x: 256, y: 117},
                         {x: 282, y: 186},
-                        {x: 255, y: 117}
+                        {x: 400, y: 200}
+                    ]
+                },
+                {
+                    sectionType: "bezier",
+                    points: [
+                        {x: 400, y: 200},
+                        {x: 200, y: 400},
+                        {x: 512, y: 10}
                     ]
                 }
             ]});
-            //derp.append();
+            derp.append();
             
             var herp = new Circle({x: 256, y: 117});
             herp.append();
@@ -118,7 +126,7 @@
                 
                 this.show = function(offset) {
                     this.containerDiv.style.display = "block";
-                    this.containerDiv.style.transition = "opacity " + ((arMs - offset) / 1000 / 3) + "s linear";
+                    this.containerDiv.style.transition = "opacity " + (((arMs / 3) - offset) / 1000) + "s linear";
                     setTimeout(function() {
                         this.containerDiv.style.opacity = 1;
                         this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + arMs / 1000 + "s";
@@ -133,13 +141,43 @@
                 this.x = data.x, this.y = data.y;
                 this.sections = data.sections;
                 this.repeat = data.repeat;
-                this.length = data.length;
+                this.length = 500.863638593934;
                 
                 this.completion = 0; // experimental
                 
                 this.sliderPathPoints = [];
                 
-                function pushPos(pos) {
+                var passedLength = 0,
+                    lastPoint;
+                
+                function extendLength(pos, dist) { // Taking care of curve length exceeding pixelLength
+                    var causeExit = false;
+                    
+                    if (dist) {
+                        passedLength += dist;
+                    } else if (lastPoint) {
+                        passedLength += Math.hypot(lastPoint.x - pos.x, lastPoint.y - pos.y);
+                    }
+                    
+                    if (passedLength > this.length) {
+                        var angle = Math.atan2(pos.y - lastPoint.y, pos.x - lastPoint.x), dif = passedLength - this.length;
+                        pos.x = lastPoint.x + dif * Math.cos(angle), pos.y = lastPoint.y + dif * Math.sin(angle);
+                        
+                        causeExit = true;
+                    }
+                    
+                    lastPoint = pos;
+                    pushPos.bind(this)(pos);
+                    
+                    if (causeExit) return true;
+                }
+                
+                function pushPos(pos) { // Pushes endpoint to array
+                    pos = {
+                        x: pos.x * pixelRatio,
+                        y: pos.y * pixelRatio
+                    };
+                    
                     this.sliderPathPoints.push(pos);
                     
                     this.minX = Math.min(this.minX, pos.x);
@@ -148,114 +186,121 @@
                     this.maxY = Math.max(this.maxY, pos.y);
                 }
                 
-                var passedLength = 0,
-                    minX, minY, maxX, maxY;
-                
-                if (this.sections[0].sectionType == "circle") {
-                    var points = this.sections[0].points;
-                    
-                    var centerPos = osuweb.mathutil.circleCenterPos(points[0], points[1], points[2]);
-                    var radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
-                    var a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
-                        a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
-                        a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
-                    
-                    var incre = sliderTracePointDistance / radius, condition;
-                    
-                    if (a1 < a2 && a2 < a3) { // Point order
-                        condition = function(x) {return x < a3};
-                    } else if ((a2 < a3 && a3 < a1) || (a3 < a1 && a1 < a2)) {
-                        condition = function(x) {return x < a3 + PI2};
-                    } else if (a3 < a1 && a1 < a2) {
-                        condition = function(x) {return x < a3 + PI2};
-                    } else if (a3 < a2 && a2 < a1) {
-                        condition = function(x) {return x > a3};
-                        incre *= -1;
-                    } else {
-                        condition = function(x) {return x > a3 - PI2};
-                        incre *= -1;
-                    }
-                    
-                    this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * pixelRatio;
-                    this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * pixelRatio;
-                    
-                    for (var angle = a1; condition(angle); angle += incre) {
-                        pushPos.bind(this)({
-                            x: (centerPos.x + radius * Math.cos(angle)) * pixelRatio,
-                            y: (centerPos.y + radius * Math.sin(angle)) * pixelRatio
-                        });
-                    }
-                    
-                    var endPos = this.sections[this.sections.length - 1].points[this.sections[this.sections.length - 1].points.length - 1];
-                    pushPos.bind(this)({
-                        x: endPos.x * pixelRatio,
-                        y: endPos.y * pixelRatio
-                    }); // Pushes endpoint to array
-                } else {
-                    this.minX = this.maxX = this.sections[0].points[0].x * pixelRatio;
-                    this.minY = this.maxY = this.sections[0].points[0].y * pixelRatio;
-                    
-                    for (var i = 0; i < this.sections.length; i++) {
-                        var points = this.sections[i].points;
-                        
-                        for (var j = 0; j < points.length; j++) { // Maps points to local coordinate system
-                            points[j].x *= pixelRatio;
-                            points[j].y *= pixelRatio;
+                (function() {
+                    if (this.sections[0].sectionType == "circle") {
+                        var points = this.sections[0].points;
+
+                        var centerPos = osuweb.mathutil.circleCenterPos(points[0], points[1], points[2]);
+                        var radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
+                        var a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
+                            a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
+                            a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
+
+                        var incre = sliderTracePointDistance / radius, condition;
+
+                        if (a1 < a2 && a2 < a3) { // Point order
+                            condition = function(x) {return x < a3};
+                        } else if ((a2 < a3 && a3 < a1) || (a3 < a1 && a1 < a2)) {
+                            condition = function(x) {return x < a3 + PI2};
+                        } else if (a3 < a1 && a1 < a2) {
+                            condition = function(x) {return x < a3 + PI2};
+                        } else if (a3 < a2 && a2 < a1) {
+                            condition = function(x) {return x > a3};
+                            incre *= -1;
+                        } else {
+                            condition = function(x) {return x > a3 - PI2};
+                            incre *= -1;
                         }
+
+                        this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * pixelRatio;
+                        this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * pixelRatio;
                         
-                        var leftT = 0, rightT = 0.01;
-                        var p1 = osuweb.mathutil.coordsOnBezier(points, leftT);
-                        var p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
-                        
-                        pushPos.bind(this)(p1);
+                        for (var angle = a1; condition(angle); angle += incre) {
+                            if (extendLength.bind(this)({
+                                x: centerPos.x + radius * Math.cos(angle),
+                                y: centerPos.y + radius * Math.sin(angle)
+                            })) {
+                                return;
+                            }
+                        }
+                    } else {
+                        this.minX = this.maxX = this.sections[0].points[0].x * pixelRatio;
+                        this.minY = this.maxY = this.sections[0].points[0].y * pixelRatio;
+                        var p1;
 
-                        while (leftT < 1) { // Binary segment approximation method
-                            while (true) {
-                                var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                        for (var i = 0; i < this.sections.length; i++) {
+                            var points = this.sections[i].points;
 
-                                if (dist < sliderTracePointDistance) {
-                                    leftT += 0.01;
-                                    rightT += 0.01;
-                                    p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
-                                } else {
-                                    var p3, midT;
+                            var leftT = 0, rightT = 0.01;
+                            if (i == 0) {
+                                p1 = osuweb.mathutil.coordsOnBezier(points, leftT);
+                                extendLength.bind(this)(p1);
+                            }
+                            var p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
 
-                                    while (true) {
-                                        midT = (leftT + rightT) / 2;
-                                        p3 = osuweb.mathutil.coordsOnBezier(points, midT);
-                                        dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
+                            while (leftT < 1) { // Binary segment approximation method
+                                while (true) {
+                                    var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
 
-                                        if (Math.abs(sliderTracePointDistance - dist) < 0.1) {
-                                            break;
+                                    if (dist < sliderTracePointDistance) {
+                                        leftT += 0.01;
+                                        rightT += 0.01;
+                                        p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
+                                    } else {
+                                        var p3, midT;
+
+                                        while (true) {
+                                            midT = (leftT + rightT) / 2;
+                                            p3 = osuweb.mathutil.coordsOnBezier(points, midT);
+                                            dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
+
+                                            if (Math.abs(sliderTracePointDistance - dist) < 0.1) {
+                                                break;
+                                            }
+
+                                            if (dist < sliderTracePointDistance) {
+                                                leftT = midT;
+                                            } else {
+                                                rightT = midT;
+                                            }
                                         }
 
-                                        if (dist < sliderTracePointDistance) {
-                                            leftT = midT;
-                                        } else {
-                                            rightT = midT;
+                                        if (midT < 1) {
+                                            if (extendLength.bind(this)(p3, dist)) {
+                                                return;
+                                            }
+                                            p1 = p3;
                                         }
-                                    }
 
-                                    if (midT < 1) {
-                                       pushPos.bind(this)(p3);
+                                        leftT = midT;
+                                        rightT = leftT + 0.01;
+                                        p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
+
+                                        break;
                                     }
-                                    
-                                    leftT = midT;
-                                    rightT = leftT + 0.01;
-                                    p1 = p3;
-                                    p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
-                                    
-                                    break;
                                 }
                             }
                         }
                     }
-                    
-                    var endPos = this.sections[this.sections.length - 1].points[this.sections[this.sections.length - 1].points.length - 1];
-                    pushPos.bind(this)(endPos); // Pushes endpoint to array
-                }
+                }).bind(this)();
                 
-                console.log(this.sliderPathPoints.length);
+                if (passedLength < this.length) { // Fires when traced path is shorter than pixelLength
+                    var endPos = this.sections[this.sections.length - 1].points[this.sections[this.sections.length - 1].points.length - 1];
+                    var angle = Math.atan2(endPos.y - lastPoint.y, endPos.x - lastPoint.x);
+                    var dif = this.length - passedLength;
+                    
+                    for (var dist = sliderTracePointDistance; dist < dif; dist += sliderTracePointDistance) {
+                        pushPos.bind(this)({
+                            x: lastPoint.x + dist * Math.cos(angle),
+                            y: lastPoint.y + dist * Math.sin(angle)
+                        });
+                    }
+                    
+                    pushPos.bind(this)({
+                        x: lastPoint.x + dif * Math.cos(angle),
+                        y: lastPoint.y + dif * Math.sin(angle)
+                    });
+                }
                 
                 //////////
                 
@@ -263,6 +308,7 @@
                     var containerDiv = document.createElement("div");
                     containerDiv.className = "sliderContainer";
                     containerDiv.style.left = (this.minX - halfCsPixel) + marginWidth * pixelRatio + "px", containerDiv.style.top = (this.minY - halfCsPixel) + marginHeight * pixelRatio + "px";
+                    containerDiv.style.display = "none";
                     
                     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
                     
@@ -278,6 +324,11 @@
                     ctx.moveTo(this.sliderPathPoints[0].x - this.minX + halfCsPixel, this.sliderPathPoints[0].y - this.minY + halfCsPixel);
                     for (var i = 1; i < this.sliderPathPoints.length; i++) {
                         ctx.lineTo(this.sliderPathPoints[i].x - this.minX + halfCsPixel, this.sliderPathPoints[i].y - this.minY + halfCsPixel);
+                        
+                        /*ctx.beginPath();
+                        ctx.arc(this.sliderPathPoints[i].x - this.minX + halfCsPixel, this.sliderPathPoints[i].y - this.minY + halfCsPixel, 1, 0, PI2);
+                        ctx.fillStyle = "white";
+                        ctx.fill();*/
                     }
                     ctx.lineWidth = csPixel;
                     ctx.lineCap = "round";
@@ -323,7 +374,7 @@
                         overlayCtx.fillStyle = "magenta";
                         overlayCtx.fill();
                         
-                        this.completion += 0.0025;
+                        this.completion += 0.0001;
                         requestAnimationFrame(updateOverlay.bind(this));
                     }
                     
