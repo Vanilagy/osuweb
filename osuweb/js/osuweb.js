@@ -403,14 +403,14 @@ class Play {
                 let nextNonInheritedTimingPoint = this.beatmap.getNextNonInheritedTimingPoint(this.currentTimingPoint);
 
                 if(this.nextMetronome == null && nextNonInheritedTimingPoint != null) {
-                    this.nextMetronome = new interval(nextNonInheritedTimingPoint.msPerBeat, this.metronomeTick);
+                    this.nextMetronome = new interval(nextNonInheritedTimingPoint.msPerBeat, this.metronomeTick.bind(this), this.audioStartTime + nextNonInheritedTimingPoint.offset);
                 }
 
                 if(this.metronome != null && !this.metronomeRunning && this.audioCurrentTime >= this.metronomeStart) {
                     this.metronome.run();
                     this.metronomeRunning = true;
-
                 }
+
                 else if(nextNonInheritedTimingPoint != null) {
                     if(nextNonInheritedTimingPoint.offset <= this.audioCurrentTime) {
                         this.currentTimingPoint = nextNonInheritedTimingPoint.index;
@@ -444,7 +444,7 @@ Play.prototype.start = function() {
     this.currentMsPerBeat = parseFloat(this.beatmap.timingPoints[0].msPerBeat);
     console.log("MsPerBeat: "+this.currentMsPerBeat);
 
-    this.metronome = new interval(this.currentMsPerBeat, this.metronomeTick);
+    this.metronome = new interval(this.currentMsPerBeat, this.metronomeTick.bind(this));
 
     this.audioStartTime = this.beatmap.audioLeadIn + osuweb.util.getHighResolutionContextTime();
 
@@ -743,18 +743,18 @@ osuweb.util = {
 	}
 }
 
-function interval(duration, fn){
-    this.baseline = undefined
+function interval(duration, fn, baseline){
+    this.baseline = baseline
 
     this.run = function(){
         if(this.baseline === undefined){
             this.baseline = osuweb.util.getHighResolutionContextTime();
         }
-        fn()
+        fn();
         var end = osuweb.util.getHighResolutionContextTime();
         this.baseline += duration
 
-        var nextTick = duration - (end - this.baseline)
+        var nextTick = duration - (end - this.baseline);
         if(nextTick<0){
             nextTick = 0
         }
