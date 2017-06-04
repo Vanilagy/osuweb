@@ -556,19 +556,29 @@ function Play(beatmap, audio) {
     
     this.hitObjects = [];
     var zIndex = 1000000;
+    var comboInfo = {
+        comboNum: 0,
+        n: 1
+    }
     
     for (var i = 0; i < this.beatmap.hitObjects.length; i++) {
         var hitObject = this.beatmap.hitObjects[i];
         
+        if (hitObject.newCombo) {
+            comboInfo.comboNum++;
+            comboInfo.n = 1;
+        }
+        
         if (hitObject.type == "circle") {
-            var newObject = new Circle(hitObject, zIndex);
+            var newObject = new Circle(hitObject, zIndex, comboInfo);
         } else if (hitObject.type == "slider") {
-            var newObject = new Slider(hitObject, zIndex);
+            var newObject = new Slider(hitObject, zIndex, comboInfo);
         }
         
         newObject.append();  
         this.hitObjects.push(newObject);
         zIndex--;
+        comboInfo.n++;
     }
     console.log(this.hitObjects);
 
@@ -594,25 +604,39 @@ function Play(beatmap, audio) {
             this.audioStarted = true;
         }
         
-        while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= this.audioCurrentTime) {
-            var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
-            
-            if (timingPoint.inherited) {
-                this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
-            } else {
-                this.currentMsPerBeat = timingPoint.msPerBeat;
+        if (this.currentTimingPoint < this.beatmap.timingPoints.length) {
+            while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= this.audioCurrentTime) {
+                var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
+
+                if (timingPoint.inherited) {
+                    this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
+                } else {
+                    this.currentMsPerBeat = timingPoint.msPerBeat;
+                }
+                
+                this.currentTimingPoint++;
+
+                if (this.currentTimingPoint == this.beatmap.timingPoints.length) {
+                    break;
+                }
             }
-            
-            this.currentTimingPoint++;
         }
         
-        while (this.hitObjects[this.currentHitObject].time - this.arMs <= this.audioCurrentTime) {
-            var hitObject = this.hitObjects[this.currentHitObject];
-            
-            hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.arMs));
-            
-            this.currentHitObject++;
-        }
+        if (this.currentHitObject < this.hitObjects.length) {
+            while (this.hitObjects[this.currentHitObject].time - this.arMs <= this.audioCurrentTime) {
+                var hitObject = this.hitObjects[this.currentHitObject];
+
+                hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.arMs));
+                
+                this.currentHitObject++;
+
+                if (this.currentHitObject == this.hitObjects.length) {
+                    break;
+                }
+            }
+        } 
+        
+        
         
     }.bind(this);
     

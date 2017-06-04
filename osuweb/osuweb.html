@@ -71,7 +71,7 @@
             var sliderTracePointDistance = 4;
             document.getElementById("beatmap").addEventListener("change", function(e) {
                 currentBeatmapSet = new BeatmapSet(e.target.files);
-                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties["Skyline"], function() {
+                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties["Pure Illusion"], function() {
                     new Play(currentBeatmap, currentAudio);
                     currentPlay.start();
                 });
@@ -98,10 +98,10 @@
             ]});*/
             //derp.append();
             
-            var herp = new Circle({x: 256, y: 117});
+            //var herp = new Circle({x: 256, y: 117});
             //herp.append();
             
-            function Circle(data, zIndex) {
+            function Circle(data, zIndex, comboInfo) {
                 this.type = "circle";
                 this.time = data.time;
                 this.newCombo = data.newCombo;
@@ -123,14 +123,14 @@
                     baseCanvas.setAttribute("height", currentPlay.csPixel);
 
                     var ctx = baseCanvas.getContext("2d");
-                    drawCircle(ctx, 0, 0);
+                    drawCircle(ctx, 0, 0, comboInfo.n);
                     
                     this.approachCircleCanvas = document.createElement("canvas");
                     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
                     this.approachCircleCanvas.setAttribute("height", currentPlay.csPixel);
                     
                     var approachCtx = this.approachCircleCanvas.getContext("2d");
-                    drawApproachCircle(approachCtx, 0, 0);
+                    drawApproachCircle(approachCtx, 0, 0, comboInfo.comboNum);
 
                     this.containerDiv.appendChild(baseCanvas);
                     this.containerDiv.appendChild(this.approachCircleCanvas);
@@ -153,7 +153,7 @@
                 }.bind(this);
             }
             
-            function Slider(data, zIndex) {
+            function Slider(data, zIndex, comboInfo) {
                 this.type = "slider";
                 this.time = data.time;
                 this.newCombo = data.newCombo;
@@ -362,7 +362,7 @@
                         ctx.stroke();
                     }
 
-                    drawCircle(ctx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY);
+                    drawCircle(ctx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY, comboInfo.n);
 
                     this.containerDiv.appendChild(baseCanvas);
                     
@@ -377,6 +377,7 @@
                         if (this.time <= currentPlay.audioCurrentTime) {
                             if (!this.sliderVelocity) {
                                 this.sliderVelocity = 100 * currentPlay.beatmap.SV / (currentPlay.currentMsPerBeat * (currentPlay.currentMsPerBeatMultiplier / 100));
+                                this.approachCircleCanvas.style.display = "none";
                             }
 
                             var completion = (this.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
@@ -414,7 +415,7 @@
                     this.approachCircleCanvas.style.left = this.sliderPathPoints[0].x - this.minX + "px", this.approachCircleCanvas.style.top = this.sliderPathPoints[0].y - this.minY + "px";
                     
                     var approachCtx = this.approachCircleCanvas.getContext("2d");
-                    drawApproachCircle(approachCtx, 0, 0);
+                    drawApproachCircle(approachCtx, 0, 0, comboInfo.comboNum);
                     
                     this.containerDiv.appendChild(this.approachCircleCanvas);
                     objectContainerDom.appendChild(this.containerDiv);
@@ -434,7 +435,7 @@
                 }.bind(this);
             }
             
-            function drawCircle(context, x, y) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
+            function drawCircle(context, x, y, n) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
                 context.beginPath(); // Draw circle base (will become border)
                 context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel, 0, PI2);
                 context.fillStyle = "white";
@@ -449,13 +450,13 @@
                 context.fillStyle = radialGradient;
                 context.fill();
                 
-                var innerType = "dot";
+                var innerType = "number";
                 
                 if (innerType == "number") {
                     context.font = "lighter 35px Arial";
                     context.textAlign = "center", context.textBaseline = "middle";
                     context.fillStyle = "white";
-                    context.fillText("3", x + halfCsPixel, y + halfCsPixel);
+                    context.fillText(n, x + halfCsPixel, y + halfCsPixel);
                 } else {
                     context.beginPath();
                     context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * 0.25, 0, PI2);
@@ -464,10 +465,11 @@
                 }
             }
             
-            function drawApproachCircle(context, x, y) {
+            function drawApproachCircle(context, x, y, comboNum) {
                 context.beginPath(); // Draw circle base (will become border)
                 context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * ((14.5 / 16) + 1) / 2, 0, PI2);
-                context.strokeStyle = "red";
+                var color = currentPlay.beatmap.colours[comboNum % currentPlay.beatmap.colours.length];
+                context.strokeStyle = "rgb(" + color.r + ", " + color.g + ", " + color.b + ")";
                 context.lineWidth = halfCsPixel * 1.5 / 16;
                 context.stroke();
             }
