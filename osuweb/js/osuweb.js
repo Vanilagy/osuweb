@@ -614,6 +614,7 @@ function Play(beatmap, audio) {
     this.audioStarted = false;
 
     this.currentTimingPoint = 1;
+    this.lastNonInheritedTimingPointMs = null;
     this.currentMsPerBeat = null;
     this.currentMsPerBeatMultiplier = 100;
 
@@ -636,6 +637,7 @@ function Play(beatmap, audio) {
                     this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
                 } else {
                     this.currentMsPerBeat = timingPoint.msPerBeat;
+                    this.lastNonInheritedTimingPointMs = timingPoint.offset;
                 }
 
                 this.currentTimingPoint++;
@@ -711,6 +713,7 @@ Play.prototype.start = function() {
     }
 
     this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
+    this.lastNonInheritedTimingPointMs = this.beatmap.timingPoints[0].offset;
 
     this.audioStartTime = window.performance.now();
     setInterval(this.tickClock);

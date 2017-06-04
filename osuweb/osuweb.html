@@ -9,7 +9,7 @@
             #playarea {
                 width: 512px;
                 height: 392px;
-                border: 1px solid white;
+                border: 1px solid gray;
                 margin: auto;
                 margin-top: 30px;
             }
@@ -35,7 +35,7 @@
                 position: absolute;
             }
             @keyframes closeApproachCircle {
-                from {transform: scale(3)}
+                from {transform: scale(3.5)}
                 to {transform: scale(1)}
             }
         </style>
@@ -374,32 +374,93 @@
                     
                     var overlayCtx = overlay.getContext("2d");
                     
+                    function getCoordFromCoordArray(arr, percent) {
+                        var actualIdx = percent * (arr.length - 1);
+                        var lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
+                        var lowerPos = arr[lowerIdx];
+                        var upperPos = arr[upperIdx];
+
+                        return { // Linear interpolation
+                            x: lowerPos.x * (1 - (actualIdx - lowerIdx)) + upperPos.x * (actualIdx - lowerIdx),
+                            y: lowerPos.y * (1 - (actualIdx - lowerIdx)) + upperPos.y * (actualIdx - lowerIdx)
+                        }
+                    }
+                    
                     this.updateOverlay = function() {
-                        var completion;
+                        var completion = 0;
                         
                         if (this.time <= currentPlay.audioCurrentTime) {
-                            if (!this.sliderVelocity) {
-                                this.sliderVelocity = 100 * currentPlay.beatmap.SV / (currentPlay.currentMsPerBeat * (currentPlay.currentMsPerBeatMultiplier / 100));
+                            if (!this.dataOnStart) {
+                                this.dataOnStart = {
+                                    msPerBeat: currentPlay.currentMsPerBeat,
+                                    sliderVelocity: 100 * currentPlay.beatmap.SV / (currentPlay.currentMsPerBeat * (currentPlay.currentMsPerBeatMultiplier / 100))
+                                }
+                                
                                 this.approachCircleCanvas.style.display = "none";
                             }
-
-                            completion = (this.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
+                            
+                            overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
+                            
+                            completion = (this.dataOnStart.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
                             if (completion > this.repeat) {
                                 completion = this.repeat;
                                 this.remove.bind(this)();
                             }
+                            
+                            // Draws slider ticks
+                            var offsetFromLastBeat = (this.time - currentPlay.lastNonInheritedTimingPointMs) % (this.dataOnStart.msPerBeat / currentPlay.beatmap.sliderTickRate);
+                            
+                            for (var tickCompletion = (this.dataOnStart.sliderVelocity * offsetFromLastBeat) / this.length;
+                                 tickCompletion < Math.ceil(completion);
+                                 tickCompletion += (this.dataOnStart.sliderVelocity * this.dataOnStart.msPerBeat / currentPlay.beatmap.sliderTickRate) / this.length) {
+                                if (tickCompletion >= completion) {
+                                    var t = Math.round(osuweb.mathutil.reflect(tickCompletion) * 100) / 100;
+                                    
+                                    if (t > 0 && t < 1) {
+                                        var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, t);
+                                        var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
 
-                            overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
+                                        overlayCtx.beginPath();
+                                        overlayCtx.arc(x, y, 3, 0, PI2);
+                                        overlayCtx.fillStyle = "white";
+                                        overlayCtx.fill();
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Draws repeat arrow
+                        if (this.repeat - completion > 1) {
+                            if (Math.floor(completion) % 2 == 0) {
+                                var reverseArrowPos = this.sliderPathPoints[this.sliderPathPoints.length - 1];
+                                var p2 = this.sliderPathPoints[this.sliderPathPoints.length - 2];
+                            } else {
+                                var reverseArrowPos = this.sliderPathPoints[0];
+                                var p2 = this.sliderPathPoints[1];
+                            }
+                            var angle = Math.atan2(p2.y - reverseArrowPos.y, p2.x - reverseArrowPos.x);
+                            var x = reverseArrowPos.x - this.minX + currentPlay.halfCsPixel, y = reverseArrowPos.y - this.minY + currentPlay.halfCsPixel;
 
-                            var t = osuweb.mathutil.reflect(completion);
-                            var actualIdx = t * (this.sliderPathPoints.length - 1);
-                            var lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
-                            var lowerPos = this.sliderPathPoints[lowerIdx];
-                            var upperPos = this.sliderPathPoints[upperIdx];
+                            var repeatArrowCanvas = document.createElement("canvas");
+                            repeatArrowCanvas.setAttribute("width", currentPlay.csPixel);
+                            repeatArrowCanvas.setAttribute("height", currentPlay.csPixel);
 
-                            var x = lowerPos.x * (1 - (actualIdx - lowerIdx)) + upperPos.x * (actualIdx - lowerIdx); // Linear interpolation between two points
-                            var y = lowerPos.y * (1 - (actualIdx - lowerIdx)) + upperPos.y * (actualIdx - lowerIdx);
-                            x = x - this.minX + currentPlay.halfCsPixel, y = y - this.minY + currentPlay.halfCsPixel;
+                            var repeatArrowCtx = repeatArrowCanvas.getContext("2d");
+                            repeatArrowCtx.translate(currentPlay.halfCsPixel, currentPlay.halfCsPixel);
+                            repeatArrowCtx.rotate(angle);
+                            repeatArrowCtx.translate(-currentPlay.halfCsPixel, -currentPlay.halfCsPixel);
+                            repeatArrowCtx.font = "lighter " + (currentPlay.csPixel * 0.6) + "px Arial";
+                            repeatArrowCtx.textAlign = "center", repeatArrowCtx.textBaseline = "middle";
+                            repeatArrowCtx.fillStyle = "white";
+                            repeatArrowCtx.fillText("▶", currentPlay.halfCsPixel, currentPlay.halfCsPixel);
+
+                            overlayCtx.drawImage(repeatArrowCanvas, x - currentPlay.halfCsPixel, y - currentPlay.halfCsPixel);
+                        }
+                            
+                        if (this.time <= currentPlay.audioCurrentTime) {
+                            // Draws slider ball
+                            var sliderBallPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(completion));
+                            var x = sliderBallPos.x - this.minX + currentPlay.halfCsPixel, y = sliderBallPos.y - this.minY + currentPlay.halfCsPixel;
 
                             overlayCtx.beginPath();
                             overlayCtx.arc(x, y, sliderBodyRadius, 0, Math.PI * 2);
@@ -407,7 +468,7 @@
                             overlayCtx.fill();
                         }
                         
-                        if (completion < this.repeat || !completion) {
+                        if (completion < this.repeat || completion == 0) {
                             requestAnimationFrame(this.updateOverlay.bind(this));
                         }
                     }
@@ -457,7 +518,7 @@
                 var innerType = "number";
                 
                 if (innerType == "number") {
-                    context.font = "lighter " + (currentPlay.csPixel * 0.42) + "px Arial";
+                    context.font = "lighter " + (currentPlay.csPixel * 0.41) + "px Arial";
                     context.textAlign = "center", context.textBaseline = "middle";
                     context.fillStyle = "white";
                     context.fillText(n, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel);
