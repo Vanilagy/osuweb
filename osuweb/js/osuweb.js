@@ -408,7 +408,12 @@ function Beatmap(file, callback) {
                     };
 
                     // samplings
-                    var SamplingValues = values[5].split(':');
+                    if(values[5] != undefined) {
+                        var SamplingValues = values[5].split(':');
+                    }
+                    else {
+                        var SamplingValues = [0, 0];
+                    }
 
                     circle["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
 
@@ -486,7 +491,14 @@ function Beatmap(file, callback) {
                         // edge samplings
                         var edgeSamplings = [];
 
-                        var splitEdgeSampleSetsRaw = values[9].split('|');
+                        if(values[9] != undefined) {
+                            var splitEdgeSampleSetsRaw = values[9].split('|');
+                        }
+                        else {
+                            var splitEdgeSampleSetsRaw = [];
+
+                            for(var j = 0; j < sliderSections.length; j++) splitEdgeSampleSetsRaw.push("0:0");
+                        }
 
                         for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
                             var val = splitEdgeSampleSetsRaw[j].split(':');
@@ -497,7 +509,12 @@ function Beatmap(file, callback) {
                         slider["edgeSamplings"] = edgeSamplings;
 
                         // body samplings
-                        var sliderBodySamplingValues = values[10].split(':');
+                        if(values[10] != undefined) {
+                            var sliderBodySamplingValues = values[10].split(':');
+                        }
+                        else {
+                            var sliderBodySamplingValues = [0, 0];
+                        }
 
                         slider["bodySamplings"] = {sampleSet: parseInt(sliderBodySamplingValues[0], 10), sampleSetAddition: parseInt(sliderBodySamplingValues[1], 10)};
                     }
@@ -517,7 +534,14 @@ function Beatmap(file, callback) {
                     };
 
                     // samplings
-                    var SamplingValues = values[6].split(':');
+
+                    // samplings
+                    if(values[6] != undefined) {
+                        var SamplingValues = values[6].split(':');
+                    }
+                    else {
+                        var SamplingValues = [0, 0];
+                    }
 
                     spinner["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
 
@@ -541,11 +565,11 @@ Beatmap.prototype.getNextNonInheritedTimingPoint = function(num) {
 
 function Play(beatmap, audio) {
     currentPlay = this;
-    
+
     this.audio = audio;
     this.beatmap = beatmap;
     console.log(this.beatmap)
-    
+
     this.cs = this.beatmap.CS;
     this.csPixel = Math.round((109 - 9 * this.cs) / osuweb.graphics.playAreaDimensions.x * width);
     this.halfCsPixel = this.csPixel / 2;
@@ -553,29 +577,29 @@ function Play(beatmap, audio) {
     if (this.beatmap.AR > 5) {
         this.arMs = 1950 - 150 * this.beatmap.AR;
     }
-    
+
     this.hitObjects = [];
     var zIndex = 1000000;
     var comboInfo = {
         comboNum: 0,
         n: 1
     }
-    
+
     for (var i = 0; i < this.beatmap.hitObjects.length; i++) {
         var hitObject = this.beatmap.hitObjects[i];
-        
+
         if (hitObject.newCombo) {
             comboInfo.comboNum++;
             comboInfo.n = 1;
         }
-        
+
         if (hitObject.type == "circle") {
             var newObject = new Circle(hitObject, zIndex, comboInfo);
         } else if (hitObject.type == "slider") {
             var newObject = new Slider(hitObject, zIndex, comboInfo);
         }
-        
-        newObject.append();  
+
+        newObject.append();
         this.hitObjects.push(newObject);
         zIndex--;
         comboInfo.n++;
@@ -588,22 +612,22 @@ function Play(beatmap, audio) {
     this.nextMetronome = null;
     this.metronomeRunning = false;
     this.audioStarted = false;
-    
+
     this.currentTimingPoint = 1;
     this.currentMsPerBeat = null;
     this.currentMsPerBeatMultiplier = 100;
-    
+
     this.currentHitObject = 0;
-    
+
     this.tickClock = function() {
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
         document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
-        
+
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
             currentAudio.playAudio(0);
             this.audioStarted = true;
         }
-        
+
         if (this.currentTimingPoint < this.beatmap.timingPoints.length) {
             while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= this.audioCurrentTime) {
                 var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
@@ -613,7 +637,7 @@ function Play(beatmap, audio) {
                 } else {
                     this.currentMsPerBeat = timingPoint.msPerBeat;
                 }
-                
+
                 this.currentTimingPoint++;
 
                 if (this.currentTimingPoint == this.beatmap.timingPoints.length) {
@@ -621,26 +645,26 @@ function Play(beatmap, audio) {
                 }
             }
         }
-        
+
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.arMs <= this.audioCurrentTime) {
                 var hitObject = this.hitObjects[this.currentHitObject];
 
                 hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.arMs));
-                
+
                 this.currentHitObject++;
 
                 if (this.currentHitObject == this.hitObjects.length) {
                     break;
                 }
             }
-        } 
-        
-        
-        
+        }
+
+
+
     }.bind(this);
-    
-    
+
+
 
     /*this.loop = new interval(1, (function() {
         var time = osuweb.util.getHighResolutionContextTime();
@@ -685,9 +709,9 @@ Play.prototype.start = function() {
         if(currentAudio.isRunning()) currentAudio.stop();
         currentAudio = null;
     }
-    
+
     this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
-    
+
     this.audioStartTime = window.performance.now();
     setInterval(this.tickClock);
     currentAudio = this.audio;
