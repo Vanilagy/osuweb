@@ -14,6 +14,7 @@ var currentBeatmapSet = null;
 var currentBeatmap = null;
 var currentAudio = null;
 var currentSkin = null;
+var currentPlay = null;
 
 var osuweb = {
     version: "2017.05.29.0000",
@@ -207,53 +208,59 @@ function BeatmapSet(files) {
         }
     }
 
-    this.selectDifficulty(Object.values(this.difficulties)[0], this.audioFiles, this.imageFiles);
+    //this.selectDifficulty(Object.values(this.difficulties)[0]);
+}
+
+BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
+    currentBeatmap = new Beatmap(difficultyFile, function() {
+        // find background image if it exists
+        var imageFile = null;
+
+        for(var i = 0; i < currentBeatmap.events.length; i++) {
+            if(currentBeatmap.events[i].type == "image") {
+                var imageFileName = currentBeatmap.events[i].file;
+
+                for(var j = 0; j < this.imageFiles.length; j++) {
+                    if(this.imageFiles[j].name == imageFileName) {
+                        imageFile = this.imageFiles[j];
+                        break;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        osuweb.file.loadFile(imageFile, function(e) {
+            var img = new Image;
+            img.onload = function(){
+                canvasCtx.drawImage(img,0,0,img.width,img.height,0,0,canvasCtx.canvas.width,canvasCtx.canvas.height);
+            };
+            img.src = e.target.result;
+        });
+
+        // find audio file
+        var audioFile = null;
+
+        for(var i = 0; i < this.audioFiles.length; i++) {
+            if(this.audioFiles[i].name == currentBeatmap["audioFile"]) {
+                audioFile = this.audioFiles[i];
+                break;
+            }
+        }
+
+        osuweb.file.loadAudio(audioFile, (function(a) {
+            currentAudio = a;
+        }).bind(this), (function() {
+            audioCallback();
+        }).bind(this));
+    }.bind(this));
 }
 
 BeatmapSet.prototype.selectDifficulty = function(difficultyFile, audioFiles, imageFiles) {
-    currentBeatmap = new Beatmap(difficultyFile, function() {
-		// find background image if it exists
-		var imageFile = null;
-
-		for(var i = 0; i < currentBeatmap.events.length; i++) {
-			if(currentBeatmap.events[i].type == "image") {
-				var imageFileName = currentBeatmap.events[i].file;
-
-				for(var j = 0; j < imageFiles.length; j++) {
-					if(imageFiles[j].name == imageFileName) {
-						imageFile = imageFiles[j];
-						break;
-					}
-				}
-
-				break;
-			}
-		}
-
-		osuweb.file.loadFile(imageFile, function(e) {
-			var img = new Image;
-			img.onload = function(){
-			  canvasCtx.drawImage(img,0,0,img.width,img.height,0,0,canvasCtx.canvas.width,canvasCtx.canvas.height);
-			};
-			img.src = e.target.result;
-		});
-
-		// find audio file
-		var audioFile = null;
-
-		for(var i = 0; i < audioFiles.length; i++) {
-			if(audioFiles[i].name == currentBeatmap["audioFile"]) {
-				audioFile = audioFiles[i];
-				break;
-			}
-		}
-
-		osuweb.file.loadAudio(audioFile, (function(a) {
-			currentAudio = a;
-		}).bind(this), (function() {
-            currentAudio.playAudioFromOffsetWithLoop(0, currentBeatmap["previewTime"] / 1000.0, currentBeatmap["previewTime"] / 1000.0);
-        }).bind(this));
-	});
+    this.loadDifficulty(difficultyFile, audioFiles, imageFiles, function() {
+        currentAudio.playAudioFromOffsetWithLoop(0, currentBeatmap["previewTime"] / 1000.0, currentBeatmap["previewTime"] / 1000.0)
+    });
 }
 
 function Beatmap(file, callback) {
@@ -422,7 +429,7 @@ function Beatmap(file, callback) {
                     for(var j = 1; j < sliderPoints.length; j++) {
                         var coords = sliderPoints[j].split(':');
 
-                        if(j == 0) {
+                        if(j == 1) {
                             // add first point
                             sliderSectionPoints.push({x: parseInt(values[0], 10), y: parseInt(values[1], 10)});
                         }
@@ -533,18 +540,85 @@ Beatmap.prototype.getNextNonInheritedTimingPoint = function(num) {
 }
 
 function Play(beatmap, audio) {
+    currentPlay = this;
+    
     this.audio = audio;
     this.beatmap = beatmap;
+    console.log(this.beatmap)
+    
+    this.cs = this.beatmap.CS;
+    this.csPixel = Math.round((109 - 9 * this.cs) / osuweb.graphics.playAreaDimensions.x * width);
+    this.halfCsPixel = this.csPixel / 2;
+    this.arMs = 1800 - 120 * this.beatmap.AR;
+    if (this.beatmap.AR > 5) {
+        this.arMs = 1950 - 150 * this.beatmap.AR;
+    }
+    
+    this.hitObjects = [];
+    var zIndex = 1000000;
+    
+    for (var i = 0; i < this.beatmap.hitObjects.length; i++) {
+        var hitObject = this.beatmap.hitObjects[i];
+        
+        if (hitObject.type == "circle") {
+            var newObject = new Circle(hitObject, zIndex);
+        } else if (hitObject.type == "slider") {
+            var newObject = new Slider(hitObject, zIndex);
+        }
+        
+        newObject.append();  
+        this.hitObjects.push(newObject);
+        zIndex--;
+    }
+    console.log(this.hitObjects);
 
-    this.audioStartTime = 0;
+    this.audioStartTime = null;
     this.audioCurrentTime = 0;
-    this.currentMsPerBeat = 0;
     this.metronome = null;
     this.nextMetronome = null;
     this.metronomeRunning = false;
-    this.currentTimingPoint = 0;
+    this.audioStarted = false;
+    
+    this.currentTimingPoint = 1;
+    this.currentMsPerBeat = null;
+    this.currentMsPerBeatMultiplier = 100;
+    
+    this.currentHitObject = 0;
+    
+    this.tickClock = function() {
+        this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
+        document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
+        
+        if (this.audioCurrentTime >= 0 && !this.audioStarted) {
+            currentAudio.playAudio(0);
+            this.audioStarted = true;
+        }
+        
+        while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= this.audioCurrentTime) {
+            var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
+            
+            if (timingPoint.inherited) {
+                this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
+            } else {
+                this.currentMsPerBeat = timingPoint.msPerBeat;
+            }
+            
+            this.currentTimingPoint++;
+        }
+        
+        while (this.hitObjects[this.currentHitObject].time - this.arMs <= this.audioCurrentTime) {
+            var hitObject = this.hitObjects[this.currentHitObject];
+            
+            hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.arMs));
+            
+            this.currentHitObject++;
+        }
+        
+    }.bind(this);
+    
+    
 
-    this.loop = new interval(1, (function() {
+    /*this.loop = new interval(1, (function() {
         var time = osuweb.util.getHighResolutionContextTime();
 
         if(this.audioStartTime <= time) {
@@ -574,7 +648,7 @@ function Play(beatmap, audio) {
                 }
             }
         }
-    }).bind(this));
+    }).bind(this));*/
 }
 
 Play.prototype.metronomeTick = function() {
@@ -587,9 +661,15 @@ Play.prototype.start = function() {
         if(currentAudio.isRunning()) currentAudio.stop();
         currentAudio = null;
     }
+    
+    this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
+    
+    this.audioStartTime = window.performance.now();
+    setInterval(this.tickClock);
+    currentAudio = this.audio;
 
     // metronome start
-    this.metronomeStart = this.beatmap.timingPoints[0].offset
+    /*this.metronomeStart = this.beatmap.timingPoints[0].offset
     this.currentMsPerBeat = parseFloat(this.beatmap.timingPoints[0].msPerBeat);
     console.log("MsPerBeat: "+this.currentMsPerBeat);
 
@@ -600,7 +680,7 @@ Play.prototype.start = function() {
     currentAudio = this.audio;
     this.audio.playAudio(0);
 
-    this.loop.run();
+    this.loop.run();*/
 }
 
 function Audio(arrayBuffer, callback, bufferCount) {
@@ -659,8 +739,6 @@ Audio.prototype.playAudioFromOffset = function(time, offset) {
 }
 
 Audio.prototype.playAudioFromOffsetWithLoop = function(time, offset, loopStart, loopEnd) {
-    console.log(this.nextNodeNumber);
-
     var enableLoop = false;
 
     if(loopStart != undefined && loopStart != -1) {
