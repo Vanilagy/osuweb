@@ -71,7 +71,11 @@
             var sliderTracePointDistance = 4;
             document.getElementById("beatmap").addEventListener("change", function(e) {
                 currentBeatmapSet = new BeatmapSet(e.target.files);
-                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties["2B"], function() {
+                var keys = [];
+                for (var key in currentBeatmapSet.difficulties) {
+                    keys.push(key);
+                }
+                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
                     new Play(currentBeatmap, currentAudio);
                     currentPlay.start();
                 });
@@ -453,7 +457,7 @@
                 var innerType = "number";
                 
                 if (innerType == "number") {
-                    context.font = "lighter 35px Arial";
+                    context.font = "lighter " + (currentPlay.csPixel * 0.42) + "px Arial";
                     context.textAlign = "center", context.textBaseline = "middle";
                     context.fillStyle = "white";
                     context.fillText(n, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel);
