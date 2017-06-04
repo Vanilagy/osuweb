@@ -61,9 +61,9 @@
             var objectContainerDom = document.getElementById("objectContainer");
             
             var pixelRatio = width / osuweb.graphics.playAreaDimensions.x;
-            var cs = 4;
+            /*var cs = 4;
             var csPixel = Math.round((109 - 9 * cs) / osuweb.graphics.playAreaDimensions.x * width);
-            var halfCsPixel = csPixel / 2;
+            var halfCsPixel = csPixel / 2;*/
             var marginWidth = (osuweb.graphics.playAreaDimensions.x - osuweb.graphics.coordinateDimensions.x) / 2;
             var marginHeight = marginWidth * ratio;
             
@@ -71,7 +71,7 @@
             var sliderTracePointDistance = 4;
             document.getElementById("beatmap").addEventListener("change", function(e) {
                 currentBeatmapSet = new BeatmapSet(e.target.files);
-                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties["Pure Illusion"], function() {
+                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties["2B"], function() {
                     new Play(currentBeatmap, currentAudio);
                     currentPlay.start();
                 });
@@ -114,7 +114,7 @@
                     this.containerDiv.style.left = ((this.x + marginWidth) * pixelRatio - currentPlay.halfCsPixel) + "px", this.containerDiv.style.top = ((this.y + marginHeight) * pixelRatio - currentPlay.halfCsPixel) + "px";
                     this.containerDiv.style.zIndex = zIndex;
                     
-                    this.containerDiv.style.display = "none";
+                    this.containerDiv.style.visibility = "hidden";
                     this.containerDiv.style.opacity = 0;
                     this.containerDiv.style.transition = "opacity " + (currentPlay.arMs / 1000 / 3) + "s linear";
                     
@@ -138,19 +138,17 @@
                 }
                 
                 this.show = function(offset) {
-                    this.containerDiv.style.display = "block";
+                    this.containerDiv.style.visibility = "visible";
                     this.containerDiv.style.transition = "opacity " + (((currentPlay.arMs / 3) - offset) / 1000) + "s linear";
-                    setTimeout(function() {
-                        this.containerDiv.style.opacity = 1;
-                        this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + currentPlay.arMs / 1000 + "s";
-                    }.bind(this), 10);
+                    this.containerDiv.style.opacity = 1;
+                    this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + currentPlay.arMs / 1000 + "s";
                     
-                    setTimeout(this.remove, currentPlay.arMs);
-                }.bind(this);
+                    setTimeout(this.remove.bind(this), currentPlay.arMs);
+                }
                 
                 this.remove = function() {
-                    this.containerDiv.style.display = "none";
-                }.bind(this);
+                    this.containerDiv.parentNode.removeChild(this.containerDiv);
+                }
             }
             
             function Slider(data, zIndex, comboInfo) {
@@ -325,7 +323,7 @@
                     this.containerDiv = document.createElement("div");
                     this.containerDiv.className = "sliderContainer";
                     this.containerDiv.style.left = (this.minX - currentPlay.halfCsPixel) + marginWidth * pixelRatio + "px", this.containerDiv.style.top = (this.minY - currentPlay.halfCsPixel) + marginHeight * pixelRatio + "px";
-                    this.containerDiv.style.display = "none";
+                    this.containerDiv.style.visibility = "hidden";
                     this.containerDiv.style.opacity = 0;
                     this.containerDiv.style.zIndex = zIndex;
                     
@@ -343,7 +341,7 @@
                         ctx.lineTo(this.sliderPathPoints[i].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[i].y - this.minY + currentPlay.halfCsPixel);
                         
                         /*ctx.beginPath();
-                        ctx.arc(this.sliderPathPoints[i].x - this.minX + halfCsPixel, this.sliderPathPoints[i].y - this.minY + halfCsPixel, 1, 0, PI2);
+                        ctx.arc(this.sliderPathPoints[i].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[i].y - this.minY + currentPlay.halfCsPixel, 1, 0, PI2);
                         ctx.fillStyle = "white";
                         ctx.fill();*/
                     }
@@ -372,18 +370,19 @@
                     
                     var overlayCtx = overlay.getContext("2d");
                     
-                    updateOverlay.bind(this)();
-                    function updateOverlay() {
+                    this.updateOverlay = function() {
+                        var completion;
+                        
                         if (this.time <= currentPlay.audioCurrentTime) {
                             if (!this.sliderVelocity) {
                                 this.sliderVelocity = 100 * currentPlay.beatmap.SV / (currentPlay.currentMsPerBeat * (currentPlay.currentMsPerBeatMultiplier / 100));
                                 this.approachCircleCanvas.style.display = "none";
                             }
 
-                            var completion = (this.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
+                            completion = (this.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
                             if (completion > this.repeat) {
                                 completion = this.repeat;
-                                this.remove();
+                                this.remove.bind(this)();
                             }
 
                             overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
@@ -404,7 +403,9 @@
                             overlayCtx.fill();
                         }
                         
-                        requestAnimationFrame(updateOverlay.bind(this));
+                        if (completion < this.repeat || !completion) {
+                            requestAnimationFrame(this.updateOverlay.bind(this));
+                        }
                     }
                     
                     this.containerDiv.appendChild(overlay);
@@ -422,31 +423,30 @@
                 }
                 
                 this.show = function(offset) {
-                    this.containerDiv.style.display = "block";
+                    this.containerDiv.style.visibility = "visible";
                     this.containerDiv.style.transition = "opacity " + (((currentPlay.arMs / 3) - offset) / 1000) + "s linear";
-                    setTimeout(function() {
-                        this.containerDiv.style.opacity = 1;
-                        this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + currentPlay.arMs / 1000 + "s";
-                    }.bind(this), 10);
-                }.bind(this);
+                    this.containerDiv.style.opacity = 1;
+                    this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + ((currentPlay.arMs - offset) / 1000) + "s";
+                    this.updateOverlay.bind(this)();
+                }
                 
                 this.remove = function() {
-                    this.containerDiv.style.display = "none";
-                }.bind(this);
+                    this.containerDiv.parentNode.removeChild(this.containerDiv);
+                }
             }
             
             function drawCircle(context, x, y, n) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
                 context.beginPath(); // Draw circle base (will become border)
-                context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel, 0, PI2);
+                context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel, 0, PI2);
                 context.fillStyle = "white";
                 context.fill();
                 
-                var radialGradient = context.createRadialGradient(x + halfCsPixel, y + halfCsPixel, 0, x + halfCsPixel, y + halfCsPixel, halfCsPixel);
+                var radialGradient = context.createRadialGradient(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, 0, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel);
                 radialGradient.addColorStop(0, "#5c5c5c");
                 radialGradient.addColorStop(1, "black");
                 
                 context.beginPath(); // Draw circle body with radial gradient
-                context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * 14.5 / 16, 0, PI2);
+                context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 14.5 / 16, 0, PI2);
                 context.fillStyle = radialGradient;
                 context.fill();
                 
@@ -456,10 +456,10 @@
                     context.font = "lighter 35px Arial";
                     context.textAlign = "center", context.textBaseline = "middle";
                     context.fillStyle = "white";
-                    context.fillText(n, x + halfCsPixel, y + halfCsPixel);
+                    context.fillText(n, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel);
                 } else {
                     context.beginPath();
-                    context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * 0.25, 0, PI2);
+                    context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 0.25, 0, PI2);
                     context.fillStyle = "white";
                     context.fill();
                 }
@@ -467,10 +467,10 @@
             
             function drawApproachCircle(context, x, y, comboNum) {
                 context.beginPath(); // Draw circle base (will become border)
-                context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * ((14.5 / 16) + 1) / 2, 0, PI2);
+                context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * ((14.5 / 16) + 1) / 2, 0, PI2);
                 var color = currentPlay.beatmap.colours[comboNum % currentPlay.beatmap.colours.length];
                 context.strokeStyle = "rgb(" + color.r + ", " + color.g + ", " + color.b + ")";
-                context.lineWidth = halfCsPixel * 1.5 / 16;
+                context.lineWidth = currentPlay.halfCsPixel * 1.5 / 16;
                 context.stroke();
             }
         </script>
