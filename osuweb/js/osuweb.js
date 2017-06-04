@@ -407,6 +407,9 @@ function Beatmap(file, callback) {
                         hitSound: parseInt(values[4], 10),
                     };
 
+                    circle.startPoint = [circle.x, circle.y];
+                    circle.basePoint = [circle.x, circle.y];
+
                     // samplings
                     if(values[5] != undefined) {
                         var SamplingValues = values[5].split(':');
@@ -476,6 +479,16 @@ function Beatmap(file, callback) {
                         length: parseFloat(values[7])
                     };
 
+                    slider.startPoint = [slider.x, slider.y];
+
+                    if(slider.repeat % 2 == 1) {
+                        var lastSection = sliderSections[sliderSections.length - 1];
+                        slider.basePoint = lastSection.values[lastSection.values.length - 1];
+                    }
+                    else {
+                        slider.basePoint = slider.startPoint;
+                    }
+
                     if(values.length > 8) {
                         // edgeAdditions
                         var additionsValuesRaw = values[8].split('|');
@@ -534,8 +547,6 @@ function Beatmap(file, callback) {
                     };
 
                     // samplings
-
-                    // samplings
                     if(values[6] != undefined) {
                         var SamplingValues = values[6].split(':');
                     }
@@ -568,11 +579,12 @@ function Play(beatmap, audio) {
 
     this.audio = audio;
     this.beatmap = beatmap;
-    console.log(this.beatmap)
+    console.log(this.beatmap);
 
     this.cs = this.beatmap.CS;
     this.csPixel = Math.round((109 - 9 * this.cs) / osuweb.graphics.playAreaDimensions.x * width);
     this.halfCsPixel = this.csPixel / 2;
+
     this.arMs = 1800 - 120 * this.beatmap.AR;
     if (this.beatmap.AR > 5) {
         this.arMs = 1950 - 150 * this.beatmap.AR;
@@ -585,18 +597,155 @@ function Play(beatmap, audio) {
         n: 1
     }
 
-    for (var i = 0; i < this.beatmap.hitObjects.length; i++) {
-        var hitObject = this.beatmap.hitObjects[i];
+    var lastStackEnd = 0;
 
-        if (hitObject.newCombo) {
+    var clonedObjects = [];
+
+    var stackLeniencyFrame = this.arMs * this.beatmap.stackLeniency;
+
+    for (var i = 0; i < this.beatmap.hitObjects.length; i++) {
+        var hitObject = clone(this.beatmap.hitObjects[i]);
+
+        hitObject.stackShift = 0;
+
+        for (var b = i - 1; b >= 0; b--) {
+            var prev = clonedObjects[b];
+
+            if (JSON.stringify(hitObject.startPoint) == JSON.stringify(prev.basePoint) && hitObject.time - prev.time <= stackLeniencyFrame) {
+                hitObject.stackParent = prev;
+
+                var isSlider = hitObject.type == "slider";
+                var firstSliderIndex = -1;
+
+                var currentChild = hitObject;
+
+                var childList = [];
+
+                while (currentChild.stackParent != undefined) {
+                    currentChild = currentChild.stackParent;
+
+                    childList.push(currentChild);
+
+                    if(currentChild.type == "slider" && firstSliderIndex == -1) firstSliderIndex = childList.length - 1;
+                }
+
+                console.log(childList);
+
+                if(firstSliderIndex == -1) {
+                    childList.forEach(function(curr, index, array) {curr.stackShift -= 4});
+                }
+                else {
+                    if(isSlider) {
+                        childList.forEach(function(curr, index, array) {curr.stackShift -= 4 * ((childList.length - 1) - firstSliderIndex)});
+                    }
+                    else {
+                        childList.forEach(function(curr, index, array) {curr.stackShift += 4});
+                    }
+                }
+
+                break;
+            }
+            else if (hitObject.time - prev.time > stackLeniencyFrame) {
+                break;
+            }
+        }
+
+        clonedObjects.push(hitObject);
+
+        /*
+         var nextStackObject = (function(hitObj, hitObjNum) {
+         if(hitObj.stackMoved) return null;
+
+         for(var b = 1;;b++) {
+         var next = this.beatmap.hitObjects[hitObjNum + b];
+
+         if(next == undefined) return null;
+
+         if(JSON.stringify(hitObj.basePoint) == JSON.stringify(next.startPoint) && next.time - hitObj.time <= stackLeniencyFrame && !hitObj.stackMoved) {
+         return nextStackObject;
+         }
+         else if(next.time - hitObj.time > stackLeniencyFrame) {
+         break;
+         }
+         }
+
+         return null;
+         }).bind(this);
+
+         var stackObj = nextStackObject(hitObject, i);
+
+         // Stacks
+         if(i >= lastStackEnd && hitObject.type != "spinner" && stackObj != undefined && stackObj.type != "spinner" && JSON.stringify(stackObj.startPoint) == JSON.stringify(hitObject.basePoint)) {
+         var stackDepth = 0;
+
+         var stackElements = [hitObject];
+
+         var lastObject = hitObject;
+
+         var lastSlider = hitObject.type == "slider" ? 0 : -1;
+
+         while(nextStackObject(lastObj, i + stackDepth).type != "spinner") {
+         var nextObject = nextStackObject(lastObject, i + stackDepth);
+
+         if(JSON.stringify(lastObject.basePoint) == JSON.stringify(nextObject.startPoint)) {
+         stackDepth++;
+
+         stackElements.push(nextObject);
+
+         lastObject = nextObject;
+
+         if(nextObject.type == "slider") lastSlider = stackDepth;
+
+         if(i + 1 + stackDepth == this.beatmap.hitObjects.length - 1) break;
+         }
+         else {
+         break;
+         }
+         }
+
+         lastStackEnd = i + 1 + stackDepth;
+
+         if(lastSlider == -1 || lastSlider + 1 == stackElements.length) {
+         for(var j = stackElements.length - 1; j >= 0; j--) {
+         stackElements[j].x -= 4 * ((stackElements.length - 1) - j);
+         stackElements[j].y -= 4 * ((stackElements.length - 1) - j);
+         stackElements[j].stackMoved = true;
+         }
+         }
+         else {
+         var beforeLastSliderStack = stackElements.slice(0, lastSlider + 1);
+         var afterLastSliderStack = stackElements.slice(lastSlider, stackElements.length);
+
+         for(var j = beforeLastSliderStack.length - 1; j >= 0; j--) {
+         beforeLastSliderStack[j].x -= 4 * ((beforeLastSliderStack.length - 1) - j);
+         beforeLastSliderStack[j].y -= 4 * ((beforeLastSliderStack.length - 1) - j);
+         beforeLastSliderStack[j].stackMoved = true;
+         }
+
+         for(var h = 0; h < afterLastSliderStack.length; h++) {
+         afterLastSliderStack[h].x += 4 * afterLastSliderStack.length;
+         afterLastSliderStack[h].y += 4 * afterLastSliderStack.length;
+         afterLastSliderStack[h].stackMoved = true;
+         }
+         }
+         }
+         */
+    }
+
+    for (var o = 0; o < clonedObjects.length; o++) {
+        var obj = clonedObjects[o];
+
+        if(obj.stackShift != 0) console.log(obj);
+
+        if (obj.newCombo) {
             comboInfo.comboNum++;
             comboInfo.n = 1;
         }
 
-        if (hitObject.type == "circle") {
-            var newObject = new Circle(hitObject, zIndex, comboInfo);
-        } else if (hitObject.type == "slider") {
-            var newObject = new Slider(hitObject, zIndex, comboInfo);
+        if (obj.type == "circle") {
+            var newObject = new Circle(obj, zIndex, comboInfo);
+        } else if (obj.type == "slider") {
+            var newObject = new Slider(obj, zIndex, comboInfo);
         }
 
         newObject.append();
@@ -894,6 +1043,67 @@ function interval(duration, fn, baseline){
         clearTimeout(this.timer)
     }
 }
+
+function clone(obj) {
+    var copy;
+
+    // Handle the 3 simple types, and null or undefined
+    if (null == obj || "object" != typeof obj) return obj;
+
+    // Handle Date
+    if (obj instanceof Date) {
+        copy = new Date();
+        copy.setTime(obj.getTime());
+        return copy;
+    }
+
+    // Handle Array
+    if (obj instanceof Array) {
+        copy = [];
+        for (var i = 0, len = obj.length; i < len; i++) {
+            copy[i] = clone(obj[i]);
+        }
+        return copy;
+    }
+
+    // Handle Object
+    if (obj instanceof Object) {
+        copy = {};
+        for (var attr in obj) {
+            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+        }
+        return copy;
+    }
+
+    throw new Error("Unable to copy obj! Its type isn't supported.");
+}
+
+// attach the .equals method to Array's prototype to call it on any array
+Array.prototype.equals = function (array) {
+    // if the other array is a falsy value, return
+    if (!array)
+        return false;
+
+    // compare lengths - can save a lot of time
+    if (this.length != array.length)
+        return false;
+
+    for (var i = 0, l=this.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (this[i] instanceof Array && array[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!this[i].equals(array[i]))
+                return false;
+        }
+        else if (this[i] != array[i]) {
+            // Warning - two different object instances will never be equal: {x:20} != {x:20}
+            return false;
+        }
+    }
+    return true;
+}
+// Hide method from for-in loops
+Object.defineProperty(Array.prototype, "equals", {enumerable: false});
 
 /*osuweb.graphics.skin.prototype.constructor = function(filePath) {
 
