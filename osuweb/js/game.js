@@ -15,7 +15,7 @@ function Circle(data, zIndex, comboInfo) {
     this.comboInfo = comboInfo;
 }
 
-Circle.prototype.append = function() {
+Circle.prototype.draw = function() {
     this.containerDiv = document.createElement("div");
     this.containerDiv.className = "hitCircleContainer";
     this.containerDiv.style.left = ((this.x + currentPlay.marginWidth) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px", this.containerDiv.style.top = ((this.y + currentPlay.marginHeight) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px";
@@ -41,6 +41,9 @@ Circle.prototype.append = function() {
 
     this.containerDiv.appendChild(baseCanvas);
     this.containerDiv.appendChild(this.approachCircleCanvas);
+}
+
+Circle.prototype.append = function() {
     objectContainerDom.appendChild(this.containerDiv);
 }
 
@@ -236,7 +239,7 @@ function Slider(data, zIndex, comboInfo) {
     }
 }
 
-Slider.prototype.append = function() {
+Slider.prototype.draw = function() {
     this.containerDiv = document.createElement("div");
     this.containerDiv.className = "sliderContainer";
     this.containerDiv.style.left = (this.minX - currentPlay.halfCsPixel) + currentPlay.marginWidth * currentPlay.pixelRatio + "px", this.containerDiv.style.top = (this.minY - currentPlay.halfCsPixel) + currentPlay.marginHeight * currentPlay.pixelRatio + "px";
@@ -391,6 +394,9 @@ Slider.prototype.append = function() {
     osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
 
     this.containerDiv.appendChild(this.approachCircleCanvas);
+}
+
+Slider.prototype.append = function() {
     objectContainerDom.appendChild(this.containerDiv);
 }
 

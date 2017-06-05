@@ -809,12 +809,16 @@ function Play(beatmap, audio) {
 
         if (obj.type == "circle") {
             var newObject = new Circle(obj, zIndex, comboInfo);
+            newObject.draw();
+            this.hitObjects.push(newObject);
         } else if (obj.type == "slider") {
             var newObject = new Slider(obj, zIndex, comboInfo);
+            newObject.draw();
+            this.hitObjects.push(newObject);
+        } else {
+            console.log(obj.type);
         }
-
-        newObject.append();
-        this.hitObjects.push(newObject);
+        
         zIndex--;
         comboInfo.n++;
     }
@@ -833,8 +837,16 @@ function Play(beatmap, audio) {
     this.currentMsPerBeatMultiplier = 100;
 
     this.currentHitObject = 0;
-
+    this.lastAppendedHitObject = 0;
+    var lastTickClockTime = window.performance.now();
+    
     this.tickClock = function() {
+        var timeDif = window.performance.now() - lastTickClockTime;
+        if (timeDif > 6.5) {
+            console.log("Slow clock: " + timeDif.toFixed(2) + "ms since last execution!");
+        }
+        lastTickClockTime = window.performance.now();
+        
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
         document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
 
@@ -866,8 +878,7 @@ function Play(beatmap, audio) {
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
                 var hitObject = this.hitObjects[this.currentHitObject];
-
-
+                
                 hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
 
                 this.currentHitObject++;
@@ -877,10 +888,18 @@ function Play(beatmap, audio) {
                 }
             }
         }
-
-
-
-    }.bind(this);
+        
+        while (this.lastAppendedHitObject - this.currentHitObject < 1) {
+            var nextTime = this.hitObjects[this.lastAppendedHitObject].time;
+            
+            while (this.hitObjects[this.lastAppendedHitObject].time <= nextTime) {
+                this.hitObjects[this.lastAppendedHitObject].append.bind(this.hitObjects[this.lastAppendedHitObject])();
+                this.lastAppendedHitObject++;
+            }
+        }
+        
+        setTimeout(this.tickClock.bind(this));
+    }
 
 
 
@@ -932,7 +951,7 @@ Play.prototype.start = function() {
     this.lastNonInheritedTimingPointMs = this.beatmap.timingPoints[0].offset;
 
     this.audioStartTime = window.performance.now();
-    setInterval(this.tickClock);
+    this.tickClock.bind(this)();
     currentAudio = this.audio;
 
     // metronome start

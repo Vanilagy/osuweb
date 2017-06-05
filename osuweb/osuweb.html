@@ -67,6 +67,14 @@
                     currentPlay.start();
                 });
             });
+            
+            var timeSinceLastBitch = window.performance.now();
+            function derp() {
+                var now = window.performance.now();
+                console.log(now - timeSinceLastBitch);
+                timeSinceLastBitch = now;
+                setTimeout(derp);
+            }
         </script>
     </body>
 </html>
