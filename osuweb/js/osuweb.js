@@ -835,12 +835,12 @@ function Play(beatmap, audio) {
     this.currentHitObject = 0;
 
     this.tickClock = function() {
-                        
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
         document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
 
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
-            currentAudio.playAudio(0);
+            console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
+            currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
         }
 
