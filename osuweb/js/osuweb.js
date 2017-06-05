@@ -5,11 +5,6 @@ var canvasCtx = document.getElementById("osuweb").getContext("2d");
 
 var zip = new JSZip();
 
-/*
-canvasCtx.canvas.width  = window.innerWidth - 2;
-canvasCtx.canvas.height = window.innerHeight - 2;
-*/
-
 var currentBeatmapSet = null;
 var currentBeatmap = null;
 var currentAudio = null;
@@ -89,6 +84,7 @@ osuweb.file = {
 }
 
 osuweb.graphics = {
+    widthToHeightRatio: 3 / 4,
     coordinateDimensions: {
         x: 512,
         y: 384
@@ -96,6 +92,44 @@ osuweb.graphics = {
     playAreaDimensions: {
         x: 640,
         y: 480
+    },
+    pi2: Math.PI * 2,
+    drawCircle: function(context, x, y, n) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
+        context.beginPath(); // Draw circle base (will become border)
+        context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel, 0, osuweb.graphics.pi2);
+        context.fillStyle = "white";
+        context.fill();
+
+        var radialGradient = context.createRadialGradient(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, 0, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel);
+        radialGradient.addColorStop(0, "#5c5c5c");
+        radialGradient.addColorStop(1, "black");
+
+        context.beginPath(); // Draw circle body with radial gradient
+        context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 14.5 / 16, 0, osuweb.graphics.pi2);
+        context.fillStyle = radialGradient;
+        context.fill();
+
+        var innerType = "number";
+
+        if (innerType == "number") {
+            context.font = "lighter " + (currentPlay.csPixel * 0.41) + "px Arial";
+            context.textAlign = "center", context.textBaseline = "middle";
+            context.fillStyle = "white";
+            context.fillText(n, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel);
+        } else {
+            context.beginPath();
+            context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 0.25, 0, osuweb.graphics.pi2);
+            context.fillStyle = "white";
+            context.fill();
+        }
+    },
+    drawApproachCircle: function(context, x, y, comboNum) {
+        context.beginPath();
+        context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * ((14.5 / 16) + 1) / 2, 0, osuweb.graphics.pi2);
+        var color = currentPlay.beatmap.colours[comboNum % currentPlay.beatmap.colours.length];
+        context.strokeStyle = "rgb(" + color.r + ", " + color.g + ", " + color.b + ")";
+        context.lineWidth = currentPlay.halfCsPixel * 1.5 / 16;
+        context.stroke();
     }
 }
 
@@ -112,7 +146,7 @@ osuweb.mathutil = {
         } else if (n == 3) { // if cubic
             bx = (1 - t) * (1 - t) * (1 - t) * pointArray[0].x + 3 * (1 - t) * (1 - t) * t * pointArray[1].x + 3 * (1 - t) * t * t * pointArray[2].x + t * t * t * pointArray[3].x;
             by = (1 - t) * (1 - t) * (1 - t) * pointArray[0].y + 3 * (1 - t) * (1 - t) * t * pointArray[1].y + 3 * (1 - t) * t * t * pointArray[2].y + t * t * t * pointArray[3].y;
-        } else {
+        } else { // generalized equation
             for(var i = 0; i <= n; i++) {
                 bx += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].x;
                 by += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].y;
@@ -142,7 +176,7 @@ osuweb.mathutil = {
             center = {};
 
 
-        if(p2.x == p1.x || p2.x == p3.x) {
+        if (p2.x == p1.x || p2.x == p3.x) {
             var reverse = true;
 
             var aSlope = xDelta_a / yDelta_a,
@@ -153,7 +187,7 @@ osuweb.mathutil = {
                 bSlope = yDelta_b / xDelta_b;
         }
 
-        if(aSlope == 0 || aSlope == -0) {
+        if (aSlope == 0 || aSlope == -0) {
             var temp = aSlope;
             aSlope = bSlope;
             bSlope = temp;
@@ -162,7 +196,7 @@ osuweb.mathutil = {
         center.x = (aSlope * bSlope * (p1.y - p3.y) + bSlope * (p1.x + p2.x) - aSlope * (p2.x + p3.x)) / (2 * (bSlope - aSlope));
         center.y = -1 * (center.x - (p1.x + p2.x) / 2) / aSlope + (p1.y + p2.y) / 2;
 
-        if(reverse) {
+        if (reverse) {
             temp = center.x;
             center.x = center.y;
             center.y = temp;
@@ -189,7 +223,14 @@ osuweb.graphics.scene = {
 osuweb.util = {
 	getHighResolutionContextTime: function() {
 		return window.performance.now() - audioCtxTime;
-	}
+	},
+    getMsFromAR: function(AR) {
+        if (AR <= 5) {
+            return 1800 - 120 * AR;
+        } else {
+            return 1950 - 150 * AR;
+        }
+    }
 }
 
 function BeatmapSet(files) {
@@ -603,15 +644,19 @@ function Play(beatmap, audio) {
     this.audio = audio;
     this.beatmap = beatmap;
     console.log(this.beatmap);
+    
+    this.playAreaWidth = Math.floor(window.innerWidth * 0.55 / 4) * 4;
+    this.playAreaHeight = this.playAreaWidth * osuweb.graphics.widthToHeightRatio;
+    playareaDom.style.width = this.playAreaWidth, playareaDom.style.height = this.playAreaHeight;
+    this.pixelRatio = this.playAreaWidth / osuweb.graphics.playAreaDimensions.x;
+    this.marginWidth = (osuweb.graphics.playAreaDimensions.x - osuweb.graphics.coordinateDimensions.x) / 2;
+    this.marginHeight = this.marginWidth * osuweb.graphics.widthToHeightRatio;
 
     this.cs = this.beatmap.CS;
-    this.csPixel = Math.round((109 - 9 * this.cs) / osuweb.graphics.playAreaDimensions.x * width);
+    this.csPixel = Math.round((109 - 9 * this.cs) / osuweb.graphics.playAreaDimensions.x * this.playAreaWidth);
     this.halfCsPixel = this.csPixel / 2;
 
-    this.arMs = 1800 - 120 * this.beatmap.AR;
-    if (this.beatmap.AR > 5) {
-        this.arMs = 1950 - 150 * this.beatmap.AR;
-    }
+    this.ARMs = osuweb.util.getMsFromAR(this.beatmap.AR);
 
     this.hitObjects = [];
     var zIndex = 1000000;
@@ -620,11 +665,10 @@ function Play(beatmap, audio) {
         n: 1
     }
 
+    var mapGenerationStartTime = window.performance.now();
     var lastStackEnd = 0;
-
     var clonedObjects = [];
-
-    var stackLeniencyFrame = this.arMs * this.beatmap.stackLeniency;
+    var stackLeniencyFrame = this.ARMs * this.beatmap.stackLeniency;
 
     for (var i = 0; i < this.beatmap.hitObjects.length; i++) {
         var hitObject = clone(this.beatmap.hitObjects[i]);
@@ -652,7 +696,7 @@ function Play(beatmap, audio) {
                     if(currentChild.type == "slider" && firstSliderIndex == -1) firstSliderIndex = childList.length - 1;
                 }
 
-                console.log(childList);
+                //console.log(childList);
 
                 if(firstSliderIndex == -1) {
                     childList.forEach(function(curr, index, array) {curr.stackShift -= 4});
@@ -774,7 +818,7 @@ function Play(beatmap, audio) {
         zIndex--;
         comboInfo.n++;
     }
-    console.log(this.hitObjects);
+    console.info("Map build time: " + (window.performance.now() - mapGenerationStartTime).toFixed(2) + "ms", this.hitObjects);
 
     this.audioStartTime = null;
     this.audioCurrentTime = 0;
@@ -791,6 +835,7 @@ function Play(beatmap, audio) {
     this.currentHitObject = 0;
 
     this.tickClock = function() {
+                        
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
         document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
 
@@ -819,10 +864,11 @@ function Play(beatmap, audio) {
         }
 
         if (this.currentHitObject < this.hitObjects.length) {
-            while (this.hitObjects[this.currentHitObject].time - this.arMs <= this.audioCurrentTime) {
+            while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
                 var hitObject = this.hitObjects[this.currentHitObject];
 
-                hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.arMs));
+
+                hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
 
                 this.currentHitObject++;
 
