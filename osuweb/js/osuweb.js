@@ -458,13 +458,30 @@ function Beatmap(file, callback) {
 
 
             }
+
             if(section == "hitObjects") {
                 var values = line.split(',');
+
+                var hitObjectData = parseInt(values[3], 10);
+
+                if(hitObjectData > 12) {
+                    var maxBit = Math.round(Math.pow(2, 4 + this.colours.length))
+                    var maxIndex = 4 + this.colours.length;
+
+                    while(hitObjectData < maxBit) {
+                        maxBit /= 2;
+                        maxIndex--;
+                    }
+
+                    var colourIndex = maxIndex - 4;
+                    hitObjectData -= maxBit;
+                }
+
                 // circle
-                if(values[3] == "1" || values[3] == "5") {
+                if(hitObjectData == 1 || hitObjectData == 5) {
                     var circle = {
                         type: "circle",
-                        newCombo: values[3] == "5",
+                        newCombo: hitObjectData == 5 ? (colourIndex != undefined ? colourIndex : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -487,7 +504,7 @@ function Beatmap(file, callback) {
                     this.hitObjects.push(circle);
                 }
                 // slider
-                else if(values[3] == "2" || values[3] == "6") {
+                else if(hitObjectData == 2 || hitObjectData == 6) {
                     var sliderPoints = values[5].split("|");
 
                     var sliderType = sliderPoints[0];
@@ -533,7 +550,7 @@ function Beatmap(file, callback) {
 
                     var slider = {
                         type: "slider",
-                        newCombo: values[3] == "6",
+                        newCombo: hitObjectData == 6 ? (colourIndex != undefined ? colourIndex : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -599,10 +616,10 @@ function Beatmap(file, callback) {
                     this.hitObjects.push(slider);
                 }
                 // spinner
-                else if(values[3] == "8" || values[3] == "12") {
+                else if(hitObjectData == 8 || hitObjectData == 12) {
                     var spinner = {
                         type: "spinner",
-                        newCombo: values[3] == "12",
+                        newCombo: hitObjectData == 12 ? (colourIndex != undefined ? colourIndex : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -621,6 +638,9 @@ function Beatmap(file, callback) {
                     spinner["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
 
                     this.hitObjects.push(spinner);
+                }
+                else {
+                    console.log("peppy plz: "+values[3]);
                 }
             }
         }
@@ -644,7 +664,7 @@ function Play(beatmap, audio) {
     this.audio = audio;
     this.beatmap = beatmap;
     console.log(this.beatmap);
-    
+
     this.playAreaWidth = Math.floor(window.innerWidth * 0.55 / 4) * 4;
     this.playAreaHeight = this.playAreaWidth * osuweb.graphics.widthToHeightRatio;
     playareaDom.style.width = this.playAreaWidth, playareaDom.style.height = this.playAreaHeight;
@@ -802,8 +822,13 @@ function Play(beatmap, audio) {
     for (var o = 0; o < clonedObjects.length; o++) {
         var obj = clonedObjects[o];
 
-        if (obj.newCombo) {
-            comboInfo.comboNum++;
+        if (obj.newCombo != null) {
+            if(obj.newCombo == -1) {
+                comboInfo.comboNum++;
+            }
+            else {
+                comboInfo.comboNum += comboInfo.comboNum % this.beatmap.colours.length + obj.newCombo;
+            }
             comboInfo.n = 1;
         }
 
@@ -818,7 +843,7 @@ function Play(beatmap, audio) {
         } else {
             console.log(obj.type);
         }
-        
+
         zIndex--;
         comboInfo.n++;
     }
@@ -839,14 +864,14 @@ function Play(beatmap, audio) {
     this.currentHitObject = 0;
     this.lastAppendedHitObject = 0;
     var lastTickClockTime = window.performance.now();
-    
+
     this.tickClock = function() {
         var timeDif = window.performance.now() - lastTickClockTime;
         if (timeDif > 6.5) {
             console.log("Slow clock: " + timeDif.toFixed(2) + "ms since last execution!");
         }
         lastTickClockTime = window.performance.now();
-        
+
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
         document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
 
@@ -878,7 +903,7 @@ function Play(beatmap, audio) {
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
                 var hitObject = this.hitObjects[this.currentHitObject];
-                
+
                 hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
 
                 this.currentHitObject++;
@@ -888,16 +913,16 @@ function Play(beatmap, audio) {
                 }
             }
         }
-        
+
         while (this.lastAppendedHitObject - this.currentHitObject < 1) {
             var nextTime = this.hitObjects[this.lastAppendedHitObject].time;
-            
+
             while (this.hitObjects[this.lastAppendedHitObject].time <= nextTime) {
                 this.hitObjects[this.lastAppendedHitObject].append.bind(this.hitObjects[this.lastAppendedHitObject])();
                 this.lastAppendedHitObject++;
             }
         }
-        
+
         setTimeout(this.tickClock.bind(this));
     }
 
