@@ -1,7 +1,7 @@
 var playareaDom = document.getElementById("playarea");
 var objectContainerDom = document.getElementById("objectContainer");
 
-var sliderTracePointDistance = 1;
+var sliderTracePointDistance = 4;
 
 /////
 

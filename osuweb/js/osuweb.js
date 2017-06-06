@@ -101,18 +101,8 @@ osuweb.graphics = {
         context.fill();
 
         var colour = currentBeatmap.colours[comboInfo.comboNum % currentBeatmap.colours.length];
-
-        var colourString =
-            "#" +
-            (colour.r >= 16 ? colour.r.toString(16) : ("0" + colour.r.toString(16))) +
-            (colour.g >= 16 ? colour.g.toString(16) : ("0" + colour.g.toString(16))) +
-            (colour.b >= 16 ? colour.b.toString(16) : ("0" + colour.b.toString(16)));
-
-        var darkColourString =
-            "#" +
-            (Math.round(colour.r * 0.5) >= 16 ? Math.round(colour.r * 0.5).toString(16) : ("0" + Math.round(colour.r * 0.5).toString(16))) +
-            (Math.round(colour.g * 0.5) >= 16 ? Math.round(colour.g * 0.5).toString(16) : ("0" + Math.round(colour.g * 0.5).toString(16))) +
-            (Math.round(colour.b * 0.5) >= 16 ? Math.round(colour.b * 0.5).toString(16) : ("0" + Math.round(colour.b * 0.5).toString(16)));
+        var colourString = "rgb(" + Math.round(colour.r * 0.8) + "," + Math.round(colour.g * 0.8) + "," + Math.round(colour.b * 0.8) + ")";
+        var darkColourString = "rgb(" + Math.round(colour.r * 0.3) + "," + Math.round(colour.g * 0.3) + "," + Math.round(colour.b * 0.3) + ")";
 
         var radialGradient = context.createRadialGradient(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, 0, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel);
         radialGradient.addColorStop(0, colourString);
