@@ -101,18 +101,8 @@ osuweb.graphics = {
         context.fill();
 
         var colour = currentBeatmap.colours[comboInfo.comboNum % currentBeatmap.colours.length];
-
-        var colourString =
-            "#" +
-            (colour.r >= 16 ? colour.r.toString(16) : ("0" + colour.r.toString(16))) +
-            (colour.g >= 16 ? colour.g.toString(16) : ("0" + colour.g.toString(16))) +
-            (colour.b >= 16 ? colour.b.toString(16) : ("0" + colour.b.toString(16)));
-
-        var darkColourString =
-            "#" +
-            (Math.round(colour.r * 0.5) >= 16 ? Math.round(colour.r * 0.5).toString(16) : ("0" + Math.round(colour.r * 0.5).toString(16))) +
-            (Math.round(colour.g * 0.5) >= 16 ? Math.round(colour.g * 0.5).toString(16) : ("0" + Math.round(colour.g * 0.5).toString(16))) +
-            (Math.round(colour.b * 0.5) >= 16 ? Math.round(colour.b * 0.5).toString(16) : ("0" + Math.round(colour.b * 0.5).toString(16)));
+        var colourString = "rgb(" + Math.round(colour.r * 0.8) + "," + Math.round(colour.g * 0.8) + "," + Math.round(colour.b * 0.8) + ")";
+        var darkColourString = "rgb(" + Math.round(colour.r * 0.3) + "," + Math.round(colour.g * 0.3) + "," + Math.round(colour.b * 0.3) + ")";
 
         var radialGradient = context.createRadialGradient(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, 0, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel);
         radialGradient.addColorStop(0, colourString);
@@ -245,6 +235,12 @@ osuweb.util = {
             return 1950 - 150 * AR;
         }
     }
+}
+
+function Database(files) {
+    this.files = files;
+    this.beatmapFiles = [];
+    this.skinFiles = [];
 }
 
 function BeatmapSet(files) {
@@ -474,24 +470,18 @@ function Beatmap(file, callback) {
 
                 var hitObjectData = parseInt(values[3], 10);
 
-                if(hitObjectData > 12) {
-                    var maxBit = Math.round(Math.pow(2, 4 + this.colours.length))
-                    var maxIndex = 4 + this.colours.length;
+                var comboSkip = 0;
 
-                    while(hitObjectData < maxBit) {
-                        maxBit /= 2;
-                        maxIndex--;
-                    }
-
-                    var colourIndex = maxIndex - 4;
-                    hitObjectData -= maxBit;
+                while(hitObjectData > 12) {
+                    hitObjectData -= 16;
+                    comboSkip++;
                 }
 
                 // circle
                 if(hitObjectData == 1 || hitObjectData == 5) {
                     var circle = {
                         type: "circle",
-                        newCombo: hitObjectData == 5 ? (colourIndex != undefined ? colourIndex : -1) : null,
+                        newCombo: hitObjectData == 5 ? (comboSkip > 0 ? comboSkip : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -557,7 +547,7 @@ function Beatmap(file, callback) {
 
                     var slider = {
                         type: "slider",
-                        newCombo: hitObjectData == 6 ? (colourIndex != undefined ? colourIndex : -1) : null,
+                        newCombo: hitObjectData == 6 ? (comboSkip > 0 ? comboSkip : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -618,7 +608,7 @@ function Beatmap(file, callback) {
                 else if(hitObjectData == 8 || hitObjectData == 12) {
                     var spinner = {
                         type: "spinner",
-                        newCombo: hitObjectData == 12 ? (colourIndex != undefined ? colourIndex : -1) : null,
+                        newCombo: hitObjectData == 12 ? (comboSkip > 0 ? comboSkip : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -668,8 +658,8 @@ function Play(beatmap, audio) {
     this.beatmap = beatmap;
     console.log(this.beatmap);
 
-    this.playAreaWidth = Math.floor(window.innerWidth * 0.55 / 4) * 4;
-    this.playAreaHeight = this.playAreaWidth * osuweb.graphics.widthToHeightRatio;
+    this.playAreaHeight = Math.floor(window.innerHeight * 0.90 / 4) * 4;
+    this.playAreaWidth = this.playAreaHeight / osuweb.graphics.widthToHeightRatio;
     playareaDom.style.width = this.playAreaWidth, playareaDom.style.height = this.playAreaHeight;
     this.pixelRatio = this.playAreaWidth / osuweb.graphics.playAreaDimensions.x;
     this.marginWidth = (osuweb.graphics.playAreaDimensions.x - osuweb.graphics.coordinateDimensions.x) / 2;
@@ -686,6 +676,9 @@ function Play(beatmap, audio) {
 
     var comboCount = 1;
     var nextCombo = 0;
+    var currentTimingPoint = 1;
+    var currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
+    var currentMsPerBeatMultiplier = 100;
     var mapGenerationStartTime = window.performance.now();
 
     for (var o = 0; o < this.beatmap.hitObjects.length; o++) {
@@ -696,24 +689,62 @@ function Play(beatmap, audio) {
                 nextCombo++;
             }
             else {
-                nextCombo = obj.newCombo;
+                nextCombo += obj.newCombo + 1;
             }
             comboCount = 1;
         }
-
         var comboInfo = {
             comboNum: nextCombo,
             n: comboCount++
         };
+        
+        if (currentTimingPoint < this.beatmap.timingPoints.length) {
+            while (this.beatmap.timingPoints[currentTimingPoint].offset <= obj.time) {
+                var timingPoint = this.beatmap.timingPoints[currentTimingPoint];
+
+                if (timingPoint.inherited) {
+                    currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
+                } else {
+                    currentMsPerBeatMultiplier = 100;
+                    currentMsPerBeat = timingPoint.msPerBeat;
+                }
+
+                currentTimingPoint++;
+
+                if (currentTimingPoint == this.beatmap.timingPoints.length) {
+                    break;
+                }
+            }
+        }
 
         if (obj.type == "circle") {
             var newObject = new Circle(obj, zIndex, comboInfo);
-            this.hitObjects.push(newObject);
         } else if (obj.type == "slider") {
             var newObject = new Slider(obj, zIndex, comboInfo);
-            this.hitObjects.push(newObject);
+            
+            var timingInfo = {
+                msPerBeat: currentMsPerBeat,
+                msPerBeatMultiplier: currentMsPerBeatMultiplier,
+                sliderVelocity: 100 * currentPlay.beatmap.SV / (currentMsPerBeat * (currentMsPerBeatMultiplier / 100))
+            };
+            var sliderTickCompletions = [];
+            
+            for (var tickCompletion = 0; tickCompletion < newObject.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / currentPlay.beatmap.sliderTickRate)) / newObject.length) {
+                var t = Math.round(osuweb.mathutil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
+                
+                if (t > 0 && t < 1) {
+                    sliderTickCompletions.push(tickCompletion);
+                }
+            }
+            
+            newObject.timingInfo = timingInfo;
+            newObject.sliderTickCompletions = sliderTickCompletions;
         } else {
             console.log(obj.type);
+        }
+        
+        if (newObject) {
+            this.hitObjects.push(newObject);
         }
 
         zIndex--;
@@ -723,7 +754,7 @@ function Play(beatmap, audio) {
     var stackLeniencyFrame = this.ARMs * this.beatmap.stackLeniency;
     var stackSnapDistance = 2;
 
-    for (var i = 0; i < this.hitObjects.length; i++) {
+    /*for (var i = 0; i < this.hitObjects.length; i++) {
         var hitObject = this.hitObjects[i];
 
         for (var b = i - 1; b >= 0; b--) {
@@ -762,7 +793,7 @@ function Play(beatmap, audio) {
                     }
                     // A circle in a slider stack -> push earlier objects bottom-right scaling by circles after the last the slider
                     else {
-                        hitObject.stackShift += 4;
+                        hitObject.stackShift += 4 * (firstSliderIndex + 1);
                     }
                 }
 
@@ -800,10 +831,10 @@ function Play(beatmap, audio) {
                 break;
             }
         }
-    }
+    }*/
 
     for(var z = 0; z < this.hitObjects.length; z++) {
-        this.hitObjects[z].updateStackPosition();
+        //this.hitObjects[z].updateStackPosition();
         this.hitObjects[z].draw();
     }
 
@@ -815,51 +846,63 @@ function Play(beatmap, audio) {
     this.nextMetronome = null;
     this.metronomeRunning = false;
     this.audioStarted = false;
-
-    this.currentTimingPoint = 1;
-    this.lastNonInheritedTimingPointMs = null;
-    this.currentMsPerBeat = null;
-    this.currentMsPerBeatMultiplier = 100;
+    this.inBreak = true;
 
     this.currentHitObject = 0;
+    this.lastRemovedHitObject = 0;
     this.lastAppendedHitObject = 0;
     var lastTickClockTime = window.performance.now();
+    var recordedTickSpeeds = [];
+    var stupidClock = window.performance.now();
 
     this.tickClock = function() {
         var timeDif = window.performance.now() - lastTickClockTime;
-        if (timeDif > 6.5) {
-            console.log("Slow clock: " + timeDif.toFixed(2) + "ms since last execution!");
+        recordedTickSpeeds.push(timeDif);
+        if (timeDif > 10) {
+            console.warn("Slow clock: " + timeDif.toFixed(2) + "ms since last execution!");
         }
         lastTickClockTime = window.performance.now();
+        if (window.performance.now() - stupidClock > 2000) {
+            var sum = 0;
+            for (var i = 0; i < recordedTickSpeeds.length; i++) {
+                sum += recordedTickSpeeds[i];
+            }
+            console.log("Current average clock tick speed: " + (sum / recordedTickSpeeds.length).toFixed(2) + "ms / " + (1000 / (sum / recordedTickSpeeds.length)).toFixed(2) + "Hz");
+            stupidClock = window.performance.now();
+        }
 
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
-        document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
 
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
             console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
             currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
-        }
+        }      
 
-        if (this.currentTimingPoint < this.beatmap.timingPoints.length) {
-            while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= this.audioCurrentTime) {
-                var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
+        if(this.lastRemovedHitObject < this.hitObjects.length) {
+            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].type == "slider") this.lastRemovedHitObject++;
 
-                if (timingPoint.inherited) {
-                    this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
-                } else {
-                    this.currentMsPerBeatMultiplier = 100;
-                    this.currentMsPerBeat = timingPoint.msPerBeat;
-                    this.lastNonInheritedTimingPointMs = timingPoint.offset;
-                }
-
-                this.currentTimingPoint++;
-
-                if (this.currentTimingPoint == this.beatmap.timingPoints.length) {
-                    break;
-                }
+            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].endTime - this.audioCurrentTime <= 0) {
+                this.hitObjects[this.lastRemovedHitObject].remove();
+                this.lastRemovedHitObject++;
             }
         }
+
+        if (this.currentHitObject >= this.hitObjects.length && this.hitObjects[this.hitObjects.length - 1].endTime - this.audioCurrentTime < -300) {
+            document.getElementById("background-dim").style.opacity = "0";
+            this.inBreak = true;
+        }
+        else if(this.currentHitObject < this.hitObjects.length) {
+            if (this.hitObjects[this.currentHitObject].endTime - this.audioCurrentTime < 1500 && this.inBreak) {
+                document.getElementById("background-dim").style.opacity = "0.8";
+                this.inBreak = false;
+            }
+            else if(this.currentHitObject - 1 != - 1 && this.currentHitObject < this.hitObjects.length && this.hitObjects[this.currentHitObject - 1].endTime - this.audioCurrentTime < -300 && this.hitObjects[this.currentHitObject].endTime - this.audioCurrentTime > 3000 && !this.inBreak) {
+                document.getElementById("background-dim").style.opacity = "0";
+                this.inBreak = true;
+            }
+        }
+
 
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
@@ -932,9 +975,6 @@ Play.prototype.start = function() {
         if(currentAudio.isRunning()) currentAudio.stop();
         currentAudio = null;
     }
-
-    this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
-    this.lastNonInheritedTimingPointMs = this.beatmap.timingPoints[0].offset;
 
     this.audioStartTime = window.performance.now();
     this.tickClock.bind(this)();
