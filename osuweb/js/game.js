@@ -1,7 +1,7 @@
 var playareaDom = document.getElementById("playarea");
 var objectContainerDom = document.getElementById("objectContainer");
 
-var sliderTracePointDistance = 4;
+var sliderTracePointDistance = 1;
 
 /////
 
@@ -9,10 +9,18 @@ function Circle(data, zIndex, comboInfo) {
     this.type = "circle";
     this.time = data.time;
     this.newCombo = data.newCombo;
-    this.x = data.x + data.stackShift;
-    this.y = data.y + data.stackShift;
+    this.x = data.x;
+    this.y = data.y;
+    this.startPoint = {x: this.x, y: this.y};
+    this.basePoint = {x: this.x, y: this.y};
+    this.stackShift = 0;
     this.zIndex = zIndex;
     this.comboInfo = comboInfo;
+}
+
+Circle.prototype.updateStackPosition = function() {
+    this.x += this.stackShift;
+    this.y += this.stackShift;
 }
 
 Circle.prototype.draw = function() {
@@ -64,19 +72,13 @@ function Slider(data, zIndex, comboInfo) {
     this.type = "slider";
     this.time = data.time;
     this.newCombo = data.newCombo;
-    this.x = data.x + data.stackShift, this.y = data.y + data.stackShift;
+    this.x = data.x;
+    this.y = data.y;
+    this.startPoint = {x: this.x, y: this.y};
+    this.stackShift = 0;
     this.sections = data.sections;
     this.zIndex = zIndex;
     this.comboInfo = comboInfo;
-
-    for(var j = 0; j < this.sections; j++) {
-        var sec = this.sections[j];
-
-        for(var i = 0; i < sec.length; i++) {
-            sec[i].values.x += data.stackShift;
-            sec[i].values.y += data.stackShift;
-        }
-    }
 
     this.repeat = data.repeat;
     this.length = data.length;
@@ -89,15 +91,21 @@ function Slider(data, zIndex, comboInfo) {
     function extendLength(pos, dist) { // Taking care of curve length exceeding pixelLength
         var causeExit = false;
 
+        var passedLengthBefore = passedLength;
+
         if (dist) {
             passedLength += dist;
         } else if (lastPoint) {
             passedLength += Math.hypot(lastPoint.x - pos.x, lastPoint.y - pos.y);
         }
 
-        if (passedLength > this.length) {
-            var angle = Math.atan2(pos.y - lastPoint.y, pos.x - lastPoint.x), dif = passedLength - this.length;
-            pos.x = lastPoint.x + dif * Math.cos(angle), pos.y = lastPoint.y + dif * Math.sin(angle);
+        if (passedLength >= this.length) {
+            var angle = Math.atan2(pos.y - lastPoint.y, pos.x - lastPoint.x);
+            dif = this.length - passedLengthBefore;
+            pos.x = lastPoint.x + dif * Math.cos(angle);
+            pos.y = lastPoint.y + dif * Math.sin(angle);
+
+            var newDiff = Math.hypot(lastPoint.x - pos.x, lastPoint.y - pos.y);
 
             causeExit = true;
         }
@@ -237,6 +245,28 @@ function Slider(data, zIndex, comboInfo) {
             y: lastPoint.y + dif * Math.sin(angle)
         });
     }
+
+    if(this.repeat % 2 == 0) {
+        this.basePoint = this.startPoint;
+    }
+    else {
+        this.basePoint = {x: Math.round(this.sliderPathPoints[this.sliderPathPoints.length - 1].x / currentPlay.pixelRatio), y: Math.round(this.sliderPathPoints[this.sliderPathPoints.length - 1].y / currentPlay.pixelRatio)};
+    }
+}
+
+Slider.prototype.updateStackPosition = function() {
+    this.x += this.stackShift;
+    this.y += this.stackShift;
+
+    this.minX += this.stackShift * currentPlay.pixelRatio;
+    this.minY += this.stackShift * currentPlay.pixelRatio;
+    this.maxX += this.stackShift * currentPlay.pixelRatio;
+    this.maxY += this.stackShift * currentPlay.pixelRatio;
+
+    for(var i = 0; i < this.sliderPathPoints.length; i++) {
+        this.sliderPathPoints[i].x += this.stackShift * currentPlay.pixelRatio;
+        this.sliderPathPoints[i].y += this.stackShift * currentPlay.pixelRatio;
+    }
 }
 
 Slider.prototype.draw = function() {
@@ -349,7 +379,8 @@ Slider.prototype.draw = function() {
                 var p2 = this.sliderPathPoints[1];
             }
             var angle = Math.atan2(p2.y - reverseArrowPos.y, p2.x - reverseArrowPos.x);
-            var x = reverseArrowPos.x - this.minX + currentPlay.halfCsPixel, y = reverseArrowPos.y - this.minY + currentPlay.halfCsPixel;
+            var x = reverseArrowPos.x - this.minX + currentPlay.halfCsPixel;
+            var y = reverseArrowPos.y - this.minY + currentPlay.halfCsPixel;
 
             var repeatArrowCanvas = document.createElement("canvas");
             repeatArrowCanvas.setAttribute("width", currentPlay.csPixel);
@@ -370,7 +401,8 @@ Slider.prototype.draw = function() {
         if (this.time <= currentPlay.audioCurrentTime) {
             // Draws slider ball
             var sliderBallPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(completion));
-            var x = sliderBallPos.x - this.minX + currentPlay.halfCsPixel, y = sliderBallPos.y - this.minY + currentPlay.halfCsPixel;
+            var x = sliderBallPos.x - this.minX + currentPlay.halfCsPixel;
+            var y = sliderBallPos.y - this.minY + currentPlay.halfCsPixel;
 
             overlayCtx.beginPath();
             overlayCtx.arc(x, y, sliderBodyRadius, 0, osuweb.graphics.pi2);

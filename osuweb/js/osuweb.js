@@ -488,9 +488,6 @@ function Beatmap(file, callback) {
                         hitSound: parseInt(values[4], 10),
                     };
 
-                    circle.startPoint = [circle.x, circle.y];
-                    circle.basePoint = [circle.x, circle.y];
-
                     // samplings
                     if(values[5] != undefined) {
                         var SamplingValues = values[5].split(':');
@@ -561,14 +558,6 @@ function Beatmap(file, callback) {
                     };
 
                     slider.startPoint = [slider.x, slider.y];
-
-                    if(slider.repeat % 2 == 1) {
-                        var lastSection = sliderSections[sliderSections.length - 1];
-                        slider.basePoint = lastSection.values[lastSection.values.length - 1];
-                    }
-                    else {
-                        slider.basePoint = slider.startPoint;
-                    }
 
                     if(values.length > 8) {
                         // edgeAdditions
@@ -645,6 +634,10 @@ function Beatmap(file, callback) {
             }
         }
 
+        if(this.colours.length == 0) {
+            this.colours = [{r:255,g:0,b:0},{r:0,g:255,b:0},{r:0,g:0,b:255},{r:0,g:255,b:255}];
+        }
+
         callback();
     }).bind(this);
     reader.readAsText(file);
@@ -680,25 +673,53 @@ function Play(beatmap, audio) {
 
     this.hitObjects = [];
     var zIndex = 1000000;
-    var comboInfo = {
-        comboNum: 0,
-        n: 1
+
+    var comboCount = 1;
+    var nextCombo = 0;
+    var mapGenerationStartTime = window.performance.now();
+
+    for (var o = 0; o < this.beatmap.hitObjects.length; o++) {
+        var obj = this.beatmap.hitObjects[o];
+
+        if(obj.newCombo != null) {
+            if (obj.newCombo == -1) {
+                nextCombo++;
+            }
+            else {
+                nextCombo = obj.newCombo;
+            }
+            comboCount = 1;
+        }
+
+        var comboInfo = {
+            comboNum: nextCombo,
+            n: comboCount++
+        };
+
+        if (obj.type == "circle") {
+            var newObject = new Circle(obj, zIndex, comboInfo);
+            this.hitObjects.push(newObject);
+        } else if (obj.type == "slider") {
+            var newObject = new Slider(obj, zIndex, comboInfo);
+            this.hitObjects.push(newObject);
+        } else {
+            console.log(obj.type);
+        }
+
+        zIndex--;
     }
 
-    var mapGenerationStartTime = window.performance.now();
     var lastStackEnd = 0;
-    var clonedObjects = [];
     var stackLeniencyFrame = this.ARMs * this.beatmap.stackLeniency;
+    var stackSnapDistance = 2;
 
-    for (var i = 0; i < this.beatmap.hitObjects.length; i++) {
-        var hitObject = clone(this.beatmap.hitObjects[i]);
-
-        hitObject.stackShift = 0;
+    for (var i = 0; i < this.hitObjects.length; i++) {
+        var hitObject = this.hitObjects[i];
 
         for (var b = i - 1; b >= 0; b--) {
-            var prev = clonedObjects[b];
+            var prev = this.hitObjects[b];
 
-            if (JSON.stringify(hitObject.startPoint) == JSON.stringify(prev.basePoint) && hitObject.time - prev.time <= stackLeniencyFrame) {
+            if (Math.hypot(hitObject.startPoint.x - prev.basePoint.x, hitObject.startPoint.y - prev.basePoint.y) < stackSnapDistance && hitObject.time - prev.time <= stackLeniencyFrame) {
                 hitObject.stackParent = prev;
 
                 var isSlider = hitObject.type == "slider";
@@ -716,18 +737,51 @@ function Play(beatmap, audio) {
                     if(currentChild.type == "slider" && firstSliderIndex == -1) firstSliderIndex = childList.length - 1;
                 }
 
-                //console.log(childList);
-
+                // No slider in stack -> push earlier objects top-left
                 if(firstSliderIndex == -1) {
-                    childList.forEach(function(curr, index, array) {curr.stackShift -= 4});
+                    for(var c = 0; c < childList.length; c++) {
+                        childList[c].stackShift -= 4;
+                    }
                 }
                 else {
+                    // A slider in a slider stack -> push earlier objects top-left scaling by circles after the last the slider
                     if(isSlider) {
-                        childList.forEach(function(curr, index, array) {curr.stackShift -= 4 * ((childList.length - 1) - firstSliderIndex)});
+                        for(var c = 0; c < childList.length; c++) {
+                            childList[c].stackShift -= 4 * (firstSliderIndex + 1);
+                        }
                     }
+                    // A circle in a slider stack -> push earlier objects bottom-right scaling by circles after the last the slider
                     else {
-                        childList.forEach(function(curr, index, array) {curr.stackShift += 4});
+                        hitObject.stackShift += 4;
                     }
+                }
+
+                break;
+            }
+            else if(prev.type == "slider" && Math.hypot(hitObject.startPoint.x - prev.startPoint.x, hitObject.startPoint.y - prev.startPoint.y) < stackSnapDistance && hitObject.time - prev.time <= stackLeniencyFrame) {
+                hitObject.stackParent = prev;
+                prev.type = "circle";
+
+                var isSlider = hitObject.type == "slider";
+
+                var currentChild = hitObject;
+
+                var childList = [];
+
+                while (currentChild.stackParent != undefined) {
+                    currentChild = currentChild.stackParent;
+
+                    childList.push(currentChild);
+                }
+
+                if(isSlider) {
+                    for(var c = 0; c < childList.length; c++) {
+                        childList[c].stackShift -= 4 * (firstSliderIndex + 1);
+                    }
+                }
+                // A circle in a slider stack -> push earlier objects bottom-right scaling by circles after the last the slider
+                else {
+                    hitObject.stackShift -= 4;
                 }
 
                 break;
@@ -736,117 +790,13 @@ function Play(beatmap, audio) {
                 break;
             }
         }
-
-        clonedObjects.push(hitObject);
-
-        /*
-         var nextStackObject = (function(hitObj, hitObjNum) {
-         if(hitObj.stackMoved) return null;
-
-         for(var b = 1;;b++) {
-         var next = this.beatmap.hitObjects[hitObjNum + b];
-
-         if(next == undefined) return null;
-
-         if(JSON.stringify(hitObj.basePoint) == JSON.stringify(next.startPoint) && next.time - hitObj.time <= stackLeniencyFrame && !hitObj.stackMoved) {
-         return nextStackObject;
-         }
-         else if(next.time - hitObj.time > stackLeniencyFrame) {
-         break;
-         }
-         }
-
-         return null;
-         }).bind(this);
-
-         var stackObj = nextStackObject(hitObject, i);
-
-         // Stacks
-         if(i >= lastStackEnd && hitObject.type != "spinner" && stackObj != undefined && stackObj.type != "spinner" && JSON.stringify(stackObj.startPoint) == JSON.stringify(hitObject.basePoint)) {
-         var stackDepth = 0;
-
-         var stackElements = [hitObject];
-
-         var lastObject = hitObject;
-
-         var lastSlider = hitObject.type == "slider" ? 0 : -1;
-
-         while(nextStackObject(lastObj, i + stackDepth).type != "spinner") {
-         var nextObject = nextStackObject(lastObject, i + stackDepth);
-
-         if(JSON.stringify(lastObject.basePoint) == JSON.stringify(nextObject.startPoint)) {
-         stackDepth++;
-
-         stackElements.push(nextObject);
-
-         lastObject = nextObject;
-
-         if(nextObject.type == "slider") lastSlider = stackDepth;
-
-         if(i + 1 + stackDepth == this.beatmap.hitObjects.length - 1) break;
-         }
-         else {
-         break;
-         }
-         }
-
-         lastStackEnd = i + 1 + stackDepth;
-
-         if(lastSlider == -1 || lastSlider + 1 == stackElements.length) {
-         for(var j = stackElements.length - 1; j >= 0; j--) {
-         stackElements[j].x -= 4 * ((stackElements.length - 1) - j);
-         stackElements[j].y -= 4 * ((stackElements.length - 1) - j);
-         stackElements[j].stackMoved = true;
-         }
-         }
-         else {
-         var beforeLastSliderStack = stackElements.slice(0, lastSlider + 1);
-         var afterLastSliderStack = stackElements.slice(lastSlider, stackElements.length);
-
-         for(var j = beforeLastSliderStack.length - 1; j >= 0; j--) {
-         beforeLastSliderStack[j].x -= 4 * ((beforeLastSliderStack.length - 1) - j);
-         beforeLastSliderStack[j].y -= 4 * ((beforeLastSliderStack.length - 1) - j);
-         beforeLastSliderStack[j].stackMoved = true;
-         }
-
-         for(var h = 0; h < afterLastSliderStack.length; h++) {
-         afterLastSliderStack[h].x += 4 * afterLastSliderStack.length;
-         afterLastSliderStack[h].y += 4 * afterLastSliderStack.length;
-         afterLastSliderStack[h].stackMoved = true;
-         }
-         }
-         }
-         */
     }
 
-    for (var o = 0; o < clonedObjects.length; o++) {
-        var obj = clonedObjects[o];
-
-        if (obj.newCombo != null) {
-            if(obj.newCombo == -1) {
-                comboInfo.comboNum++;
-            }
-            else {
-                comboInfo.comboNum += comboInfo.comboNum % this.beatmap.colours.length + obj.newCombo;
-            }
-            comboInfo.n = 1;
-        }
-
-        if (obj.type == "circle") {
-            var newObject = new Circle(obj, zIndex, comboInfo);
-            newObject.draw();
-            this.hitObjects.push(newObject);
-        } else if (obj.type == "slider") {
-            var newObject = new Slider(obj, zIndex, comboInfo);
-            newObject.draw();
-            this.hitObjects.push(newObject);
-        } else {
-            console.log(obj.type);
-        }
-
-        zIndex--;
-        comboInfo.n++;
+    for(var z = 0; z < this.hitObjects.length; z++) {
+        this.hitObjects[z].updateStackPosition();
+        this.hitObjects[z].draw();
     }
+
     console.info("Map build time: " + (window.performance.now() - mapGenerationStartTime).toFixed(2) + "ms", this.hitObjects);
 
     this.audioStartTime = null;
@@ -914,10 +864,10 @@ function Play(beatmap, audio) {
             }
         }
 
-        while (this.lastAppendedHitObject - this.currentHitObject < 1) {
+        while (this.hitObjects.length > this.lastAppendedHitObject && this.lastAppendedHitObject - this.currentHitObject < 1) {
             var nextTime = this.hitObjects[this.lastAppendedHitObject].time;
 
-            while (this.hitObjects[this.lastAppendedHitObject].time <= nextTime) {
+            while (this.hitObjects.length > this.lastAppendedHitObject && this.hitObjects[this.lastAppendedHitObject].time <= nextTime) {
                 this.hitObjects[this.lastAppendedHitObject].append.bind(this.hitObjects[this.lastAppendedHitObject])();
                 this.lastAppendedHitObject++;
             }
