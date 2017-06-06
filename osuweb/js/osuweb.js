@@ -94,15 +94,29 @@ osuweb.graphics = {
         y: 480
     },
     pi2: Math.PI * 2,
-    drawCircle: function(context, x, y, n) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
+    drawCircle: function(context, x, y, comboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
         context.beginPath(); // Draw circle base (will become border)
         context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel, 0, osuweb.graphics.pi2);
         context.fillStyle = "white";
         context.fill();
 
+        var colour = currentBeatmap.colours[comboInfo.comboNum % currentBeatmap.colours.length];
+
+        var colourString =
+            "#" +
+            (colour.r >= 16 ? colour.r.toString(16) : ("0" + colour.r.toString(16))) +
+            (colour.g >= 16 ? colour.g.toString(16) : ("0" + colour.g.toString(16))) +
+            (colour.b >= 16 ? colour.b.toString(16) : ("0" + colour.b.toString(16)));
+
+        var darkColourString =
+            "#" +
+            (Math.round(colour.r * 0.5) >= 16 ? Math.round(colour.r * 0.5).toString(16) : ("0" + Math.round(colour.r * 0.5).toString(16))) +
+            (Math.round(colour.g * 0.5) >= 16 ? Math.round(colour.g * 0.5).toString(16) : ("0" + Math.round(colour.g * 0.5).toString(16))) +
+            (Math.round(colour.b * 0.5) >= 16 ? Math.round(colour.b * 0.5).toString(16) : ("0" + Math.round(colour.b * 0.5).toString(16)));
+
         var radialGradient = context.createRadialGradient(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, 0, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel);
-        radialGradient.addColorStop(0, "#5c5c5c");
-        radialGradient.addColorStop(1, "black");
+        radialGradient.addColorStop(0, colourString);
+        radialGradient.addColorStop(1, darkColourString);
 
         context.beginPath(); // Draw circle body with radial gradient
         context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 14.5 / 16, 0, osuweb.graphics.pi2);
@@ -115,7 +129,7 @@ osuweb.graphics = {
             context.font = "lighter " + (currentPlay.csPixel * 0.41) + "px Arial";
             context.textAlign = "center", context.textBaseline = "middle";
             context.fillStyle = "white";
-            context.fillText(n, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel);
+            context.fillText(comboInfo.n, x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel);
         } else {
             context.beginPath();
             context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 0.25, 0, osuweb.graphics.pi2);
@@ -295,11 +309,7 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
 
         if(imageFile != null) {
             osuweb.file.loadFile(imageFile, function(e) {
-                var img = new Image;
-                img.onload = function(){
-                    canvasCtx.drawImage(img,0,0,img.width,img.height,0,0,canvasCtx.canvas.width,canvasCtx.canvas.height);
-                };
-                img.src = e.target.result;
+                var div = document.getElementById("background").style.backgroundImage = 'url('+e.target.result+')';
             });
         }
 
@@ -411,9 +421,9 @@ function Beatmap(file, callback) {
                 var col = line.split(':')[1].trim().split(',');
 
                 this.colours.push({
-                    r: col[0],
-                    g: col[1],
-                    b: col[2],
+                    r: parseInt(col[0], 10),
+                    g: parseInt(col[1], 10),
+                    b: parseInt(col[2], 10),
                 });
             }
             if(section == "timing") {
@@ -838,6 +848,7 @@ function Play(beatmap, audio) {
                 if (timingPoint.inherited) {
                     this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
                 } else {
+                    this.currentMsPerBeatMultiplier = 100;
                     this.currentMsPerBeat = timingPoint.msPerBeat;
                     this.lastNonInheritedTimingPointMs = timingPoint.offset;
                 }

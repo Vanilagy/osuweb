@@ -3,6 +3,11 @@
         <title>Playarea</title>
         <meta charset="utf-8">
         <style>
+            html,body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+            }
             body {
                 background: black;
             }
@@ -17,6 +22,25 @@
                 position: relative;
                 width: 100%;
                 height: 100%;
+            }
+            #background {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+                pointer-events: none;
+                z-index: -200;
+                background-size: cover;
+            }
+            #osuweb {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+                pointer-events: none;
+                z-index: -100;
             }
             .hitCircleContainer {
                 position: absolute;
@@ -43,6 +67,7 @@
     <body>
         <input type="file" id="beatmap" webkitdirectory multiple>
         <p id="timeDisplay" style="color: pink"></p>
+        <div id="background"></div>
         <canvas id="osuweb"></canvas>
 
         <div id="playarea">
@@ -56,18 +81,18 @@
         <script>
             document.getElementById("beatmap").addEventListener("change", function(e) {
                 currentBeatmapSet = new BeatmapSet(e.target.files);
-                
+
                 var keys = [];
                 for (var key in currentBeatmapSet.difficulties) {
                     keys.push(key);
                 }
-                
+
                 currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
                     new Play(currentBeatmap, currentAudio);
                     currentPlay.start();
                 });
             });
-            
+
             var timeSinceLastBitch = window.performance.now();
             function derp() {
                 var now = window.performance.now();

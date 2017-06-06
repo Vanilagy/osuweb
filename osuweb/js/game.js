@@ -38,7 +38,7 @@ Circle.prototype.draw = function() {
     baseCanvas.setAttribute("height", currentPlay.csPixel);
 
     var ctx = baseCanvas.getContext("2d");
-    osuweb.graphics.drawCircle(ctx, 0, 0, this.comboInfo.n);
+    osuweb.graphics.drawCircle(ctx, 0, 0, this.comboInfo);
 
     this.approachCircleCanvas = document.createElement("canvas");
     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
@@ -305,8 +305,6 @@ Slider.prototype.draw = function() {
         ctx.stroke();
     }
 
-    osuweb.graphics.drawCircle(ctx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY, this.comboInfo.n);
-
     this.containerDiv.appendChild(baseCanvas);
 
     var overlay = document.createElement("canvas");
@@ -314,6 +312,7 @@ Slider.prototype.draw = function() {
     overlay.setAttribute("height", sliderHeight + currentPlay.csPixel);
 
     var overlayCtx = overlay.getContext("2d");
+
     function getCoordFromCoordArray(arr, percent) {
         var actualIdx = percent * (arr.length - 1);
         var lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
@@ -325,6 +324,8 @@ Slider.prototype.draw = function() {
             y: lowerPos.y * (1 - (actualIdx - lowerIdx)) + upperPos.y * (actualIdx - lowerIdx)
         }
     }
+
+    osuweb.graphics.drawCircle(overlayCtx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY, this.comboInfo);
 
     this.updateOverlay = function() {
         var completion = 0;
@@ -404,9 +405,17 @@ Slider.prototype.draw = function() {
             var x = sliderBallPos.x - this.minX + currentPlay.halfCsPixel;
             var y = sliderBallPos.y - this.minY + currentPlay.halfCsPixel;
 
+            var colour = currentBeatmap.colours[this.comboInfo.comboNum % currentBeatmap.colours.length];
+
+            var colourString =
+                "#" +
+                (colour.r >= 16 ? colour.r.toString(16) : ("0" + colour.r.toString(16))) +
+                (colour.g >= 16 ? colour.g.toString(16) : ("0" + colour.g.toString(16))) +
+                (colour.b >= 16 ? colour.b.toString(16) : ("0" + colour.b.toString(16)));
+
             overlayCtx.beginPath();
             overlayCtx.arc(x, y, sliderBodyRadius, 0, osuweb.graphics.pi2);
-            overlayCtx.fillStyle = "magenta";
+            overlayCtx.fillStyle = colourString;
             overlayCtx.fill();
         }
 
