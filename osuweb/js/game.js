@@ -1,7 +1,7 @@
 var playareaDom = document.getElementById("playarea");
 var objectContainerDom = document.getElementById("objectContainer");
 
-var sliderTracePointDistance = 4;
+var sliderTracePointDistance = 3;
 
 /////
 
@@ -198,7 +198,7 @@ function Slider(data, zIndex, comboInfo) {
                                 p3 = osuweb.mathutil.coordsOnBezier(points, midT);
                                 dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
 
-                                if (Math.abs(sliderTracePointDistance - dist) < 0.1) {
+                                if (Math.abs(sliderTracePointDistance - dist) < 0.05) {
                                     break;
                                 }
 
@@ -245,6 +245,15 @@ function Slider(data, zIndex, comboInfo) {
             y: lastPoint.y + dif * Math.sin(angle)
         });
     }
+    
+    /*var length = 0;
+
+    for(var i = 1; i < this.sliderPathPoints.length; i++) {
+        length += Math.hypot(this.sliderPathPoints[i - 1].x / currentPlay.pixelRatio - this.sliderPathPoints[i].x / currentPlay.pixelRatio, this.sliderPathPoints[i - 1].y / currentPlay.pixelRatio - this.sliderPathPoints[i].y / currentPlay.pixelRatio);
+    }
+
+    console.log(this);
+    console.log("length difference: "+Math.abs(this.length - length).toFixed(5));*/
 
     if(this.repeat % 2 == 0) {
         this.basePoint = this.startPoint;
@@ -342,30 +351,22 @@ Slider.prototype.draw = function() {
 
             overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
 
-            completion = (this.dataOnStart.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
+            completion = (this.timingInfo.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
             if (completion > this.repeat) {
                 completion = this.repeat;
                 this.remove.bind(this)();
             }
 
             // Draws slider ticks
-            var offsetFromLastBeat = (this.time - currentPlay.lastNonInheritedTimingPointMs) % (this.dataOnStart.msPerBeat / currentPlay.beatmap.sliderTickRate);
+            for (var i = 0; i < this.sliderTickCompletions.length; i++) {
+                if (this.sliderTickCompletions[i] >= completion && this.sliderTickCompletions[i] < Math.floor(completion + 1)) {
+                    var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(this.sliderTickCompletions[i]));
+                    var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
 
-            for (var tickCompletion = (this.dataOnStart.sliderVelocity * offsetFromLastBeat) / this.length;
-                 tickCompletion < Math.ceil(completion);
-                 tickCompletion += (this.dataOnStart.sliderVelocity * this.dataOnStart.msPerBeat / currentPlay.beatmap.sliderTickRate) / this.length) {
-                if (tickCompletion >= completion) {
-                    var t = Math.round(osuweb.mathutil.reflect(tickCompletion) * 100) / 100;
-
-                    if (t > 0 && t < 1) {
-                        var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, t);
-                        var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
-
-                        overlayCtx.beginPath();
-                        overlayCtx.arc(x, y, 3, 0, osuweb.graphics.pi2);
-                        overlayCtx.fillStyle = "white";
-                        overlayCtx.fill();
-                    }
+                    overlayCtx.beginPath();
+                    overlayCtx.arc(x, y, currentPlay.csPixel * 0.04, 0, osuweb.graphics.pi2);
+                    overlayCtx.fillStyle = "white";
+                    overlayCtx.fill();
                 }
             }
         }
@@ -406,12 +407,7 @@ Slider.prototype.draw = function() {
             var y = sliderBallPos.y - this.minY + currentPlay.halfCsPixel;
 
             var colour = currentBeatmap.colours[this.comboInfo.comboNum % currentBeatmap.colours.length];
-
-            var colourString =
-                "#" +
-                (colour.r >= 16 ? colour.r.toString(16) : ("0" + colour.r.toString(16))) +
-                (colour.g >= 16 ? colour.g.toString(16) : ("0" + colour.g.toString(16))) +
-                (colour.b >= 16 ? colour.b.toString(16) : ("0" + colour.b.toString(16)));
+            var colourString = "rgb(" + colour.r + "," + colour.g + "," + colour.b + ")";
 
             overlayCtx.beginPath();
             overlayCtx.arc(x, y, sliderBodyRadius, 0, osuweb.graphics.pi2);

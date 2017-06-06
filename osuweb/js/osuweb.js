@@ -676,6 +676,9 @@ function Play(beatmap, audio) {
 
     var comboCount = 1;
     var nextCombo = 0;
+    var currentTimingPoint = 1;
+    var currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
+    var currentMsPerBeatMultiplier = 100;
     var mapGenerationStartTime = window.performance.now();
 
     for (var o = 0; o < this.beatmap.hitObjects.length; o++) {
@@ -690,20 +693,58 @@ function Play(beatmap, audio) {
             }
             comboCount = 1;
         }
-
         var comboInfo = {
             comboNum: nextCombo,
             n: comboCount++
         };
+        
+        if (currentTimingPoint < this.beatmap.timingPoints.length) {
+            while (this.beatmap.timingPoints[currentTimingPoint].offset <= obj.time) {
+                var timingPoint = this.beatmap.timingPoints[currentTimingPoint];
+
+                if (timingPoint.inherited) {
+                    currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
+                } else {
+                    currentMsPerBeatMultiplier = 100;
+                    currentMsPerBeat = timingPoint.msPerBeat;
+                }
+
+                currentTimingPoint++;
+
+                if (currentTimingPoint == this.beatmap.timingPoints.length) {
+                    break;
+                }
+            }
+        }
 
         if (obj.type == "circle") {
             var newObject = new Circle(obj, zIndex, comboInfo);
-            this.hitObjects.push(newObject);
         } else if (obj.type == "slider") {
             var newObject = new Slider(obj, zIndex, comboInfo);
-            this.hitObjects.push(newObject);
+            
+            var timingInfo = {
+                msPerBeat: currentMsPerBeat,
+                msPerBeatMultiplier: currentMsPerBeatMultiplier,
+                sliderVelocity: 100 * currentPlay.beatmap.SV / (currentMsPerBeat * (currentMsPerBeatMultiplier / 100))
+            };
+            var sliderTickCompletions = [];
+            
+            for (var tickCompletion = 0; tickCompletion < newObject.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / currentPlay.beatmap.sliderTickRate)) / newObject.length) {
+                var t = Math.round(osuweb.mathutil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
+                
+                if (t > 0 && t < 1) {
+                    sliderTickCompletions.push(tickCompletion);
+                }
+            }
+            
+            newObject.timingInfo = timingInfo;
+            newObject.sliderTickCompletions = sliderTickCompletions;
         } else {
             console.log(obj.type);
+        }
+        
+        if (newObject) {
+            this.hitObjects.push(newObject);
         }
 
         zIndex--;
@@ -713,7 +754,7 @@ function Play(beatmap, audio) {
     var stackLeniencyFrame = this.ARMs * this.beatmap.stackLeniency;
     var stackSnapDistance = 2;
 
-    for (var i = 0; i < this.hitObjects.length; i++) {
+    /*for (var i = 0; i < this.hitObjects.length; i++) {
         var hitObject = this.hitObjects[i];
 
         for (var b = i - 1; b >= 0; b--) {
@@ -790,10 +831,10 @@ function Play(beatmap, audio) {
                 break;
             }
         }
-    }
+    }*/
 
     for(var z = 0; z < this.hitObjects.length; z++) {
-        this.hitObjects[z].updateStackPosition();
+        //this.hitObjects[z].updateStackPosition();
         this.hitObjects[z].draw();
     }
 
@@ -806,21 +847,27 @@ function Play(beatmap, audio) {
     this.metronomeRunning = false;
     this.audioStarted = false;
 
-    this.currentTimingPoint = 1;
-    this.lastNonInheritedTimingPointMs = null;
-    this.currentMsPerBeat = null;
-    this.currentMsPerBeatMultiplier = 100;
-
     this.currentHitObject = 0;
     this.lastAppendedHitObject = 0;
     var lastTickClockTime = window.performance.now();
+    var recordedTickSpeeds = [];
+    var stupidClock = window.performance.now();
 
     this.tickClock = function() {
         var timeDif = window.performance.now() - lastTickClockTime;
-        if (timeDif > 6.5) {
-            console.log("Slow clock: " + timeDif.toFixed(2) + "ms since last execution!");
+        recordedTickSpeeds.push(timeDif);
+        if (timeDif > 10) {
+            console.warn("Slow clock: " + timeDif.toFixed(2) + "ms since last execution!");
         }
         lastTickClockTime = window.performance.now();
+        if (window.performance.now() - stupidClock > 2000) {
+            var sum = 0;
+            for (var i = 0; i < recordedTickSpeeds.length; i++) {
+                sum += recordedTickSpeeds[i];
+            }
+            console.log("Current average clock tick speed: " + (sum / recordedTickSpeeds.length).toFixed(2) + "ms / " + (1000 / (sum / recordedTickSpeeds.length)).toFixed(2) + "Hz");
+            stupidClock = window.performance.now();
+        }
 
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
         document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
@@ -829,27 +876,7 @@ function Play(beatmap, audio) {
             console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
             currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
-        }
-
-        if (this.currentTimingPoint < this.beatmap.timingPoints.length) {
-            while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= this.audioCurrentTime) {
-                var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
-
-                if (timingPoint.inherited) {
-                    this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
-                } else {
-                    this.currentMsPerBeatMultiplier = 100;
-                    this.currentMsPerBeat = timingPoint.msPerBeat;
-                    this.lastNonInheritedTimingPointMs = timingPoint.offset;
-                }
-
-                this.currentTimingPoint++;
-
-                if (this.currentTimingPoint == this.beatmap.timingPoints.length) {
-                    break;
-                }
-            }
-        }
+        }      
 
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
@@ -922,9 +949,6 @@ Play.prototype.start = function() {
         if(currentAudio.isRunning()) currentAudio.stop();
         currentAudio = null;
     }
-
-    this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
-    this.lastNonInheritedTimingPointMs = this.beatmap.timingPoints[0].offset;
 
     this.audioStartTime = window.performance.now();
     this.tickClock.bind(this)();
