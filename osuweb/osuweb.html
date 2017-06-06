@@ -10,13 +10,17 @@
             }
             body {
                 background: black;
+                overflow: /*fucking*/ hidden;
             }
             #playarea {
                 width: 512px;
                 height: 392px;
                 border: 1px solid gray;
                 margin: auto;
-                margin-top: 30px;
+                position: absolute;
+                top: 5%;
+                left: 0;
+                right: 0;
             }
             #objectContainer {
                 position: relative;
@@ -30,8 +34,20 @@
                 left:0px;
                 top:0px;
                 pointer-events: none;
-                z-index: -200;
+                z-index: -300;
                 background-size: cover;
+            }
+            #background-dim {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+                pointer-events: none;
+                z-index: -200;
+                opacity: 0;
+                transition: opacity 1s;
+                background-color: black;
             }
             #osuweb {
                 width: 100%;
@@ -66,8 +82,8 @@
     </head>
     <body>
         <input type="file" id="beatmap" webkitdirectory multiple>
-        <p id="timeDisplay" style="color: pink"></p>
         <div id="background"></div>
+        <div id="background-dim"></div>
         <canvas id="osuweb"></canvas>
 
         <div id="playarea">
@@ -81,6 +97,8 @@
         <script>
             document.getElementById("beatmap").addEventListener("change", function(e) {
                 currentBeatmapSet = new BeatmapSet(e.target.files);
+
+                document.getElementById("beatmap").style.visibility = "hidden";
 
                 var keys = [];
                 for (var key in currentBeatmapSet.difficulties) {

@@ -8,6 +8,7 @@ var sliderTracePointDistance = 3;
 function Circle(data, zIndex, comboInfo) {
     this.type = "circle";
     this.time = data.time;
+    this.endTime = this.time;
     this.newCombo = data.newCombo;
     this.x = data.x;
     this.y = data.y;
@@ -60,8 +61,6 @@ Circle.prototype.show = function(offset) {
     this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
     this.containerDiv.style.opacity = 1;
     this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + currentPlay.ARMs / 1000 + "s";
-
-    setTimeout(this.remove.bind(this), currentPlay.ARMs);
 }
 
 Circle.prototype.remove = function() {
@@ -259,7 +258,7 @@ function Slider(data, zIndex, comboInfo) {
         this.basePoint = this.startPoint;
     }
     else {
-        this.basePoint = {x: Math.round(this.sliderPathPoints[this.sliderPathPoints.length - 1].x / currentPlay.pixelRatio), y: Math.round(this.sliderPathPoints[this.sliderPathPoints.length - 1].y / currentPlay.pixelRatio)};
+        this.basePoint = {x: this.sliderPathPoints[this.sliderPathPoints.length - 1].x / currentPlay.pixelRatio, y: this.sliderPathPoints[this.sliderPathPoints.length - 1].y / currentPlay.pixelRatio};
     }
 }
 
@@ -345,6 +344,8 @@ Slider.prototype.draw = function() {
                     msPerBeat: currentPlay.currentMsPerBeat,
                     sliderVelocity: 100 * currentPlay.beatmap.SV / (currentPlay.currentMsPerBeat * (currentPlay.currentMsPerBeatMultiplier / 100))
                 }
+
+                this.endTime = this.time + (this.length / this.dataOnStart.sliderVelocity) * this.repeat;
 
                 this.approachCircleCanvas.style.display = "none";
             }

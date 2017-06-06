@@ -237,6 +237,12 @@ osuweb.util = {
     }
 }
 
+function Database(files) {
+    this.files = files;
+    this.beatmapFiles = [];
+    this.skinFiles = [];
+}
+
 function BeatmapSet(files) {
     this.files = files;
     this.audioFiles = [];
@@ -464,24 +470,18 @@ function Beatmap(file, callback) {
 
                 var hitObjectData = parseInt(values[3], 10);
 
-                if(hitObjectData > 12) {
-                    var maxBit = Math.round(Math.pow(2, 4 + this.colours.length))
-                    var maxIndex = 4 + this.colours.length;
+                var comboSkip = 0;
 
-                    while(hitObjectData < maxBit) {
-                        maxBit /= 2;
-                        maxIndex--;
-                    }
-
-                    var colourIndex = maxIndex - 4;
-                    hitObjectData -= maxBit;
+                while(hitObjectData > 12) {
+                    hitObjectData -= 16;
+                    comboSkip++;
                 }
 
                 // circle
                 if(hitObjectData == 1 || hitObjectData == 5) {
                     var circle = {
                         type: "circle",
-                        newCombo: hitObjectData == 5 ? (colourIndex != undefined ? colourIndex : -1) : null,
+                        newCombo: hitObjectData == 5 ? (comboSkip > 0 ? comboSkip : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -547,7 +547,7 @@ function Beatmap(file, callback) {
 
                     var slider = {
                         type: "slider",
-                        newCombo: hitObjectData == 6 ? (colourIndex != undefined ? colourIndex : -1) : null,
+                        newCombo: hitObjectData == 6 ? (comboSkip > 0 ? comboSkip : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -608,7 +608,7 @@ function Beatmap(file, callback) {
                 else if(hitObjectData == 8 || hitObjectData == 12) {
                     var spinner = {
                         type: "spinner",
-                        newCombo: hitObjectData == 12 ? (colourIndex != undefined ? colourIndex : -1) : null,
+                        newCombo: hitObjectData == 12 ? (comboSkip > 0 ? comboSkip : -1) : null,
                         x: parseInt(values[0], 10),
                         y: parseInt(values[1], 10),
                         time: parseInt(values[2], 10),
@@ -658,8 +658,8 @@ function Play(beatmap, audio) {
     this.beatmap = beatmap;
     console.log(this.beatmap);
 
-    this.playAreaWidth = Math.floor(window.innerWidth * 0.55 / 4) * 4;
-    this.playAreaHeight = this.playAreaWidth * osuweb.graphics.widthToHeightRatio;
+    this.playAreaHeight = Math.floor(window.innerHeight * 0.90 / 4) * 4;
+    this.playAreaWidth = this.playAreaHeight / osuweb.graphics.widthToHeightRatio;
     playareaDom.style.width = this.playAreaWidth, playareaDom.style.height = this.playAreaHeight;
     this.pixelRatio = this.playAreaWidth / osuweb.graphics.playAreaDimensions.x;
     this.marginWidth = (osuweb.graphics.playAreaDimensions.x - osuweb.graphics.coordinateDimensions.x) / 2;
@@ -689,7 +689,7 @@ function Play(beatmap, audio) {
                 nextCombo++;
             }
             else {
-                nextCombo = obj.newCombo;
+                nextCombo += obj.newCombo + 1;
             }
             comboCount = 1;
         }
@@ -793,7 +793,7 @@ function Play(beatmap, audio) {
                     }
                     // A circle in a slider stack -> push earlier objects bottom-right scaling by circles after the last the slider
                     else {
-                        hitObject.stackShift += 4;
+                        hitObject.stackShift += 4 * (firstSliderIndex + 1);
                     }
                 }
 
@@ -846,8 +846,10 @@ function Play(beatmap, audio) {
     this.nextMetronome = null;
     this.metronomeRunning = false;
     this.audioStarted = false;
+    this.inBreak = true;
 
     this.currentHitObject = 0;
+    this.lastRemovedHitObject = 0;
     this.lastAppendedHitObject = 0;
     var lastTickClockTime = window.performance.now();
     var recordedTickSpeeds = [];
@@ -870,13 +872,37 @@ function Play(beatmap, audio) {
         }
 
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
-        document.getElementById("timeDisplay").innerHTML = (this.audioCurrentTime / 1000).toFixed(2);
 
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
             console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
             currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
         }      
+
+        if(this.lastRemovedHitObject < this.hitObjects.length) {
+            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].type == "slider") this.lastRemovedHitObject++;
+
+            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].endTime - this.audioCurrentTime <= 0) {
+                this.hitObjects[this.lastRemovedHitObject].remove();
+                this.lastRemovedHitObject++;
+            }
+        }
+
+        if (this.currentHitObject >= this.hitObjects.length && this.hitObjects[this.hitObjects.length - 1].endTime - this.audioCurrentTime < -300) {
+            document.getElementById("background-dim").style.opacity = "0";
+            this.inBreak = true;
+        }
+        else if(this.currentHitObject < this.hitObjects.length) {
+            if (this.hitObjects[this.currentHitObject].endTime - this.audioCurrentTime < 1500 && this.inBreak) {
+                document.getElementById("background-dim").style.opacity = "0.8";
+                this.inBreak = false;
+            }
+            else if(this.currentHitObject - 1 != - 1 && this.currentHitObject < this.hitObjects.length && this.hitObjects[this.currentHitObject - 1].endTime - this.audioCurrentTime < -300 && this.hitObjects[this.currentHitObject].endTime - this.audioCurrentTime > 3000 && !this.inBreak) {
+                document.getElementById("background-dim").style.opacity = "0";
+                this.inBreak = true;
+            }
+        }
+
 
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
