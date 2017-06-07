@@ -5,11 +5,14 @@ var canvasCtx = document.getElementById("osuweb").getContext("2d");
 
 var zip = new JSZip();
 
+var defaultSkinElements = {};
+
 var currentBeatmapSet = null;
 var currentBeatmap = null;
 var currentAudio = null;
 var currentSkin = null;
 var currentPlay = null;
+var currentScene = null;
 
 var osuweb = {
     version: "2017.05.29.0000",
@@ -74,12 +77,21 @@ osuweb.file = {
 
 		reader.readAsDataURL(file);
 	},
-	loadAudio: function(file, onFileLoad, onAudioLoad) {
+	loadAudioFromFile: function(file, onFileLoad, onAudioLoad) {
         var reader = new FileReader();
         reader.onload = (function(e) {
             onFileLoad(new Audio(e.target.result, onAudioLoad));
         });
         reader.readAsArrayBuffer(file);
+    },
+    loadAudioFromURL: function(url, onFileLoad, onAudioLoad) {
+        var request = new XMLHttpRequest();
+        request.open('GET', url, true);
+        request.responseType = 'arraybuffer';
+        request.onload = (function(e) {
+            onFileLoad(new Audio(e.target.response, onAudioLoad));
+        });
+        request.send();
     }
 }
 
@@ -319,7 +331,7 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
             }
         }
 
-        osuweb.file.loadAudio(audioFile, (function(a) {
+        osuweb.file.loadAudioFromFile(audioFile, (function(a) {
             currentAudio = a;
         }).bind(this), (function() {
             audioCallback();
@@ -692,9 +704,6 @@ function Play(beatmap, audio) {
     var mapGenerationStartTime = window.performance.now();
 
     for (var o = 0; o < this.beatmap.hitObjects.length; o++) {
-        if(o >= 460) {
-            console.log();
-        }
         var obj = this.beatmap.hitObjects[o];
 
         if(obj.newCombo != null) {
