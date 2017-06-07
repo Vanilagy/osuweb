@@ -66,17 +66,25 @@
                 top: 0px;
                 left: 0px;
             }
-            .sliderContainer canvas {
+            .sliderContainer {
+                position: absolute;
+            }
+            .sliderContainer > canvas {
                 position: absolute;
                 top: 0px;
                 left: 0px;
             }
-            .sliderContainer {
-                position: absolute;
-            }
             @keyframes closeApproachCircle {
                 from {transform: scale(3.5)}
                 to {transform: scale(1)}
+            }
+            @keyframes destroyHitCircle {
+                from {transform: scale(1); opacity: 1}
+                to {transform: scale(1.35); opacity: 0;}
+            }
+            @keyframes sliderFadeOut {
+                from {opacity: 1}
+                to {opacity: 0}
             }
         </style>
     </head>

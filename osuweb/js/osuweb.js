@@ -680,11 +680,11 @@ function Play(beatmap, audio) {
     this.ARMs = osuweb.util.getMsFromAR(this.beatmap.AR);
 
     this.hitObjects = [];
-    var zIndex = 1000000;
+    var hitObjectId = 0;
 
-    this.currentTimingPoint = 1;
-    this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
-    this.currentMsPerBeatMultiplier = 100;
+    var currentTimingPoint = 1;
+    var currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
+    var currentMsPerBeatMultiplier = 100;
 
     var comboCount = 1;
     var nextCombo = 0;
@@ -692,9 +692,6 @@ function Play(beatmap, audio) {
     var mapGenerationStartTime = window.performance.now();
 
     for (var o = 0; o < this.beatmap.hitObjects.length; o++) {
-        if(o >= 460) {
-            console.log();
-        }
         var obj = this.beatmap.hitObjects[o];
 
         if(obj.newCombo != null) {
@@ -711,20 +708,20 @@ function Play(beatmap, audio) {
             n: comboCount++
         };
 
-        if (this.currentTimingPoint < this.beatmap.timingPoints.length) {
-            while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= obj.time) {
-                var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
+        if (currentTimingPoint < this.beatmap.timingPoints.length) {
+            while (this.beatmap.timingPoints[currentTimingPoint].offset <= obj.time) {
+                var timingPoint = this.beatmap.timingPoints[currentTimingPoint];
 
                 if (timingPoint.inherited) {
-                    this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
+                    currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
                 } else {
-                    this.currentMsPerBeatMultiplier = 100;
-                    this.currentMsPerBeat = timingPoint.msPerBeat;
+                    currentMsPerBeatMultiplier = 100;
+                    currentMsPerBeat = timingPoint.msPerBeat;
                 }
 
-                this.currentTimingPoint++;
+                currentTimingPoint++;
 
-                if (this.currentTimingPoint == this.beatmap.timingPoints.length) {
+                if (currentTimingPoint == this.beatmap.timingPoints.length) {
                     break;
                 }
             }
@@ -733,14 +730,14 @@ function Play(beatmap, audio) {
         var newObject = null;
 
         if (obj.type == "circle") {
-            var newObject = new Circle(obj, zIndex, comboInfo);
+            var newObject = new Circle(obj);
         } else if (obj.type == "slider") {
-            var newObject = new Slider(obj, zIndex, comboInfo);
+            var newObject = new Slider(obj);
 
             var timingInfo = {
-                msPerBeat: this.currentMsPerBeat,
-                msPerBeatMultiplier: this.currentMsPerBeatMultiplier,
-                sliderVelocity: 100 * currentPlay.beatmap.SV / (this.currentMsPerBeat * (this.currentMsPerBeatMultiplier / 100))
+                msPerBeat: currentMsPerBeat,
+                msPerBeatMultiplier: currentMsPerBeatMultiplier,
+                sliderVelocity: 100 * currentPlay.beatmap.SV / (currentMsPerBeat * (currentMsPerBeatMultiplier / 100))
             };
             var sliderTickCompletions = [];
 
@@ -751,7 +748,8 @@ function Play(beatmap, audio) {
                     sliderTickCompletions.push(tickCompletion);
                 }
             }
-
+            
+            newObject.endTime = newObject.time + newObject.repeat * newObject.length / timingInfo.sliderVelocity;
             newObject.timingInfo = timingInfo;
             newObject.sliderTickCompletions = sliderTickCompletions;
         } else {
@@ -759,10 +757,20 @@ function Play(beatmap, audio) {
         }
 
         if (newObject != null) {
+            newObject.id = hitObjectId;
+            newObject.comboInfo = comboInfo;
             this.hitObjects.push(newObject);
         }
 
-        zIndex--;
+        hitObjectId++;
+    }
+    
+    var zIndexBase = 1000000;
+    var zIndexSortedArray = this.hitObjects.slice(0).sort(function(a, b) {
+        return a.endTime - b.endTime;
+    });
+    for (var i = 0; i < zIndexSortedArray.length; i++) {
+        zIndexSortedArray[i].zIndex = zIndexBase - i;
     }
 
     var lastStackEnd = 0;
@@ -862,17 +870,20 @@ function Play(beatmap, audio) {
     this.audioStarted = false;
 
     this.currentHitObject = 0;
-    this.lastRemovedHitObject = 0;
     this.lastAppendedHitObject = 0;
-    var lastTickClockTime = window.performance.now();
-    var recordedTickSpeeds = [];
-    var stupidClock = window.performance.now();
+    this.onScreenHitObjects = {};
 
     this.inBreak = true;
     this.startBreak = true;
     this.nextBreak = null;
+    
+    // Debug variables
+    var lastTickClockTime = window.performance.now();
+    var recordedTickSpeeds = [];
+    var stupidClock = window.performance.now();
 
     this.tickClock = function() {
+        ///// DEBUG /////
         var timeDif = window.performance.now() - lastTickClockTime;
         recordedTickSpeeds.push(timeDif);
         if (timeDif > 10) {
@@ -887,24 +898,61 @@ function Play(beatmap, audio) {
             console.log("Current average clock tick speed: " + (sum / recordedTickSpeeds.length).toFixed(2) + "ms / " + (1000 / (sum / recordedTickSpeeds.length)).toFixed(2) + "Hz");
             stupidClock = window.performance.now();
         }
+        ///// DEBUG END /////
 
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
-
+        
+        // Starts the song
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
             console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
             currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
         }
+        
+        // hitObject updates
+        for (var id in this.onScreenHitObjects) {
+            var hitObject = this.onScreenHitObjects[id];
+            
+            if (hitObject.type == "circle") {
+                if (this.audioCurrentTime >= hitObject.time) {
+                    hitObject.containerDiv.style.animation = "0.2s destroyHitCircle linear forwards";
+                }
+                
+                if (this.audioCurrentTime >= hitObject.time + 200) {
+                    hitObject.remove();
+                    delete this.onScreenHitObjects[id];
+                    continue;
+                }
+            } else if (hitObject.type == "slider") {
+                if (this.audioCurrentTime >= hitObject.endTime) {
+                    hitObject.containerDiv.style.animation = "0.2s sliderFadeOut linear forwards";
+                }
+                
+                if (this.audioCurrentTime >= hitObject.endTime + 200) {
+                    hitObject.remove();
+                    delete this.onScreenHitObjects[id];
+                    continue;
+                }
+                
+                if (this.audioCurrentTime >= hitObject.time) {
+                    hitObject.sliderHeadContainer.style.animation = "0.2s destroyHitCircle linear forwards";
+                    //hitObject.sliderHeadContainer.style.display = "none";
+                }
+                
+                if (hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined) {
+                    var completion = hitObject.timingInfo.sliderVelocity * (this.audioCurrentTime - hitObject.time) / hitObject.length;
 
-        if(this.lastRemovedHitObject < this.hitObjects.length) {
-            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].type == "slider") this.lastRemovedHitObject++;
-
-            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].endTime - this.audioCurrentTime <= 0) {
-                this.hitObjects[this.lastRemovedHitObject].remove();
-                this.lastRemovedHitObject++;
+                    while (completion >= hitObject.sliderTickCompletions[hitObject.currentSliderTick]) {
+                        hitObject.currentSliderTick++;
+                    }
+                }
+                
             }
         }
 
+        
+
+        // Handles breaks
         if(this.audioCurrentTime > this.hitObjects[0].time - 1500 && this.startBreak) {
             document.getElementById("background-dim").style.opacity = "0.8";
             this.inBreak = false;
@@ -941,12 +989,13 @@ function Play(beatmap, audio) {
             }
         }
 
-
+        // Makes hitObjects show up on-screen
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
                 var hitObject = this.hitObjects[this.currentHitObject];
 
                 hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
+                this.onScreenHitObjects[hitObject.id] = hitObject;
 
                 this.currentHitObject++;
 
@@ -956,6 +1005,7 @@ function Play(beatmap, audio) {
             }
         }
 
+        // Appends upcoming hitObjects to the playarea
         while (this.hitObjects.length > this.lastAppendedHitObject && this.lastAppendedHitObject - this.currentHitObject < 1) {
             var nextTime = this.hitObjects[this.lastAppendedHitObject].time;
 

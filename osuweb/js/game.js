@@ -5,7 +5,7 @@ var sliderTracePointDistance = 3;
 
 /////
 
-function Circle(data, zIndex, comboInfo) {
+function Circle(data) {
     this.type = "circle";
     this.time = data.time;
     this.endTime = this.time;
@@ -15,8 +15,6 @@ function Circle(data, zIndex, comboInfo) {
     this.startPoint = {x: this.x, y: this.y};
     this.basePoint = {x: this.x, y: this.y};
     this.stackShift = 0;
-    this.zIndex = zIndex;
-    this.comboInfo = comboInfo;
 }
 
 Circle.prototype.updateStackPosition = function() {
@@ -27,6 +25,8 @@ Circle.prototype.updateStackPosition = function() {
 Circle.prototype.draw = function() {
     this.containerDiv = document.createElement("div");
     this.containerDiv.className = "hitCircleContainer";
+    this.containerDiv.style.width = currentPlay.csPixel + "px";
+    this.containerDiv.style.height = currentPlay.csPixel + "px";
     this.containerDiv.style.left = ((this.x + currentPlay.marginWidth) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px", this.containerDiv.style.top = ((this.y + currentPlay.marginHeight) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px";
     this.containerDiv.style.zIndex = this.zIndex;
 
@@ -67,7 +67,7 @@ Circle.prototype.remove = function() {
     this.containerDiv.parentNode.removeChild(this.containerDiv);
 }
 
-function Slider(data, zIndex, comboInfo) {
+function Slider(data) {
     this.type = "slider";
     this.time = data.time;
     this.newCombo = data.newCombo;
@@ -76,11 +76,10 @@ function Slider(data, zIndex, comboInfo) {
     this.startPoint = {x: this.x, y: this.y};
     this.stackShift = 0;
     this.sections = data.sections;
-    this.zIndex = zIndex;
-    this.comboInfo = comboInfo;
 
     this.repeat = data.repeat;
     this.length = data.length;
+    this.currentSliderTick = 0;
 
     this.sliderPathPoints = [];
 
@@ -332,42 +331,45 @@ Slider.prototype.draw = function() {
             y: lowerPos.y * (1 - (actualIdx - lowerIdx)) + upperPos.y * (actualIdx - lowerIdx)
         }
     }
-
-    osuweb.graphics.drawCircle(overlayCtx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY, this.comboInfo);
+    
+    function getLowestTickCompletionFromCurrentRepeat(completion) {
+        var currentRepeat = Math.floor(completion);
+        for (var i = 0; i < this.sliderTickCompletions.length; i++) {
+            if (this.sliderTickCompletions[i] > currentRepeat) {
+                return this.sliderTickCompletions[i];
+            }
+        }
+    }
 
     this.updateOverlay = function() {
         var completion = 0;
+        var isMoving = this.time <= currentPlay.audioCurrentTime;
 
-        if (this.time <= currentPlay.audioCurrentTime) {
-            if (!this.dataOnStart) {
-                this.dataOnStart = {
-                    msPerBeat: currentPlay.currentMsPerBeat,
-                    sliderVelocity: 100 * currentPlay.beatmap.SV / (currentPlay.currentMsPerBeat * (currentPlay.currentMsPerBeatMultiplier / 100))
-                }
-
-                this.endTime = this.time + (this.length / this.dataOnStart.sliderVelocity) * this.repeat;
-
-                this.approachCircleCanvas.style.display = "none";
-            }
-
+        if (isMoving) {
             overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
-
-            completion = (this.timingInfo.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
-            if (completion > this.repeat) {
+            
+            var currentSliderTime = currentPlay.audioCurrentTime - this.time;
+            completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.length;
+            
+            if (completion >= this.repeat) {
                 completion = this.repeat;
-                this.remove.bind(this)();
             }
 
             // Draws slider ticks
-            for (var i = 0; i < this.sliderTickCompletions.length; i++) {
-                if (this.sliderTickCompletions[i] >= completion && this.sliderTickCompletions[i] < Math.floor(completion + 1)) {
-                    var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(this.sliderTickCompletions[i]));
-                    var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
+            if (this.sliderTickCompletions[this.currentSliderTick] != undefined) {
+                var lowestTickCompletionFromCurrentRepeat = getLowestTickCompletionFromCurrentRepeat.bind(this)(completion)
+                for (var i = 0; this.sliderTickCompletions[i] < Math.floor(completion + 1) && this.sliderTickCompletions[i] < lowestTickCompletionFromCurrentRepeat + (completion % 1) * 2; i++) {
+                    if (this.sliderTickCompletions[i] >= completion) {
+                        var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(this.sliderTickCompletions[i]));
+                        var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
+                        var tickMs = Math.floor(completion) * this.length / this.timingInfo.sliderVelocity /* ms of current repeat */ +
+                            ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.length / this.timingInfo.sliderVelocity) / 2 /* ms of tick showing up */;
 
-                    overlayCtx.beginPath();
-                    overlayCtx.arc(x, y, currentPlay.csPixel * 0.04, 0, osuweb.graphics.pi2);
-                    overlayCtx.fillStyle = "white";
-                    overlayCtx.fill();
+                        overlayCtx.beginPath();
+                        overlayCtx.arc(x, y, currentPlay.csPixel * 0.038, 0, osuweb.graphics.pi2);
+                        overlayCtx.fillStyle = "rgba(255, 255, 255," + Math.min(1, (currentSliderTime - tickMs) / 75) + ")";
+                        overlayCtx.fill();
+                    }
                 }
             }
         }
@@ -401,7 +403,7 @@ Slider.prototype.draw = function() {
             overlayCtx.drawImage(repeatArrowCanvas, x - currentPlay.halfCsPixel, y - currentPlay.halfCsPixel);
         }
 
-        if (this.time <= currentPlay.audioCurrentTime) {
+        if (isMoving) {
             // Draws slider ball
             var sliderBallPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(completion));
             var x = sliderBallPos.x - this.minX + currentPlay.halfCsPixel;
@@ -422,16 +424,32 @@ Slider.prototype.draw = function() {
     }
 
     this.containerDiv.appendChild(overlay);
+    
+    this.sliderHeadContainer = document.createElement("div");
+    this.sliderHeadContainer.className = "hitCircleContainer";
+    this.sliderHeadContainer.style.width = currentPlay.csPixel + "px";
+    this.sliderHeadContainer.style.height = currentPlay.csPixel + "px";
+    this.sliderHeadContainer.style.left = this.sliderPathPoints[0].x - this.minX + "px";
+    this.sliderHeadContainer.style.top = this.sliderPathPoints[0].y - this.minY + "px";
+    
+    var sliderHeadBaseCanvas = document.createElement("canvas"); // Create local object canvas
+    sliderHeadBaseCanvas.setAttribute("width", currentPlay.csPixel);
+    sliderHeadBaseCanvas.setAttribute("height", currentPlay.csPixel);
 
+    var sliderHeadBaseCtx = sliderHeadBaseCanvas.getContext("2d");
+    osuweb.graphics.drawCircle(sliderHeadBaseCtx, 0, 0, this.comboInfo);
+    
     this.approachCircleCanvas = document.createElement("canvas");
     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
     this.approachCircleCanvas.setAttribute("height", currentPlay.csPixel);
-    this.approachCircleCanvas.style.left = this.sliderPathPoints[0].x - this.minX + "px", this.approachCircleCanvas.style.top = this.sliderPathPoints[0].y - this.minY + "px";
 
     var approachCtx = this.approachCircleCanvas.getContext("2d");
     osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
+    
+    this.sliderHeadContainer.appendChild(sliderHeadBaseCanvas);
+    this.sliderHeadContainer.appendChild(this.approachCircleCanvas);
 
-    this.containerDiv.appendChild(this.approachCircleCanvas);
+    this.containerDiv.appendChild(this.sliderHeadContainer);
 }
 
 Slider.prototype.append = function() {
