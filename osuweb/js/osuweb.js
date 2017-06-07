@@ -508,24 +508,17 @@ function Beatmap(file, callback) {
 
                     var sliderSections = [];
 
-                    var sliderSectionPoints = [];
+                    var sliderSectionPoints = [{x: parseInt(values[0], 10), y: parseInt(values[1], 10)}];
 
                     var lastPoint = null;
 
                     for(var j = 1; j < sliderPoints.length; j++) {
                         var coords = sliderPoints[j].split(':');
 
-                        if(j == 1) {
-                            // add first point
-                            sliderSectionPoints.push({x: parseInt(values[0], 10), y: parseInt(values[1], 10)});
-                        }
-
                         var nextPoint = {x: parseInt(coords[0], 10), y: parseInt(coords[1], 10)};
 
-                        sliderSectionPoints.push(nextPoint);
-
                         // end section if same point appears twice and start a new one if end is not reached
-                        if(JSON.stringify(lastPoint) === JSON.stringify(nextPoint) || j + 1 == sliderPoints.length) {
+                        if(JSON.stringify(lastPoint) === JSON.stringify(nextPoint)) {
                             if(sliderPoints.length == 3 && sliderSectionPoints.length == 3 && sliderType == "P") {
                                 var sectionType = "circle";
                             }
@@ -536,10 +529,27 @@ function Beatmap(file, callback) {
                                 var sectionType = "bezier";
                             }
 
-                            sliderSections.push({type: sectionType, values: sliderSectionPoints});
+                            if(sliderSectionPoints.length > 1) sliderSections.push({type: sectionType, values: sliderSectionPoints});
 
                             sliderSectionPoints = [];
                             sliderSectionPoints.push(nextPoint);
+                        }
+                        else {
+                            sliderSectionPoints.push(nextPoint);
+                        }
+
+                        if(j + 1 == sliderPoints.length) {
+                            if(sliderPoints.length == 3 && sliderSectionPoints.length == 3 && sliderType == "P") {
+                                var sectionType = "circle";
+                            }
+                            else if(sliderSectionPoints.length == 2) {
+                                var sectionType = "linear";
+                            }
+                            else {
+                                var sectionType = "bezier";
+                            }
+
+                            if(sliderSectionPoints.length > 1) sliderSections.push({type: sectionType, values: sliderSectionPoints});
                         }
 
                         lastPoint = nextPoint;
@@ -681,7 +691,11 @@ function Play(beatmap, audio) {
     var currentMsPerBeatMultiplier = 100;
     var mapGenerationStartTime = window.performance.now();
 
+
     for (var o = 0; o < this.beatmap.hitObjects.length; o++) {
+        if(o >= 460) {
+            console.log();
+        }
         var obj = this.beatmap.hitObjects[o];
 
         if(obj.newCombo != null) {
@@ -697,7 +711,7 @@ function Play(beatmap, audio) {
             comboNum: nextCombo,
             n: comboCount++
         };
-        
+
         if (currentTimingPoint < this.beatmap.timingPoints.length) {
             while (this.beatmap.timingPoints[currentTimingPoint].offset <= obj.time) {
                 var timingPoint = this.beatmap.timingPoints[currentTimingPoint];
@@ -717,33 +731,35 @@ function Play(beatmap, audio) {
             }
         }
 
+        var newObject = null;
+
         if (obj.type == "circle") {
             var newObject = new Circle(obj, zIndex, comboInfo);
         } else if (obj.type == "slider") {
             var newObject = new Slider(obj, zIndex, comboInfo);
-            
+
             var timingInfo = {
                 msPerBeat: currentMsPerBeat,
                 msPerBeatMultiplier: currentMsPerBeatMultiplier,
                 sliderVelocity: 100 * currentPlay.beatmap.SV / (currentMsPerBeat * (currentMsPerBeatMultiplier / 100))
             };
             var sliderTickCompletions = [];
-            
+
             for (var tickCompletion = 0; tickCompletion < newObject.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / currentPlay.beatmap.sliderTickRate)) / newObject.length) {
                 var t = Math.round(osuweb.mathutil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
-                
+
                 if (t > 0 && t < 1) {
                     sliderTickCompletions.push(tickCompletion);
                 }
             }
-            
+
             newObject.timingInfo = timingInfo;
             newObject.sliderTickCompletions = sliderTickCompletions;
         } else {
             console.log(obj.type);
         }
-        
-        if (newObject) {
+
+        if (newObject != null) {
             this.hitObjects.push(newObject);
         }
 
@@ -754,7 +770,7 @@ function Play(beatmap, audio) {
     var stackLeniencyFrame = this.ARMs * this.beatmap.stackLeniency;
     var stackSnapDistance = 2;
 
-    /*for (var i = 0; i < this.hitObjects.length; i++) {
+    for (var i = 0; i < this.hitObjects.length; i++) {
         var hitObject = this.hitObjects[i];
 
         for (var b = i - 1; b >= 0; b--) {
@@ -801,7 +817,6 @@ function Play(beatmap, audio) {
             }
             else if(prev.type == "slider" && Math.hypot(hitObject.startPoint.x - prev.startPoint.x, hitObject.startPoint.y - prev.startPoint.y) < stackSnapDistance && hitObject.time - prev.time <= stackLeniencyFrame) {
                 hitObject.stackParent = prev;
-                prev.type = "circle";
 
                 var isSlider = hitObject.type == "slider";
 
@@ -817,7 +832,7 @@ function Play(beatmap, audio) {
 
                 if(isSlider) {
                     for(var c = 0; c < childList.length; c++) {
-                        childList[c].stackShift -= 4 * (firstSliderIndex + 1);
+                        childList[c].stackShift -= 4 * 2;
                     }
                 }
                 // A circle in a slider stack -> push earlier objects bottom-right scaling by circles after the last the slider
@@ -831,10 +846,10 @@ function Play(beatmap, audio) {
                 break;
             }
         }
-    }*/
+    }
 
     for(var z = 0; z < this.hitObjects.length; z++) {
-        //this.hitObjects[z].updateStackPosition();
+        this.hitObjects[z].updateStackPosition();
         this.hitObjects[z].draw();
     }
 
@@ -877,7 +892,7 @@ function Play(beatmap, audio) {
             console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
             currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
-        }      
+        }
 
         if(this.lastRemovedHitObject < this.hitObjects.length) {
             while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].type == "slider") this.lastRemovedHitObject++;
