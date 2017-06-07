@@ -748,7 +748,7 @@ function Play(beatmap, audio) {
                     sliderTickCompletions.push(tickCompletion);
                 }
             }
-            
+
             newObject.endTime = newObject.time + newObject.repeat * newObject.length / timingInfo.sliderVelocity;
             newObject.timingInfo = timingInfo;
             newObject.sliderTickCompletions = sliderTickCompletions;
@@ -764,7 +764,7 @@ function Play(beatmap, audio) {
 
         hitObjectId++;
     }
-    
+
     var zIndexBase = 1000000;
     var zIndexSortedArray = this.hitObjects.slice(0).sort(function(a, b) {
         return a.endTime - b.endTime;
@@ -876,7 +876,7 @@ function Play(beatmap, audio) {
     this.inBreak = true;
     this.startBreak = true;
     this.nextBreak = null;
-    
+
     // Debug variables
     var lastTickClockTime = window.performance.now();
     var recordedTickSpeeds = [];
@@ -901,23 +901,23 @@ function Play(beatmap, audio) {
         ///// DEBUG END /////
 
         this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
-        
+
         // Starts the song
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
             console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
             currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
         }
-        
+
         // hitObject updates
         for (var id in this.onScreenHitObjects) {
             var hitObject = this.onScreenHitObjects[id];
-            
+
             if (hitObject.type == "circle") {
                 if (this.audioCurrentTime >= hitObject.time) {
-                    hitObject.containerDiv.style.animation = "0.2s destroyHitCircle linear forwards";
+                    hitObject.containerDiv.style.animation = "0.15s destroyHitCircle linear forwards";
                 }
-                
+
                 if (this.audioCurrentTime >= hitObject.time + 200) {
                     hitObject.remove();
                     delete this.onScreenHitObjects[id];
@@ -925,20 +925,20 @@ function Play(beatmap, audio) {
                 }
             } else if (hitObject.type == "slider") {
                 if (this.audioCurrentTime >= hitObject.endTime) {
-                    hitObject.containerDiv.style.animation = "0.2s sliderFadeOut linear forwards";
+                    hitObject.containerDiv.style.animation = "0.10s sliderFadeOut linear forwards";
                 }
-                
+
                 if (this.audioCurrentTime >= hitObject.endTime + 200) {
                     hitObject.remove();
                     delete this.onScreenHitObjects[id];
                     continue;
                 }
-                
+
                 if (this.audioCurrentTime >= hitObject.time) {
-                    hitObject.sliderHeadContainer.style.animation = "0.2s destroyHitCircle linear forwards";
+                    hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
                     //hitObject.sliderHeadContainer.style.display = "none";
                 }
-                
+
                 if (hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined) {
                     var completion = hitObject.timingInfo.sliderVelocity * (this.audioCurrentTime - hitObject.time) / hitObject.length;
 
@@ -946,11 +946,11 @@ function Play(beatmap, audio) {
                         hitObject.currentSliderTick++;
                     }
                 }
-                
+
             }
         }
 
-        
+
 
         // Handles breaks
         if(this.audioCurrentTime > this.hitObjects[0].time - 1500 && this.startBreak) {
