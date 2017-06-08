@@ -58,15 +58,6 @@ osuweb.audio = {
 }
 
 osuweb.file = {
-	loadDir: function(onReturn) {
-		var input = $(document.createElement('input'));
-        input.attr("type", "file");
-        input.attr("id", "filepicker");
-        input.attr("name", "filelist");
-        input.attr("webkitdirectory", "true");
-		$('#filepicker').change(onReturn);
-        input.trigger('click');
-	},
 	loadFile: function(file, onLoad) {
 		var reader = new FileReader();
 
@@ -75,11 +66,19 @@ osuweb.file = {
 		reader.readAsDataURL(file);
 	},
 	loadAudio: function(file, onFileLoad, onAudioLoad) {
-        var reader = new FileReader();
-        reader.onload = (function(e) {
-            onFileLoad(new Audio(e.target.result, onAudioLoad));
-        });
-        reader.readAsArrayBuffer(file);
+	    // This is a zip entry
+	    if(typeof file == "string") {
+            zip.file(file).async("arraybuffer").then((function(result) {
+                onFileLoad(new Audio(result, onAudioLoad));
+            }));
+        }
+        else {
+            var reader = new FileReader();
+            reader.onload = (function(e) {
+                onFileLoad(new Audio(e.target.result, onAudioLoad));
+            });
+            reader.readAsArrayBuffer(file);
+        }
     }
 }
 
@@ -247,41 +246,83 @@ function Database(files) {
     this.skinFiles = [];
 }
 
-function BeatmapSet(files) {
+function BeatmapSet(files, callback) {
     this.files = files;
     this.audioFiles = [];
     this.imageFiles = [];
     this.difficulties = {};
+    this.osz = false;
 
-    for(var i = 0; i < files.length; i++) {
-        var filename = files[i].name.toLowerCase();
+    if(Object.prototype.toString.call(files) === '[object File]') {
+        this.osz = true;
 
-        if(filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
-            this.audioFiles.push(files[i]);
-            continue;
-        }
-        if(filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
-            this.imageFiles.push(files[i]);
-            continue;
-        }
+        zip.loadAsync(files).then((function (zip) {
+            this.files = zip.files;
 
-        var regex = /\[([^\[^\]]+)]\.osu$/g;
-        var str = files[i].webkitRelativePath;
-        var m;
+            for(var key in zip.files) {
+                if(key.endsWith(".mp3") || key.endsWith(".wav") || key.endsWith(".ogg")) {
+                    this.audioFiles.push(key);
+                    continue;
+                }
+                if(key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) {
+                    this.imageFiles.push(key);
+                    continue;
+                }
 
-        while ((m = regex.exec(str)) !== null) {
-            // This is necessary to avoid infinite loops with zero-width matches
-            if (m.index === regex.lastIndex) {
-                regex.lastIndex++;
+                var regex = /\[([^\[^\]]+)]\.osu$/g;
+                var str = key;
+                var m;
+
+                while ((m = regex.exec(str)) !== null) {
+                    // This is necessary to avoid infinite loops with zero-width matches
+                    if (m.index === regex.lastIndex) {
+                        regex.lastIndex++;
+                    }
+
+                    // The result can be accessed through the `m`-variable.
+                    m.forEach((function(match, groupIndex){
+                        if(groupIndex == 1) {
+                            this.difficulties[match] = key;
+                        }
+                    }).bind(this));
+                }
             }
 
-            // The result can be accessed through the `m`-variable.
-            m.forEach((function(match, groupIndex){
-                if(groupIndex == 1) {
-                    this.difficulties[match] = files[i];
+            if(callback != undefined) callback();
+        }).bind(this));
+    }
+    else {
+        for(var i = 0; i < files.length; i++) {
+            var filename = files[i].name.toLowerCase();
+
+            if(filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
+                this.audioFiles.push(files[i]);
+                continue;
+            }
+            if(filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
+                this.imageFiles.push(files[i]);
+                continue;
+            }
+
+            var regex = /\[([^\[^\]]+)]\.osu$/g;
+            var str = files[i].webkitRelativePath;
+            var m;
+
+            while ((m = regex.exec(str)) !== null) {
+                // This is necessary to avoid infinite loops with zero-width matches
+                if (m.index === regex.lastIndex) {
+                    regex.lastIndex++;
                 }
-            }).bind(this));
+
+                // The result can be accessed through the `m`-variable.
+                m.forEach((function(match, groupIndex){
+                    if(groupIndex == 1) {
+                        this.difficulties[match] = files[i];
+                    }
+                }).bind(this));
+            }
         }
+        if(callback != undefined) callback();
     }
 
     //this.selectDifficulty(Object.values(this.difficulties)[0]);
@@ -297,7 +338,7 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
                 var imageFileName = currentBeatmap.events[i].file;
 
                 for(var j = 0; j < this.imageFiles.length; j++) {
-                    if(this.imageFiles[j].name == imageFileName) {
+                    if(this.imageFiles[j].name || this.imageFiles[i] == imageFileName) {
                         imageFile = this.imageFiles[j];
                         break;
                     }
@@ -308,16 +349,23 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
         }
 
         if(imageFile != null) {
-            osuweb.file.loadFile(imageFile, function(e) {
-                var div = document.getElementById("background").style.backgroundImage = 'url('+e.target.result+')';
-            });
+            if(this.osz) {
+                zip.file(imageFile).async("base64").then((function(result) {
+                    var div = document.getElementById("background").style.backgroundImage = 'url(data:image/png;base64,'+result+')';
+                }));
+            }
+            else {
+                osuweb.file.loadFile(imageFile, function(e) {
+                    var div = document.getElementById("background").style.backgroundImage = 'url('+e.target.result+')';
+                });
+            }
         }
 
         // find audio file
         var audioFile = null;
 
         for(var i = 0; i < this.audioFiles.length; i++) {
-            if(this.audioFiles[i].name == currentBeatmap["audioFile"]) {
+            if(this.audioFiles[i].name || this.audioFiles[i] == currentBeatmap["audioFile"]) {
                 audioFile = this.audioFiles[i];
                 break;
             }
@@ -338,8 +386,7 @@ BeatmapSet.prototype.selectDifficulty = function(difficultyFile, audioFiles, ima
 }
 
 function Beatmap(file, callback) {
-    var reader = new FileReader();
-    reader.onload = (function(e){
+    var read = function(e){
         this.events = [];
         this.timingPoints = [];
         this.hitObjects = [];
@@ -347,7 +394,7 @@ function Beatmap(file, callback) {
 
         var timingPointIndex = 0;
 
-        var lines = e.target.result.split('\n');
+        var lines = (typeof e == "string" ? e : e.target.result).split('\n');
 
         var section = "header";
         var eventType = "";
@@ -651,8 +698,18 @@ function Beatmap(file, callback) {
         }
 
         callback();
-    }).bind(this);
-    reader.readAsText(file);
+    }
+
+    if(Object.prototype.toString.call(file) == "[object File]") {
+        var reader = new FileReader();
+        reader.onload = (read).bind(this);
+        reader.readAsText(file);
+    }
+    else if(typeof file == "string") {
+        zip.file(file).async("string").then((read).bind(this), (function(fuckme) {
+            console.log(fuckme);
+        }).bind(this));
+    }
 }
 
 Beatmap.prototype.getNextNonInheritedTimingPoint = function(num) {

@@ -89,7 +89,7 @@
         </style>
     </head>
     <body>
-        <input type="file" id="beatmap" webkitdirectory multiple>
+        <input type="file" id="beatmap" multiple>
         <div id="background"></div>
         <div id="background-dim"></div>
         <canvas id="osuweb"></canvas>
@@ -104,18 +104,18 @@
 
         <script>
             document.getElementById("beatmap").addEventListener("change", function(e) {
-                currentBeatmapSet = new BeatmapSet(e.target.files);
+                currentBeatmapSet = new BeatmapSet(e.target.files[0], function() {
+                    document.getElementById("beatmap").style.visibility = "hidden";
 
-                document.getElementById("beatmap").style.visibility = "hidden";
+                    var keys = [];
+                    for (var key in currentBeatmapSet.difficulties) {
+                        keys.push(key);
+                    }
 
-                var keys = [];
-                for (var key in currentBeatmapSet.difficulties) {
-                    keys.push(key);
-                }
-
-                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
-                    new Play(currentBeatmap, currentAudio);
-                    currentPlay.start();
+                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
+                        new Play(currentBeatmap, currentAudio);
+                        currentPlay.start();
+                    });
                 });
             });
 
