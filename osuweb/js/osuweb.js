@@ -118,7 +118,7 @@ osuweb.graphics = {
 
         var innerType = "number";
         context.globalCompositeOperation = "source-over";
-        
+
         if (innerType == "number") {
             context.font = "lighter " + (currentPlay.csPixel * 0.41) + "px Arial";
             context.textAlign = "center", context.textBaseline = "middle";
@@ -791,7 +791,7 @@ function Play(beatmap, audio) {
         for (var b = i - 1; b >= 0; b--) {
             var prev = this.hitObjects[b];
 
-            if (Math.hypot(hitObject.startPoint.x - prev.basePoint.x, hitObject.startPoint.y - prev.basePoint.y) < stackSnapDistance && hitObject.time - prev.time <= stackLeniencyFrame) {
+            if (((hitObject.startPoint.x == prev.basePoint.x && hitObject.startPoint.y == prev.basePoint.y) || (Math.hypot(hitObject.startPoint.x - prev.basePoint.x, hitObject.startPoint.y - prev.basePoint.y) < stackSnapDistance && prev.type == "slider")) && hitObject.time - prev.endTime <= stackLeniencyFrame) {
                 hitObject.stackParent = prev;
 
                 var isSlider = hitObject.type == "slider";
@@ -937,7 +937,7 @@ function Play(beatmap, audio) {
                     hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
                     hitObject.hitCircleExploded = true;
                 }
-                
+
                 if (this.audioCurrentTime >= hitObject.endTime && !hitObject.fadingOut) {
                     hitObject.containerDiv.style.animation = "0.15s sliderFadeOut linear forwards";
                     hitObject.fadingOut = true;
