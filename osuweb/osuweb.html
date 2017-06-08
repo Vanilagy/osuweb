@@ -89,7 +89,7 @@
         </style>
     </head>
     <body>
-        <input type="file" id="beatmap" multiple>
+        <input type="file" id="beatmap" webkitdirectory multiple>
         <div id="background"></div>
         <div id="background-dim"></div>
         <canvas id="osuweb"></canvas>
@@ -104,7 +104,9 @@
 
         <script>
             document.getElementById("beatmap").addEventListener("change", function(e) {
-                currentBeatmapSet = new BeatmapSet(e.target.files[0], function() {
+                new BeatmapSet(e.target.files, function(beatmapset) {
+                    currentBeatmapSet = beatmapset;
+
                     document.getElementById("beatmap").style.visibility = "hidden";
 
                     var keys = [];

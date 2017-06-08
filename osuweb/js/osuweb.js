@@ -288,7 +288,7 @@ function BeatmapSet(files, callback) {
                 }
             }
 
-            if(callback != undefined) callback();
+            if(callback != undefined) callback(this);
         }).bind(this));
     }
     else {
@@ -322,7 +322,7 @@ function BeatmapSet(files, callback) {
                 }).bind(this));
             }
         }
-        if(callback != undefined) callback();
+        if(callback != undefined) callback(this);
     }
 
     //this.selectDifficulty(Object.values(this.difficulties)[0]);
