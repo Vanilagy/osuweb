@@ -1,7 +1,7 @@
 var playareaDom = document.getElementById("playarea");
 var objectContainerDom = document.getElementById("objectContainer");
 
-var sliderTracePointDistance = 3;
+var maximumTracePointDistance = 3;
 
 /////
 
@@ -83,35 +83,18 @@ function Slider(data) {
 
     this.sliderPathPoints = [];
 
-    var passedLength = 0,
-        lastPoint;
+    var passedLength = 0;
+    var segmentCount = Math.floor(this.length / maximumTracePointDistance + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
+    var segmentLength = this.length / segmentCount;
+    var tracedPointsAdded = 0;
 
-    function extendLength(pos, dist) { // Taking care of curve length exceeding pixelLength
-        var causeExit = false;
-
-        var passedLengthBefore = passedLength;
-
-        if (dist) {
-            passedLength += dist;
-        } else if (lastPoint) {
-            passedLength += Math.hypot(lastPoint.x - pos.x, lastPoint.y - pos.y);
-        }
-
-        if (passedLength >= this.length) {
-            var angle = Math.atan2(pos.y - lastPoint.y, pos.x - lastPoint.x);
-            dif = this.length - passedLengthBefore;
-            pos.x = lastPoint.x + dif * Math.cos(angle);
-            pos.y = lastPoint.y + dif * Math.sin(angle);
-
-            var newDiff = Math.hypot(lastPoint.x - pos.x, lastPoint.y - pos.y);
-
-            causeExit = true;
-        }
-
-        lastPoint = pos;
+    function addTracedPoint(pos, dist) { // Taking care of curve length exceeding pixelLength
         pushPos.bind(this)(pos);
-
-        if (causeExit) return true;
+        
+        tracedPointsAdded++;
+        if (tracedPointsAdded == segmentCount + 1) {
+            return true; // Stops tracing
+        }
     }
 
     function pushPos(pos) { // Pushes endpoint to array
@@ -138,7 +121,7 @@ function Slider(data) {
                 a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
                 a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
 
-            var incre = sliderTracePointDistance / radius, condition;
+            var incre = 2 * Math.asin(segmentLength / (2 * radius)), condition;
 
             if (a1 < a2 && a2 < a3) { // Point order
                 condition = function(x) {return x < a3};
@@ -157,8 +140,8 @@ function Slider(data) {
             this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * currentPlay.pixelRatio;
             this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * currentPlay.pixelRatio;
 
-            for (var angle = a1; condition(angle); angle += incre) {
-                if (extendLength.bind(this)({
+            for (var angle = a1; true; angle += incre) {
+                if (addTracedPoint.bind(this)({
                     x: centerPos.x + radius * Math.cos(angle),
                     y: centerPos.y + radius * Math.sin(angle)
                 })) {
@@ -169,6 +152,21 @@ function Slider(data) {
             this.minX = this.maxX = this.sections[0].values[0].x * currentPlay.pixelRatio;
             this.minY = this.maxY = this.sections[0].values[0].y * currentPlay.pixelRatio;
             var p1;
+            
+            // Extra section is added because ppy fucked up his pixelLength
+            var lastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 1];
+            var secondLastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 2];
+            if (lastPoint && secondLastPoint) {
+                var angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
+                this.sections.push({
+                    type: "linear",
+                    values: [
+                        {x: lastPoint.x, y: lastPoint.y},
+                        {x: lastPoint.x + 500 * Math.cos(angle), y: lastPoint.y + 500 * Math.sin(angle)}
+                    ]
+                })
+            }
+            
 
             for (var i = 0; i < this.sections.length; i++) {
                 var points = this.sections[i].values;
@@ -176,17 +174,22 @@ function Slider(data) {
                 var leftT = 0, rightT = 0.01;
                 if (i == 0) {
                     p1 = osuweb.mathutil.coordsOnBezier(points, leftT);
-                    extendLength.bind(this)(p1);
+                    addTracedPoint.bind(this)(p1);
                 }
                 var p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
 
-                while (leftT < 1) { // Binary segment approximation method
+                while (leftT <= 1) { // Binary segment approximation method
                     while (true) {
                         var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
 
-                        if (dist < sliderTracePointDistance) {
+                        if (dist < segmentLength) {
                             leftT += 0.01;
                             rightT += 0.01;
+                            
+                            if (leftT > 1) {
+                                break;
+                            }
+                            
                             p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
                         } else {
                             var p3, midT;
@@ -196,11 +199,11 @@ function Slider(data) {
                                 p3 = osuweb.mathutil.coordsOnBezier(points, midT);
                                 dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
 
-                                if (Math.abs(sliderTracePointDistance - dist) < 0.05) {
+                                if (Math.abs(segmentLength - dist) < 0.001) {
                                     break;
                                 }
 
-                                if (dist < sliderTracePointDistance) {
+                                if (dist < segmentLength) {
                                     leftT = midT;
                                 } else {
                                     rightT = midT;
@@ -208,7 +211,7 @@ function Slider(data) {
                             }
 
                             if (midT < 1) {
-                                if (extendLength.bind(this)(p3, dist)) {
+                                if (addTracedPoint.bind(this)(p3, dist)) {
                                     return;
                                 }
                                 p1 = p3;
@@ -225,33 +228,14 @@ function Slider(data) {
             }
         }
     }).bind(this)();
-
-    if (passedLength < this.length) { // Fires when traced path is shorter than pixelLength
-        var endPos = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 1];
-        var angle = Math.atan2(endPos.y - lastPoint.y, endPos.x - lastPoint.x);
-        var dif = this.length - passedLength;
-
-        for (var dist = sliderTracePointDistance; dist < dif; dist += sliderTracePointDistance) {
-            pushPos.bind(this)({
-                x: lastPoint.x + dist * Math.cos(angle),
-                y: lastPoint.y + dist * Math.sin(angle)
-            });
-        }
-
-        pushPos.bind(this)({
-            x: lastPoint.x + dif * Math.cos(angle),
-            y: lastPoint.y + dif * Math.sin(angle)
-        });
-    }
     
     /*var length = 0;
-
     for(var i = 1; i < this.sliderPathPoints.length; i++) {
         length += Math.hypot(this.sliderPathPoints[i - 1].x / currentPlay.pixelRatio - this.sliderPathPoints[i].x / currentPlay.pixelRatio, this.sliderPathPoints[i - 1].y / currentPlay.pixelRatio - this.sliderPathPoints[i].y / currentPlay.pixelRatio);
     }
 
     console.log(this);
-    console.log("length difference: "+Math.abs(this.length - length).toFixed(5));*/
+    console.log("length difference: "+Math.abs(this.length - distanceTraced).toFixed(5));*/
 
     if(this.repeat % 2 == 0) {
         this.basePoint = this.startPoint;
@@ -367,7 +351,7 @@ Slider.prototype.draw = function() {
 
                         overlayCtx.beginPath();
                         overlayCtx.arc(x, y, currentPlay.csPixel * 0.038, 0, osuweb.graphics.pi2);
-                        overlayCtx.fillStyle = "rgba(255, 255, 255," + Math.min(1, (currentSliderTime - tickMs) / 75) + ")";
+                        overlayCtx.fillStyle = "rgba(255, 255, 255," + Math.min(1, (currentSliderTime - tickMs) / 80) + ")";
                         overlayCtx.fill();
                     }
                 }

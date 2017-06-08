@@ -925,7 +925,7 @@ function Play(beatmap, audio) {
                 }
             } else if (hitObject.type == "slider") {
                 if (this.audioCurrentTime >= hitObject.endTime) {
-                    hitObject.containerDiv.style.animation = "0.10s sliderFadeOut linear forwards";
+                    hitObject.containerDiv.style.animation = "0.15s sliderFadeOut linear forwards";
                 }
 
                 if (this.audioCurrentTime >= hitObject.endTime + 200) {
