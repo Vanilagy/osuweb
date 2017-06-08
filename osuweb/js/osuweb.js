@@ -771,7 +771,11 @@ function Play(beatmap, audio) {
 
     var zIndexBase = 1000000;
     var zIndexSortedArray = this.hitObjects.slice(0).sort(function(a, b) {
-        return a.endTime - b.endTime;
+        if (a.endTime != b.endTime) {
+            return a.endTime - b.endTime
+        } else {
+            return b.time - a.time;
+        }
     });
     for (var i = 0; i < zIndexSortedArray.length; i++) {
         zIndexSortedArray[i].zIndex = zIndexBase - i;

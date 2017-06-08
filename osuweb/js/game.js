@@ -2,6 +2,7 @@ var playareaDom = document.getElementById("playarea");
 var objectContainerDom = document.getElementById("objectContainer");
 
 var maximumTracePointDistance = 3;
+var snakingSliders = false;
 
 /////
 
@@ -123,8 +124,8 @@ function Slider(data) {
             var a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
                 a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
                 a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
-
-            var incre = 2 * Math.asin(segmentLength / (2 * radius)), condition;
+            
+            var incre = segmentLength / radius, condition;
 
             if (a1 < a2 && a2 < a3) { // Point order
                 condition = function(x) {return x < a3};
@@ -142,14 +143,15 @@ function Slider(data) {
 
             this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * currentPlay.pixelRatio;
             this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * currentPlay.pixelRatio;
-
-            for (var angle = a1; true; angle += incre) {
-                if (addTracedPoint.bind(this)({
+            
+            var angle = a1;
+            for (var i = 0; i <= segmentCount; i++) {
+                pushPos.bind(this)({
                     x: centerPos.x + radius * Math.cos(angle),
                     y: centerPos.y + radius * Math.sin(angle)
-                })) {
-                    return;
-                }
+                });
+                
+                angle += incre;
             }
         } else {
             this.minX = this.maxX = this.sections[0].values[0].x * currentPlay.pixelRatio;
@@ -272,37 +274,58 @@ Slider.prototype.draw = function() {
     this.containerDiv.style.zIndex = this.zIndex;
 
     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
-
-    var baseCanvas = document.createElement("canvas"); // Create local object canvas
-    baseCanvas.setAttribute("width", Math.ceil(sliderWidth + currentPlay.csPixel));
-    baseCanvas.setAttribute("height", Math.ceil(sliderHeight + currentPlay.csPixel));
-
-    var ctx = baseCanvas.getContext("2d");
-
-    ctx.beginPath();
-    ctx.moveTo(this.sliderPathPoints[0].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[0].y - this.minY + currentPlay.halfCsPixel);
-    for (var i = 1; i < this.sliderPathPoints.length; i++) {
-        ctx.lineTo(this.sliderPathPoints[i].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[i].y - this.minY + currentPlay.halfCsPixel);
-    }
-    ctx.lineWidth = currentPlay.csPixel;
-    ctx.lineCap = "round";
-    ctx.lineJoin="round";
-    ctx.strokeStyle = "white";
-    ctx.stroke();
-
     var sliderBodyRadius = currentPlay.halfCsPixel * 14.5 / 16;
-    for (var i = sliderBodyRadius; i > 1; i -= 2) {
-        ctx.lineWidth = i * 2;
-        var completionRgb = Math.floor((1 - (i / sliderBodyRadius)) * 130);
-        ctx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", "  + completionRgb + ")";
-        ctx.stroke();
-    }
-    ctx.lineWidth = sliderBodyRadius * 2;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.stroke();
 
-    this.containerDiv.appendChild(baseCanvas);
+    this.baseCanvas = document.createElement("canvas"); // Create local object canvas
+    this.baseCanvas.setAttribute("width", Math.ceil(sliderWidth + currentPlay.csPixel));
+    this.baseCanvas.setAttribute("height", Math.ceil(sliderHeight + currentPlay.csPixel));
+
+    var ctx = this.baseCanvas.getContext("2d");
+    
+    this.updateBase = function(initialRender) {
+        if (initialRender) {
+            var thisCompletion = 1;
+        } else {
+            var thisCompletion = Math.min(1, (currentPlay.audioCurrentTime - (this.time - currentPlay.ARMs)) / currentPlay.ARMs * 1);
+        }
+        
+        var targetIndex = Math.floor(thisCompletion * (this.sliderPathPoints.length - 1));
+        var pointsToDraw = this.sliderPathPoints.slice(0, targetIndex);
+        
+        ctx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
+        ctx.beginPath();
+        ctx.moveTo(this.sliderPathPoints[0].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[0].y - this.minY + currentPlay.halfCsPixel);
+        for (var i = 0; i < pointsToDraw.length; i++) {
+            ctx.lineTo(pointsToDraw[i].x - this.minX + currentPlay.halfCsPixel, pointsToDraw[i].y - this.minY + currentPlay.halfCsPixel);
+        }
+             
+        ctx.lineWidth = currentPlay.csPixel;
+        ctx.strokeStyle = "white";
+        ctx.lineCap = "round";
+        ctx.lineJoin= "round";
+        ctx.globalCompositeOperation = "source-over";
+        ctx.stroke();
+        
+        for (var i = sliderBodyRadius; i > 1; i -= 2) {
+            ctx.lineWidth = i * 2;
+            var completionRgb = Math.floor((1 - (i / sliderBodyRadius)) * 130);
+            ctx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", "  + completionRgb + ")";
+            ctx.stroke();
+        }
+        ctx.lineWidth = sliderBodyRadius * 2;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.stroke();
+        
+        if (!initialRender && thisCompletion < 1) {
+            requestAnimationFrame(function() {
+                this.updateBase.bind(this)(false);
+            }.bind(this));
+        }
+    }
+
+    this.updateBase.bind(this)(true);
+    this.containerDiv.appendChild(this.baseCanvas);
 
     var overlay = document.createElement("canvas");
     overlay.setAttribute("width", sliderWidth + currentPlay.csPixel);
@@ -453,6 +476,10 @@ Slider.prototype.show = function(offset) {
     this.containerDiv.style.opacity = 1;
     this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + ((currentPlay.ARMs - offset) / 1000) + "s";
     this.updateOverlay.bind(this)();
+    
+    if (snakingSliders) {
+        this.updateBase.bind(this)(false);
+    }
 }
 
 Slider.prototype.remove = function() {
