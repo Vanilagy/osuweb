@@ -365,7 +365,9 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
         var audioFile = null;
 
         for(var i = 0; i < this.audioFiles.length; i++) {
-            if(this.audioFiles[i].name || this.audioFiles[i] == currentBeatmap["audioFile"]) {
+            var audioName = typeof this.audioFiles[i] == "string" ? this.audioFiles[i] : this.audioFiles[i].name;
+
+            if(audioName == currentBeatmap["audioFile"]) {
                 audioFile = this.audioFiles[i];
                 break;
             }
@@ -739,7 +741,7 @@ function Play(beatmap, audio) {
     this.halfCsPixel = this.csPixel / 2;
 
     this.ARMs = osuweb.util.getMsFromAR(this.beatmap.AR);
-    
+
     function FollowPoint(obj1, obj2) {
         this.startTime = obj1.endTime;
         this.endTime = obj2.time;
@@ -754,7 +756,7 @@ function Play(beatmap, audio) {
             x: (this.startPos.x + this.endPos.x) / 2,
             y: (this.startPos.y + this.endPos.y) / 2
         }
-        
+
         this.canvas = document.createElement("canvas");
         this.canvas.className = "followPoint";
         this.canvas.setAttribute("height", this.height);
@@ -763,9 +765,9 @@ function Play(beatmap, audio) {
         this.canvas.style.left = (centerPoint.x + currentPlay.marginWidth) * currentPlay.pixelRatio + "px";
         this.canvas.style.top = (centerPoint.y + currentPlay.marginHeight) * currentPlay.pixelRatio + "px";
         this.canvas.style.transform = "translate(-50%, -50%) rotate(" + angle + "rad)";
-        
+
         var ctx = this.canvas.getContext("2d");
-        
+
         this.update = function() {
             var shouldEnd = currentPlay.audioCurrentTime >= this.endTime + 300;
             if (shouldEnd) {
@@ -780,13 +782,13 @@ function Play(beatmap, audio) {
                 ctx.fillStyle = "white";
                 ctx.fill();
             }
-            
+
             if (!shouldEnd) {
                 requestAnimationFrame(this.update.bind(this));
             }
         }
         this.update.bind(this)();
-        
+
         objectContainerDom.appendChild(this.canvas);
     }
 
@@ -876,7 +878,7 @@ function Play(beatmap, audio) {
 
         hitObjectId++;
     }
-    
+
     for (var i = 1; i < this.hitObjects.length; i++) {
         var prevObj = this.hitObjects[i - 1], currObj = this.hitObjects[i];
         if (prevObj.comboInfo.comboNum == currObj.comboInfo.comboNum && prevObj.comboInfo.n != currObj.comboInfo.n) {
@@ -1131,7 +1133,7 @@ function Play(beatmap, audio) {
                 }
             }
         }
-        
+
         // Makes follow points show up on-screen
         if (this.currentFollowPoint < this.followPoints.length) {
             while (this.followPoints[this.currentFollowPoint].startTime - 450 <= this.audioCurrentTime) {
@@ -1156,7 +1158,7 @@ function Play(beatmap, audio) {
         }
 
         setTimeout(this.tickClock.bind(this));
-        
+
     }
 
 
