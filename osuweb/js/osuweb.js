@@ -739,8 +739,59 @@ function Play(beatmap, audio) {
     this.halfCsPixel = this.csPixel / 2;
 
     this.ARMs = osuweb.util.getMsFromAR(this.beatmap.AR);
+    
+    function FollowPoint(obj1, obj2) {
+        this.startTime = obj1.endTime;
+        this.endTime = obj2.time;
+        this.startPos = obj1.basePoint;
+        this.endPos = obj2.startPoint;
+    }
+    FollowPoint.prototype.spawn = function() {
+        this.length = Math.hypot(this.startPos.x - this.endPos.x, this.startPos.y - this.endPos.y) * currentPlay.pixelRatio;
+        this.height = 2 * currentPlay.pixelRatio;
+        var angle = Math.atan2(this.endPos.y - this.startPos.y, this.endPos.x - this.startPos.x);
+        var centerPoint = {
+            x: (this.startPos.x + this.endPos.x) / 2,
+            y: (this.startPos.y + this.endPos.y) / 2
+        }
+        
+        this.canvas = document.createElement("canvas");
+        this.canvas.className = "followPoint";
+        this.canvas.setAttribute("height", this.height);
+        this.canvas.setAttribute("width", this.length);
+        this.canvas.style.zIndex = 0;
+        this.canvas.style.left = (centerPoint.x + currentPlay.marginWidth) * currentPlay.pixelRatio + "px";
+        this.canvas.style.top = (centerPoint.y + currentPlay.marginHeight) * currentPlay.pixelRatio + "px";
+        this.canvas.style.transform = "translate(-50%, -50%) rotate(" + angle + "rad)";
+        
+        var ctx = this.canvas.getContext("2d");
+        
+        this.update = function() {
+            var shouldEnd = currentPlay.audioCurrentTime >= this.endTime + 300;
+            if (shouldEnd) {
+                this.canvas.parentNode.removeChild(this.canvas);
+            } else {
+                var timeDif = this.endTime - this.startTime;
+                var startingPointX = Math.max(0, Math.min(1, (currentPlay.audioCurrentTime - (this.startTime + 0)) / timeDif)) * this.length;
+                var endPointX = Math.max(0, Math.min(1, (currentPlay.audioCurrentTime - (this.startTime - 450)) / timeDif)) * this.length;
+                ctx.clearRect(0, 0, this.length, 3);
+                ctx.beginPath();
+                ctx.rect(startingPointX, 0, endPointX, this.height);
+                ctx.fillStyle = "white";
+                ctx.fill();
+            }
+            
+            if (!shouldEnd) {
+                requestAnimationFrame(this.update.bind(this));
+            }
+        }
+        this.update.bind(this)();
+        
+        objectContainerDom.appendChild(this.canvas);
+    }
 
     this.hitObjects = [];
+    this.followPoints = [];
     var hitObjectId = 0;
 
     var currentTimingPoint = 1;
@@ -825,11 +876,18 @@ function Play(beatmap, audio) {
 
         hitObjectId++;
     }
+    
+    for (var i = 1; i < this.hitObjects.length; i++) {
+        var prevObj = this.hitObjects[i - 1], currObj = this.hitObjects[i];
+        if (prevObj.comboInfo.comboNum == currObj.comboInfo.comboNum && prevObj.comboInfo.n != currObj.comboInfo.n) {
+            this.followPoints.push(new FollowPoint(prevObj, currObj));
+        }
+    }
 
     var zIndexBase = 1000000;
     var zIndexSortedArray = this.hitObjects.slice(0).sort(function(a, b) {
-        if (a.endTime != b.endTime) {
-            return a.endTime - b.endTime
+        if (Math.round(a.endTime) != Math.round(b.endTime)) {
+            return Math.round(a.endTime) - Math.round(b.endTime);
         } else {
             return b.time - a.time;
         }
@@ -929,6 +987,7 @@ function Play(beatmap, audio) {
 
     this.audioStartTime = null;
     this.audioCurrentTime = 0;
+    this.audioOffset = -2000;
     this.metronome = null;
     this.nextMetronome = null;
     this.metronomeRunning = false;
@@ -936,6 +995,7 @@ function Play(beatmap, audio) {
 
     this.currentHitObject = 0;
     this.lastAppendedHitObject = 0;
+    this.currentFollowPoint = 0;
     this.onScreenHitObjects = {};
 
     this.inBreak = true;
@@ -965,7 +1025,7 @@ function Play(beatmap, audio) {
         }
         ///// DEBUG END /////
 
-        this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
+        this.audioCurrentTime = window.performance.now() - this.audioStartTime + this.audioOffset;
 
         // Starts the song
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
@@ -1071,6 +1131,19 @@ function Play(beatmap, audio) {
                 }
             }
         }
+        
+        // Makes follow points show up on-screen
+        if (this.currentFollowPoint < this.followPoints.length) {
+            while (this.followPoints[this.currentFollowPoint].startTime - 450 <= this.audioCurrentTime) {
+                this.followPoints[this.currentFollowPoint].spawn();
+
+                this.currentFollowPoint++;
+
+                if (this.currentFollowPoint == this.followPoints.length) {
+                    break;
+                }
+            }
+        }
 
         // Appends upcoming hitObjects to the playarea
         while (this.hitObjects.length > this.lastAppendedHitObject && this.lastAppendedHitObject - this.currentHitObject < 1) {
@@ -1083,6 +1156,7 @@ function Play(beatmap, audio) {
         }
 
         setTimeout(this.tickClock.bind(this));
+        
     }
 
 

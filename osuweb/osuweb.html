@@ -86,6 +86,10 @@
                 from {opacity: 1;}
                 to {opacity: 0;}
             }
+            .followPoint {
+                position: absolute;
+                opacity: 0.7;
+            }
         </style>
     </head>
     <body>
@@ -106,7 +110,6 @@
             document.getElementById("beatmap").addEventListener("change", function(e) {
                 new BeatmapSet(e.target.files, function(beatmapset) {
                     currentBeatmapSet = beatmapset;
-
                     document.getElementById("beatmap").style.visibility = "hidden";
 
                     var keys = [];

@@ -46,6 +46,7 @@ Circle.prototype.draw = function() {
     this.approachCircleCanvas = document.createElement("canvas");
     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
     this.approachCircleCanvas.setAttribute("height", currentPlay.csPixel);
+    this.approachCircleCanvas.style.transform = "scale(3.5)";
 
     var approachCtx = this.approachCircleCanvas.getContext("2d");
     osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
@@ -62,7 +63,8 @@ Circle.prototype.show = function(offset) {
     this.containerDiv.style.visibility = "visible";
     this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
     this.containerDiv.style.opacity = 1;
-    this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + currentPlay.ARMs / 1000 + "s";
+    this.approachCircleCanvas.style.transform = "scale(1.0)";
+    this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
 }
 
 Circle.prototype.remove = function() {
@@ -291,7 +293,7 @@ Slider.prototype.draw = function() {
 
         var targetIndex = Math.floor(thisCompletion * (this.sliderPathPoints.length - 1));
         var pointsToDraw = this.sliderPathPoints.slice(0, targetIndex + 1);
-
+        
         ctx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
         ctx.beginPath();
         ctx.moveTo(this.sliderPathPoints[0].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[0].y - this.minY + currentPlay.halfCsPixel);
@@ -324,7 +326,9 @@ Slider.prototype.draw = function() {
         }
     }
 
-    this.updateBase.bind(this)(true);
+    if (!snakingSliders) {
+        this.updateBase.bind(this)(true);
+    }
     this.containerDiv.appendChild(this.baseCanvas);
 
     var overlay = document.createElement("canvas");
@@ -456,6 +460,7 @@ Slider.prototype.draw = function() {
     this.approachCircleCanvas = document.createElement("canvas");
     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
     this.approachCircleCanvas.setAttribute("height", currentPlay.csPixel);
+    this.approachCircleCanvas.style.transform = "scale(3.5)";
 
     var approachCtx = this.approachCircleCanvas.getContext("2d");
     osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
@@ -474,7 +479,8 @@ Slider.prototype.show = function(offset) {
     this.containerDiv.style.visibility = "visible";
     this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
     this.containerDiv.style.opacity = 1;
-    this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + ((currentPlay.ARMs - offset) / 1000) + "s";
+    this.approachCircleCanvas.style.transform = "scale(1.0)";
+    this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
     this.updateOverlay.bind(this)();
 
     if (snakingSliders) {
