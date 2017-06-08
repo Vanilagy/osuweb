@@ -914,14 +914,11 @@ function Play(beatmap, audio) {
             var hitObject = this.onScreenHitObjects[id];
 
             if (hitObject.type == "circle") {
-<<<<<<< Updated upstream
                 if (this.audioCurrentTime >= hitObject.time) {
                     hitObject.containerDiv.style.animation = "0.15s destroyHitCircle linear forwards";
-=======
                 if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
                     hitObject.containerDiv.style.animation = "0.15s destroyHitCircle linear forwards";
                     hitObject.hitCircleExploded = true;
->>>>>>> Stashed changes
                 }
 
                 if (this.audioCurrentTime >= hitObject.time + 200) {
@@ -930,14 +927,11 @@ function Play(beatmap, audio) {
                     continue;
                 }
             } else if (hitObject.type == "slider") {
-<<<<<<< Updated upstream
                 if (this.audioCurrentTime >= hitObject.endTime) {
                     hitObject.containerDiv.style.animation = "0.15s sliderFadeOut linear forwards";
-=======
                 if (this.audioCurrentTime >= hitObject.endTime && !hitObject.fadingOut) {
                     hitObject.containerDiv.style.animation = "0.15s sliderFadeOut linear forwards";
                     hitObject.fadingOut = true;
->>>>>>> Stashed changes
                 }
 
                 if (this.audioCurrentTime >= hitObject.endTime + 200) {
@@ -945,17 +939,13 @@ function Play(beatmap, audio) {
                     delete this.onScreenHitObjects[id];
                     continue;
                 }
-<<<<<<< Updated upstream
 
                 if (this.audioCurrentTime >= hitObject.time) {
                     hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
-                    //hitObject.sliderHeadContainer.style.display = "none";
-=======
                 
                 if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
                     hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
                     hitObject.hitCircleExploded = true;
->>>>>>> Stashed changes
                 }
 
                 if (hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined) {
