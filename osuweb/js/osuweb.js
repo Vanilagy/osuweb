@@ -914,8 +914,6 @@ function Play(beatmap, audio) {
             var hitObject = this.onScreenHitObjects[id];
 
             if (hitObject.type == "circle") {
-                if (this.audioCurrentTime >= hitObject.time) {
-                    hitObject.containerDiv.style.animation = "0.15s destroyHitCircle linear forwards";
                 if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
                     hitObject.containerDiv.style.animation = "0.15s destroyHitCircle linear forwards";
                     hitObject.hitCircleExploded = true;
@@ -927,8 +925,11 @@ function Play(beatmap, audio) {
                     continue;
                 }
             } else if (hitObject.type == "slider") {
-                if (this.audioCurrentTime >= hitObject.endTime) {
-                    hitObject.containerDiv.style.animation = "0.15s sliderFadeOut linear forwards";
+                if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
+                    hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
+                    hitObject.hitCircleExploded = true;
+                }
+                
                 if (this.audioCurrentTime >= hitObject.endTime && !hitObject.fadingOut) {
                     hitObject.containerDiv.style.animation = "0.15s sliderFadeOut linear forwards";
                     hitObject.fadingOut = true;
@@ -938,14 +939,6 @@ function Play(beatmap, audio) {
                     hitObject.remove();
                     delete this.onScreenHitObjects[id];
                     continue;
-                }
-
-                if (this.audioCurrentTime >= hitObject.time) {
-                    hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
-                
-                if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
-                    hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
-                    hitObject.hitCircleExploded = true;
                 }
 
                 if (hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined) {
