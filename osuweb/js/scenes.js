@@ -5,6 +5,7 @@
 function SceneBase() {
     this.backgroundDiv = document.getElementById("background");
     this.foregroundDiv = document.getElementById("foreground");
+    this.osuwebCanvas = document.getElementById("osuweb");
 
     this.visible = true;
 
@@ -46,7 +47,6 @@ function SceneGame() {
     SceneBase.call(this);
 
     this.backgroundDimDiv = document.getElementById("background-dim");
-    this.osuwebCanvas = document.getElementById("osuweb");
 }
 
 function SceneGameOsu() {

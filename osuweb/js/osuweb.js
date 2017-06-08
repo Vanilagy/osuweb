@@ -5,11 +5,37 @@ var canvasCtx = document.getElementById("osuweb").getContext("2d");
 
 var zip = new JSZip();
 
+var controls = {
+    volumeControl: null
+};
+
+var settings = {
+    music: 0.8,
+    sound: 0.8,
+    master: 0.8,
+    setMaster: function(value) {
+        this.master = value;
+
+        currentAudio.setVolume(value);
+
+        if(this.master > 1.0) this.master = 1.0;
+        if(this.master < 0.0) this.master = 0.0;
+    },
+    changeMaster: function(value) {
+        if(controls.volumeControl == null) {
+            controls.volumeControl = new VolumeControl();
+        }
+
+        controls.volumeControl.animateMaster(value);
+    }
+};
+
 var defaultSkinElements = {};
 
 var currentBeatmapSet = null;
 var currentBeatmap = null;
-var currentAudio = null;
+var currentSong = null;
+var currentAudio = [];
 var currentSkin = null;
 var currentPlay = null;
 var currentScene = null;
@@ -77,19 +103,19 @@ osuweb.file = {
 
 		reader.readAsDataURL(file);
 	},
-	loadAudioFromFile: function(file, onFileLoad, onAudioLoad) {
+	loadAudioFromFile: function(file, onFileLoad, onAudioLoad, isMusic) {
         var reader = new FileReader();
         reader.onload = (function(e) {
-            onFileLoad(new Audio(e.target.result, onAudioLoad));
+            onFileLoad(new Audio(e.target.result, onAudioLoad, isMusic));
         });
         reader.readAsArrayBuffer(file);
     },
-    loadAudioFromURL: function(url, onFileLoad, onAudioLoad) {
+    loadAudioFromURL: function(url, onFileLoad, onAudioLoad, isMusic) {
         var request = new XMLHttpRequest();
         request.open('GET', url, true);
         request.responseType = 'arraybuffer';
         request.onload = (function(e) {
-            onFileLoad(new Audio(e.target.response, onAudioLoad));
+            onFileLoad(new Audio(e.target.response, onAudioLoad, isMusic));
         });
         request.send();
     }
@@ -1042,7 +1068,8 @@ Play.prototype.start = function() {
     this.loop.run();*/
 }
 
-function Audio(arrayBuffer, callback, bufferCount) {
+function Audio(arrayBuffer, callback, bufferCount, isMusic) {
+    this.isMusic = !(isMusic == undefined || isMusic == null || !isMusic);
     this.gainNode = audioCtx.createGain();
     this.gainNode.connect(audioCtx.destination);
     this.buffer = null;
@@ -1080,6 +1107,8 @@ Audio.prototype.createNode = function(index) {
         this.creationCallback();
 
         this.creationCallback = null;
+
+        audios.push(this);
     }
 }
 
@@ -1112,6 +1141,7 @@ Audio.prototype.playAudioFromOffsetWithLoop = function(time, offset, loopStart, 
     this.sourceNodes[this.nextNodeNumber].loop = enableLoop;
 
     this.sourceNodes[this.nextNodeNumber].connect(this.gainNode);
+    this.gainNode.gain.value = (this.isMusic ? settings.music : settings.sound) * settings.master;
     this.sourceNodes[this.nextNodeNumber].start(time, Math.max(offset, 0));
 
     this.currentNodeNumber = this.nextNodeNumber++;
@@ -1128,12 +1158,12 @@ Audio.prototype.stop = function(time) {
 }
 
 Audio.prototype.setVolume = function(value) {
-    this.gainNode.value = value;
+    this.gainNode.gain.value = value;
 }
 
 Audio.prototype.onError = function(err) {
 
-}
+};
 
 function Skin(oskOrDirectory) {
     this.skinElements = {};
