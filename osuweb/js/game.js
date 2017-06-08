@@ -291,13 +291,16 @@ Slider.prototype.draw = function() {
     ctx.stroke();
 
     var sliderBodyRadius = currentPlay.halfCsPixel * 14.5 / 16;
-    ctx.lineCap = "round";
     for (var i = sliderBodyRadius; i > 1; i -= 2) {
         ctx.lineWidth = i * 2;
-        var completionRgb = Math.floor((1 - (i / sliderBodyRadius)) * 75);
+        var completionRgb = Math.floor((1 - (i / sliderBodyRadius)) * 130);
         ctx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", "  + completionRgb + ")";
         ctx.stroke();
     }
+    ctx.lineWidth = sliderBodyRadius * 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.stroke();
 
     this.containerDiv.appendChild(baseCanvas);
 
@@ -351,10 +354,11 @@ Slider.prototype.draw = function() {
                         var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
                         var tickMs = Math.floor(completion) * this.length / this.timingInfo.sliderVelocity /* ms of current repeat */ +
                             ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.length / this.timingInfo.sliderVelocity) / 2 /* ms of tick showing up */;
+                        var animationCompletion = Math.min(1, (currentSliderTime - tickMs) / 85);
 
                         overlayCtx.beginPath();
-                        overlayCtx.arc(x, y, currentPlay.csPixel * 0.038, 0, osuweb.graphics.pi2);
-                        overlayCtx.fillStyle = "rgba(255, 255, 255," + Math.min(1, (currentSliderTime - tickMs) / 80) + ")";
+                        overlayCtx.arc(x, y, currentPlay.csPixel * 0.038 * (/* parabola */ -2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, osuweb.graphics.pi2);
+                        overlayCtx.fillStyle = "rgba(255, 255, 255," + 1 + ")";
                         overlayCtx.fill();
                     }
                 }

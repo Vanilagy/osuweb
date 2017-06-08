@@ -112,9 +112,13 @@ osuweb.graphics = {
         context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 14.5 / 16, 0, osuweb.graphics.pi2);
         context.fillStyle = radialGradient;
         context.fill();
+        context.fillStyle = "rgba(255, 255, 255, 0.5)";
+        context.globalCompositeOperation = "destination-out";
+        context.fill();
 
         var innerType = "number";
-
+        context.globalCompositeOperation = "source-over";
+        
         if (innerType == "number") {
             context.font = "lighter " + (currentPlay.csPixel * 0.41) + "px Arial";
             context.textAlign = "center", context.textBaseline = "middle";
