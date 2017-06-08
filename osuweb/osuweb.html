@@ -107,17 +107,29 @@
                 top: 0px;
                 left: 0px;
             }
-            .sliderContainer canvas {
+            .sliderContainer {
+                position: absolute;
+            }
+            .sliderContainer > canvas {
                 position: absolute;
                 top: 0px;
                 left: 0px;
             }
-            .sliderContainer {
-                position: absolute;
-            }
             @keyframes closeApproachCircle {
-                from {transform: scale(3.5)}
-                to {transform: scale(1)}
+                from {transform: scale(3.5);}
+                to {transform: scale(1);}
+            }
+            @keyframes destroyHitCircle {
+                from {transform: scale(1); opacity: 1;}
+                to {transform: scale(1.4); opacity: 0;}
+            }
+            @keyframes sliderFadeOut {
+                from {opacity: 1;}
+                to {opacity: 0;}
+            }
+            .followPoint {
+                position: absolute;
+                opacity: 0.7;
             }
         </style>
     </head>
@@ -208,18 +220,19 @@
             });
 
             document.getElementById("beatmap").addEventListener("change", function(e) {
-                currentBeatmapSet = new BeatmapSet(e.target.files);
+                new BeatmapSet(e.target.files, function(beatmapset) {
+                    currentBeatmapSet = beatmapset;
+                    document.getElementById("beatmap").style.visibility = "hidden";
 
-                document.getElementById("beatmap").style.visibility = "hidden";
+                    var keys = [];
+                    for (var key in currentBeatmapSet.difficulties) {
+                        keys.push(key);
+                    }
 
-                var keys = [];
-                for (var key in currentBeatmapSet.difficulties) {
-                    keys.push(key);
-                }
-
-                currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
-                    new Play(currentBeatmap, currentAudio);
-                    currentPlay.start();
+                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
+                        new Play(currentBeatmap, currentAudio);
+                        currentPlay.start();
+                    });
                 });
             });
 

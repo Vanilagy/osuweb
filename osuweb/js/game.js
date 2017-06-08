@@ -1,11 +1,12 @@
 var playareaDom = document.getElementById("playarea");
 var objectContainerDom = document.getElementById("objectContainer");
 
-var sliderTracePointDistance = 3;
+var maximumTracePointDistance = 3;
+var snakingSliders = true;
 
 /////
 
-function Circle(data, zIndex, comboInfo) {
+function Circle(data) {
     this.type = "circle";
     this.time = data.time;
     this.endTime = this.time;
@@ -15,8 +16,7 @@ function Circle(data, zIndex, comboInfo) {
     this.startPoint = {x: this.x, y: this.y};
     this.basePoint = {x: this.x, y: this.y};
     this.stackShift = 0;
-    this.zIndex = zIndex;
-    this.comboInfo = comboInfo;
+    this.hitCircleExploded = false;
 }
 
 Circle.prototype.updateStackPosition = function() {
@@ -27,6 +27,8 @@ Circle.prototype.updateStackPosition = function() {
 Circle.prototype.draw = function() {
     this.containerDiv = document.createElement("div");
     this.containerDiv.className = "hitCircleContainer";
+    this.containerDiv.style.width = currentPlay.csPixel + "px";
+    this.containerDiv.style.height = currentPlay.csPixel + "px";
     this.containerDiv.style.left = ((this.x + currentPlay.marginWidth) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px", this.containerDiv.style.top = ((this.y + currentPlay.marginHeight) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px";
     this.containerDiv.style.zIndex = this.zIndex;
 
@@ -44,6 +46,7 @@ Circle.prototype.draw = function() {
     this.approachCircleCanvas = document.createElement("canvas");
     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
     this.approachCircleCanvas.setAttribute("height", currentPlay.csPixel);
+    this.approachCircleCanvas.style.transform = "scale(3.5)";
 
     var approachCtx = this.approachCircleCanvas.getContext("2d");
     osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
@@ -60,14 +63,15 @@ Circle.prototype.show = function(offset) {
     this.containerDiv.style.visibility = "visible";
     this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
     this.containerDiv.style.opacity = 1;
-    this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + currentPlay.ARMs / 1000 + "s";
+    this.approachCircleCanvas.style.transform = "scale(1.0)";
+    this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
 }
 
 Circle.prototype.remove = function() {
     this.containerDiv.parentNode.removeChild(this.containerDiv);
 }
 
-function Slider(data, zIndex, comboInfo) {
+function Slider(data) {
     this.type = "slider";
     this.time = data.time;
     this.newCombo = data.newCombo;
@@ -76,43 +80,27 @@ function Slider(data, zIndex, comboInfo) {
     this.startPoint = {x: this.x, y: this.y};
     this.stackShift = 0;
     this.sections = data.sections;
-    this.zIndex = zIndex;
-    this.comboInfo = comboInfo;
+    this.hitCircleExploded = false;
+    this.fadingOut = false;
 
     this.repeat = data.repeat;
     this.length = data.length;
+    this.currentSliderTick = 0;
 
     this.sliderPathPoints = [];
 
-    var passedLength = 0,
-        lastPoint;
+    var passedLength = 0;
+    var segmentCount = Math.floor(this.length / maximumTracePointDistance + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
+    var segmentLength = this.length / segmentCount;
+    var tracedPointsAdded = 0;
 
-    function extendLength(pos, dist) { // Taking care of curve length exceeding pixelLength
-        var causeExit = false;
-
-        var passedLengthBefore = passedLength;
-
-        if (dist) {
-            passedLength += dist;
-        } else if (lastPoint) {
-            passedLength += Math.hypot(lastPoint.x - pos.x, lastPoint.y - pos.y);
-        }
-
-        if (passedLength >= this.length) {
-            var angle = Math.atan2(pos.y - lastPoint.y, pos.x - lastPoint.x);
-            dif = this.length - passedLengthBefore;
-            pos.x = lastPoint.x + dif * Math.cos(angle);
-            pos.y = lastPoint.y + dif * Math.sin(angle);
-
-            var newDiff = Math.hypot(lastPoint.x - pos.x, lastPoint.y - pos.y);
-
-            causeExit = true;
-        }
-
-        lastPoint = pos;
+    function addTracedPoint(pos, dist) { // Taking care of curve length exceeding pixelLength
         pushPos.bind(this)(pos);
 
-        if (causeExit) return true;
+        tracedPointsAdded++;
+        if (tracedPointsAdded == segmentCount + 1) {
+            return true; // Stops tracing
+        }
     }
 
     function pushPos(pos) { // Pushes endpoint to array
@@ -139,7 +127,7 @@ function Slider(data, zIndex, comboInfo) {
                 a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
                 a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
 
-            var incre = sliderTracePointDistance / radius, condition;
+            var incre = segmentLength / radius, condition;
 
             if (a1 < a2 && a2 < a3) { // Point order
                 condition = function(x) {return x < a3};
@@ -158,18 +146,34 @@ function Slider(data, zIndex, comboInfo) {
             this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * currentPlay.pixelRatio;
             this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * currentPlay.pixelRatio;
 
-            for (var angle = a1; condition(angle); angle += incre) {
-                if (extendLength.bind(this)({
+            var angle = a1;
+            for (var i = 0; i <= segmentCount; i++) {
+                pushPos.bind(this)({
                     x: centerPos.x + radius * Math.cos(angle),
                     y: centerPos.y + radius * Math.sin(angle)
-                })) {
-                    return;
-                }
+                });
+
+                angle += incre;
             }
         } else {
             this.minX = this.maxX = this.sections[0].values[0].x * currentPlay.pixelRatio;
             this.minY = this.maxY = this.sections[0].values[0].y * currentPlay.pixelRatio;
             var p1;
+
+            // Extra section is added because ppy fucked up his pixelLength
+            var lastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 1];
+            var secondLastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 2];
+            if (lastPoint && secondLastPoint) {
+                var angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
+                this.sections.push({
+                    type: "linear",
+                    values: [
+                        {x: lastPoint.x, y: lastPoint.y},
+                        {x: lastPoint.x + 500 * Math.cos(angle), y: lastPoint.y + 500 * Math.sin(angle)}
+                    ]
+                })
+            }
+
 
             for (var i = 0; i < this.sections.length; i++) {
                 var points = this.sections[i].values;
@@ -177,17 +181,22 @@ function Slider(data, zIndex, comboInfo) {
                 var leftT = 0, rightT = 0.01;
                 if (i == 0) {
                     p1 = osuweb.mathutil.coordsOnBezier(points, leftT);
-                    extendLength.bind(this)(p1);
+                    addTracedPoint.bind(this)(p1);
                 }
                 var p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
 
-                while (leftT < 1) { // Binary segment approximation method
+                while (leftT <= 1) { // Binary segment approximation method
                     while (true) {
                         var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
 
-                        if (dist < sliderTracePointDistance) {
+                        if (dist < segmentLength) {
                             leftT += 0.01;
                             rightT += 0.01;
+
+                            if (leftT > 1) {
+                                break;
+                            }
+
                             p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
                         } else {
                             var p3, midT;
@@ -197,11 +206,11 @@ function Slider(data, zIndex, comboInfo) {
                                 p3 = osuweb.mathutil.coordsOnBezier(points, midT);
                                 dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
 
-                                if (Math.abs(sliderTracePointDistance - dist) < 0.05) {
+                                if (Math.abs(segmentLength - dist) < 0.001) {
                                     break;
                                 }
 
-                                if (dist < sliderTracePointDistance) {
+                                if (dist < segmentLength) {
                                     leftT = midT;
                                 } else {
                                     rightT = midT;
@@ -209,7 +218,7 @@ function Slider(data, zIndex, comboInfo) {
                             }
 
                             if (midT < 1) {
-                                if (extendLength.bind(this)(p3, dist)) {
+                                if (addTracedPoint.bind(this)(p3, dist)) {
                                     return;
                                 }
                                 p1 = p3;
@@ -227,32 +236,13 @@ function Slider(data, zIndex, comboInfo) {
         }
     }).bind(this)();
 
-    if (passedLength < this.length) { // Fires when traced path is shorter than pixelLength
-        var endPos = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 1];
-        var angle = Math.atan2(endPos.y - lastPoint.y, endPos.x - lastPoint.x);
-        var dif = this.length - passedLength;
-
-        for (var dist = sliderTracePointDistance; dist < dif; dist += sliderTracePointDistance) {
-            pushPos.bind(this)({
-                x: lastPoint.x + dist * Math.cos(angle),
-                y: lastPoint.y + dist * Math.sin(angle)
-            });
-        }
-
-        pushPos.bind(this)({
-            x: lastPoint.x + dif * Math.cos(angle),
-            y: lastPoint.y + dif * Math.sin(angle)
-        });
-    }
-    
     /*var length = 0;
-
     for(var i = 1; i < this.sliderPathPoints.length; i++) {
         length += Math.hypot(this.sliderPathPoints[i - 1].x / currentPlay.pixelRatio - this.sliderPathPoints[i].x / currentPlay.pixelRatio, this.sliderPathPoints[i - 1].y / currentPlay.pixelRatio - this.sliderPathPoints[i].y / currentPlay.pixelRatio);
     }
 
     console.log(this);
-    console.log("length difference: "+Math.abs(this.length - length).toFixed(5));*/
+    console.log("length difference: "+Math.abs(this.length - distanceTraced).toFixed(5));*/
 
     if(this.repeat % 2 == 0) {
         this.basePoint = this.startPoint;
@@ -286,34 +276,60 @@ Slider.prototype.draw = function() {
     this.containerDiv.style.zIndex = this.zIndex;
 
     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
-
-    var baseCanvas = document.createElement("canvas"); // Create local object canvas
-    baseCanvas.setAttribute("width", Math.ceil(sliderWidth + currentPlay.csPixel));
-    baseCanvas.setAttribute("height", Math.ceil(sliderHeight + currentPlay.csPixel));
-
-    var ctx = baseCanvas.getContext("2d");
-
-    ctx.beginPath();
-    ctx.moveTo(this.sliderPathPoints[0].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[0].y - this.minY + currentPlay.halfCsPixel);
-    for (var i = 1; i < this.sliderPathPoints.length; i++) {
-        ctx.lineTo(this.sliderPathPoints[i].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[i].y - this.minY + currentPlay.halfCsPixel);
-    }
-    ctx.lineWidth = currentPlay.csPixel;
-    ctx.lineCap = "round";
-    ctx.lineJoin="round";
-    ctx.strokeStyle = "white";
-    ctx.stroke();
-
     var sliderBodyRadius = currentPlay.halfCsPixel * 14.5 / 16;
-    ctx.lineCap = "round";
-    for (var i = sliderBodyRadius; i > 1; i -= 2) {
-        ctx.lineWidth = i * 2;
-        var completionRgb = Math.floor((1 - (i / sliderBodyRadius)) * 75);
-        ctx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", "  + completionRgb + ")";
+
+    this.baseCanvas = document.createElement("canvas"); // Create local object canvas
+    this.baseCanvas.setAttribute("width", Math.ceil(sliderWidth + currentPlay.csPixel));
+    this.baseCanvas.setAttribute("height", Math.ceil(sliderHeight + currentPlay.csPixel));
+
+    var ctx = this.baseCanvas.getContext("2d");
+
+    this.updateBase = function(initialRender) {
+        if (initialRender) {
+            var thisCompletion = 1;
+        } else {
+            var thisCompletion = Math.min(1, (currentPlay.audioCurrentTime - (this.time - currentPlay.ARMs)) / currentPlay.ARMs * 2.5);
+        }
+
+        var targetIndex = Math.floor(thisCompletion * (this.sliderPathPoints.length - 1));
+        var pointsToDraw = this.sliderPathPoints.slice(0, targetIndex + 1);
+        
+        ctx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
+        ctx.beginPath();
+        ctx.moveTo(this.sliderPathPoints[0].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[0].y - this.minY + currentPlay.halfCsPixel);
+        for (var i = 0; i < pointsToDraw.length; i++) {
+            ctx.lineTo(pointsToDraw[i].x - this.minX + currentPlay.halfCsPixel, pointsToDraw[i].y - this.minY + currentPlay.halfCsPixel);
+        }
+
+        ctx.lineWidth = currentPlay.csPixel;
+        ctx.strokeStyle = "white";
+        ctx.lineCap = "round";
+        ctx.lineJoin= "round";
+        ctx.globalCompositeOperation = "source-over";
         ctx.stroke();
+
+        for (var i = sliderBodyRadius; i > 1; i -= 2) {
+            ctx.lineWidth = i * 2;
+            var completionRgb = Math.floor((1 - (i / sliderBodyRadius)) * 130);
+            ctx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", "  + completionRgb + ")";
+            ctx.stroke();
+        }
+        ctx.lineWidth = sliderBodyRadius * 2;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.stroke();
+
+        if (!initialRender && thisCompletion < 1) {
+            requestAnimationFrame(function() {
+                this.updateBase.bind(this)(false);
+            }.bind(this));
+        }
     }
 
-    this.containerDiv.appendChild(baseCanvas);
+    if (!snakingSliders) {
+        this.updateBase.bind(this)(true);
+    }
+    this.containerDiv.appendChild(this.baseCanvas);
 
     var overlay = document.createElement("canvas");
     overlay.setAttribute("width", sliderWidth + currentPlay.csPixel);
@@ -333,41 +349,45 @@ Slider.prototype.draw = function() {
         }
     }
 
-    osuweb.graphics.drawCircle(overlayCtx, this.sliderPathPoints[0].x - this.minX, this.sliderPathPoints[0].y - this.minY, this.comboInfo);
+    function getLowestTickCompletionFromCurrentRepeat(completion) {
+        var currentRepeat = Math.floor(completion);
+        for (var i = 0; i < this.sliderTickCompletions.length; i++) {
+            if (this.sliderTickCompletions[i] > currentRepeat) {
+                return this.sliderTickCompletions[i];
+            }
+        }
+    }
 
     this.updateOverlay = function() {
         var completion = 0;
+        var isMoving = this.time <= currentPlay.audioCurrentTime;
 
-        if (this.time <= currentPlay.audioCurrentTime) {
-            if (!this.dataOnStart) {
-                this.dataOnStart = {
-                    msPerBeat: currentPlay.currentMsPerBeat,
-                    sliderVelocity: 100 * currentPlay.beatmap.SV / (currentPlay.currentMsPerBeat * (currentPlay.currentMsPerBeatMultiplier / 100))
-                }
-
-                this.endTime = this.time + (this.length / this.dataOnStart.sliderVelocity) * this.repeat;
-
-                this.approachCircleCanvas.style.display = "none";
-            }
-
+        if (isMoving) {
             overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
 
-            completion = (this.timingInfo.sliderVelocity * (currentPlay.audioCurrentTime - this.time)) / this.length;
-            if (completion > this.repeat) {
+            var currentSliderTime = currentPlay.audioCurrentTime - this.time;
+            completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.length;
+
+            if (completion >= this.repeat) {
                 completion = this.repeat;
-                this.remove.bind(this)();
             }
 
             // Draws slider ticks
-            for (var i = 0; i < this.sliderTickCompletions.length; i++) {
-                if (this.sliderTickCompletions[i] >= completion && this.sliderTickCompletions[i] < Math.floor(completion + 1)) {
-                    var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(this.sliderTickCompletions[i]));
-                    var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
+            if (this.sliderTickCompletions[this.currentSliderTick] != undefined) {
+                var lowestTickCompletionFromCurrentRepeat = getLowestTickCompletionFromCurrentRepeat.bind(this)(completion)
+                for (var i = 0; this.sliderTickCompletions[i] < Math.floor(completion + 1) && this.sliderTickCompletions[i] < lowestTickCompletionFromCurrentRepeat + (completion % 1) * 2; i++) {
+                    if (this.sliderTickCompletions[i] >= completion) {
+                        var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(this.sliderTickCompletions[i]));
+                        var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
+                        var tickMs = Math.floor(completion) * this.length / this.timingInfo.sliderVelocity /* ms of current repeat */ +
+                            ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.length / this.timingInfo.sliderVelocity) / 2 /* ms of tick showing up */;
+                        var animationCompletion = Math.min(1, (currentSliderTime - tickMs) / 85);
 
-                    overlayCtx.beginPath();
-                    overlayCtx.arc(x, y, currentPlay.csPixel * 0.04, 0, osuweb.graphics.pi2);
-                    overlayCtx.fillStyle = "white";
-                    overlayCtx.fill();
+                        overlayCtx.beginPath();
+                        overlayCtx.arc(x, y, currentPlay.csPixel * 0.038 * (/* parabola */ -2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, osuweb.graphics.pi2);
+                        overlayCtx.fillStyle = "rgba(255, 255, 255," + 1 + ")";
+                        overlayCtx.fill();
+                    }
                 }
             }
         }
@@ -401,7 +421,7 @@ Slider.prototype.draw = function() {
             overlayCtx.drawImage(repeatArrowCanvas, x - currentPlay.halfCsPixel, y - currentPlay.halfCsPixel);
         }
 
-        if (this.time <= currentPlay.audioCurrentTime) {
+        if (isMoving) {
             // Draws slider ball
             var sliderBallPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(completion));
             var x = sliderBallPos.x - this.minX + currentPlay.halfCsPixel;
@@ -423,15 +443,32 @@ Slider.prototype.draw = function() {
 
     this.containerDiv.appendChild(overlay);
 
+    this.sliderHeadContainer = document.createElement("div");
+    this.sliderHeadContainer.className = "hitCircleContainer";
+    this.sliderHeadContainer.style.width = currentPlay.csPixel + "px";
+    this.sliderHeadContainer.style.height = currentPlay.csPixel + "px";
+    this.sliderHeadContainer.style.left = this.sliderPathPoints[0].x - this.minX + "px";
+    this.sliderHeadContainer.style.top = this.sliderPathPoints[0].y - this.minY + "px";
+
+    var sliderHeadBaseCanvas = document.createElement("canvas"); // Create local object canvas
+    sliderHeadBaseCanvas.setAttribute("width", currentPlay.csPixel);
+    sliderHeadBaseCanvas.setAttribute("height", currentPlay.csPixel);
+
+    var sliderHeadBaseCtx = sliderHeadBaseCanvas.getContext("2d");
+    osuweb.graphics.drawCircle(sliderHeadBaseCtx, 0, 0, this.comboInfo);
+
     this.approachCircleCanvas = document.createElement("canvas");
     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
     this.approachCircleCanvas.setAttribute("height", currentPlay.csPixel);
-    this.approachCircleCanvas.style.left = this.sliderPathPoints[0].x - this.minX + "px", this.approachCircleCanvas.style.top = this.sliderPathPoints[0].y - this.minY + "px";
+    this.approachCircleCanvas.style.transform = "scale(3.5)";
 
     var approachCtx = this.approachCircleCanvas.getContext("2d");
     osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
 
-    this.containerDiv.appendChild(this.approachCircleCanvas);
+    this.sliderHeadContainer.appendChild(sliderHeadBaseCanvas);
+    this.sliderHeadContainer.appendChild(this.approachCircleCanvas);
+
+    this.containerDiv.appendChild(this.sliderHeadContainer);
 }
 
 Slider.prototype.append = function() {
@@ -442,8 +479,13 @@ Slider.prototype.show = function(offset) {
     this.containerDiv.style.visibility = "visible";
     this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
     this.containerDiv.style.opacity = 1;
-    this.approachCircleCanvas.style.animation = "closeApproachCircle linear " + ((currentPlay.ARMs - offset) / 1000) + "s";
+    this.approachCircleCanvas.style.transform = "scale(1.0)";
+    this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
     this.updateOverlay.bind(this)();
+
+    if (snakingSliders) {
+        this.updateBase.bind(this)(false);
+    }
 }
 
 Slider.prototype.remove = function() {

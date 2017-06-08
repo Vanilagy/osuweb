@@ -87,15 +87,6 @@ osuweb.audio = {
 }
 
 osuweb.file = {
-	loadDir: function(onReturn) {
-		var input = $(document.createElement('input'));
-        input.attr("type", "file");
-        input.attr("id", "filepicker");
-        input.attr("name", "filelist");
-        input.attr("webkitdirectory", "true");
-		$('#filepicker').change(onReturn);
-        input.trigger('click');
-	},
 	loadFile: function(file, onLoad) {
 		var reader = new FileReader();
 
@@ -104,11 +95,19 @@ osuweb.file = {
 		reader.readAsDataURL(file);
 	},
 	loadAudioFromFile: function(file, onFileLoad, onAudioLoad, isMusic) {
-        var reader = new FileReader();
-        reader.onload = (function(e) {
-            onFileLoad(new Audio(e.target.result, onAudioLoad, isMusic));
-        });
-        reader.readAsArrayBuffer(file);
+        // This is a zip entry
+        if(typeof file == "string") {
+            zip.file(file).async("arraybuffer").then((function(result) {
+                onFileLoad(new Audio(result, onAudioLoad));
+            }));
+        }
+        else {
+            var reader = new FileReader();
+            reader.onload = (function(e) {
+                onFileLoad(new Audio(e.target.result, onAudioLoad));
+            });
+            reader.readAsArrayBuffer(file);
+        }
     },
     loadAudioFromURL: function(url, onFileLoad, onAudioLoad, isMusic) {
         var request = new XMLHttpRequest();
@@ -150,8 +149,12 @@ osuweb.graphics = {
         context.arc(x + currentPlay.halfCsPixel, y + currentPlay.halfCsPixel, currentPlay.halfCsPixel * 14.5 / 16, 0, osuweb.graphics.pi2);
         context.fillStyle = radialGradient;
         context.fill();
+        context.fillStyle = "rgba(255, 255, 255, 0.5)";
+        context.globalCompositeOperation = "destination-out";
+        context.fill();
 
         var innerType = "number";
+        context.globalCompositeOperation = "source-over";
 
         if (innerType == "number") {
             context.font = "lighter " + (currentPlay.csPixel * 0.41) + "px Arial";
@@ -281,41 +284,83 @@ function Database(files) {
     this.skinFiles = [];
 }
 
-function BeatmapSet(files) {
+function BeatmapSet(files, callback) {
     this.files = files;
     this.audioFiles = [];
     this.imageFiles = [];
     this.difficulties = {};
+    this.osz = false;
 
-    for(var i = 0; i < files.length; i++) {
-        var filename = files[i].name.toLowerCase();
+    if(Object.prototype.toString.call(files) === '[object File]') {
+        this.osz = true;
 
-        if(filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
-            this.audioFiles.push(files[i]);
-            continue;
-        }
-        if(filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
-            this.imageFiles.push(files[i]);
-            continue;
-        }
+        zip.loadAsync(files).then((function (zip) {
+            this.files = zip.files;
 
-        var regex = /\[([^\[^\]]+)]\.osu$/g;
-        var str = files[i].webkitRelativePath;
-        var m;
+            for(var key in zip.files) {
+                if(key.endsWith(".mp3") || key.endsWith(".wav") || key.endsWith(".ogg")) {
+                    this.audioFiles.push(key);
+                    continue;
+                }
+                if(key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) {
+                    this.imageFiles.push(key);
+                    continue;
+                }
 
-        while ((m = regex.exec(str)) !== null) {
-            // This is necessary to avoid infinite loops with zero-width matches
-            if (m.index === regex.lastIndex) {
-                regex.lastIndex++;
+                var regex = /\[([^\[^\]]+)]\.osu$/g;
+                var str = key;
+                var m;
+
+                while ((m = regex.exec(str)) !== null) {
+                    // This is necessary to avoid infinite loops with zero-width matches
+                    if (m.index === regex.lastIndex) {
+                        regex.lastIndex++;
+                    }
+
+                    // The result can be accessed through the `m`-variable.
+                    m.forEach((function(match, groupIndex){
+                        if(groupIndex == 1) {
+                            this.difficulties[match] = key;
+                        }
+                    }).bind(this));
+                }
             }
 
-            // The result can be accessed through the `m`-variable.
-            m.forEach((function(match, groupIndex){
-                if(groupIndex == 1) {
-                    this.difficulties[match] = files[i];
+            if(callback != undefined) callback(this);
+        }).bind(this));
+    }
+    else {
+        for(var i = 0; i < files.length; i++) {
+            var filename = files[i].name.toLowerCase();
+
+            if(filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
+                this.audioFiles.push(files[i]);
+                continue;
+            }
+            if(filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
+                this.imageFiles.push(files[i]);
+                continue;
+            }
+
+            var regex = /\[([^\[^\]]+)]\.osu$/g;
+            var str = files[i].webkitRelativePath;
+            var m;
+
+            while ((m = regex.exec(str)) !== null) {
+                // This is necessary to avoid infinite loops with zero-width matches
+                if (m.index === regex.lastIndex) {
+                    regex.lastIndex++;
                 }
-            }).bind(this));
+
+                // The result can be accessed through the `m`-variable.
+                m.forEach((function(match, groupIndex){
+                    if(groupIndex == 1) {
+                        this.difficulties[match] = files[i];
+                    }
+                }).bind(this));
+            }
         }
+        if(callback != undefined) callback(this);
     }
 
     //this.selectDifficulty(Object.values(this.difficulties)[0]);
@@ -331,7 +376,7 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
                 var imageFileName = currentBeatmap.events[i].file;
 
                 for(var j = 0; j < this.imageFiles.length; j++) {
-                    if(this.imageFiles[j].name == imageFileName) {
+                    if(this.imageFiles[j].name || this.imageFiles[i] == imageFileName) {
                         imageFile = this.imageFiles[j];
                         break;
                     }
@@ -342,16 +387,25 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
         }
 
         if(imageFile != null) {
-            osuweb.file.loadFile(imageFile, function(e) {
-                var div = document.getElementById("background").style.backgroundImage = 'url('+e.target.result+')';
-            });
+            if(this.osz) {
+                zip.file(imageFile).async("base64").then((function(result) {
+                    var div = document.getElementById("background").style.backgroundImage = 'url(data:image/png;base64,'+result+')';
+                }));
+            }
+            else {
+                osuweb.file.loadFile(imageFile, function(e) {
+                    var div = document.getElementById("background").style.backgroundImage = 'url('+e.target.result+')';
+                });
+            }
         }
 
         // find audio file
         var audioFile = null;
 
         for(var i = 0; i < this.audioFiles.length; i++) {
-            if(this.audioFiles[i].name == currentBeatmap["audioFile"]) {
+            var audioName = typeof this.audioFiles[i] == "string" ? this.audioFiles[i] : this.audioFiles[i].name;
+
+            if(audioName == currentBeatmap["audioFile"]) {
                 audioFile = this.audioFiles[i];
                 break;
             }
@@ -372,8 +426,7 @@ BeatmapSet.prototype.selectDifficulty = function(difficultyFile, audioFiles, ima
 }
 
 function Beatmap(file, callback) {
-    var reader = new FileReader();
-    reader.onload = (function(e){
+    var read = function(e){
         this.events = [];
         this.timingPoints = [];
         this.hitObjects = [];
@@ -381,7 +434,7 @@ function Beatmap(file, callback) {
 
         var timingPointIndex = 0;
 
-        var lines = e.target.result.split('\n');
+        var lines = (typeof e == "string" ? e : e.target.result).split('\n');
 
         var section = "header";
         var eventType = "";
@@ -685,8 +738,18 @@ function Beatmap(file, callback) {
         }
 
         callback();
-    }).bind(this);
-    reader.readAsText(file);
+    }
+
+    if(Object.prototype.toString.call(file) == "[object File]") {
+        var reader = new FileReader();
+        reader.onload = (read).bind(this);
+        reader.readAsText(file);
+    }
+    else if(typeof file == "string") {
+        zip.file(file).async("string").then((read).bind(this), (function(fuckme) {
+            console.log(fuckme);
+        }).bind(this));
+    }
 }
 
 Beatmap.prototype.getNextNonInheritedTimingPoint = function(num) {
@@ -717,12 +780,63 @@ function Play(beatmap, audio) {
 
     this.ARMs = osuweb.util.getMsFromAR(this.beatmap.AR);
 
-    this.hitObjects = [];
-    var zIndex = 1000000;
+    function FollowPoint(obj1, obj2) {
+        this.startTime = obj1.endTime;
+        this.endTime = obj2.time;
+        this.startPos = obj1.basePoint;
+        this.endPos = obj2.startPoint;
+    }
+    FollowPoint.prototype.spawn = function() {
+        this.length = Math.hypot(this.startPos.x - this.endPos.x, this.startPos.y - this.endPos.y) * currentPlay.pixelRatio;
+        this.height = 2 * currentPlay.pixelRatio;
+        var angle = Math.atan2(this.endPos.y - this.startPos.y, this.endPos.x - this.startPos.x);
+        var centerPoint = {
+            x: (this.startPos.x + this.endPos.x) / 2,
+            y: (this.startPos.y + this.endPos.y) / 2
+        }
 
-    this.currentTimingPoint = 1;
-    this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
-    this.currentMsPerBeatMultiplier = 100;
+        this.canvas = document.createElement("canvas");
+        this.canvas.className = "followPoint";
+        this.canvas.setAttribute("height", this.height);
+        this.canvas.setAttribute("width", this.length);
+        this.canvas.style.zIndex = 0;
+        this.canvas.style.left = (centerPoint.x + currentPlay.marginWidth) * currentPlay.pixelRatio + "px";
+        this.canvas.style.top = (centerPoint.y + currentPlay.marginHeight) * currentPlay.pixelRatio + "px";
+        this.canvas.style.transform = "translate(-50%, -50%) rotate(" + angle + "rad)";
+
+        var ctx = this.canvas.getContext("2d");
+
+        this.update = function() {
+            var shouldEnd = currentPlay.audioCurrentTime >= this.endTime + 300;
+            if (shouldEnd) {
+                this.canvas.parentNode.removeChild(this.canvas);
+            } else {
+                var timeDif = this.endTime - this.startTime;
+                var startingPointX = Math.max(0, Math.min(1, (currentPlay.audioCurrentTime - (this.startTime + 0)) / timeDif)) * this.length;
+                var endPointX = Math.max(0, Math.min(1, (currentPlay.audioCurrentTime - (this.startTime - 450)) / timeDif)) * this.length;
+                ctx.clearRect(0, 0, this.length, 3);
+                ctx.beginPath();
+                ctx.rect(startingPointX, 0, endPointX, this.height);
+                ctx.fillStyle = "white";
+                ctx.fill();
+            }
+
+            if (!shouldEnd) {
+                requestAnimationFrame(this.update.bind(this));
+            }
+        }
+        this.update.bind(this)();
+
+        objectContainerDom.appendChild(this.canvas);
+    }
+
+    this.hitObjects = [];
+    this.followPoints = [];
+    var hitObjectId = 0;
+
+    var currentTimingPoint = 1;
+    var currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
+    var currentMsPerBeatMultiplier = 100;
 
     var comboCount = 1;
     var nextCombo = 0;
@@ -746,20 +860,20 @@ function Play(beatmap, audio) {
             n: comboCount++
         };
 
-        if (this.currentTimingPoint < this.beatmap.timingPoints.length) {
-            while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= obj.time) {
-                var timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
+        if (currentTimingPoint < this.beatmap.timingPoints.length) {
+            while (this.beatmap.timingPoints[currentTimingPoint].offset <= obj.time) {
+                var timingPoint = this.beatmap.timingPoints[currentTimingPoint];
 
                 if (timingPoint.inherited) {
-                    this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
+                    currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
                 } else {
-                    this.currentMsPerBeatMultiplier = 100;
-                    this.currentMsPerBeat = timingPoint.msPerBeat;
+                    currentMsPerBeatMultiplier = 100;
+                    currentMsPerBeat = timingPoint.msPerBeat;
                 }
 
-                this.currentTimingPoint++;
+                currentTimingPoint++;
 
-                if (this.currentTimingPoint == this.beatmap.timingPoints.length) {
+                if (currentTimingPoint == this.beatmap.timingPoints.length) {
                     break;
                 }
             }
@@ -768,14 +882,14 @@ function Play(beatmap, audio) {
         var newObject = null;
 
         if (obj.type == "circle") {
-            var newObject = new Circle(obj, zIndex, comboInfo);
+            var newObject = new Circle(obj);
         } else if (obj.type == "slider") {
-            var newObject = new Slider(obj, zIndex, comboInfo);
+            var newObject = new Slider(obj);
 
             var timingInfo = {
-                msPerBeat: this.currentMsPerBeat,
-                msPerBeatMultiplier: this.currentMsPerBeatMultiplier,
-                sliderVelocity: 100 * currentPlay.beatmap.SV / (this.currentMsPerBeat * (this.currentMsPerBeatMultiplier / 100))
+                msPerBeat: currentMsPerBeat,
+                msPerBeatMultiplier: currentMsPerBeatMultiplier,
+                sliderVelocity: 100 * currentPlay.beatmap.SV / (currentMsPerBeat * (currentMsPerBeatMultiplier / 100))
             };
             var sliderTickCompletions = [];
 
@@ -787,6 +901,7 @@ function Play(beatmap, audio) {
                 }
             }
 
+            newObject.endTime = newObject.time + newObject.repeat * newObject.length / timingInfo.sliderVelocity;
             newObject.timingInfo = timingInfo;
             newObject.sliderTickCompletions = sliderTickCompletions;
         } else {
@@ -794,10 +909,31 @@ function Play(beatmap, audio) {
         }
 
         if (newObject != null) {
+            newObject.id = hitObjectId;
+            newObject.comboInfo = comboInfo;
             this.hitObjects.push(newObject);
         }
 
-        zIndex--;
+        hitObjectId++;
+    }
+
+    for (var i = 1; i < this.hitObjects.length; i++) {
+        var prevObj = this.hitObjects[i - 1], currObj = this.hitObjects[i];
+        if (prevObj.comboInfo.comboNum == currObj.comboInfo.comboNum && prevObj.comboInfo.n != currObj.comboInfo.n) {
+            this.followPoints.push(new FollowPoint(prevObj, currObj));
+        }
+    }
+
+    var zIndexBase = 1000000;
+    var zIndexSortedArray = this.hitObjects.slice(0).sort(function(a, b) {
+        if (Math.round(a.endTime) != Math.round(b.endTime)) {
+            return Math.round(a.endTime) - Math.round(b.endTime);
+        } else {
+            return b.time - a.time;
+        }
+    });
+    for (var i = 0; i < zIndexSortedArray.length; i++) {
+        zIndexSortedArray[i].zIndex = zIndexBase - i;
     }
 
     var lastStackEnd = 0;
@@ -810,7 +946,7 @@ function Play(beatmap, audio) {
         for (var b = i - 1; b >= 0; b--) {
             var prev = this.hitObjects[b];
 
-            if (Math.hypot(hitObject.startPoint.x - prev.basePoint.x, hitObject.startPoint.y - prev.basePoint.y) < stackSnapDistance && hitObject.time - prev.time <= stackLeniencyFrame) {
+            if (((hitObject.startPoint.x == prev.basePoint.x && hitObject.startPoint.y == prev.basePoint.y) || (Math.hypot(hitObject.startPoint.x - prev.basePoint.x, hitObject.startPoint.y - prev.basePoint.y) < stackSnapDistance && prev.type == "slider")) && hitObject.time - prev.endTime <= stackLeniencyFrame) {
                 hitObject.stackParent = prev;
 
                 var isSlider = hitObject.type == "slider";
@@ -891,23 +1027,28 @@ function Play(beatmap, audio) {
 
     this.audioStartTime = null;
     this.audioCurrentTime = 0;
+    this.audioOffset = -2000;
     this.metronome = null;
     this.nextMetronome = null;
     this.metronomeRunning = false;
     this.audioStarted = false;
 
     this.currentHitObject = 0;
-    this.lastRemovedHitObject = 0;
     this.lastAppendedHitObject = 0;
-    var lastTickClockTime = window.performance.now();
-    var recordedTickSpeeds = [];
-    var stupidClock = window.performance.now();
+    this.currentFollowPoint = 0;
+    this.onScreenHitObjects = {};
 
     this.inBreak = true;
     this.startBreak = true;
     this.nextBreak = null;
 
+    // Debug variables
+    var lastTickClockTime = window.performance.now();
+    var recordedTickSpeeds = [];
+    var stupidClock = window.performance.now();
+
     this.tickClock = function() {
+        ///// DEBUG /////
         var timeDif = window.performance.now() - lastTickClockTime;
         recordedTickSpeeds.push(timeDif);
         if (timeDif > 10) {
@@ -922,24 +1063,63 @@ function Play(beatmap, audio) {
             console.log("Current average clock tick speed: " + (sum / recordedTickSpeeds.length).toFixed(2) + "ms / " + (1000 / (sum / recordedTickSpeeds.length)).toFixed(2) + "Hz");
             stupidClock = window.performance.now();
         }
+        ///// DEBUG END /////
 
-        this.audioCurrentTime = window.performance.now() - this.audioStartTime - 2000;
+        this.audioCurrentTime = window.performance.now() - this.audioStartTime + this.audioOffset;
 
+        // Starts the song
         if (this.audioCurrentTime >= 0 && !this.audioStarted) {
             console.log("Audio start offset: " + this.audioCurrentTime.toFixed(2) + "ms");
             currentAudio.playAudio(this.audioCurrentTime / 1000);
             this.audioStarted = true;
         }
 
-        if(this.lastRemovedHitObject < this.hitObjects.length) {
-            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].type == "slider") this.lastRemovedHitObject++;
+        // hitObject updates
+        for (var id in this.onScreenHitObjects) {
+            var hitObject = this.onScreenHitObjects[id];
 
-            while (this.lastRemovedHitObject < this.hitObjects.length && this.hitObjects[this.lastRemovedHitObject].endTime - this.audioCurrentTime <= 0) {
-                this.hitObjects[this.lastRemovedHitObject].remove();
-                this.lastRemovedHitObject++;
+            if (hitObject.type == "circle") {
+                if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
+                    hitObject.containerDiv.style.animation = "0.15s destroyHitCircle linear forwards";
+                    hitObject.hitCircleExploded = true;
+                }
+
+                if (this.audioCurrentTime >= hitObject.time + 200) {
+                    hitObject.remove();
+                    delete this.onScreenHitObjects[id];
+                    continue;
+                }
+            } else if (hitObject.type == "slider") {
+                if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
+                    hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
+                    hitObject.hitCircleExploded = true;
+                }
+
+                if (this.audioCurrentTime >= hitObject.endTime && !hitObject.fadingOut) {
+                    hitObject.containerDiv.style.animation = "0.15s sliderFadeOut linear forwards";
+                    hitObject.fadingOut = true;
+                }
+
+                if (this.audioCurrentTime >= hitObject.endTime + 200) {
+                    hitObject.remove();
+                    delete this.onScreenHitObjects[id];
+                    continue;
+                }
+
+                if (hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined) {
+                    var completion = hitObject.timingInfo.sliderVelocity * (this.audioCurrentTime - hitObject.time) / hitObject.length;
+
+                    while (completion >= hitObject.sliderTickCompletions[hitObject.currentSliderTick]) {
+                        hitObject.currentSliderTick++;
+                    }
+                }
+
             }
         }
 
+
+
+        // Handles breaks
         if(this.audioCurrentTime > this.hitObjects[0].time - 1500 && this.startBreak) {
             document.getElementById("background-dim").style.opacity = "0.8";
             this.inBreak = false;
@@ -976,12 +1156,13 @@ function Play(beatmap, audio) {
             }
         }
 
-
+        // Makes hitObjects show up on-screen
         if (this.currentHitObject < this.hitObjects.length) {
             while (this.hitObjects[this.currentHitObject].time - this.ARMs <= this.audioCurrentTime) {
                 var hitObject = this.hitObjects[this.currentHitObject];
 
                 hitObject.show(this.audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
+                this.onScreenHitObjects[hitObject.id] = hitObject;
 
                 this.currentHitObject++;
 
@@ -991,6 +1172,20 @@ function Play(beatmap, audio) {
             }
         }
 
+        // Makes follow points show up on-screen
+        if (this.currentFollowPoint < this.followPoints.length) {
+            while (this.followPoints[this.currentFollowPoint].startTime - 450 <= this.audioCurrentTime) {
+                this.followPoints[this.currentFollowPoint].spawn();
+
+                this.currentFollowPoint++;
+
+                if (this.currentFollowPoint == this.followPoints.length) {
+                    break;
+                }
+            }
+        }
+
+        // Appends upcoming hitObjects to the playarea
         while (this.hitObjects.length > this.lastAppendedHitObject && this.lastAppendedHitObject - this.currentHitObject < 1) {
             var nextTime = this.hitObjects[this.lastAppendedHitObject].time;
 
@@ -1001,6 +1196,7 @@ function Play(beatmap, audio) {
         }
 
         setTimeout(this.tickClock.bind(this));
+
     }
 
 
