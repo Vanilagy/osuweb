@@ -15,6 +15,7 @@ function Circle(data) {
     this.startPoint = {x: this.x, y: this.y};
     this.basePoint = {x: this.x, y: this.y};
     this.stackShift = 0;
+    this.hitCircleExploded = false;
 }
 
 Circle.prototype.updateStackPosition = function() {
@@ -76,7 +77,9 @@ function Slider(data) {
     this.startPoint = {x: this.x, y: this.y};
     this.stackShift = 0;
     this.sections = data.sections;
-
+    this.hitCircleExploded = false;
+    this.fadingOut = false;
+    
     this.repeat = data.repeat;
     this.length = data.length;
     this.currentSliderTick = 0;
