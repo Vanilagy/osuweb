@@ -15,160 +15,12 @@ function Slider(data) {
 
     this.sliderPathPoints = [];
 
-    var passedLength = 0;
-    var segmentCount = Math.floor(this.length / maximumTracePointDistance + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
-    var segmentLength = this.length / segmentCount;
-    var tracedPointsAdded = 0;
+    this.passedLength = 0;
+    this.segmentCount = Math.floor(this.length / maximumTracePointDistance + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
+    this.segmentLength = this.length / this.segmentCount;
+    this.tracedPointsAdded = 0;
 
-    function addTracedPoint(pos, dist) { // Taking care of curve length exceeding pixelLength
-        pushPos.bind(this)(pos);
-
-        tracedPointsAdded++;
-        if (tracedPointsAdded == segmentCount + 1) {
-            return true; // Stops tracing
-        }
-    }
-
-    function pushPos(pos) { // Pushes endpoint to array
-        pos = {
-            x: pos.x * currentPlay.pixelRatio,
-            y: pos.y * currentPlay.pixelRatio
-        };
-
-        this.sliderPathPoints.push(pos);
-
-        this.minX = Math.min(this.minX, pos.x);
-        this.minY = Math.min(this.minY, pos.y);
-        this.maxX = Math.max(this.maxX, pos.x);
-        this.maxY = Math.max(this.maxY, pos.y);
-    }
-
-    (function() {
-        if (this.sections[0].type == "circle") {
-            var points = this.sections[0].values;
-
-            var centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
-            var radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
-            var a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
-                a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
-                a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
-
-            var incre = segmentLength / radius, condition;
-
-            if (a1 < a2 && a2 < a3) { // Point order
-                condition = function(x) {return x < a3};
-            } else if ((a2 < a3 && a3 < a1) || (a3 < a1 && a1 < a2)) {
-                condition = function(x) {return x < a3 + GraphicUtil.pi2};
-            } else if (a3 < a1 && a1 < a2) {
-                condition = function(x) {return x < a3 + GraphicUtil.pi2};
-            } else if (a3 < a2 && a2 < a1) {
-                condition = function(x) {return x > a3};
-                incre *= -1;
-            } else {
-                condition = function(x) {return x > a3 - GraphicUtil.pi2};
-                incre *= -1;
-            }
-
-            this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * currentPlay.pixelRatio;
-            this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * currentPlay.pixelRatio;
-
-            var angle = a1;
-            for (var i = 0; i <= segmentCount; i++) {
-                pushPos.bind(this)({
-                    x: centerPos.x + radius * Math.cos(angle),
-                    y: centerPos.y + radius * Math.sin(angle)
-                });
-
-                angle += incre;
-            }
-        } else {
-            this.minX = this.maxX = this.sections[0].values[0].x * currentPlay.pixelRatio;
-            this.minY = this.maxY = this.sections[0].values[0].y * currentPlay.pixelRatio;
-            var p1;
-
-            // Extra section is added because ppy fucked up his pixelLength
-            var lastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 1];
-            var secondLastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 2];
-            if (lastPoint && secondLastPoint) {
-                var angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
-                this.sections.push({
-                    type: "linear",
-                    values: [
-                        {x: lastPoint.x, y: lastPoint.y},
-                        {x: lastPoint.x + 500 * Math.cos(angle), y: lastPoint.y + 500 * Math.sin(angle)}
-                    ]
-                })
-            }
-
-
-            for (var i = 0; i < this.sections.length; i++) {
-                var points = this.sections[i].values;
-
-                var leftT = 0, rightT = 0.01;
-                if (i == 0) {
-                    p1 = MathUtil.coordsOnBezier(points, leftT);
-                    addTracedPoint.bind(this)(p1);
-                }
-                var p2 = MathUtil.coordsOnBezier(points, rightT);
-
-                while (leftT <= 1) { // Binary segment approximation method
-                    while (true) {
-                        var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-
-                        if (dist < segmentLength) {
-                            leftT += 0.01;
-                            rightT += 0.01;
-
-                            if (leftT > 1) {
-                                break;
-                            }
-
-                            p2 = MathUtil.coordsOnBezier(points, rightT);
-                        } else {
-                            var p3, midT;
-
-                            while (true) {
-                                midT = (leftT + rightT) / 2;
-                                p3 = MathUtil.coordsOnBezier(points, midT);
-                                dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
-
-                                if (Math.abs(segmentLength - dist) < 0.001) {
-                                    break;
-                                }
-
-                                if (dist < segmentLength) {
-                                    leftT = midT;
-                                } else {
-                                    rightT = midT;
-                                }
-                            }
-
-                            if (midT < 1) {
-                                if (addTracedPoint.bind(this)(p3, dist)) {
-                                    return;
-                                }
-                                p1 = p3;
-                            }
-
-                            leftT = midT;
-                            rightT = leftT + 0.01;
-                            p2 = MathUtil.coordsOnBezier(points, rightT);
-
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }).bind(this)();
-
-    /*var length = 0;
-     for(var i = 1; i < this.sliderPathPoints.length; i++) {
-     length += Math.hypot(this.sliderPathPoints[i - 1].x / currentPlay.pixelRatio - this.sliderPathPoints[i].x / currentPlay.pixelRatio, this.sliderPathPoints[i - 1].y / currentPlay.pixelRatio - this.sliderPathPoints[i].y / currentPlay.pixelRatio);
-     }
-
-     console.log(this);
-     console.log("length difference: "+Math.abs(this.length - distanceTraced).toFixed(5));*/
+    this.init();
 
     if(this.repeat % 2 == 0) {
         this.basePoint = this.startPoint;
@@ -177,6 +29,174 @@ function Slider(data) {
         this.basePoint = {x: this.sliderPathPoints[this.sliderPathPoints.length - 1].x / currentPlay.pixelRatio, y: this.sliderPathPoints[this.sliderPathPoints.length - 1].y / currentPlay.pixelRatio};
     }
 }
+
+Slider.prototype = Object.create(HitObject.prototype);
+Slider.prototype.constructor = Slider;
+
+Slider.prototype.show = function(offset) {
+    HitObject.prototype.show.call(this, offset);
+
+    this.updateOverlay.bind(this)();
+
+    if (snakingSliders) {
+        this.updateBase.bind(this)(false);
+    }
+};
+
+Slider.prototype.updateStackPosition = function() {
+    HitObject.prototype.updateStackPosition.call(this);
+
+    this.minX += this.stackShift * currentPlay.pixelRatio;
+    this.minY += this.stackShift * currentPlay.pixelRatio;
+    this.maxX += this.stackShift * currentPlay.pixelRatio;
+    this.maxY += this.stackShift * currentPlay.pixelRatio;
+
+    for(var i = 0; i < this.sliderPathPoints.length; i++) {
+        this.sliderPathPoints[i].x += this.stackShift * currentPlay.pixelRatio;
+        this.sliderPathPoints[i].y += this.stackShift * currentPlay.pixelRatio
+    }
+};
+
+Slider.prototype.init = function() {
+    if (this.sections[0].type == "circle") {
+        var points = this.sections[0].values;
+
+        var centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
+        var radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
+        var a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
+            a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
+            a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
+
+        var incre = this.segmentLength / radius, condition;
+
+        if (a1 < a2 && a2 < a3) { // Point order
+            condition = function(x) {return x < a3};
+        } else if ((a2 < a3 && a3 < a1) || (a3 < a1 && a1 < a2)) {
+            condition = function(x) {return x < a3 + GraphicUtil.pi2};
+        } else if (a3 < a1 && a1 < a2) {
+            condition = function(x) {return x < a3 + GraphicUtil.pi2};
+        } else if (a3 < a2 && a2 < a1) {
+            condition = function(x) {return x > a3};
+            incre *= -1;
+        } else {
+            condition = function(x) {return x > a3 - GraphicUtil.pi2};
+            incre *= -1;
+        }
+
+        this.minX = this.maxX = (centerPos.x + radius * Math.cos(a1)) * currentPlay.pixelRatio;
+        this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * currentPlay.pixelRatio;
+
+        var angle = a1;
+        for (var i = 0; i <= this.segmentCount; i++) {
+            this.pushPos({
+                x: centerPos.x + radius * Math.cos(angle),
+                y: centerPos.y + radius * Math.sin(angle)
+            });
+
+            angle += incre;
+        }
+    } else {
+        this.minX = this.maxX = this.sections[0].values[0].x * currentPlay.pixelRatio;
+        this.minY = this.maxY = this.sections[0].values[0].y * currentPlay.pixelRatio;
+        var p1;
+
+        // Extra section is added because ppy fucked up his pixelLength
+        var lastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 1];
+        var secondLastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 2];
+        if (lastPoint && secondLastPoint) {
+            var angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
+            this.sections.push({
+                type: "linear",
+                values: [
+                    {x: lastPoint.x, y: lastPoint.y},
+                    {x: lastPoint.x + 500 * Math.cos(angle), y: lastPoint.y + 500 * Math.sin(angle)}
+                ]
+            })
+        }
+
+        for (var i = 0; i < this.sections.length; i++) {
+            var points = this.sections[i].values;
+
+            var leftT = 0, rightT = 0.01;
+            if (i == 0) {
+                p1 = MathUtil.coordsOnBezier(points, leftT);
+                this.addTracedPoint(p1);
+            }
+            var p2 = MathUtil.coordsOnBezier(points, rightT);
+
+            while (leftT <= 1) { // Binary segment approximation method
+                while (true) {
+                    var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+                    if (dist < this.segmentLength) {
+                        leftT += 0.01;
+                        rightT += 0.01;
+
+                        if (leftT > 1) {
+                            break;
+                        }
+
+                        p2 = MathUtil.coordsOnBezier(points, rightT);
+                    } else {
+                        var p3, midT;
+
+                        while (true) {
+                            midT = (leftT + rightT) / 2;
+                            p3 = MathUtil.coordsOnBezier(points, midT);
+                            dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
+
+                            if (Math.abs(this.segmentLength - dist) < 0.001) {
+                                break;
+                            }
+
+                            if (dist < this.segmentLength) {
+                                leftT = midT;
+                            } else {
+                                rightT = midT;
+                            }
+                        }
+
+                        if (midT < 1) {
+                            if (this.addTracedPoint(p3)) {
+                                return;
+                            }
+                            p1 = p3;
+                        }
+
+                        leftT = midT;
+                        rightT = leftT + 0.01;
+                        p2 = MathUtil.coordsOnBezier(points, rightT);
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+};
+
+Slider.prototype.addTracedPoint = function(pos) { // Taking care of curve length exceeding pixelLength
+    this.pushPos(pos);
+
+    this.tracedPointsAdded++;
+    if (this.tracedPointsAdded == this.segmentCount + 1) {
+        return true; // Stops tracing
+    }
+};
+
+Slider.prototype.pushPos = function(pos) { // Pushes endpoint to array
+    pos = {
+        x: pos.x * currentPlay.pixelRatio,
+        y: pos.y * currentPlay.pixelRatio
+    };
+
+    this.sliderPathPoints.push(pos);
+
+    this.minX = Math.min(this.minX, pos.x);
+    this.minY = Math.min(this.minY, pos.y);
+    this.maxX = Math.max(this.maxX, pos.x);
+    this.maxY = Math.max(this.maxY, pos.y);
+};
 
 Slider.prototype.draw = function() {
     this.containerDiv = document.createElement("div");

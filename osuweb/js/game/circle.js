@@ -5,6 +5,9 @@ function Circle(data) {
     this.hitCircleExploded = false;
 }
 
+Circle.prototype = Object.create(HitObject.prototype);
+Circle.prototype.constructor = Circle;
+
 Circle.prototype.draw = function() {
     this.containerDiv = document.createElement("div");
     this.containerDiv.className = "hitCircleContainer";

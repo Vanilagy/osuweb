@@ -67,8 +67,8 @@ function Beatmap(file, callback) {
                 if(line.startsWith("Version")) this.version=line.split(':')[1].trim();
                 if(line.startsWith("Source")) this.source=line.split(':')[1].trim();
                 if(line.startsWith("Tags")) this.tags=line.split(':')[1].trim();
-                if(line.startsWith("BeatmapID")) this.beatmapID=line.split(':')[1].trim();
-                if(line.startsWith("BeatmapSetID")) this.beatmapSetID=line.split(':')[1].trim();
+                if(line.startsWith("BeatmapID")) this.beatmapID=parseInt(line.split(':')[1].trim(), 10);
+                if(line.startsWith("BeatmapSetID")) this.beatmapSetID=parseInt(line.split(':')[1].trim(), 10);
 
                 if(line.startsWith("HPDrainRate")) this.HP=line.split(':')[1].trim();
                 if(line.startsWith("CircleSize")) this.CS=line.split(':')[1].trim();

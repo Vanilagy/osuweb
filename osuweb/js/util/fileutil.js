@@ -1,13 +1,18 @@
-
-
-osuweb.file = {
-	loadFile: function(file, onLoad) {
+var FileUtil = {
+	loadFileAsDataUrl: function(file, onLoad) {
 		var reader = new FileReader();
 
 		reader.onload = onLoad;
 
 		reader.readAsDataURL(file);
 	},
+    loadFileAsString: function(file, onLoad) {
+        var reader = new FileReader();
+
+        reader.onload = onLoad;
+
+        reader.readAsText(file);
+    },
 	loadAudioFromFile: function(file, onFileLoad, onAudioLoad, isMusic) {
         // This is a zip entry
         if(typeof file == "string") {

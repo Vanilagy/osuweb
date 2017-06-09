@@ -151,7 +151,9 @@
         <script src="js/audio.js"></script>
 
         <script src="js/datamodel/beatmap.js"></script>
+        <script src="js/datamodel/beatmapentry.js"></script>
         <script src="js/datamodel/beatmapset.js"></script>
+        <script src="js/datamodel/beatmapsetentry.js"></script>
         <script src="js/datamodel/database.js"></script>
         <script src="js/datamodel/skin.js"></script>
 
@@ -165,6 +167,8 @@
         <script src="js/game/scenes/scenemenu.js"></script>
         <script src="js/game/scenes/scenegame.js"></script>
         <script src="js/game/scenes/scenegameosu.js"></script>
+
+        <script src="js/interface/volumecontrol.js"></script>
 
         <script src="js/util/fileutil.js"></script>
         <script src="js/util/graphicutil.js"></script>
@@ -196,10 +200,10 @@
 
                 setTimeout(function() {if(loading <= 0) finishLoading(); else timePassed = true;}, 2000);
 
-                osuweb.file.loadAudioFromURL("./audio/welcome.wav", function (audio) {
+                FileUtil.loadAudioFromURL("./audio/welcome.wav", function (audio) {
                     defaultSkinElements["welcome"] = audio;
                 }, onFinish, true);
-                osuweb.file.loadAudioFromURL("./audio/circles.mp3", function (audio) {
+                FileUtil.loadAudioFromURL("./audio/circles.mp3", function (audio) {
                     currentAudio = audio;
                 }, onFinish, true);
             };

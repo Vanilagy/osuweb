@@ -4,9 +4,23 @@ function Database(directoryEntry) {
     this.skinEntrys = [];
 
     this.isMap = function(fileEntrys) {
+        let osuFileExists = false;
+        let soundFileExists = false;
+
         for(var fileEntry in fileEntrys) {
-            console.log(fileEntry);
+            let entry = fileEntrys[fileEntry];
+
+            if(entry.name.endsWith(".osu")) {
+                osuFileExists = true;
+            }
+            else if(entry.name.endsWith(".mp3") || entry.name.endsWith(".wav") || entry.name.endsWith(".ogg")) {
+                soundFileExists = true;
+            }
+
+            if(osuFileExists && soundFileExists) return true;
         }
+
+        return false;
     };
 
     this.isSkin = function(fileEntrys) {
@@ -28,10 +42,10 @@ function Database(directoryEntry) {
         }
 
         if(this.isMap(files)) {
-            beatmapSetEntrys.push(new BeatmapSetEntry(files));
+            this.beatmapSetEntrys.push(new BeatmapSetEntry(files));
         }
         else if(this.isSkin(files)) {
-            skinEntrys.push(new SkinEntry(files));
+            this.skinEntrys.push(new SkinEntry(files));
         }
         else if(entry.isDirectory) {
             var dirReader = entry.createReader();

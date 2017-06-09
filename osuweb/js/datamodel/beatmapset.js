@@ -88,7 +88,9 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
                 var imageFileName = currentBeatmap.events[i].file;
 
                 for(var j = 0; j < this.imageFiles.length; j++) {
-                    if(this.imageFiles[j].name || this.imageFiles[i] == imageFileName) {
+                    var imageName = typeof this.imageFiles[j] == "string" ? this.imageFiles[j] : this.imageFiles[j].name;
+
+                    if(imageName == imageFileName) {
                         imageFile = this.imageFiles[j];
                         break;
                     }
@@ -105,7 +107,7 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
                 }));
             }
             else {
-                osuweb.file.loadFile(imageFile, function(e) {
+                FileUtil.loadFileAsDataUrl(imageFile, function(e) {
                     var div = document.getElementById("background").style.backgroundImage = 'url('+e.target.result+')';
                 });
             }
@@ -123,7 +125,7 @@ BeatmapSet.prototype.loadDifficulty = function(difficultyFile, audioCallback) {
             }
         }
 
-        osuweb.file.loadAudioFromFile(audioFile, (function(a) {
+        FileUtil.loadAudioFromFile(audioFile, (function(a) {
             currentAudio = a;
         }).bind(this), (function() {
             audioCallback();
