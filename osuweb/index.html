@@ -1,40 +1,292 @@
-<!doctype html>
-<html class="no-js" lang="">
+<html>
     <head>
+        <title>Playarea</title>
         <meta charset="utf-8">
-        <meta http-equiv="x-ua-compatible" content="ie=edge">
-        <title></title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            html,body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+            }
+            body {
+                background: black;
+                overflow: /*fucking*/ hidden;
+            }
+            #playarea {
+                width: 512px;
+                height: 392px;
+                border: 1px solid gray;
+                margin: auto;
+                position: absolute;
+                bottom: 1%;
+                left: 0;
+                right: 0;
+                display: none;
+                z-index: 100;
+            }
+            #objectContainer {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                display: none;
+            }
+            #background {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+                pointer-events: none;
+                z-index: -300;
+                background-image: url("./img/background.jpg");
+                background-size: cover;
+            }
+            #foreground {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+                z-index: 10000000;
+                background-color: black;
+                transition: opacity 1s linear;
+            }
+            #loading {
+                position:absolute;
+                left: 50%;
+                top: 50%;
+                z-index: 10000001;
 
-        <link rel="apple-touch-icon" href="apple-touch-icon.png">
-        <!-- Place favicon.ico in the root directory -->
+                color: white;
+                text-shadow: #5CF 0 0 25px;
+                font-family: "Calibri";
+                font-size: 5vmax;
+                letter-spacing: 15px;
 
-        <link rel="stylesheet" href="css/normalize.css">
-        <link rel="stylesheet" href="css/main.css">
-        <script src="js/vendor/modernizr-2.8.3.min.js"></script>
+                transform: translate(-50%, -50%) scale(1, 0);
+                -webkit-transform: translate(-50%, -50%) scale(1, 0);
+                -moz-transform: translate(-50%, -50%) scale(1, 0);
+                -ms-transform: translate(-50%, -50%) scale(1, 0);
+                -o-transform: translate(-50%, -50%) scale(1, 0);
+
+                transition: transform 0.4s ease-out, letter-spacing 10s ease-out, opacity 1s linear;
+            }
+            #background-dim {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+                z-index: -200;
+                opacity: 0;
+                transition: opacity 1s;
+                background-color: black;
+                pointer-events: none;
+            }
+            #osuweb {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+                pointer-events: none;
+                z-index: -100;
+            }
+            #container {
+                width: 100%;
+                height: 100%;
+                position:absolute;
+                left:0px;
+                top:0px;
+            }
+            .hitCircleContainer {
+                position: absolute;
+            }
+            .hitCircleContainer canvas {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+            }
+            .sliderContainer {
+                position: absolute;
+            }
+            .sliderContainer > canvas {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+            }
+            @keyframes closeApproachCircle {
+                from {transform: scale(3.5);}
+                to {transform: scale(1);}
+            }
+            @keyframes destroyHitCircle {
+                from {transform: scale(1); opacity: 1;}
+                to {transform: scale(1.4); opacity: 0;}
+            }
+            @keyframes sliderFadeOut {
+                from {opacity: 1;}
+                to {opacity: 0;}
+            }
+            .followPoint {
+                position: absolute;
+                opacity: 0.7;
+            }
+        </style>
     </head>
     <body>
-        <!--[if lt IE 8]>
-            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
-        <![endif]-->
+        <div id="background"></div>
+        <div id="background-dim"></div>
+        <canvas id="osuweb"></canvas>
+        <div id="container">
+            <input type="file" id="beatmap" webkitdirectory multiple>
+        </div>
+        </div><div id="playarea">
+            <div id="objectContainer"></div>
+        </div>
+        <div id="foreground"><div id="loading">LOADING</div></div>
+        
+        <script src="js/lib/jszip.min.js"></script>
 
-        <!-- Add your site or application content here -->
-        <p>Hello world! This is HTML5 Boilerplate.</p>
-
-        <script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
-        <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.12.0.min.js"><\/script>')</script>
-        <script src="js/plugins.js"></script>
         <script src="js/main.js"></script>
+        <script src="js/audio.js"></script>
 
-        <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
+        <script src="js/datamodel/beatmap.js"></script>
+        <script src="js/datamodel/beatmapset.js"></script>
+        <script src="js/datamodel/database.js"></script>
+        <script src="js/datamodel/skin.js"></script>
+
+        <script src="js/game/play.js"></script>
+        <script src="js/game/followpoint.js"></script>
+        <script src="js/game/hitobject.js"></script>
+        <script src="js/game/circle.js"></script>
+        <script src="js/game/slider.js"></script>
+        <script src="js/game/scenes/scenebase.js"></script>
+        <script src="js/game/scenes/sceneloading.js"></script>
+        <script src="js/game/scenes/scenemenu.js"></script>
+        <script src="js/game/scenes/scenegame.js"></script>
+        <script src="js/game/scenes/scenegameosu.js"></script>
+
+        <script src="js/util/fileutil.js"></script>
+        <script src="js/util/graphicutil.js"></script>
+        <script src="js/util/mathutil.js"></script>
+        <script src="js/util/timingutil.js"></script>
+
         <script>
-            (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
-            function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
-            e=o.createElement(i);r=o.getElementsByTagName(i)[0];
-            e.src='https://www.google-analytics.com/analytics.js';
-            r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
-            ga('create','UA-XXXXX-X','auto');ga('send','pageview');
+            window.onload = function() {
+                // No initialization because loading is the base
+                currentScene = new SceneLoading();
+
+                window.onresize();
+
+                currentScene.loadingDiv.style.transform = "translate(-50%, -50%) scale(1, 1)";
+                currentScene.loadingDiv.style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
+                currentScene.loadingDiv.style.oTransform = "translate(-50%, -50%) scale(1, 1)";
+                currentScene.loadingDiv.style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
+                currentScene.loadingDiv.style.msTransform = "translate(-50%, -50%) scale(1, 1)";
+
+                currentScene.loadingDiv.style.letterSpacing = "25px";
+
+                var loading = 2;
+                var timePassed = false;
+
+                var onFinish = function() {
+                    loading--;
+                    if(timePassed && loading <= 0) finishLoading();
+                };
+
+                setTimeout(function() {if(loading <= 0) finishLoading(); else timePassed = true;}, 2000);
+
+                osuweb.file.loadAudioFromURL("./audio/welcome.wav", function (audio) {
+                    defaultSkinElements["welcome"] = audio;
+                }, onFinish, true);
+                osuweb.file.loadAudioFromURL("./audio/circles.mp3", function (audio) {
+                    currentAudio = audio;
+                }, onFinish, true);
+            };
+
+            window.onresize = function() {
+                var ctx = currentScene.osuwebCanvas.getContext("2d");
+
+                ctx.canvas.width  = window.innerWidth;
+                ctx.canvas.height = window.innerHeight;
+            }
+
+            function finishLoading() {
+                currentScene.loadingDiv.style.opacity = 0;
+
+                setTimeout(function() {
+                    currentScene.loadingDiv.style.transition = "opacity 1s linear";
+                    currentScene.loadingDiv.innerHTML = "WELCOME";
+                    currentScene.loadingDiv.style.opacity = 1;
+                    defaultSkinElements["welcome"].playAudio(0);
+
+                    setTimeout(function () {
+                        currentScene.loadingDiv.style.opacity = 0;
+                        currentScene.foregroundDiv.style.opacity = 0;
+
+                        setTimeout(function () {
+                            currentScene.loadingDiv.style.display = "none";
+                            currentScene.foregroundDiv.style.display = "none";
+                            currentAudio.playAudioFromOffsetWithLoop(0, 0, 0, currentAudio.buffer.duration);
+                        }, 1000)
+                    }, 2000)
+                }, 1100);
+            }
+
+            document.getElementById("container").addEventListener("wheel", function(e) {
+                settings.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
+            });
+
+            document.getElementById("container").ondragenter = function(e) {
+                e.preventDefault();
+            }
+
+            document.getElementById("container").ondragover = function(e) {
+                e.preventDefault();
+            }
+
+            document.getElementById("container").ondrop = function(e) {
+                e.preventDefault();
+                var length = e.dataTransfer.items.length;
+                for (var i = 0; i < length; i++) {
+                    var entry = e.dataTransfer.items[i].webkitGetAsEntry();
+                    if (entry.isFile) {
+                        console.log(entry);
+                    } else if (entry.isDirectory) {
+                        database = new Database(entry);
+                    }
+                }
+            };
+
+            document.getElementById("beatmap").addEventListener("change", function(e) {
+                currentScene = new SceneGameOsu();
+
+                new BeatmapSet(e.target.files, function(beatmapset) {
+                    currentBeatmapSet = beatmapset;
+                    document.getElementById("beatmap").style.visibility = "hidden";
+
+                    var keys = [];
+                    for (var key in currentBeatmapSet.difficulties) {
+                        keys.push(key);
+                    }
+                    currentAudio.stop();
+
+                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
+                        new Play(currentBeatmap, currentAudio);
+                        currentScene.objectContainerDiv.style.display = "inline";
+                        currentScene.playareaCanvas.style.display = "inline";
+                        currentPlay.start();
+                    });
+                });
+            });
+
+            var timeSinceLastBitch = window.performance.now();
+            function derp() {
+                var now = window.performance.now();
+                console.log(now - timeSinceLastBitch);
+                timeSinceLastBitch = now;
+                setTimeout(derp);
+            }
         </script>
     </body>
 </html>
