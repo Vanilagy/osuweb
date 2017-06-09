@@ -780,6 +780,28 @@ function Play(beatmap, audio) {
                 ctx.beginPath();
                 ctx.rect(startingPointX, 0, endPointX, this.height);
                 ctx.fillStyle = "white";
+                ctx.globalCompositeOperation = "source-over";
+                ctx.fill();
+                
+                ctx.globalCompositeOperation = "destination-out";
+                var fadeInLength = 90 * currentPlay.pixelRatio;
+                
+                var leftGradient = ctx.createLinearGradient(0, 0, fadeInLength, 0);
+                leftGradient.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+                leftGradient.addColorStop(1, "rgba(255, 255, 255, 0.0)");
+
+                ctx.beginPath();
+                ctx.rect(0, 0, fadeInLength, this.height);
+                ctx.fillStyle = leftGradient;
+                ctx.fill();
+                
+                var rightGradient = ctx.createLinearGradient(this.length - fadeInLength, 0, this.length, 0);
+                rightGradient.addColorStop(0, "rgba(255, 255, 255, 0.0)");
+                rightGradient.addColorStop(1, "rgba(255, 255, 255, 1.0)");
+
+                ctx.beginPath();
+                ctx.rect(this.length - fadeInLength, 0, fadeInLength, this.height);
+                ctx.fillStyle = rightGradient;
                 ctx.fill();
             }
 
