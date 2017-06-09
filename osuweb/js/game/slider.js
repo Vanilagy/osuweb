@@ -1,84 +1,10 @@
-var playareaDom = document.getElementById("playarea");
-var objectContainerDom = document.getElementById("objectContainer");
-
 var maximumTracePointDistance = 3;
 var snakingSliders = true;
 
-/////
-
-function Circle(data) {
-    this.type = "circle";
-    this.time = data.time;
-    this.endTime = this.time;
-    this.newCombo = data.newCombo;
-    this.x = data.x;
-    this.y = data.y;
-    this.startPoint = {x: this.x, y: this.y};
-    this.basePoint = {x: this.x, y: this.y};
-    this.stackShift = 0;
-    this.hitCircleExploded = false;
-}
-
-Circle.prototype.updateStackPosition = function() {
-    this.x += this.stackShift;
-    this.y += this.stackShift;
-}
-
-Circle.prototype.draw = function() {
-    this.containerDiv = document.createElement("div");
-    this.containerDiv.className = "hitCircleContainer";
-    this.containerDiv.style.width = currentPlay.csPixel + "px";
-    this.containerDiv.style.height = currentPlay.csPixel + "px";
-    this.containerDiv.style.left = ((this.x + currentPlay.marginWidth) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px", this.containerDiv.style.top = ((this.y + currentPlay.marginHeight) * currentPlay.pixelRatio - currentPlay.halfCsPixel) + "px";
-    this.containerDiv.style.zIndex = this.zIndex;
-
-    this.containerDiv.style.visibility = "hidden";
-    this.containerDiv.style.opacity = 0;
-    this.containerDiv.style.transition = "opacity " + (currentPlay.ARMs / 1000 / 3) + "s linear";
-
-    var baseCanvas = document.createElement("canvas"); // Create local object canvas
-    baseCanvas.setAttribute("width", currentPlay.csPixel);
-    baseCanvas.setAttribute("height", currentPlay.csPixel);
-
-    var ctx = baseCanvas.getContext("2d");
-    osuweb.graphics.drawCircle(ctx, 0, 0, this.comboInfo);
-
-    this.approachCircleCanvas = document.createElement("canvas");
-    this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
-    this.approachCircleCanvas.setAttribute("height", currentPlay.csPixel);
-    this.approachCircleCanvas.style.transform = "scale(3.5)";
-
-    var approachCtx = this.approachCircleCanvas.getContext("2d");
-    osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
-
-    this.containerDiv.appendChild(baseCanvas);
-    this.containerDiv.appendChild(this.approachCircleCanvas);
-}
-
-Circle.prototype.append = function() {
-    objectContainerDom.appendChild(this.containerDiv);
-}
-
-Circle.prototype.show = function(offset) {
-    this.containerDiv.style.visibility = "visible";
-    this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
-    this.containerDiv.style.opacity = 1;
-    this.approachCircleCanvas.style.transform = "scale(1.0)";
-    this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
-}
-
-Circle.prototype.remove = function() {
-    this.containerDiv.parentNode.removeChild(this.containerDiv);
-}
-
 function Slider(data) {
+    HitObject.call(this, data);
+
     this.type = "slider";
-    this.time = data.time;
-    this.newCombo = data.newCombo;
-    this.x = data.x;
-    this.y = data.y;
-    this.startPoint = {x: this.x, y: this.y};
-    this.stackShift = 0;
     this.sections = data.sections;
     this.hitCircleExploded = false;
     this.fadingOut = false;
@@ -121,7 +47,7 @@ function Slider(data) {
         if (this.sections[0].type == "circle") {
             var points = this.sections[0].values;
 
-            var centerPos = osuweb.mathutil.circleCenterPos(points[0], points[1], points[2]);
+            var centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
             var radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
             var a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
                 a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
@@ -132,14 +58,14 @@ function Slider(data) {
             if (a1 < a2 && a2 < a3) { // Point order
                 condition = function(x) {return x < a3};
             } else if ((a2 < a3 && a3 < a1) || (a3 < a1 && a1 < a2)) {
-                condition = function(x) {return x < a3 + osuweb.graphics.pi2};
+                condition = function(x) {return x < a3 + GraphicUtil.pi2};
             } else if (a3 < a1 && a1 < a2) {
-                condition = function(x) {return x < a3 + osuweb.graphics.pi2};
+                condition = function(x) {return x < a3 + GraphicUtil.pi2};
             } else if (a3 < a2 && a2 < a1) {
                 condition = function(x) {return x > a3};
                 incre *= -1;
             } else {
-                condition = function(x) {return x > a3 - osuweb.graphics.pi2};
+                condition = function(x) {return x > a3 - GraphicUtil.pi2};
                 incre *= -1;
             }
 
@@ -180,10 +106,10 @@ function Slider(data) {
 
                 var leftT = 0, rightT = 0.01;
                 if (i == 0) {
-                    p1 = osuweb.mathutil.coordsOnBezier(points, leftT);
+                    p1 = MathUtil.coordsOnBezier(points, leftT);
                     addTracedPoint.bind(this)(p1);
                 }
-                var p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
+                var p2 = MathUtil.coordsOnBezier(points, rightT);
 
                 while (leftT <= 1) { // Binary segment approximation method
                     while (true) {
@@ -197,13 +123,13 @@ function Slider(data) {
                                 break;
                             }
 
-                            p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
+                            p2 = MathUtil.coordsOnBezier(points, rightT);
                         } else {
                             var p3, midT;
 
                             while (true) {
                                 midT = (leftT + rightT) / 2;
-                                p3 = osuweb.mathutil.coordsOnBezier(points, midT);
+                                p3 = MathUtil.coordsOnBezier(points, midT);
                                 dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
 
                                 if (Math.abs(segmentLength - dist) < 0.001) {
@@ -226,7 +152,7 @@ function Slider(data) {
 
                             leftT = midT;
                             rightT = leftT + 0.01;
-                            p2 = osuweb.mathutil.coordsOnBezier(points, rightT);
+                            p2 = MathUtil.coordsOnBezier(points, rightT);
 
                             break;
                         }
@@ -237,33 +163,18 @@ function Slider(data) {
     }).bind(this)();
 
     /*var length = 0;
-    for(var i = 1; i < this.sliderPathPoints.length; i++) {
-        length += Math.hypot(this.sliderPathPoints[i - 1].x / currentPlay.pixelRatio - this.sliderPathPoints[i].x / currentPlay.pixelRatio, this.sliderPathPoints[i - 1].y / currentPlay.pixelRatio - this.sliderPathPoints[i].y / currentPlay.pixelRatio);
-    }
+     for(var i = 1; i < this.sliderPathPoints.length; i++) {
+     length += Math.hypot(this.sliderPathPoints[i - 1].x / currentPlay.pixelRatio - this.sliderPathPoints[i].x / currentPlay.pixelRatio, this.sliderPathPoints[i - 1].y / currentPlay.pixelRatio - this.sliderPathPoints[i].y / currentPlay.pixelRatio);
+     }
 
-    console.log(this);
-    console.log("length difference: "+Math.abs(this.length - distanceTraced).toFixed(5));*/
+     console.log(this);
+     console.log("length difference: "+Math.abs(this.length - distanceTraced).toFixed(5));*/
 
     if(this.repeat % 2 == 0) {
         this.basePoint = this.startPoint;
     }
     else {
         this.basePoint = {x: this.sliderPathPoints[this.sliderPathPoints.length - 1].x / currentPlay.pixelRatio, y: this.sliderPathPoints[this.sliderPathPoints.length - 1].y / currentPlay.pixelRatio};
-    }
-}
-
-Slider.prototype.updateStackPosition = function() {
-    this.x += this.stackShift;
-    this.y += this.stackShift;
-
-    this.minX += this.stackShift * currentPlay.pixelRatio;
-    this.minY += this.stackShift * currentPlay.pixelRatio;
-    this.maxX += this.stackShift * currentPlay.pixelRatio;
-    this.maxY += this.stackShift * currentPlay.pixelRatio;
-
-    for(var i = 0; i < this.sliderPathPoints.length; i++) {
-        this.sliderPathPoints[i].x += this.stackShift * currentPlay.pixelRatio;
-        this.sliderPathPoints[i].y += this.stackShift * currentPlay.pixelRatio;
     }
 }
 
@@ -293,7 +204,7 @@ Slider.prototype.draw = function() {
 
         var targetIndex = Math.floor(thisCompletion * (this.sliderPathPoints.length - 1));
         var pointsToDraw = this.sliderPathPoints.slice(0, targetIndex + 1);
-        
+
         ctx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
         ctx.beginPath();
         ctx.moveTo(this.sliderPathPoints[0].x - this.minX + currentPlay.halfCsPixel, this.sliderPathPoints[0].y - this.minY + currentPlay.halfCsPixel);
@@ -324,7 +235,7 @@ Slider.prototype.draw = function() {
                 this.updateBase.bind(this)(false);
             }.bind(this));
         }
-    }
+    };
 
     if (!snakingSliders) {
         this.updateBase.bind(this)(true);
@@ -377,14 +288,14 @@ Slider.prototype.draw = function() {
                 var lowestTickCompletionFromCurrentRepeat = getLowestTickCompletionFromCurrentRepeat.bind(this)(completion)
                 for (var i = 0; this.sliderTickCompletions[i] < Math.floor(completion + 1) && this.sliderTickCompletions[i] < lowestTickCompletionFromCurrentRepeat + (completion % 1) * 2; i++) {
                     if (this.sliderTickCompletions[i] >= completion) {
-                        var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(this.sliderTickCompletions[i]));
+                        var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, MathUtil.reflect(this.sliderTickCompletions[i]));
                         var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
                         var tickMs = Math.floor(completion) * this.length / this.timingInfo.sliderVelocity /* ms of current repeat */ +
                             ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.length / this.timingInfo.sliderVelocity) / 2 /* ms of tick showing up */;
                         var animationCompletion = Math.min(1, (currentSliderTime - tickMs) / 85);
 
                         overlayCtx.beginPath();
-                        overlayCtx.arc(x, y, currentPlay.csPixel * 0.038 * (/* parabola */ -2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, osuweb.graphics.pi2);
+                        overlayCtx.arc(x, y, currentPlay.csPixel * 0.038 * (/* parabola */ -2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, GraphicUtil.pi2);
                         overlayCtx.fillStyle = "rgba(255, 255, 255," + 1 + ")";
                         overlayCtx.fill();
                     }
@@ -423,7 +334,7 @@ Slider.prototype.draw = function() {
 
         if (isMoving) {
             // Draws slider ball
-            var sliderBallPos = getCoordFromCoordArray(this.sliderPathPoints, osuweb.mathutil.reflect(completion));
+            var sliderBallPos = getCoordFromCoordArray(this.sliderPathPoints, MathUtil.reflect(completion));
             var x = sliderBallPos.x - this.minX + currentPlay.halfCsPixel;
             var y = sliderBallPos.y - this.minY + currentPlay.halfCsPixel;
 
@@ -431,7 +342,7 @@ Slider.prototype.draw = function() {
             var colourString = "rgb(" + colour.r + "," + colour.g + "," + colour.b + ")";
 
             overlayCtx.beginPath();
-            overlayCtx.arc(x, y, sliderBodyRadius, 0, osuweb.graphics.pi2);
+            overlayCtx.arc(x, y, sliderBodyRadius, 0, GraphicUtil.pi2);
             overlayCtx.fillStyle = colourString;
             overlayCtx.fill();
         }
@@ -439,7 +350,7 @@ Slider.prototype.draw = function() {
         if (completion < this.repeat || completion == 0) {
             requestAnimationFrame(this.updateOverlay.bind(this));
         }
-    }
+    };
 
     this.containerDiv.appendChild(overlay);
 
@@ -455,7 +366,7 @@ Slider.prototype.draw = function() {
     sliderHeadBaseCanvas.setAttribute("height", currentPlay.csPixel);
 
     var sliderHeadBaseCtx = sliderHeadBaseCanvas.getContext("2d");
-    osuweb.graphics.drawCircle(sliderHeadBaseCtx, 0, 0, this.comboInfo);
+    GraphicUtil.drawCircle(sliderHeadBaseCtx, 0, 0, this.comboInfo);
 
     this.approachCircleCanvas = document.createElement("canvas");
     this.approachCircleCanvas.setAttribute("width", currentPlay.csPixel);
@@ -463,17 +374,13 @@ Slider.prototype.draw = function() {
     this.approachCircleCanvas.style.transform = "scale(3.5)";
 
     var approachCtx = this.approachCircleCanvas.getContext("2d");
-    osuweb.graphics.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
+    GraphicUtil.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
 
     this.sliderHeadContainer.appendChild(sliderHeadBaseCanvas);
     this.sliderHeadContainer.appendChild(this.approachCircleCanvas);
 
     this.containerDiv.appendChild(this.sliderHeadContainer);
-}
-
-Slider.prototype.append = function() {
-    objectContainerDom.appendChild(this.containerDiv);
-}
+};
 
 Slider.prototype.show = function(offset) {
     this.containerDiv.style.visibility = "visible";
@@ -481,13 +388,4 @@ Slider.prototype.show = function(offset) {
     this.containerDiv.style.opacity = 1;
     this.approachCircleCanvas.style.transform = "scale(1.0)";
     this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
-    this.updateOverlay.bind(this)();
-
-    if (snakingSliders) {
-        this.updateBase.bind(this)(false);
-    }
-}
-
-Slider.prototype.remove = function() {
-    this.containerDiv.parentNode.removeChild(this.containerDiv);
-}
+};

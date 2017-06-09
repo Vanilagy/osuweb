@@ -1,7 +1,3 @@
-/**
- * Created by Sebastian on 07.06.2017.
- */
-
 function SceneBase() {
     this.backgroundDiv = document.getElementById("background");
     this.foregroundDiv = document.getElementById("foreground");
@@ -27,31 +23,4 @@ function SceneBase() {
     }
 
     return this;
-}
-
-function SceneLoading() {
-    SceneBase.call(this);
-
-    this.loadingDiv = document.getElementById("loading");
-}
-
-///// MENU SCENES /////
-
-function SceneMenu() {
-    SceneBase.call(this);
-}
-
-///// GAME SCENES /////
-
-function SceneGame() {
-    SceneBase.call(this);
-
-    this.backgroundDimDiv = document.getElementById("background-dim");
-}
-
-function SceneGameOsu() {
-    SceneGame.call(this);
-
-    this.playfieldCanvas = document.getElementById("playfield");
-    this.objectContainerDiv = document.getElementById("objectContainer");
 }

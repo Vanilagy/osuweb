@@ -18,7 +18,7 @@
                 border: 1px solid gray;
                 margin: auto;
                 position: absolute;
-                top: 5%;
+                bottom: 1%;
                 left: 0;
                 right: 0;
                 display: none;
@@ -144,14 +144,32 @@
             <div id="objectContainer"></div>
         </div>
         <div id="foreground"><div id="loading">LOADING</div></div>
+        
+        <script src="js/lib/jszip.min.js"></script>
 
+        <script src="js/main.js"></script>
+        <script src="js/audio.js"></script>
 
+        <script src="js/datamodel/beatmap.js"></script>
+        <script src="js/datamodel/beatmapset.js"></script>
+        <script src="js/datamodel/database.js"></script>
+        <script src="js/datamodel/skin.js"></script>
 
-        <script src="js/jszip.min.js"></script>
-        <script src="js/interface.js"></script>
-        <script src="js/scenes.js"></script>
-        <script src="js/osuweb.js"></script>
-        <script src="js/game.js"></script>
+        <script src="js/game/play.js"></script>
+        <script src="js/game/followpoint.js"></script>
+        <script src="js/game/hitobject.js"></script>
+        <script src="js/game/circle.js"></script>
+        <script src="js/game/slider.js"></script>
+        <script src="js/game/scenes/scenebase.js"></script>
+        <script src="js/game/scenes/sceneloading.js"></script>
+        <script src="js/game/scenes/scenemenu.js"></script>
+        <script src="js/game/scenes/scenegame.js"></script>
+        <script src="js/game/scenes/scenegameosu.js"></script>
+
+        <script src="js/util/fileutil.js"></script>
+        <script src="js/util/graphicutil.js"></script>
+        <script src="js/util/mathutil.js"></script>
+        <script src="js/util/timingutil.js"></script>
 
         <script>
             window.onload = function() {
@@ -219,7 +237,30 @@
                 settings.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
             });
 
+            document.getElementById("container").ondragenter = function(e) {
+                e.preventDefault();
+            }
+
+            document.getElementById("container").ondragover = function(e) {
+                e.preventDefault();
+            }
+
+            document.getElementById("container").ondrop = function(e) {
+                e.preventDefault();
+                var length = e.dataTransfer.items.length;
+                for (var i = 0; i < length; i++) {
+                    var entry = e.dataTransfer.items[i].webkitGetAsEntry();
+                    if (entry.isFile) {
+                        console.log(entry);
+                    } else if (entry.isDirectory) {
+                        database = new Database(entry);
+                    }
+                }
+            };
+
             document.getElementById("beatmap").addEventListener("change", function(e) {
+                currentScene = new SceneGameOsu();
+
                 new BeatmapSet(e.target.files, function(beatmapset) {
                     currentBeatmapSet = beatmapset;
                     document.getElementById("beatmap").style.visibility = "hidden";
@@ -228,9 +269,12 @@
                     for (var key in currentBeatmapSet.difficulties) {
                         keys.push(key);
                     }
+                    currentAudio.stop();
 
                     currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
                         new Play(currentBeatmap, currentAudio);
+                        currentScene.objectContainerDiv.style.display = "inline";
+                        currentScene.playareaCanvas.style.display = "inline";
                         currentPlay.start();
                     });
                 });
