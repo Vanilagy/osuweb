@@ -69,7 +69,7 @@ Audio.prototype.playAudioFromOffsetWithLoop = function(time, offset, loopStart, 
     this.sourceNodes[this.nextNodeNumber].loop = enableLoop;
 
     this.sourceNodes[this.nextNodeNumber].connect(this.gainNode);
-    this.gainNode.gain.value = (this.isMusic ? settings.music : settings.sound) * settings.master;
+    this.gainNode.gain.value = (this.isMusic ? settingsData.music : settingsData.sound) * settingsData.master;
     this.sourceNodes[this.nextNodeNumber].start(time, Math.max(offset, 0));
 
     this.currentNodeNumber = this.nextNodeNumber++;

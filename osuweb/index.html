@@ -177,6 +177,11 @@
 
         <script>
             window.onload = function() {
+                var data = localStorage.getItem("settings");
+                if(data != null) {
+                    this.settingsData = JSON.parse(data);
+                }
+
                 // No initialization because loading is the base
                 currentScene = new SceneLoading();
 
@@ -255,7 +260,14 @@
                 for (var i = 0; i < length; i++) {
                     var entry = e.dataTransfer.items[i].webkitGetAsEntry();
                     if (entry.isFile) {
-                        console.log(entry);
+                        if(entry.name.endsWith(".osz")) {
+                            entry.file(function(file) {
+                                startMap(file);
+                            });
+                        }
+                        else if(entry.name.endsWith(".osk")) {
+
+                        }
                     } else if (entry.isDirectory) {
                         database = new Database(entry);
                     }
@@ -263,9 +275,13 @@
             };
 
             document.getElementById("beatmap").addEventListener("change", function(e) {
+                startMap(e.target.files);
+            });
+
+            function startMap(oszOrFiles) {
                 currentScene = new SceneGameOsu();
 
-                new BeatmapSet(e.target.files, function(beatmapset) {
+                new BeatmapSet(oszOrFiles, function(beatmapset) {
                     currentBeatmapSet = beatmapset;
                     document.getElementById("beatmap").style.visibility = "hidden";
 
@@ -282,7 +298,7 @@
                         currentPlay.start();
                     });
                 });
-            });
+            }
 
             var timeSinceLastBitch = window.performance.now();
             function derp() {
