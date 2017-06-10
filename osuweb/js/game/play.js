@@ -307,7 +307,7 @@ Play.prototype.gameLoop = function() {///// DEBUG /////
 
 Play.prototype.applyStackShift = function() {
     var lastStackEnd = 0;
-    var stackThreshold = 600 * this.beatmap.stackLeniency;
+    var stackThreshold = this.ARMs * this.beatmap.stackLeniency;
     var stackSnapDistance = 3;
 
     var extendedEndIndex = this.hitObjects.length - 1;
