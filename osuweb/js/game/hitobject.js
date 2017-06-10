@@ -7,7 +7,7 @@ function HitObject(data) {
     this.time = data.time;
     this.endTime = this.time;
     this.newCombo = data.newCombo;
-    this.stackShift = 0;
+    this.stackHeight = 0;
 }
 
 HitObject.prototype.show = function(offset) {
@@ -27,18 +27,6 @@ HitObject.prototype.append = function() {
 };
 
 HitObject.prototype.updateStackPosition = function() {
-    this.x += this.stackShift;
-    this.y += this.stackShift;
-
-    if(this.type == "slider") {
-        this.minX += this.stackShift * currentPlay.pixelRatio;
-        this.minY += this.stackShift * currentPlay.pixelRatio;
-        this.maxX += this.stackShift * currentPlay.pixelRatio;
-        this.maxY += this.stackShift * currentPlay.pixelRatio;
-
-        for(var i = 0; i < this.sliderPathPoints.length; i++) {
-            this.sliderPathPoints[i].x += this.stackShift * currentPlay.pixelRatio;
-            this.sliderPathPoints[i].y += this.stackShift * currentPlay.pixelRatio;
-        }
-    }
+    this.x += this.stackHeight * -4;
+    this.y += this.stackHeight * -4;
 };

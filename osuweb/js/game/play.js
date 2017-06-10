@@ -307,87 +307,97 @@ Play.prototype.gameLoop = function() {///// DEBUG /////
 
 Play.prototype.applyStackShift = function() {
     var lastStackEnd = 0;
-    var stackLeniencyFrame = this.ARMs * this.beatmap.stackLeniency;
+    var stackThreshold = 600 * this.beatmap.stackLeniency;
     var stackSnapDistance = 3;
 
-    for (var i = 0; i < this.hitObjects.length; i++) {
+    var extendedEndIndex = this.hitObjects.length - 1;
+    for (var i = this.hitObjects.length - 1; i >= 0; i--) {
         var hitObject = this.hitObjects[i];
 
-        for (var b = i - 1; b >= 0; b--) {
-            var prev = this.hitObjects[b];
+        var stackBaseIndex = i;
+        for (var b = i +1; b < this.hitObjects.length; b++) {
+            var objectB = this.hitObjects[b];
+            var stackBaseObject = this.hitObjects[i];
 
-            if ((((hitObject.startPoint.x == prev.basePoint.x && hitObject.startPoint.y == prev.basePoint.y) || (Math.hypot(hitObject.startPoint.x - prev.startPoint.x, hitObject.startPoint.y - prev.startPoint.y) < stackSnapDistance && prev.type == "slider") && hitObject.time - prev.time <= stackLeniencyFrame) || ((Math.hypot(hitObject.startPoint.x - prev.basePoint.x, hitObject.startPoint.y - prev.basePoint.y) < stackSnapDistance && prev.type == "slider" && hitObject.type == "circle")) && hitObject.time - prev.endTime <= stackLeniencyFrame)) {
-                hitObject.stackParent = prev;
+            if(stackBaseObject.type == "spinner") break;
+            if(objectB.type == "spinner") continue;
 
-                var isSlider = hitObject.type == "slider";
-                var firstSliderIndex = -1;
+            var endTime = stackBaseObject.endTime;
 
-                var currentChild = hitObject;
+            if(objectB.time - endTime > stackThreshold) break;
 
-                var childList = [];
+            if(Math.hypot(stackBaseObject.startPoint.x - objectB.startPoint.x, stackBaseObject.startPoint.y - objectB.startPoint.y) < stackSnapDistance ||
+               stackBaseObject.type == "slider" && MathUtil.distance(stackBaseObject.basePoint, objectB.startPoint) < stackSnapDistance) {
+                stackBaseIndex = b;
 
-                while (currentChild.stackParent != undefined) {
-                    currentChild = currentChild.stackParent;
-
-                    childList.push(currentChild);
-
-                    if(currentChild.type == "slider" && firstSliderIndex == -1) firstSliderIndex = childList.length - 1;
-                }
-
-                // No slider in stack -> push earlier objects top-left
-                if(firstSliderIndex == -1) {
-                    for(var c = 0; c < childList.length; c++) {
-                        childList[c].stackShift -= 4;
-                    }
-                }
-                else {
-                    // A slider in a slider stack -> push earlier objects top-left scaling by circles after the last the slider
-                    if(isSlider) {
-                        for(var c = 0; c < childList.length; c++) {
-                            childList[c].stackShift -= 4 * (firstSliderIndex + 1);
-                        }
-                    }
-                    // A circle in a slider stack -> push earlier objects bottom-right scaling by circles after the last the slider
-                    else {
-                        hitObject.stackShift += 4 * (firstSliderIndex + 1);
-                    }
-                }
-
-                break;
+                objectB.stackHeight = 0;
             }
-            else if(prev.type == "slider" && Math.hypot(hitObject.startPoint.x - prev.startPoint.x, hitObject.startPoint.y - prev.startPoint.y) < stackSnapDistance && hitObject.time - prev.time <= stackLeniencyFrame) {
-                hitObject.stackParent = prev;
+        }
 
-                var isSlider = hitObject.type == "slider";
+        if (stackBaseIndex > extendedEndIndex)
+        {
+            extendedEndIndex = stackBaseIndex;
+            if (extendedEndIndex == beatmap.HitObjects.Count - 1)
+                break;
+        }
+    }
 
-                var currentChild = hitObject;
+    var extendedStartIndex = 0;
+    for (var i = extendedEndIndex; i > 0; i--) {
+        var n = i;
 
-                var childList = [];
+        var objectI = this.hitObjects[i];
+        if (objectI.stackHeight != 0 || objectI.type == "spinner") continue;
+        if (objectI.type == "circle") {
+            while (--n >= 0) {
+                var objectN = this.hitObjects[n];
+                if (objectN.type == "spinner") continue;
 
-                while (currentChild.stackParent != undefined) {
-                    currentChild = currentChild.stackParent;
+                var endTime = objectN.endTime;
 
-                    childList.push(currentChild);
+                if (objectI.time - endTime > stackThreshold)
+                    break;
+
+                if (n < extendedStartIndex) {
+                    objectN.stackHeight = 0;
+                    extendedStartIndex = n;
                 }
 
-                if(isSlider) {
-                    for(var c = 0; c < childList.length; c++) {
-                        childList[c].stackShift -= 4 * 2;
+                if (objectN.type == "slider" && MathUtil.distance(objectN.basePoint, objectI.startPoint) < stackSnapDistance)
+                {
+                    var offset = objectI.stackHeight - objectN.stackHeight + 1;
+
+                    for (var j = n + 1; j <= i; j++) {
+                        var objectJ = this.hitObjects[j];
+                        if (MathUtil.distance(objectN.basePoint, objectJ.startPoint) < stackSnapDistance)
+                            objectJ.stackHeight -= offset;
                     }
-                }
-                // A circle in a slider stack -> push earlier objects bottom-right scaling by circles after the last the slider
-                else {
-                    hitObject.stackShift -= 4;
+                    break;
                 }
 
-                break;
+                if (MathUtil.distance(objectN.startPoint, objectI.startPoint) < stackSnapDistance) {
+                    objectN.stackHeight = objectI.stackHeight + 1;
+                    objectI = objectN;
+                }
             }
-            else if (hitObject.time - prev.time > stackLeniencyFrame) {
-                break;
+        }
+        else if (objectI.type == "slider") {
+            while (--n >= 0) {
+                var objectN = this.hitObjects[n];
+
+                if (objectN.type == "spinner") continue;
+
+                if (objectI.time - objectN.time > stackThreshold)
+                    break;
+
+                if (MathUtil.distance(objectN.basePoint, objectI.startPoint) < stackSnapDistance) {
+                    objectN.stackHeight = objectI.stackHeight + 1;
+                    objectI = objectN;
+                }
             }
         }
     }
-}
+};
 
 Play.prototype.start = function() {
     // stop running song

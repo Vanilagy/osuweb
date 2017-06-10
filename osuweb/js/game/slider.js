@@ -46,14 +46,14 @@ Slider.prototype.show = function(offset) {
 Slider.prototype.updateStackPosition = function() {
     HitObject.prototype.updateStackPosition.call(this);
 
-    this.minX += this.stackShift * currentPlay.pixelRatio;
-    this.minY += this.stackShift * currentPlay.pixelRatio;
-    this.maxX += this.stackShift * currentPlay.pixelRatio;
-    this.maxY += this.stackShift * currentPlay.pixelRatio;
+    this.minX += this.stackHeight * -4 * currentPlay.pixelRatio;
+    this.minY += this.stackHeight * -4 * currentPlay.pixelRatio;
+    this.maxX += this.stackHeight * -4 * currentPlay.pixelRatio;
+    this.maxY += this.stackHeight * -4 * currentPlay.pixelRatio;
 
     for(var i = 0; i < this.sliderPathPoints.length; i++) {
-        this.sliderPathPoints[i].x += this.stackShift * currentPlay.pixelRatio;
-        this.sliderPathPoints[i].y += this.stackShift * currentPlay.pixelRatio
+        this.sliderPathPoints[i].x += this.stackHeight * -4 * currentPlay.pixelRatio;
+        this.sliderPathPoints[i].y += this.stackHeight * -4 * currentPlay.pixelRatio
     }
 };
 
@@ -400,12 +400,4 @@ Slider.prototype.draw = function() {
     this.sliderHeadContainer.appendChild(this.approachCircleCanvas);
 
     this.containerDiv.appendChild(this.sliderHeadContainer);
-};
-
-Slider.prototype.show = function(offset) {
-    this.containerDiv.style.visibility = "visible";
-    this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
-    this.containerDiv.style.opacity = 1;
-    this.approachCircleCanvas.style.transform = "scale(1.0)";
-    this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
 };
