@@ -2,9 +2,17 @@ var maximumTracePointDistance = 3;
 var snakingSliders = false;
 
 function Slider(data) {
-    HitObject.call(this, data);
-
+    //HitObject.call(this, data);
     this.type = "slider";
+    this.x = data.x;
+    this.y = data.y;
+    this.startPoint = {x: this.x, y: this.y};
+    this.basePoint = {x: this.x, y: this.y};
+    this.time = data.time;
+    this.endTime = this.time;
+    this.newCombo = data.newCombo;
+    this.stackHeight = 0;
+    
     this.sections = data.sections;
     this.hitCircleExploded = false;
     this.fadingOut = false;
@@ -25,21 +33,23 @@ function Slider(data) {
     }
 }
 
-Slider.prototype = Object.create(HitObject.prototype);
-Slider.prototype.constructor = Slider;
-
 Slider.prototype.show = function(offset) {
-    HitObject.prototype.show.call(this, offset);
-
+    //HitObject.prototype.show.call(this, offset);
+    this.containerDiv.style.visibility = "visible";
+    this.containerDiv.style.transition = "opacity " + (((currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
+    this.containerDiv.style.opacity = 1;
+    this.approachCircleCanvas.style.transform = "scale(1.0)";
+    this.approachCircleCanvas.style.transition = "transform " + ((currentPlay.ARMs - offset) / 1000) + "s linear";
     this.updateOverlay.bind(this)();
 
     if (snakingSliders) {
-        this.updateBase.bind(this)(false);
+        //this.updateBase.bind(this)(false);
     }
 };
 
 Slider.prototype.updateStackPosition = function() {
-    HitObject.prototype.updateStackPosition.call(this);
+    this.x += this.stackHeight * -4;
+    this.y += this.stackHeight * -4;
 
     this.minX += this.stackHeight * -4 * currentPlay.pixelRatio;
     this.minY += this.stackHeight * -4 * currentPlay.pixelRatio;
@@ -442,4 +452,11 @@ Slider.prototype.draw = function() {
     this.sliderHeadContainer.appendChild(this.approachCircleCanvas);
 
     this.containerDiv.appendChild(this.sliderHeadContainer);
+};
+
+Slider.prototype.append = function() {
+    currentScene.objectContainerDiv.appendChild(this.containerDiv);
+};
+Slider.prototype.remove = function() {
+    this.containerDiv.parentNode.removeChild(this.containerDiv);
 };

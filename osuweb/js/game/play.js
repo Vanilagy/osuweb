@@ -173,7 +173,7 @@ Play.prototype.gameLoop = function() {
         console.log("Current average clock tick speed: " + (sum / this.recordedTickSpeeds.length).toFixed(2) + "ms / " + (1000 / (sum / this.recordedTickSpeeds.length)).toFixed(2) + "Hz");
         this.stupidClock = window.performance.now();
     }
-    ///// DEBUG END /////
+    ///// DEBUG END ///// 
 
     this.audioCurrentTime = window.performance.now() - this.audioStartTime + this.audioOffset;
 
