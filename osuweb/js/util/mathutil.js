@@ -34,6 +34,7 @@ var MathUtil = {
         return r;
 	},
     circleCenterPos: function(p1, p2, p3) {
+	    /*
         var yDelta_a = p2.y - p1.y,
             xDelta_a = p2.x - p1.x,
             yDelta_b = p3.y - p2.y,
@@ -65,6 +66,60 @@ var MathUtil = {
             temp = center.x;
             center.x = center.y;
             center.y = temp;
+        }
+
+        return center;
+        */
+        var yDelta_a = p2.y - p1.y;
+        var xDelta_a = p2.x - p1.x;
+        var yDelta_b = p3.y - p2.y;
+        var xDelta_b = p3.x - p2.x;
+        var center = {x: 0, y: 0};
+
+        var aSlope = yDelta_a/xDelta_a;
+        var bSlope = yDelta_b/xDelta_b;
+
+        var AB_Mid = {x: (p1.x+p2.x)/2, y: (p1.y+p2.y)/2};
+        var BC_Mid = {x: (p2.x+p3.x)/2, y: (p2.y+p3.y)/2};
+
+        if(yDelta_a == 0)         //aSlope == 0
+        {
+            center.x = AB_Mid.x;
+            if (xDelta_b == 0)         //bSlope == INFINITY
+            {
+                center.y = BC_Mid.y;
+            }
+            else
+            {
+                center.y = BC_Mid.y + (BC_Mid.x-center.x)/bSlope;
+            }
+        }
+        else if (yDelta_b == 0)               //bSlope == 0
+        {
+            center.x = BC_Mid.x;
+            if (xDelta_a == 0)             //aSlope == INFINITY
+            {
+                center.y = AB_Mid.y;
+            }
+            else
+            {
+                center.y = AB_Mid.y + (AB_Mid.x-center.x)/aSlope;
+            }
+        }
+        else if (xDelta_a == 0)        //aSlope == INFINITY
+        {
+            center.y = AB_Mid.y;
+            center.x = bSlope*(BC_Mid.y-center.y) + BC_Mid.x;
+        }
+        else if (xDelta_b == 0)        //bSlope == INFINITY
+        {
+            center.y = BC_Mid.y;
+            center.x = aSlope*(AB_Mid.y-center.y) + AB_Mid.x;
+        }
+        else
+        {
+            center.x = (aSlope*bSlope*(AB_Mid.y-BC_Mid.y) - aSlope*BC_Mid.x + bSlope*AB_Mid.x)/(bSlope-aSlope);
+            center.y = AB_Mid.y - (center.x - AB_Mid.x)/aSlope;
         }
 
         return center;
