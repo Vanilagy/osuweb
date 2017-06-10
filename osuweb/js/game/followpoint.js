@@ -44,6 +44,10 @@ FollowPoint.prototype.spawn = function() {
             ctx.globalCompositeOperation = "destination-out";
             var fadeInLength = 92 * currentPlay.pixelRatio;
 
+            if(isNaN(startingPointX) && !shouldEnd) {
+                requestAnimationFrame(this.update.bind(this));
+                return;
+            }
             var leftGradient = ctx.createLinearGradient(startingPointX, 0, startingPointX + fadeInLength, 0);
             leftGradient.addColorStop(0, "rgba(255, 255, 255, 1.0)");
             leftGradient.addColorStop(1, "rgba(255, 255, 255, 0.0)");
