@@ -157,7 +157,8 @@ function Play(beatmap, audio) {
     this.stupidClock = window.performance.now();
 }
 
-Play.prototype.gameLoop = function() {///// DEBUG /////
+Play.prototype.gameLoop = function() {
+    ///// DEBUG /////
     var timeDif = window.performance.now() - this.lastTickClockTime;
     this.recordedTickSpeeds.push(timeDif);
     if (timeDif > 10) {
@@ -190,6 +191,7 @@ Play.prototype.gameLoop = function() {///// DEBUG /////
         if (hitObject.type == "circle") {
             if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
                 hitObject.containerDiv.style.animation = "0.15s destroyHitCircle linear forwards";
+                hitObject.approachCircleCanvas.style.display = "none";
                 hitObject.hitCircleExploded = true;
             }
 
@@ -201,6 +203,7 @@ Play.prototype.gameLoop = function() {///// DEBUG /////
         } else if (hitObject.type == "slider") {
             if (this.audioCurrentTime >= hitObject.time && !hitObject.hitCircleExploded) {
                 hitObject.sliderHeadContainer.style.animation = "0.15s destroyHitCircle linear forwards";
+                hitObject.approachCircleCanvas.style.display = "none";
                 hitObject.hitCircleExploded = true;
             }
 

@@ -1,5 +1,5 @@
 var maximumTracePointDistance = 3;
-var snakingSliders = true;
+var snakingSliders = false;
 
 function Slider(data) {
     HitObject.call(this, data);
@@ -14,11 +14,6 @@ function Slider(data) {
     this.currentSliderTick = 0;
 
     this.sliderPathPoints = [];
-
-    this.passedLength = 0;
-    this.segmentCount = Math.floor(this.length / maximumTracePointDistance + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
-    this.segmentLength = this.length / this.segmentCount;
-    this.tracedPointsAdded = 0;
 
     this.init();
 
@@ -67,7 +62,9 @@ Slider.prototype.init = function() {
             a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
             a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
 
-        var incre = this.segmentLength / radius, condition;
+        var segmentCount = Math.floor(this.length / maximumTracePointDistance + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
+        var segmentLength = this.length / segmentCount;
+        var incre = segmentLength / radius, condition;
 
         if (a1 < a2 && a2 < a3) { // Point order
             condition = function(x) {return x < a3};
@@ -87,7 +84,7 @@ Slider.prototype.init = function() {
         this.minY = this.maxY = (centerPos.y + radius * Math.sin(a1)) * currentPlay.pixelRatio;
 
         var angle = a1;
-        for (var i = 0; i <= this.segmentCount; i++) {
+        for (var i = 0; i <= segmentCount; i++) {
             this.pushPos({
                 x: centerPos.x + radius * Math.cos(angle),
                 y: centerPos.y + radius * Math.sin(angle)
@@ -97,90 +94,129 @@ Slider.prototype.init = function() {
         }
     } else {
         this.minX = this.maxX = this.sections[0].values[0].x * currentPlay.pixelRatio;
-        this.minY = this.maxY = this.sections[0].values[0].y * currentPlay.pixelRatio;
-        var p1;
-
-        // Extra section is added because ppy fucked up his pixelLength
-        var lastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 1];
-        var secondLastPoint = this.sections[this.sections.length - 1].values[this.sections[this.sections.length - 1].values.length - 2];
-        if (lastPoint && secondLastPoint) {
-            var angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
-            this.sections.push({
-                type: "linear",
-                values: [
-                    {x: lastPoint.x, y: lastPoint.y},
-                    {x: lastPoint.x + 500 * Math.cos(angle), y: lastPoint.y + 500 * Math.sin(angle)}
-                ]
-            })
+        this.minY = this.maxY = this.sections[0].values[0].y * currentPlay.pixelRatio;       
+        
+        var initialTracePoints = [];        
+        var sliderLength = 0;
+        
+        function addInitialTracePoint(pos) {
+            if (initialTracePoints[initialTracePoints.length - 1]) {
+                var thatPoint = initialTracePoints[initialTracePoints.length - 1];
+                sliderLength += Math.hypot(thatPoint.x - pos.x, thatPoint.y - pos.y);
+            }
+            
+            initialTracePoints.push(pos);
         }
 
         for (var i = 0; i < this.sections.length; i++) {
             var points = this.sections[i].values;
+            
+            if (points.length == 2) { // if linear
+                addInitialTracePoint(points[0]);
+                addInitialTracePoint(points[1]);
+            } else {
+                var leftT = 0, rightT = 0.01;
+                var p1 = MathUtil.coordsOnBezier(points, leftT);
+                addInitialTracePoint(p1);
+                var p2 = MathUtil.coordsOnBezier(points, rightT);
 
-            var leftT = 0, rightT = 0.01;
-            if (i == 0) {
-                p1 = MathUtil.coordsOnBezier(points, leftT);
-                this.addTracedPoint(p1);
-            }
-            var p2 = MathUtil.coordsOnBezier(points, rightT);
+                while (leftT < 1) { // Binary segment approximation method
+                    while (true) {
+                        var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
 
-            while (leftT <= 1) { // Binary segment approximation method
-                while (true) {
-                    var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                        if (dist < maximumTracePointDistance) {
+                            leftT += 0.01;
+                            rightT += 0.01;
 
-                    if (dist < this.segmentLength) {
-                        leftT += 0.01;
-                        rightT += 0.01;
-
-                        if (leftT > 1) {
-                            break;
-                        }
-
-                        p2 = MathUtil.coordsOnBezier(points, rightT);
-                    } else {
-                        var p3, midT;
-
-                        while (true) {
-                            midT = (leftT + rightT) / 2;
-                            p3 = MathUtil.coordsOnBezier(points, midT);
-                            dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
-
-                            if (Math.abs(this.segmentLength - dist) < 0.001) {
+                            if (leftT >= 1) {
                                 break;
                             }
 
-                            if (dist < this.segmentLength) {
-                                leftT = midT;
-                            } else {
-                                rightT = midT;
+                            p2 = MathUtil.coordsOnBezier(points, rightT);
+                        } else {
+                            var p3, midT;
+
+                            while (true) {
+                                midT = (leftT + rightT) / 2;
+                                p3 = MathUtil.coordsOnBezier(points, midT);
+                                dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
+
+                                if (Math.abs(maximumTracePointDistance - dist) < 0.25) {
+                                    break;
+                                }
+
+                                if (dist < maximumTracePointDistance) {
+                                    leftT = midT;
+                                } else {
+                                    rightT = midT;
+                                }
                             }
-                        }
 
-                        if (midT < 1) {
-                            if (this.addTracedPoint(p3)) {
-                                return;
+                            if (midT < 1) {
+                                addInitialTracePoint(p3);
+                                p1 = p3;
                             }
-                            p1 = p3;
+
+                            leftT = midT;
+                            rightT = leftT + 0.01;
+                            p2 = MathUtil.coordsOnBezier(points, rightT);
+
+                            break;
                         }
-
-                        leftT = midT;
-                        rightT = leftT + 0.01;
-                        p2 = MathUtil.coordsOnBezier(points, rightT);
-
-                        break;
                     }
                 }
             }
+
+            addInitialTracePoint(points[points.length - 1]);
         }
-    }
-};
-
-Slider.prototype.addTracedPoint = function(pos) { // Taking care of curve length exceeding pixelLength
-    this.pushPos(pos);
-
-    this.tracedPointsAdded++;
-    if (this.tracedPointsAdded == this.segmentCount + 1) {
-        return true; // Stops tracing
+        
+        if (sliderLength > this.length) { // If traced length bigger than pixelLength
+            sliderLength = this.length;
+        }
+        
+        // Extra point is added because floats
+        var lastPoint = initialTracePoints[initialTracePoints.length - 1];
+        var secondLastPoint = initialTracePoints[initialTracePoints.length - 2];
+        if (lastPoint && secondLastPoint) {
+            var angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
+            initialTracePoints.push({
+                x: lastPoint.x + 500 * Math.cos(angle),
+                y: lastPoint.y + 500 * Math.sin(angle)
+            });
+        }
+        
+        var segmentCount = Math.floor(sliderLength / maximumTracePointDistance + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
+        var segmentLength = sliderLength / segmentCount;
+        
+        /* Using the initially traced points, generate a slider path point array in which
+           all points are equally distant from one another. This is done to guarantee constant
+           slider velocity. */
+        var lastPoint = initialTracePoints[0];
+        this.pushPos(lastPoint);
+        var currentIndex = 1;
+        for (var c = 0; c < segmentCount; c++) {
+            var remainingLength = segmentLength;
+            
+            while (true) {
+                var dist = Math.hypot(lastPoint.x - initialTracePoints[currentIndex].x, lastPoint.y - initialTracePoints[currentIndex].y);
+                
+                if (dist < remainingLength) {
+                    lastPoint = initialTracePoints[currentIndex];
+                    remainingLength -= dist;
+                    currentIndex++;
+                } else {
+                    var percentReached = remainingLength / dist;
+                    var newPoint = {
+                        x: lastPoint.x * (1 - percentReached) + initialTracePoints[currentIndex].x * percentReached,
+                        y: lastPoint.y * (1 - percentReached) + initialTracePoints[currentIndex].y * percentReached
+                    }
+                    
+                    this.pushPos(newPoint);
+                    lastPoint = newPoint;
+                    break;
+                }
+            }
+        }
     }
 };
 
@@ -293,32 +329,38 @@ Slider.prototype.draw = function() {
         var completion = 0;
         var isMoving = this.time <= currentPlay.audioCurrentTime;
 
-        if (isMoving) {
-            overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
+        overlayCtx.clearRect(0, 0, sliderWidth + currentPlay.csPixel, sliderHeight + currentPlay.csPixel);
 
-            var currentSliderTime = currentPlay.audioCurrentTime - this.time;
+        var currentSliderTime = currentPlay.audioCurrentTime - this.time;
+        if (isMoving) {
             completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.length;
 
             if (completion >= this.repeat) {
                 completion = this.repeat;
             }
+        }
 
-            // Draws slider ticks
-            if (this.sliderTickCompletions[this.currentSliderTick] != undefined) {
-                var lowestTickCompletionFromCurrentRepeat = getLowestTickCompletionFromCurrentRepeat.bind(this)(completion)
-                for (var i = 0; this.sliderTickCompletions[i] < Math.floor(completion + 1) && this.sliderTickCompletions[i] < lowestTickCompletionFromCurrentRepeat + (completion % 1) * 2; i++) {
-                    if (this.sliderTickCompletions[i] >= completion) {
-                        var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, MathUtil.reflect(this.sliderTickCompletions[i]));
-                        var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
-                        var tickMs = Math.floor(completion) * this.length / this.timingInfo.sliderVelocity /* ms of current repeat */ +
-                            ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.length / this.timingInfo.sliderVelocity) / 2 /* ms of tick showing up */;
-                        var animationCompletion = Math.min(1, (currentSliderTime - tickMs) / 85);
+        var animationDuration = 85;
+        var completionForSliderTicks = completion;
+        if (completion < 1) {
+            completionForSliderTicks = (this.timingInfo.sliderVelocity * (currentSliderTime + animationDuration)) / this.length;
+        }
 
-                        overlayCtx.beginPath();
-                        overlayCtx.arc(x, y, currentPlay.csPixel * 0.038 * (/* parabola */ -2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, GraphicUtil.pi2);
-                        overlayCtx.fillStyle = "rgba(255, 255, 255," + 1 + ")";
-                        overlayCtx.fill();
-                    }
+        // Draws slider ticks. Ticks in the first slider cycle appear animationDuration ms earlier.
+        if (this.sliderTickCompletions[this.currentSliderTick] != undefined) {
+            var lowestTickCompletionFromCurrentRepeat = getLowestTickCompletionFromCurrentRepeat.bind(this)(completion);
+            for (var i = 0; this.sliderTickCompletions[i] < Math.floor(completion + 1) && this.sliderTickCompletions[i] < lowestTickCompletionFromCurrentRepeat + (completionForSliderTicks % 1) * 2; i++) {
+                if (this.sliderTickCompletions[i] >= completion) {
+                    var sliderTickPos = getCoordFromCoordArray(this.sliderPathPoints, MathUtil.reflect(this.sliderTickCompletions[i]));
+                    var x = sliderTickPos.x - this.minX + currentPlay.halfCsPixel, y = sliderTickPos.y - this.minY + currentPlay.halfCsPixel;
+                    var tickMs = Math.floor(completion) * this.length / this.timingInfo.sliderVelocity /* ms of current repeat */ +
+                        ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.length / this.timingInfo.sliderVelocity) / 2 /* ms of tick showing up */;
+                    var animationCompletion = Math.min(1, (currentSliderTime - tickMs + ((completion < 1) ? animationDuration : 0)) / animationDuration);
+
+                    overlayCtx.beginPath();
+                    overlayCtx.arc(x, y, currentPlay.csPixel * 0.038 * (/* parabola */ -2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, GraphicUtil.pi2);
+                    overlayCtx.fillStyle = "rgba(255, 255, 255," + 1 + ")";
+                    overlayCtx.fill();
                 }
             }
         }
