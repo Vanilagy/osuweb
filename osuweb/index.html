@@ -123,13 +123,19 @@
                 from {transform: scale(1); opacity: 1;}
                 to {transform: scale(1.4); opacity: 0;}
             }
-            @keyframes sliderFadeOut {
+            @keyframes fadeOut {
                 from {opacity: 1;}
                 to {opacity: 0;}
             }
             .followPoint {
                 position: absolute;
-                opacity: 0.7;
+                opacity: 0.9;
+            }
+            #scoreDisplay {
+                text-align: center;
+                color: white;
+                font-size: 20px;
+                text-shadow: 2px 2px 5px black;
             }
         </style>
     </head>
@@ -140,10 +146,14 @@
         <div id="container">
             <input type="file" id="beatmap" webkitdirectory multiple>
         </div>
-        </div><div id="playarea">
-            <div id="objectContainer"></div>
-        </div>
-        <div id="foreground"><div id="loading">LOADING</div></div>
+        <section id="ingameContainer">
+            <p id="scoreDisplay">Combo: 0 Score: 0</p>
+            </div><div id="playarea">
+                <div id="objectContainer"></div>
+            </div>
+        </section>
+        
+        <!--<div id="foreground"><div id="loading">LOADING</div></div>-->
         
         <script src="js/lib/jszip.min.js"></script>
 
@@ -158,6 +168,7 @@
         <script src="js/datamodel/skin.js"></script>
 
         <script src="js/game/play.js"></script>
+        <script src="js/game/score.js"></script>
         <script src="js/game/followpoint.js"></script>
         <script src="js/game/hitobject.js"></script>
         <script src="js/game/circle.js"></script>
@@ -174,9 +185,10 @@
         <script src="js/util/graphicutil.js"></script>
         <script src="js/util/mathutil.js"></script>
         <script src="js/util/timingutil.js"></script>
+        <script src="js/util/inpututil.js"></script>
 
         <script>
-            window.onload = function() {
+            /*window.onload = function() {
                 // No initialization because loading is the base
                 currentScene = new SceneLoading();
 
@@ -206,7 +218,7 @@
                 FileUtil.loadAudioFromURL("./audio/circles.mp3", function (audio) {
                     currentAudio = audio;
                 }, onFinish, true);
-            };
+            };*/
 
             window.onresize = function() {
                 var ctx = currentScene.osuwebCanvas.getContext("2d");
@@ -237,7 +249,7 @@
                 }, 1100);
             }
 
-            document.getElementById("container").addEventListener("wheel", function(e) {
+            /*document.getElementById("container").addEventListener("wheel", function(e) {
                 settings.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
             });
 
@@ -260,7 +272,7 @@
                         database = new Database(entry);
                     }
                 }
-            };
+            };*/
 
             document.getElementById("beatmap").addEventListener("change", function(e) {
                 currentScene = new SceneGameOsu();
@@ -273,12 +285,12 @@
                     for (var key in currentBeatmapSet.difficulties) {
                         keys.push(key);
                     }
-                    currentAudio.stop();
+                    //currentAudio.stop();
 
-                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
+                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")/*"Procatstination (Meowzerrin Style)"*/], function() {
                         new Play(currentBeatmap, currentAudio);
-                        currentScene.objectContainerDiv.style.display = "inline";
-                        currentScene.playareaCanvas.style.display = "inline";
+                        currentScene.objectContainerDiv.style.display = "block";
+                        currentScene.playareaDiv.style.display = "block";
                         currentPlay.start();
                     });
                 });

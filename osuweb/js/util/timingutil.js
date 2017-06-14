@@ -9,6 +9,18 @@ var TimingUtil = {
             return 1950 - 150 * AR;
         }
     },
+    getScoreFromHitDelta: function(delta) {
+        var OD = currentPlay.beatmap.OD;
+        
+        if (delta <= Math.ceil(79.5 - 6 * OD)) {
+            return 300;
+        } else if (delta <= Math.ceil(139.5 - 8 * OD)) {
+            return 100;
+        } else if (delta <= Math.ceil(199.5 - 10 * OD)) {
+            return 50;
+        }
+        return 0;
+    },
     interval: function(duration, fn, baseline){
         this.baseline = baseline;
 

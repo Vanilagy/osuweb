@@ -34,42 +34,6 @@ var MathUtil = {
         return r;
 	},
     circleCenterPos: function(p1, p2, p3) {
-	    /*
-        var yDelta_a = p2.y - p1.y,
-            xDelta_a = p2.x - p1.x,
-            yDelta_b = p3.y - p2.y,
-            xDelta_b = p3.x - p2.x,
-            center = {};
-
-
-        if (p2.x == p1.x || p2.x == p3.x) {
-            var reverse = true;
-
-            var aSlope = xDelta_a / yDelta_a,
-                bSlope = xDelta_b / yDelta_b;
-        }
-        else {
-            var aSlope = yDelta_a / xDelta_a,
-                bSlope = yDelta_b / xDelta_b;
-        }
-
-        if (aSlope == 0 || aSlope == -0) {
-            var temp = aSlope;
-            aSlope = bSlope;
-            bSlope = temp;
-        }
-
-        center.x = (aSlope * bSlope * (p1.y - p3.y) + bSlope * (p1.x + p2.x) - aSlope * (p2.x + p3.x)) / (2 * (bSlope - aSlope));
-        center.y = -1 * (center.x - (p1.x + p2.x) / 2) / aSlope + (p1.y + p2.y) / 2;
-
-        if (reverse) {
-            temp = center.x;
-            center.x = center.y;
-            center.y = temp;
-        }
-
-        return center;
-        */
         var yDelta_a = p2.y - p1.y;
         var xDelta_a = p2.x - p1.x;
         var yDelta_b = p3.y - p2.y;
