@@ -7,4 +7,8 @@ function SceneGameOsu() {
 
     this.playareaDiv = document.getElementById("playarea");
     this.objectContainerDiv = document.getElementById("objectContainer");
+    
+    this.scoreDisplay = document.getElementById("scoreDisplay");
+    this.accuracyDisplay = document.getElementById("accuracyDisplay");
+    this.comboDisplay = document.getElementById("comboDisplay");
 }

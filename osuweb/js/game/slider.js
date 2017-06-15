@@ -66,6 +66,8 @@ Slider.prototype.score = function() {
         currentPlay.score.addScore(100, false, true);
     } else if (fraction > 0) {
         currentPlay.score.addScore(50, false, true);
+    } else {
+        currentPlay.score.addScore(0, false, true);
     }
 }
 

@@ -22,7 +22,7 @@ function Play(beatmap, audio) {
     setTimeout(function() {
         playareaBoundingRectLeft = playareaDiv.getBoundingClientRect().left;
         playareaBoundingRectTop = playareaDiv.getBoundingClientRect().top;
-    });    
+    });
 
     pixelRatio = this.playAreaWidth / GraphicUtil.playAreaDimensions.x;
     this.marginWidth = (GraphicUtil.playAreaDimensions.x - GraphicUtil.coordinateDimensions.x) / 2;
@@ -207,8 +207,9 @@ Play.prototype.gameLoop = function() {
         currentAudio.playAudio(audioCurrentTime / 1000);
         this.audioStarted = true;
     }
-
+    
     // hitObject updates
+    var userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
     for (var id in this.onScreenHitObjects) {
         var hitObject = this.onScreenHitObjects[id];
 
@@ -219,7 +220,7 @@ Play.prototype.gameLoop = function() {
             }
             // Fade out object when it has not been hit
             if (audioCurrentTime >= hitObject.time + (199.5 - 10 * currentPlay.beatmap.OD) && hitObject.hittable) {
-                this.score.break();
+                this.score.addScore(0, false, true);
                 hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
                 hitObject.hittable = false;
             }
@@ -231,8 +232,7 @@ Play.prototype.gameLoop = function() {
             }
         } else if (hitObject.type == "slider") {
             // Handle scoring of slider ticks and reverses
-            if (hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined || hitObject.currentRepeat < hitObject.repeat) {
-                var userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
+            if ((hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined || hitObject.currentRepeat < hitObject.repeat) &&  audioCurrentTime >= hitObject.time) {
                 var completion = Math.min(hitObject.repeat, hitObject.timingInfo.sliderVelocity * (audioCurrentTime - hitObject.time) / hitObject.length);
                 var completionsToEval = [];
                 
@@ -280,7 +280,7 @@ Play.prototype.gameLoop = function() {
             }
             // Fade out slider head when it has not been hit
             if (audioCurrentTime >= hitObject.time + (199.5 - 10 * currentPlay.beatmap.OD) && hitObject.hittable) {
-                this.score.break();
+                this.score.addScore(0, true, true);
                 hitObject.sliderHeadContainer.style.animation = "0.15s fadeOut linear forwards";
                 hitObject.hittable = false;
             }

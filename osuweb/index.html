@@ -15,7 +15,7 @@
             #playarea {
                 width: 512px;
                 height: 392px;
-                border: 1px solid gray;
+                /*border: 1px solid gray;*/
                 margin: auto;
                 position: absolute;
                 bottom: 1%;
@@ -132,10 +132,42 @@
                 opacity: 0.9;
             }
             #scoreDisplay {
-                text-align: center;
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                text-align: right;
                 color: white;
-                font-size: 20px;
                 text-shadow: 2px 2px 5px black;
+                font-family: monospace;
+                font-size: 50px;
+                margin: 0;
+            }
+            #accuracyDisplay {
+                position: absolute;
+                top: 50px;
+                right: 5px;
+                text-align: right;
+                color: white;
+                text-shadow: 2px 2px 5px black;
+                font-family: monospace;
+                font-size: 30px;
+                margin: 0;
+            }
+            #comboDisplay {
+                position: absolute;
+                bottom: 5px;
+                left: 5px;
+                text-align: left;
+                color: white;
+                text-shadow: 2px 2px 5px black;
+                font-family: monospace;
+                font-size: 50px;
+                margin: 0;
+            }
+            #ingameContainer {
+                width: 100%;
+                height: 100%;
+                position: relative;
             }
         </style>
     </head>
@@ -143,19 +175,24 @@
         <div id="background"></div>
         <div id="background-dim"></div>
         <canvas id="osuweb"></canvas>
-        <div id="container">
-            <input type="file" id="beatmap" webkitdirectory multiple>
-        </div>
+        
         <section id="ingameContainer">
-            <p id="scoreDisplay">Combo: 0 Score: 0</p>
+            <p id="scoreDisplay">00000000</p>
+            <p id="accuracyDisplay">100.00%</p>
+            <p id="comboDisplay">0x</p>
             </div><div id="playarea">
                 <div id="objectContainer"></div>
             </div>
         </section>
+    
+        <div id="container">
+            <input type="file" id="beatmap" webkitdirectory multiple>
+        </div>
         
         <!--<div id="foreground"><div id="loading">LOADING</div></div>-->
         
         <script src="js/lib/jszip.min.js"></script>
+        <script src="js/lib/miscLibs.js"></script>
 
         <script src="js/main.js"></script>
         <script src="js/audio.js"></script>
