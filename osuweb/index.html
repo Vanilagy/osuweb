@@ -116,7 +116,7 @@
                 left: 0px;
             }
             @keyframes closeApproachCircle {
-                from {transform: scale(3.5);}
+                from {transform: scale(4);}
                 to {transform: scale(1);}
             }
             @keyframes destroyHitCircle {
@@ -126,6 +126,10 @@
             @keyframes fadeOut {
                 from {opacity: 1;}
                 to {opacity: 0;}
+            }
+            @keyframes pulseCombo {
+                from {transform: scale(1.45);}
+                to {transform: scale(1);}
             }
             .followPoint {
                 position: absolute;
@@ -163,6 +167,7 @@
                 font-family: monospace;
                 font-size: 50px;
                 margin: 0;
+                transform-origin: 0% 100%
             }
             #ingameContainer {
                 width: 100%;
@@ -324,7 +329,7 @@
                     }
                     //currentAudio.stop();
 
-                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")/*"Procatstination (Meowzerrin Style)"*/], function() {
+                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
                         new Play(currentBeatmap, currentAudio);
                         currentScene.objectContainerDiv.style.display = "block";
                         currentScene.playareaDiv.style.display = "block";

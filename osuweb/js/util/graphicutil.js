@@ -1,5 +1,6 @@
 var pi2 = Math.PI * 2;
 var maximumTracePointDistance = 3; // The maximum distance two points in a slider's traced path can be apart – used to control detail in sliders.
+var circleBorderWidth = 1.5 / 16; // in relation to circle radius
 
 var GraphicUtil = {
     widthToHeightRatio: 3 / 4,
@@ -27,7 +28,7 @@ var GraphicUtil = {
         radialGradient.addColorStop(1, darkColourString);
 
         context.beginPath(); // Draw circle body with radial gradient
-        context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * 14.5 / 16, 0, pi2);
+        context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * (1 - circleBorderWidth), 0, pi2);
         context.fillStyle = radialGradient;
         context.fill();
         context.fillStyle = "rgba(255, 255, 255, 0.5)";
@@ -51,10 +52,10 @@ var GraphicUtil = {
     },
     drawApproachCircle: function(context, x, y, comboNum) {
         context.beginPath();
-        context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * ((14.5 / 16) + 1) / 2, 0, pi2);
+        context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * ((1 - circleBorderWidth) + 1) / 2, 0, pi2);
         var color = currentPlay.beatmap.colours[comboNum % currentPlay.beatmap.colours.length];
         context.strokeStyle = "rgb(" + color.r + ", " + color.g + ", " + color.b + ")";
-        context.lineWidth = halfCsPixel * 1.5 / 16;
+        context.lineWidth = halfCsPixel * circleBorderWidth;
         context.stroke();
     },
     getCoordFromCoordArray: function(arr, percent) {

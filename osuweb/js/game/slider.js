@@ -270,7 +270,7 @@ Slider.prototype.pushPos = function(pos) { // Pushes endpoint to array
 
 Slider.prototype.draw = function() {
     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
-    var sliderBodyRadius = halfCsPixel * 14.5 / 16;
+    var sliderBodyRadius = halfCsPixel * (1 - circleBorderWidth);
     var maxFollowCircleRadius = (halfCsPixel * 2.18);
     
     this.containerDiv = document.createElement("div");

@@ -8,6 +8,7 @@ function Play(beatmap, audio) {
 
     this.audio = audio;
     this.beatmap = beatmap;
+    this.beatmap.AR = this.beatmap.AR || 5;
     console.log(this.beatmap);
     
     // doesn't do shit yet LUL
@@ -266,7 +267,7 @@ Play.prototype.gameLoop = function() {
                             currentPlay.score.addScore(10, true);
                         }
                     } else if (completionsToEval[i] != hitObject.repeat) {
-                        currentPlay.score.break();
+                        currentPlay.score.addScore(0, true, true);
                     }
                     
                     if (completionsToEval[i] < hitObject.repeat) {

@@ -9,8 +9,6 @@ var controls = {
     volumeControl: null
 };
 
-console.log("Procatstination (Meowzerrin Style)")
-
 var settings = {
     music: 0.8,
     sound: 0.8,
