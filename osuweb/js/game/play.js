@@ -232,10 +232,23 @@ Play.prototype.gameLoop = function() {
                 continue;
             }
         } else if (hitObject.type == "slider") {
+
+
             // Handle scoring of slider ticks and reverses
             if ((hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined || hitObject.currentRepeat < hitObject.repeat) &&  audioCurrentTime >= hitObject.time) {
                 var completion = Math.min(hitObject.repeat, hitObject.timingInfo.sliderVelocity * (audioCurrentTime - hitObject.time) / hitObject.length);
                 var completionsToEval = [];
+
+                var sliderBallPos = GraphicUtil.getCoordFromCoordArray(hitObject.sliderPathPoints, MathUtil.reflect(completion));
+                var distToSliderBall = Math.hypot(sliderBallPos.x / pixelRatio - userPlayfieldCoords.x, sliderBallPos.y / pixelRatio - userPlayfieldCoords.y);
+
+                if (distToSliderBall <= csOsuPixel && inputData.isHolding && !hitObject.beingHeldDown) {
+                    hitObject.beingHeldDown = true;
+                    hitObject.letGoTime = null;
+                } else if ((distToSliderBall > csOsuPixel || !inputData.isHolding) && hitObject.beingHeldDown) {
+                    hitObject.beingHeldDown = false;
+                    hitObject.letGoTime = audioCurrentTime;
+                }
                 
                 while (completion >= hitObject.sliderTickCompletions[hitObject.currentSliderTick]) {
                     completionsToEval.push(hitObject.sliderTickCompletions[hitObject.currentSliderTick]);
@@ -249,12 +262,10 @@ Play.prototype.gameLoop = function() {
                 
                 for (var i = 0; i < completionsToEval.length; i++) {
                     var tickPosition = GraphicUtil.getCoordFromCoordArray(hitObject.sliderPathPoints, MathUtil.reflect(completionsToEval[i]));
-                    tickPosition.x /= pixelRatio;
-                    tickPosition.y /= pixelRatio;
                     
-                    var dist = Math.hypot(tickPosition.x - userPlayfieldCoords.x, tickPosition.y - userPlayfieldCoords.y);
+                    var dist = Math.hypot(tickPosition.x / pixelRatio - userPlayfieldCoords.x, tickPosition.y / pixelRatio - userPlayfieldCoords.y);
                     
-                    if (dist <= csOsuPixel && holding) {
+                    if (dist <= csOsuPixel && inputData.isHolding) {
                         if (completionsToEval[i] == hitObject.repeat) {
                             hitObject.scoring.end = true;
                         } else {
@@ -379,6 +390,42 @@ Play.prototype.gameLoop = function() {
 
     setTimeout(this.gameLoop.bind(this));
 };
+
+Play.prototype.registerClick = function() {
+    var userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
+
+    for (var id in this.onScreenHitObjects) {
+        var hitObject = this.onScreenHitObjects[id];
+
+        if (hitObject.hittable) {
+            var dist = Math.hypot(userPlayfieldCoords.x - hitObject.x, userPlayfieldCoords.y - hitObject.y);
+
+            if (dist <= csOsuPixel / 2) {
+                var timeDelta = Math.abs(audioCurrentTime - hitObject.time);
+                var score = TimingUtil.getScoreFromHitDelta(timeDelta);
+
+                if (score >= 50) {
+                    if (hitObject.type == "circle") {
+                        this.score.addScore(score, false);
+                    } else {
+                        this.score.addScore(30, true);
+                    }
+                    hitObject.hit(true);
+                } else {
+                    if (hitObject.type == "circle") {
+                        this.score.addScore(0, false, true);
+                    } else {
+                        this.score.addScore(0, true, true);
+                    }
+
+                    hitObject.hit(false);
+                }
+
+                break;
+            }
+        }
+    }
+}
 
 Play.prototype.applyStackShift = function() {
     var lastStackEnd = 0;

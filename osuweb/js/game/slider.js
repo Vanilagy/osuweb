@@ -21,6 +21,8 @@ function Slider(data) {
     this.lastPulseTime = -10e6;
     this.hittable = true;
     this.fadingOut = false;
+    this.beingHeldDown = true;
+    this.letGoTime = null;
 
     if(this.repeat % 2 == 0) {
         this.basePoint = this.startPoint;
@@ -412,26 +414,28 @@ Slider.prototype.draw = function() {
         // Draws slider ball and follow circle to additional canvas
         if (isMoving) {
             var sliderBallPos = GraphicUtil.getCoordFromCoordArray(this.sliderPathPoints, MathUtil.reflect(completion));
-            sliderBallCanvas.style.transform = "translate(" + (sliderBallPos.x - this.minX + halfCsPixel - maxFollowCircleRadius) + "px," + (sliderBallPos.y - this.minY + halfCsPixel - maxFollowCircleRadius) + "px)"; // transform is gazillions of times faster than absolute positioning
-            
-            sliderBallCtx.clearRect(0, 0, maxFollowCircleRadius * 2, maxFollowCircleRadius * 2);
-            
+            var fadeOutCompletion = Math.min(1, Math.max(0, (audioCurrentTime - this.letGoTime) / 200));
+            this.followCircleCanvas.style.transform = "translate(" + (sliderBallPos.x - this.minX + halfCsPixel - maxFollowCircleRadius) + "px," + (sliderBallPos.y - this.minY + halfCsPixel - maxFollowCircleRadius) + "px) scale(" + ((this.letGoTime == null) ? 1 : 1 + fadeOutCompletion * 0.4) + ")"; // transform is gazillions of times faster than absolute positioning
+            this.followCircleCanvas.style.opacity = (this.letGoTime == null) ? 1 : (1 - fadeOutCompletion);
+
             var colour = currentBeatmap.colours[this.comboInfo.comboNum % currentBeatmap.colours.length];
             var colourString = "rgb(" + colour.r + "," + colour.g + "," + colour.b + ")";
 
-            sliderBallCtx.beginPath();
-            sliderBallCtx.arc(maxFollowCircleRadius, maxFollowCircleRadius, sliderBodyRadius, 0, pi2);
-            sliderBallCtx.fillStyle = colourString;
-            sliderBallCtx.fill();
+            overlayCtx.beginPath();
+            overlayCtx.arc(sliderBallPos.x - this.minX + halfCsPixel, sliderBallPos.y - this.minY + halfCsPixel, sliderBodyRadius, 0, pi2);
+            overlayCtx.fillStyle = colourString;
+            overlayCtx.fill();
             
             var followCircleRadius = halfCsPixel * (
                 /* base */ 1
               + /* enlarge on start */ Math.min(1, (audioCurrentTime - this.time) / 100)
-              + /* pulse */ Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.18))
-              + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (audioCurrentTime - this.endTime) / 175))), 2) * 0.5
+              + ((this.letGoTime == null) ?
+                  /* pulse */ Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.18))
+              + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (audioCurrentTime - this.endTime) / 175))), 2) * 0.5 : 0)
             );
             var lineWidth = followCircleRadius * 0.1;
-            
+
+            sliderBallCtx.clearRect(0, 0, maxFollowCircleRadius * 2, maxFollowCircleRadius * 2);
             sliderBallCtx.beginPath();
             sliderBallCtx.arc(maxFollowCircleRadius, maxFollowCircleRadius, followCircleRadius - lineWidth / 2, 0, pi2);
             sliderBallCtx.strokeStyle = "white";
@@ -444,10 +448,10 @@ Slider.prototype.draw = function() {
         }
     };
     
-    var sliderBallCanvas = document.createElement("canvas");
-    sliderBallCanvas.setAttribute("width", maxFollowCircleRadius * 2);
-    sliderBallCanvas.setAttribute("height", maxFollowCircleRadius * 2);
-    var sliderBallCtx = sliderBallCanvas.getContext("2d");
+    this.followCircleCanvas = document.createElement("canvas");
+    this.followCircleCanvas.setAttribute("width", maxFollowCircleRadius * 2);
+    this.followCircleCanvas.setAttribute("height", maxFollowCircleRadius * 2);
+    var sliderBallCtx = this.followCircleCanvas.getContext("2d");
     
     function getLowestTickCompletionFromCurrentRepeat(completion) {
         var currentRepeat = Math.floor(completion);
@@ -485,5 +489,5 @@ Slider.prototype.draw = function() {
 
     this.containerDiv.appendChild(overlay);
     this.containerDiv.appendChild(this.sliderHeadContainer);
-    this.containerDiv.appendChild(sliderBallCanvas);
+    this.containerDiv.appendChild(this.followCircleCanvas);
 };

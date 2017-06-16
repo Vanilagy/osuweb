@@ -21,6 +21,18 @@ var TimingUtil = {
         }
         return 0;
     },
+    getMaxHitDeltaFromScore: function(score) {
+        var OD = currentPplay.beatmap.OD;
+        
+        if (score == 50) {
+            return 199.5 - 10 * OD;
+        } else if (score == 100) {
+            return 139.5 - 8 * OD;
+        } else if (score == 300) {
+            return 79.5 - 6 * OD;
+        }
+        return null;
+    },
     interval: function(duration, fn, baseline){
         this.baseline = baseline;
 

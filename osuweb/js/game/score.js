@@ -14,7 +14,7 @@ function Score(beatmap) {
         50: 0,
         0: 0
     }
-    
+
     this.totalNumberOfHits = 0;
     this.totalValueOfHits = 0;
     
@@ -67,12 +67,12 @@ Score.prototype.break = function() {
 
 Score.prototype.updateDisplay = function() {
     if (this.score != this.prevScore) {
-        interpolate(this.prevScore, this.score, 150, "easeOut", function(x) {
+        GraphicUtil.interpolate(this.prevScore, this.score, 150, "easeOut", function(x) {
             currentScene.scoreDisplay.innerHTML = ("00000000" + Math.floor(x)).slice(-8);
         }, "scoreIncreaseAnimation");
     }
     if (this.accuracy != this.prevAccuracy) {
-        interpolate(this.prevAccuracy, this.accuracy, 150, "easeOut", function(x) {
+        GraphicUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOut", function(x) {
             currentScene.accuracyDisplay.innerHTML = (Math.floor(x * 10000) / 100).toFixed(2) + "%";
         }, "accuracyChangeAnimation");
     }

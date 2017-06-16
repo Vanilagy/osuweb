@@ -173,6 +173,7 @@
                 width: 100%;
                 height: 100%;
                 position: relative;
+                display: none;
             }
         </style>
     </head>
@@ -197,7 +198,6 @@
         <!--<div id="foreground"><div id="loading">LOADING</div></div>-->
         
         <script src="js/lib/jszip.min.js"></script>
-        <script src="js/lib/miscLibs.js"></script>
 
         <script src="js/main.js"></script>
         <script src="js/audio.js"></script>
@@ -331,6 +331,7 @@
 
                     currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
                         new Play(currentBeatmap, currentAudio);
+                        ingameContainer.style.display = "block";
                         currentScene.objectContainerDiv.style.display = "block";
                         currentScene.playareaDiv.style.display = "block";
                         currentPlay.start();

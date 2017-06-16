@@ -7,81 +7,51 @@ var InputUtil = {
     },
     getUserPlayfieldCoords: function() {
         return {
-            x: (mouseX - playareaBoundingRectLeft) / pixelRatio - currentPlay.marginWidth,
-            y: (mouseY - playareaBoundingRectTop) / pixelRatio - currentPlay.marginHeight
+            x: (inputData.mouseX - playareaBoundingRectLeft) / pixelRatio - currentPlay.marginWidth,
+            y: (inputData.mouseY - playareaBoundingRectTop) / pixelRatio - currentPlay.marginHeight
         }
     }
-}
-
-var mouseX = Math.round(document.width / 2), mouseY = Math.round(document.height / 2);
-
-document.addEventListener("mousemove", function(event) {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-});
-
-var inputButtonStates = {
-    m1: false,
-    m2: false,
-    k1: false,
-    k2: false
 };
-var holding = false;
+
+var inputData = {
+    mouseX: Math.round(document.width / 2),
+    mouseY: Math.round(document.height / 2),
+    inputButtonStates: {
+        m1: false,
+        m2: false,
+        k1: false,
+        k2: false
+    },
+    isHolding: false
+};
 
 var keyCodeBindings = {
     88: "k1",
     89: "k2"
-}
+};
+
+document.addEventListener("mousemove", function(event) {
+    inputData.mouseX = event.clientX;
+    inputData.mouseY = event.clientY;
+});
 
 function press() {
     if (currentPlay) {
-        var userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
-        
-        for (var id in currentPlay.onScreenHitObjects) {
-            var hitObject = currentPlay.onScreenHitObjects[id];
-            
-            if (hitObject.hittable) {
-                var dist = Math.hypot(userPlayfieldCoords.x - hitObject.x, userPlayfieldCoords.y - hitObject.y);
-                
-                if (dist <= csOsuPixel / 2) {
-                    var timeDelta = Math.abs(audioCurrentTime - hitObject.time);
-                    var score = TimingUtil.getScoreFromHitDelta(timeDelta);
-                    
-                    if (score >= 50) {
-                        if (hitObject.type == "circle") {
-                            currentPlay.score.addScore(score, false);
-                        } else {
-                            currentPlay.score.addScore(30, true);
-                        }
-                        hitObject.hit(true);
-                    } else {
-                        if (hitObject.type == "circle") {
-                            currentPlay.score.addScore(0, false, true);
-                        } else {
-                            currentPlay.score.addScore(0, true, true);
-                        }
-                        
-                        hitObject.hit(false);
-                    }
-                    
-                    break;
-                }
-            }
-        }
+        currentPlay.registerClick();
     }
 }
 
 function updateHoldingState() {
-    holding = inputButtonStates["m1"] || inputButtonStates["m2"] || inputButtonStates["k1"] || inputButtonStates["m2"];
+    inputData.isHolding = inputData.inputButtonStates["m1"] || inputData.inputButtonStates["m2"] || inputData.inputButtonStates["k1"] || inputData.inputButtonStates["m2"];
 }
 
 function changeMouseButtonState(isLeft, bool) {
     var newPress = false;
-    if (isLeft && inputButtonStates["k1"] == false && inputButtonStates["m1"] != bool) {
-        inputButtonStates["m1"] = bool;
+    if (isLeft && inputData.inputButtonStates["k1"] == false && inputData.inputButtonStates["m1"] != bool) {
+        inputData.inputButtonStates["m1"] = bool;
         newPress = true;
-    } else if (!isLeft && inputButtonStates["k2"] == false && inputButtonStates["m1"] != false) {
-        inputButtonStates["m2"] = bool;
+    } else if (!isLeft && inputData.inputButtonStates["k2"] == false && inputData.inputButtonStates["m1"] != false) {
+        inputData.inputButtonStates["m2"] = bool;
         newPress = true;
     }
     
@@ -92,11 +62,11 @@ function changeMouseButtonState(isLeft, bool) {
 }
 function changeKeyButtonState(keycode, bool) {
     var newPress = false;
-    if (keyCodeBindings[keycode] == "k1" && inputButtonStates["m1"] == false && inputButtonStates["k1"] != bool) {
-        inputButtonStates["k1"] = bool;
+    if (keyCodeBindings[keycode] == "k1" && inputData.inputButtonStates["m1"] == false && inputData.inputButtonStates["k1"] != bool) {
+        inputData.inputButtonStates["k1"] = bool;
         newPress = true;
-    } else if (keyCodeBindings[keycode] == "k2" && inputButtonStates["m2"] == false && inputButtonStates["k2"] != bool) {
-        inputButtonStates["k2"] = bool;
+    } else if (keyCodeBindings[keycode] == "k2" && inputData.inputButtonStates["m2"] == false && inputData.inputButtonStates["k2"] != bool) {
+        inputData.inputButtonStates["k2"] = bool;
         newPress = true;
     }
     
