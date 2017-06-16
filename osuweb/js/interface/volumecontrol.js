@@ -74,7 +74,7 @@ function VolumeControl() {
         requestAnimationFrame(this.animationLoop);
     }).bind(this);
 
-    requestAnimationFrame(this.animationLoop);
+    //requestAnimationFrame(this.animationLoop);
 
     this.animateMaster = function(value) {
         this.targetMaster += value;
