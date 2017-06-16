@@ -90,5 +90,5 @@ Audio.prototype.setVolume = function(value) {
 }
 
 Audio.prototype.onError = function(err) {
-
+    console.log(this.buffer);
 };

@@ -1,312 +1,350 @@
 <html>
-    <head>
-        <title>Playarea</title>
-        <meta charset="utf-8">
-        <style>
-            html,body {
-                width: 100%;
-                height: 100%;
-                margin: 0;
-            }
-            body {
-                background: black;
-                overflow: /*fucking*/ hidden;
-            }
-            #playarea {
-                width: 512px;
-                height: 392px;
-                border: 1px solid gray;
-                margin: auto;
-                position: absolute;
-                bottom: 1%;
-                left: 0;
-                right: 0;
-                display: none;
-                z-index: 100;
-            }
-            #objectContainer {
-                position: relative;
-                width: 100%;
-                height: 100%;
-                display: none;
-            }
-            #background {
-                width: 100%;
-                height: 100%;
-                position:absolute;
-                left:0px;
-                top:0px;
-                pointer-events: none;
-                z-index: -300;
-                background-image: url("./img/background.jpg");
-                background-size: cover;
-            }
-            #foreground {
-                width: 100%;
-                height: 100%;
-                position:absolute;
-                left:0px;
-                top:0px;
-                z-index: 10000000;
-                background-color: black;
-                transition: opacity 1s linear;
-            }
-            #loading {
-                position:absolute;
-                left: 50%;
-                top: 50%;
-                z-index: 10000001;
+<head>
+    <title>Playarea</title>
+    <meta charset="utf-8">
+    <style>
+        html,body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+        body {
+            background: black;
+            overflow: /*fucking*/ hidden;
+        }
+        #playarea {
+            width: 512px;
+            height: 392px;
+            /*border: 1px solid gray;*/
+            margin: auto;
+            position: absolute;
+            bottom: 1%;
+            left: 0;
+            right: 0;
+            display: none;
+            z-index: 100;
+        }
+        #objectContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+        #background {
+            width: 100%;
+            height: 100%;
+            position:absolute;
+            left:0px;
+            top:0px;
+            pointer-events: none;
+            z-index: -300;
+            background-image: url("./img/background.jpg");
+            background-size: cover;
+        }
+        #foreground {
+            width: 100%;
+            height: 100%;
+            position:absolute;
+            left:0px;
+            top:0px;
+            z-index: 10000000;
+            background-color: black;
+            transition: opacity 1s linear;
+        }
+        #loading {
+            position:absolute;
+            left: 50%;
+            top: 50%;
+            z-index: 10000001;
 
-                color: white;
-                text-shadow: #5CF 0 0 25px;
-                font-family: "Calibri";
-                font-size: 5vmax;
-                letter-spacing: 15px;
+            color: white;
+            text-shadow: #5CF 0 0 25px;
+            font-family: "Calibri";
+            font-size: 5vmax;
+            letter-spacing: 15px;
 
-                transform: translate(-50%, -50%) scale(1, 0);
-                -webkit-transform: translate(-50%, -50%) scale(1, 0);
-                -moz-transform: translate(-50%, -50%) scale(1, 0);
-                -ms-transform: translate(-50%, -50%) scale(1, 0);
-                -o-transform: translate(-50%, -50%) scale(1, 0);
+            transform: translate(-50%, -50%) scale(1, 0);
+            -webkit-transform: translate(-50%, -50%) scale(1, 0);
+            -moz-transform: translate(-50%, -50%) scale(1, 0);
+            -ms-transform: translate(-50%, -50%) scale(1, 0);
+            -o-transform: translate(-50%, -50%) scale(1, 0);
 
-                transition: transform 0.4s ease-out, letter-spacing 10s ease-out, opacity 1s linear;
-            }
-            #background-dim {
-                width: 100%;
-                height: 100%;
-                position:absolute;
-                left:0px;
-                top:0px;
-                z-index: -200;
-                opacity: 0;
-                transition: opacity 1s;
-                background-color: black;
-                pointer-events: none;
-            }
-            #osuweb {
-                width: 100%;
-                height: 100%;
-                position:absolute;
-                left:0px;
-                top:0px;
-                pointer-events: none;
-                z-index: -100;
-            }
-            #container {
-                width: 100%;
-                height: 100%;
-                position:absolute;
-                left:0px;
-                top:0px;
-            }
-            .hitCircleContainer {
-                position: absolute;
-            }
-            .hitCircleContainer canvas {
-                position: absolute;
-                top: 0px;
-                left: 0px;
-            }
-            .sliderContainer {
-                position: absolute;
-            }
-            .sliderContainer > canvas {
-                position: absolute;
-                top: 0px;
-                left: 0px;
-            }
-            @keyframes closeApproachCircle {
-                from {transform: scale(3.5);}
-                to {transform: scale(1);}
-            }
-            @keyframes destroyHitCircle {
-                from {transform: scale(1); opacity: 1;}
-                to {transform: scale(1.4); opacity: 0;}
-            }
-            @keyframes sliderFadeOut {
-                from {opacity: 1;}
-                to {opacity: 0;}
-            }
-            .followPoint {
-                position: absolute;
-                opacity: 0.7;
-            }
-        </style>
-    </head>
-    <body>
-        <div id="background"></div>
-        <div id="background-dim"></div>
-        <canvas id="osuweb"></canvas>
-        <div id="container">
-            <input type="file" id="beatmap" webkitdirectory multiple>
-        </div>
-        </div><div id="playarea">
-            <div id="objectContainer"></div>
-        </div>
-        <div id="foreground"><div id="loading">LOADING</div></div>
-        
-        <script src="js/lib/jszip.min.js"></script>
+            transition: transform 0.4s ease-out, letter-spacing 10s ease-out, opacity 1s linear;
+        }
+        #background-dim {
+            width: 100%;
+            height: 100%;
+            position:absolute;
+            left:0px;
+            top:0px;
+            z-index: -200;
+            opacity: 0;
+            transition: opacity 1s;
+            background-color: black;
+            pointer-events: none;
+        }
+        #osuweb {
+            width: 100%;
+            height: 100%;
+            position:absolute;
+            left:0px;
+            top:0px;
+            pointer-events: none;
+            z-index: -100;
+        }
+        #container {
+            width: 100%;
+            height: 100%;
+            position:absolute;
+            left:0px;
+            top:0px;
+        }
+        .hitCircleContainer {
+            position: absolute;
+        }
+        .hitCircleContainer canvas {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+        }
+        .sliderContainer {
+            position: absolute;
+        }
+        .sliderContainer > canvas {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+        }
+        @keyframes closeApproachCircle {
+            from {transform: scale(4);}
+            to {transform: scale(1);}
+        }
+        @keyframes destroyHitCircle {
+            from {transform: scale(1); opacity: 1;}
+            to {transform: scale(1.4); opacity: 0;}
+        }
+        @keyframes fadeOut {
+            from {opacity: 1;}
+            to {opacity: 0;}
+        }
+        @keyframes pulseCombo {
+            from {transform: scale(1.45);}
+            to {transform: scale(1);}
+        }
+        .followPoint {
+            position: absolute;
+            opacity: 0.9;
+        }
+        #scoreDisplay {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            text-align: right;
+            color: white;
+            text-shadow: 2px 2px 5px black;
+            font-family: monospace;
+            font-size: 50px;
+            margin: 0;
+        }
+        #accuracyDisplay {
+            position: absolute;
+            top: 50px;
+            right: 5px;
+            text-align: right;
+            color: white;
+            text-shadow: 2px 2px 5px black;
+            font-family: monospace;
+            font-size: 30px;
+            margin: 0;
+        }
+        #comboDisplay {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            text-align: left;
+            color: white;
+            text-shadow: 2px 2px 5px black;
+            font-family: monospace;
+            font-size: 50px;
+            margin: 0;
+            transform-origin: 0% 100%
+        }
+        #ingameContainer {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+<div id="background"></div>
+<div id="background-dim"></div>
+<canvas id="osuweb"></canvas>
 
-        <script src="js/main.js"></script>
-        <script src="js/audio.js"></script>
+<section id="ingameContainer">
+    <p id="scoreDisplay">00000000</p>
+    <p id="accuracyDisplay">100.00%</p>
+    <p id="comboDisplay">0x</p>
+    </div><div id="playarea">
+    <div id="objectContainer"></div>
+</div>
+</section>
 
-        <script src="js/datamodel/beatmap.js"></script>
-        <script src="js/datamodel/beatmapentry.js"></script>
-        <script src="js/datamodel/beatmapset.js"></script>
-        <script src="js/datamodel/beatmapsetentry.js"></script>
-        <script src="js/datamodel/database.js"></script>
-        <script src="js/datamodel/skin.js"></script>
+<div id="container">
+    <input type="file" id="beatmap" webkitdirectory multiple>
+</div>
 
-        <script src="js/game/play.js"></script>
-        <script src="js/game/followpoint.js"></script>
-        <script src="js/game/hitobject.js"></script>
-        <script src="js/game/circle.js"></script>
-        <script src="js/game/slider.js"></script>
-        <script src="js/game/scenes/scenebase.js"></script>
-        <script src="js/game/scenes/sceneloading.js"></script>
-        <script src="js/game/scenes/scenemenu.js"></script>
-        <script src="js/game/scenes/scenegame.js"></script>
-        <script src="js/game/scenes/scenegameosu.js"></script>
+<div id="foreground">
+    <div id="loading">LOADING</div>
+</div>
 
-        <script src="js/interface/volumecontrol.js"></script>
+<script src="js/lib/jszip.min.js"></script>
+<script src="js/lib/jszip-utils.min.js"></script>
+<script src="js/lib/miscLibs.js"></script>
 
-        <script src="js/util/fileutil.js"></script>
-        <script src="js/util/graphicutil.js"></script>
-        <script src="js/util/mathutil.js"></script>
-        <script src="js/util/timingutil.js"></script>
+<script src="js/main.js"></script>
+<script src="js/audio.js"></script>
 
-        <script>
-            window.onload = function() {
-                var data = localStorage.getItem("settings");
-                if(data != null) {
-                    this.settingsData = JSON.parse(data);
-                }
+<script src="js/datamodel/beatmap.js"></script>
+<script src="js/datamodel/beatmapentry.js"></script>
+<script src="js/datamodel/beatmapset.js"></script>
+<script src="js/datamodel/beatmapsetentry.js"></script>
+<script src="js/datamodel/database.js"></script>
+<script src="js/datamodel/skin.js"></script>
 
-                // No initialization because loading is the base
-                currentScene = new SceneLoading();
+<script src="js/game/play.js"></script>
+<script src="js/game/score.js"></script>
+<script src="js/game/followpoint.js"></script>
+<script src="js/game/hitobject.js"></script>
+<script src="js/game/circle.js"></script>
+<script src="js/game/slider.js"></script>
+<script src="js/game/scenes/scenebase.js"></script>
+<script src="js/game/scenes/sceneloading.js"></script>
+<script src="js/game/scenes/scenemenu.js"></script>
+<script src="js/game/scenes/scenegame.js"></script>
+<script src="js/game/scenes/scenegameosu.js"></script>
 
-                window.onresize();
+<script src="js/interface/volumecontrol.js"></script>
 
-                currentScene.loadingDiv.style.transform = "translate(-50%, -50%) scale(1, 1)";
-                currentScene.loadingDiv.style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
-                currentScene.loadingDiv.style.oTransform = "translate(-50%, -50%) scale(1, 1)";
-                currentScene.loadingDiv.style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
-                currentScene.loadingDiv.style.msTransform = "translate(-50%, -50%) scale(1, 1)";
+<script src="js/util/fileutil.js"></script>
+<script src="js/util/graphicutil.js"></script>
+<script src="js/util/mathutil.js"></script>
+<script src="js/util/timingutil.js"></script>
+<script src="js/util/inpututil.js"></script>
 
-                currentScene.loadingDiv.style.letterSpacing = "25px";
+<script>
+    window.onload = function() {
+        // No initialization because loading is the base
+        currentScene = new SceneLoading();
 
-                var loading = 2;
-                var timePassed = false;
+        window.onresize();
 
-                var onFinish = function() {
-                    loading--;
-                    if(timePassed && loading <= 0) finishLoading();
-                };
+        currentScene.loadingDiv.style.transform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.loadingDiv.style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.loadingDiv.style.oTransform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.loadingDiv.style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.loadingDiv.style.msTransform = "translate(-50%, -50%) scale(1, 1)";
 
-                setTimeout(function() {if(loading <= 0) finishLoading(); else timePassed = true;}, 2000);
+        currentScene.loadingDiv.style.letterSpacing = "25px";
 
-                FileUtil.loadAudioFromURL("./audio/welcome.wav", function (audio) {
-                    defaultSkinElements["welcome"] = audio;
-                }, onFinish, true);
-                FileUtil.loadAudioFromURL("./audio/circles.mp3", function (audio) {
-                    currentAudio = audio;
-                }, onFinish, true);
-            };
+        var timePassed = false;
+        var audioLoad = false;
+        var skinLoad = false;
 
-            window.onresize = function() {
-                var ctx = currentScene.osuwebCanvas.getContext("2d");
+        setTimeout(function() {if(skinLoad && audioLoad) finishLoading(); else timePassed = true;}, 2000);
 
-                ctx.canvas.width  = window.innerWidth;
-                ctx.canvas.height = window.innerHeight;
-            }
+        defaultSkin = new Skin("./assets/default.osk", function() {if(timePassed && audioLoad) finishLoading(); else skinLoad = true});
 
-            function finishLoading() {
+        FileUtil.loadAudioFromURL("./audio/circles.mp3", function(audio) {
+            currentAudio = audio;
+        }, function() {
+            if(timePassed && skinLoad) finishLoading(); else audioLoad = true
+        });
+    };
+
+    window.onresize = function() {
+        var ctx = currentScene.osuwebCanvas.getContext("2d");
+
+        ctx.canvas.width  = window.innerWidth;
+        ctx.canvas.height = window.innerHeight;
+    }
+
+    function finishLoading() {
+        currentScene.loadingDiv.style.opacity = 0;
+
+        setTimeout(function() {
+            currentScene.loadingDiv.style.transition = "opacity 1s linear";
+            currentScene.loadingDiv.innerHTML = "WELCOME";
+            currentScene.loadingDiv.style.opacity = 1;
+            defaultSkin.skinElements["welcome"].playAudio(0);
+
+            setTimeout(function () {
                 currentScene.loadingDiv.style.opacity = 0;
+                currentScene.foregroundDiv.style.opacity = 0;
 
-                setTimeout(function() {
-                    currentScene.loadingDiv.style.transition = "opacity 1s linear";
-                    currentScene.loadingDiv.innerHTML = "WELCOME";
-                    currentScene.loadingDiv.style.opacity = 1;
-                    defaultSkinElements["welcome"].playAudio(0);
+                setTimeout(function () {
+                    currentScene.loadingDiv.style.display = "none";
+                    currentScene.foregroundDiv.style.display = "none";
+                    currentAudio.playAudioFromOffsetWithLoop(0, 0, 0, currentAudio.buffer.duration);
+                }, 1000)
+            }, 2000)
+        }, 1100);
+    }
 
-                    setTimeout(function () {
-                        currentScene.loadingDiv.style.opacity = 0;
-                        currentScene.foregroundDiv.style.opacity = 0;
+    document.getElementById("container").addEventListener("wheel", function(e) {
+       settings.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
+    });
 
-                        setTimeout(function () {
-                            currentScene.loadingDiv.style.display = "none";
-                            currentScene.foregroundDiv.style.display = "none";
-                            currentAudio.playAudioFromOffsetWithLoop(0, 0, 0, currentAudio.buffer.duration);
-                        }, 1000)
-                    }, 2000)
-                }, 1100);
+    document.getElementById("container").ondragenter = function(e) {
+       e.preventDefault();
+    };
+
+    document.getElementById("container").ondragover = function(e) {
+       e.preventDefault();
+    };
+
+    document.getElementById("container").ondrop = function(e) {
+        e.preventDefault();
+        var length = e.dataTransfer.items.length;
+        for (var i = 0; i < length; i++) {
+            var entry = e.dataTransfer.items[i].webkitGetAsEntry();
+            if (entry.isFile) {
+               console.log(entry);
+            } else if (entry.isDirectory) {
+               database = new Database(entry);
             }
+        }
+    };
 
-            document.getElementById("container").addEventListener("wheel", function(e) {
-                settings.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
+    document.getElementById("beatmap").addEventListener("change", function(e) {
+        currentScene = new SceneGameOsu();
+
+        new BeatmapSet(e.target.files, function(beatmapset) {
+            currentBeatmapSet = beatmapset;
+            document.getElementById("beatmap").style.visibility = "hidden";
+
+            var keys = [];
+            for (var key in currentBeatmapSet.difficulties) {
+                keys.push(key);
+            }
+            currentAudio.stop();
+
+            currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
+                new Play(currentBeatmap, currentAudio);
+                currentScene.objectContainerDiv.style.display = "block";
+                currentScene.playareaDiv.style.display = "block";
+                currentPlay.start();
             });
+        });
+    });
 
-            document.getElementById("container").ondragenter = function(e) {
-                e.preventDefault();
-            }
-
-            document.getElementById("container").ondragover = function(e) {
-                e.preventDefault();
-            }
-
-            document.getElementById("container").ondrop = function(e) {
-                e.preventDefault();
-                var length = e.dataTransfer.items.length;
-                for (var i = 0; i < length; i++) {
-                    var entry = e.dataTransfer.items[i].webkitGetAsEntry();
-                    if (entry.isFile) {
-                        if(entry.name.endsWith(".osz")) {
-                            entry.file(function(file) {
-                                startMap(file);
-                            });
-                        }
-                        else if(entry.name.endsWith(".osk")) {
-
-                        }
-                    } else if (entry.isDirectory) {
-                        database = new Database(entry);
-                    }
-                }
-            };
-
-            document.getElementById("beatmap").addEventListener("change", function(e) {
-                startMap(e.target.files);
-            });
-
-            function startMap(oszOrFiles) {
-                currentScene = new SceneGameOsu();
-
-                new BeatmapSet(oszOrFiles, function(beatmapset) {
-                    currentBeatmapSet = beatmapset;
-                    document.getElementById("beatmap").style.visibility = "hidden";
-
-                    var keys = [];
-                    for (var key in currentBeatmapSet.difficulties) {
-                        keys.push(key);
-                    }
-                    currentAudio.stop();
-
-                    currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
-                        new Play(currentBeatmap, currentAudio);
-                        currentScene.objectContainerDiv.style.display = "inline";
-                        currentScene.playareaCanvas.style.display = "inline";
-                        currentPlay.start();
-                    });
-                });
-            }
-
-            var timeSinceLastBitch = window.performance.now();
-            function derp() {
-                var now = window.performance.now();
-                console.log(now - timeSinceLastBitch);
-                timeSinceLastBitch = now;
-                setTimeout(derp);
-            }
-        </script>
-    </body>
+    var timeSinceLastBitch = window.performance.now();
+    function derp() {
+        var now = window.performance.now();
+        console.log(now - timeSinceLastBitch);
+        timeSinceLastBitch = now;
+        setTimeout(derp);
+    }
+</script>
+</body>
 </html>

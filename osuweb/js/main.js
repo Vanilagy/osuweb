@@ -13,7 +13,7 @@ var settingsData = {
     music: 0.8,
     sound: 0.8,
     master: 0.8
-}
+};
 
 var settings = {
     setMaster: function(value) {
@@ -37,7 +37,7 @@ var settings = {
 
 var database = null;
 
-var defaultSkinElements = {};
+var defaultSkin = null;
 
 var currentBeatmapSet = null;
 var currentBeatmap = null;
