@@ -57,21 +57,21 @@ function Database(directoryEntry) {
             var beatmapSetEntry = new BeatmapSetEntry(files, (function() {
                 this.finishedBeatmapSetEntrys++;
                 console.log(this.finishedBeatmapSetEntrys + " (time passed: "+(window.performance.now()-this.startTime)+")");
-                processesRunning--;
+                this.processesRunning--;
             }).bind(this))
 
             if(beatmapSetEntry[dirName] == undefined) this.beatmapSetEntrys[dirName] = beatmapSetEntry;
         }
         else if(this.isSkin(files)) {
             this.skinEntrys.push(new SkinEntry(files));
-            processesRunning--;
+            this.processesRunning--;
         }
         else {
             for(var i = 0; i < directories.length; i++) {
                 var dirReader = directories[i].createReader();
                 dirReader.readEntries(this.directoryCallback.bind(this, dirReader, [], directories[i].name));
             }
-            processesRunning--;
+            this.processesRunning--;
         }
     };
 

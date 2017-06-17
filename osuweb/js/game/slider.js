@@ -33,11 +33,14 @@ function Slider(data) {
     }
 }
 
+Slider.prototype = Object.create(HitObject.prototype);
+Slider.prototype.constructor = Slider;
+
 Slider.prototype.append = function() {
-    objectContainerDiv.appendChild(this.containerDiv);
+    currentScene.elements["objectContainerDiv"].appendChild(this.containerDiv);
 };
 Slider.prototype.remove = function() {
-    objectContainerDiv.removeChild(this.containerDiv);
+    currentScene.elements["objectContainerDiv"].removeChild(this.containerDiv);
 };
 
 Slider.prototype.show = function(offset) {

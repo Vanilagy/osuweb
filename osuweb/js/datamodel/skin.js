@@ -25,7 +25,7 @@ Skin.prototype.loadOSK = function(zip) {
         // Get our keyname from filename
         let rawFileName = key.replace(/\.[^/.]+$/, "");
         // Determine how to read this entry
-        var output = "string";
+        let output = "string";
         if(key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) output = "arraybuffer";
         if(key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) output = "base64";
         zip.file(key).async(output).then((function(result) {

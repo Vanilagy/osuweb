@@ -1,6 +1,6 @@
-function SceneMenu() {
+function SceneSongSelect() {
     SceneBase.call(this);
 }
 
-SceneMenu.prototype = Object.create(SceneBase.prototype);
-SceneMenu.prototype.constructor = SceneMenu;
+SceneSongSelect.prototype = Object.create(SceneBase.prototype);
+SceneSongSelect.prototype.constructor = SceneSongSelect;

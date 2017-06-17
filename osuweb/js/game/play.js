@@ -17,12 +17,12 @@ function Play(beatmap, audio) {
 
     this.playAreaHeight = Math.floor(window.innerHeight * 0.95 / 4) * 4;
     this.playAreaWidth = this.playAreaHeight / GraphicUtil.widthToHeightRatio;
-    currentScene.playareaDiv.style.height = this.playAreaHeight;
-    currentScene.playareaDiv.style.width = this.playAreaWidth;
+    currentScene.elements["playareaDiv"].style.height = this.playAreaHeight;
+    currentScene.elements["playareaDiv"].style.width = this.playAreaWidth;
     
     setTimeout(function() {
-        playareaBoundingRectLeft = playareaDiv.getBoundingClientRect().left;
-        playareaBoundingRectTop = playareaDiv.getBoundingClientRect().top;
+        playareaBoundingRectLeft = currentScene.elements["playareaDiv"].getBoundingClientRect().left;
+        playareaBoundingRectTop = currentScene.elements["playareaDiv"].getBoundingClientRect().top;
     });
 
     pixelRatio = this.playAreaWidth / GraphicUtil.playAreaDimensions.x;

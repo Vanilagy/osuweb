@@ -4,7 +4,9 @@
     <meta charset="utf-8">
     <style>
         html,body {
+            min-width: 100%;
             width: 100%;
+            min-height: 100%;
             height: 100%;
             margin: 0;
         }
@@ -70,6 +72,17 @@
             -o-transform: translate(-50%, -50%) scale(1, 0);
 
             transition: transform 0.4s ease-out, letter-spacing 10s ease-out, opacity 1s linear;
+        }
+        #songselect {
+            position:absolute;
+            left: 50%;
+            top: 50%;
+
+            transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
         }
         #background-dim {
             width: 100%;
@@ -145,6 +158,7 @@
             font-family: monospace;
             font-size: 50px;
             margin: 0;
+            display: none;
         }
         #accuracyDisplay {
             position: absolute;
@@ -156,6 +170,7 @@
             font-family: monospace;
             font-size: 30px;
             margin: 0;
+            display: none;
         }
         #comboDisplay {
             position: absolute;
@@ -168,11 +183,13 @@
             font-size: 50px;
             margin: 0;
             transform-origin: 0% 100%
+            display: none;
         }
         #ingameContainer {
             width: 100%;
             height: 100%;
             position: relative;
+            display: none;
         }
     </style>
 </head>
@@ -185,13 +202,21 @@
     <p id="scoreDisplay">00000000</p>
     <p id="accuracyDisplay">100.00%</p>
     <p id="comboDisplay">0x</p>
-    </div><div id="playarea">
-    <div id="objectContainer"></div>
-</div>
+    <div id="playarea">
+        <div id="objectContainer"></div>
+    </div>
 </section>
 
 <div id="container">
-    <input type="file" id="beatmap" webkitdirectory multiple>
+    <!------------ MENU ------------->
+    <input type="button" id="songselect" value="osu!" onclick="startSongSelect()">
+    <!-------- SONG SELECT ---------->
+    <div id ="topbar"></div>
+    <div id ="bottombar"></div>
+    <div id ="scoreboard"></div>
+    <div id ="songpanels"></div>
+    <div id ="searchbar"></div>
+    <!--<input type="file" id="beatmap" webkitdirectory multiple>-->
 </div>
 
 <div id="foreground">
@@ -239,13 +264,13 @@
 
         window.onresize();
 
-        currentScene.loadingDiv.style.transform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.loadingDiv.style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.loadingDiv.style.oTransform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.loadingDiv.style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.loadingDiv.style.msTransform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.elements["loadingDiv"].style.transform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.elements["loadingDiv"].style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.elements["loadingDiv"].style.oTransform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.elements["loadingDiv"].style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
+        currentScene.elements["loadingDiv"].style.msTransform = "translate(-50%, -50%) scale(1, 1)";
 
-        currentScene.loadingDiv.style.letterSpacing = "25px";
+        currentScene.elements["loadingDiv"].style.letterSpacing = "25px";
 
         var timePassed = false;
         var audioLoad = false;
@@ -263,32 +288,46 @@
     };
 
     window.onresize = function() {
-        var ctx = currentScene.osuwebCanvas.getContext("2d");
+        var ctx = currentScene.elements["osuwebCanvas"].getContext("2d");
 
         ctx.canvas.width  = window.innerWidth;
         ctx.canvas.height = window.innerHeight;
     }
 
     function finishLoading() {
-        currentScene.loadingDiv.style.opacity = 0;
+        var i = new Image();
+
+        i.onload = function() {
+            document.getElementsByTagName("html")[0].style.cursor = 'url(data:image/png;base64,'+defaultSkin.skinElements["cursor"]+') '+Math.round(i.width / 2)+' '+Math.round(i.height / 2)+', auto';
+        };
+
+        i.src = 'data:image/png;base64,'+defaultSkin.skinElements["cursor"];
+
+        currentScene.elements["loadingDiv"].style.opacity = 0;
 
         setTimeout(function() {
-            currentScene.loadingDiv.style.transition = "opacity 1s linear";
-            currentScene.loadingDiv.innerHTML = "WELCOME";
-            currentScene.loadingDiv.style.opacity = 1;
+            currentScene.elements["loadingDiv"].style.transition = "opacity 1s linear";
+            currentScene.elements["loadingDiv"].innerHTML = "WELCOME";
+            currentScene.elements["loadingDiv"].style.opacity = 1;
             defaultSkin.skinElements["welcome"].playAudio(0);
 
             setTimeout(function () {
-                currentScene.loadingDiv.style.opacity = 0;
-                currentScene.foregroundDiv.style.opacity = 0;
+                currentScene.elements["loadingDiv"].style.opacity = 0;
+                currentScene.elements["foregroundDiv"].style.opacity = 0;
 
                 setTimeout(function () {
-                    currentScene.loadingDiv.style.display = "none";
-                    currentScene.foregroundDiv.style.display = "none";
+                    currentScene.elements["loadingDiv"].style.display = "none";
+                    currentScene.elements["foregroundDiv"].style.display = "none";
                     currentAudio.playAudioFromOffsetWithLoop(0, 0, 0, currentAudio.buffer.duration);
                 }, 1000)
             }, 2000)
         }, 1100);
+    }
+
+    function startSongSelect() {
+        document.getElementById("songselect").style.display = "none";
+
+
     }
 
     document.getElementById("container").addEventListener("wheel", function(e) {
@@ -331,8 +370,8 @@
 
             currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
                 new Play(currentBeatmap, currentAudio);
-                currentScene.objectContainerDiv.style.display = "block";
-                currentScene.playareaDiv.style.display = "block";
+                currentScene.elements["objectContainerDiv"].style.display = "block";
+                currentScene.setElementVisibility(true);
                 currentPlay.start();
             });
         });
