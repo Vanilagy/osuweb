@@ -221,7 +221,7 @@ Play.prototype.gameLoop = function() {
             }
             // Fade out object when it has not been hit
             if (audioCurrentTime >= hitObject.time + (199.5 - 10 * currentPlay.beatmap.OD) && hitObject.hittable) {
-                this.score.addScore(0, false, true);
+                this.score.addScore(0, false, true, hitObject.basePoint);
                 hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
                 hitObject.hittable = false;
             }
@@ -239,7 +239,7 @@ Play.prototype.gameLoop = function() {
                 var completion = Math.min(hitObject.repeat, hitObject.timingInfo.sliderVelocity * (audioCurrentTime - hitObject.time) / hitObject.length);
                 var completionsToEval = [];
 
-                var sliderBallPos = GraphicUtil.getCoordFromCoordArray(hitObject.sliderPathPoints, MathUtil.reflect(completion));
+                /*var sliderBallPos = GraphicUtil.getCoordFromCoordArray(hitObject.sliderPathPoints, MathUtil.reflect(completion));
                 var distToSliderBall = Math.hypot(sliderBallPos.x / pixelRatio - userPlayfieldCoords.x, sliderBallPos.y / pixelRatio - userPlayfieldCoords.y);
 
                 if (distToSliderBall <= csOsuPixel && inputData.isHolding && !hitObject.beingHeldDown) {
@@ -248,7 +248,7 @@ Play.prototype.gameLoop = function() {
                 } else if ((distToSliderBall > csOsuPixel || !inputData.isHolding) && hitObject.beingHeldDown) {
                     hitObject.beingHeldDown = false;
                     hitObject.letGoTime = audioCurrentTime;
-                }
+                }*/
                 
                 while (completion >= hitObject.sliderTickCompletions[hitObject.currentSliderTick]) {
                     completionsToEval.push(hitObject.sliderTickCompletions[hitObject.currentSliderTick]);
@@ -406,14 +406,14 @@ Play.prototype.registerClick = function() {
 
                 if (score >= 50) {
                     if (hitObject.type == "circle") {
-                        this.score.addScore(score, false);
+                        this.score.addScore(score, false, false, hitObject.basePoint);
                     } else {
                         this.score.addScore(30, true);
                     }
                     hitObject.hit(true);
                 } else {
                     if (hitObject.type == "circle") {
-                        this.score.addScore(0, false, true);
+                        this.score.addScore(0, false, true, hitObject.basePoint);
                     } else {
                         this.score.addScore(0, true, true);
                     }

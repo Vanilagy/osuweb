@@ -1,3 +1,5 @@
+var cursorElement = document.getElementById("cursor");
+
 var InputUtil = {
     mouseXElement: function(mouseX, element) {
         return mouseX - element.getBoundingClientRect().left;
@@ -12,6 +14,28 @@ var InputUtil = {
         }
     }
 };
+
+document.addEventListener("mousemove", function(event) {
+    inputData.mouseX = event.clientX;
+    inputData.mouseY = event.clientY;
+    refreshCursor();
+});
+document.addEventListener("mousedown", function() {
+    changeMouseButtonState(true, true);
+});
+document.addEventListener("mouseup", function() {
+    changeMouseButtonState(true, false);
+});
+document.addEventListener("keydown", function(event) {
+    if (keyCodeBindings[event.keyCode]) {
+        changeKeyButtonState(event.keyCode, true);
+    }
+});
+document.addEventListener("keyup", function(event) {
+    if (keyCodeBindings[event.keyCode]) {
+        changeKeyButtonState(event.keyCode, false);
+    }
+});
 
 var inputData = {
     mouseX: Math.round(document.width / 2),
@@ -30,10 +54,9 @@ var keyCodeBindings = {
     89: "k2"
 };
 
-document.addEventListener("mousemove", function(event) {
-    inputData.mouseX = event.clientX;
-    inputData.mouseY = event.clientY;
-});
+function refreshCursor() {
+    cursorElement.style.transform = "translate(calc(" + inputData.mouseX + "px - 50%), calc(" + inputData.mouseY + "px - 50%))";
+}
 
 function press() {
     if (currentPlay) {
@@ -69,25 +92,9 @@ function changeKeyButtonState(keycode, bool) {
         inputData.inputButtonStates["k2"] = bool;
         newPress = true;
     }
-    
+
     updateHoldingState();
     if (newPress && bool) {
         press();
     }
 }
-document.addEventListener("mousedown", function() {
-    changeMouseButtonState(true, true);
-});
-document.addEventListener("mouseup", function() {
-    changeMouseButtonState(true, false);
-});
-document.addEventListener("keydown", function(event) {
-    if (keyCodeBindings[event.keyCode]) {
-        changeKeyButtonState(event.keyCode, true);
-    }
-});
-document.addEventListener("keyup", function(event) {
-    if (keyCodeBindings[event.keyCode]) {
-        changeKeyButtonState(event.keyCode, false);
-    }
-});

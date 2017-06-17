@@ -61,16 +61,17 @@ Slider.prototype.hit = function(success) {
 
 Slider.prototype.score = function() {
     var fraction = (((this.scoring.head) ? 1 : 0) + ((this.scoring.end) ? 1 : 0) + this.scoring.ticks) / (1 + this.repeat + this.sliderTickCompletions.length);
-    
-    if (fraction == 1) {
-        currentPlay.score.addScore(300, false, true);
-    } else if (fraction >= 0.5) {
-        currentPlay.score.addScore(100, false, true);
-    } else if (fraction > 0) {
-        currentPlay.score.addScore(50, false, true);
-    } else {
-        currentPlay.score.addScore(0, false, true);
-    }
+
+    currentPlay.score.addScore((function() {
+        if (fraction == 1) {
+            return 300;
+        } else if (fraction >= 0.5) {
+            return 100;
+        } else if (fraction > 0) {
+            return 50;
+        }
+        return 0;
+    })(), false, true, this.basePoint);
 }
 
 Slider.prototype.updateStackPosition = function() {
@@ -414,8 +415,8 @@ Slider.prototype.draw = function() {
         // Draws slider ball and follow circle to additional canvas
         if (isMoving) {
             var sliderBallPos = GraphicUtil.getCoordFromCoordArray(this.sliderPathPoints, MathUtil.reflect(completion));
-            var fadeOutCompletion = Math.min(1, Math.max(0, (audioCurrentTime - this.letGoTime) / 200));
-            this.followCircleCanvas.style.transform = "translate(" + (sliderBallPos.x - this.minX + halfCsPixel - maxFollowCircleRadius) + "px," + (sliderBallPos.y - this.minY + halfCsPixel - maxFollowCircleRadius) + "px) scale(" + ((this.letGoTime == null) ? 1 : 1 + fadeOutCompletion * 0.4) + ")"; // transform is gazillions of times faster than absolute positioning
+            var fadeOutCompletion = Math.min(1, Math.max(0, (audioCurrentTime - this.letGoTime) / 120));
+            this.followCircleCanvas.style.transform = "translate(" + (sliderBallPos.x - this.minX + halfCsPixel - maxFollowCircleRadius) + "px," + (sliderBallPos.y - this.minY + halfCsPixel - maxFollowCircleRadius) + "px) scale(" + ((this.letGoTime == null) ? 1 : 1 + fadeOutCompletion * 0.5) + ")"; // transform is gazillions of times faster than absolute positioning
             this.followCircleCanvas.style.opacity = (this.letGoTime == null) ? 1 : (1 - fadeOutCompletion);
 
             var colour = currentBeatmap.colours[this.comboInfo.comboNum % currentBeatmap.colours.length];
@@ -430,8 +431,11 @@ Slider.prototype.draw = function() {
                 /* base */ 1
               + /* enlarge on start */ Math.min(1, (audioCurrentTime - this.time) / 100)
               + ((this.letGoTime == null) ?
-                  /* pulse */ Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.18))
-              + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (audioCurrentTime - this.endTime) / 175))), 2) * 0.5 : 0)
+                    /* pulse */ Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.18))
+                  + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (audioCurrentTime - this.endTime) / 175))), 2) * 0.5
+                :
+                    0
+                )
             );
             var lineWidth = followCircleRadius * 0.1;
 

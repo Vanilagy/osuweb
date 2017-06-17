@@ -36,7 +36,7 @@ function Score(beatmap) {
     this.modMultiplier = 1;
 }
 
-Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrease) {
+Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrease, pos) {
     if (amount == 0) {
         this.break();
     } else {
@@ -56,14 +56,45 @@ Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrea
         this.hits[amount]++;
     }
     
-    this.accuracy = (this.totalNumberOfHits) ? this.totalValueOfHits / (this.totalNumberOfHits * 300) : 1 ;
-    
+    this.accuracy = (this.totalNumberOfHits) ? this.totalValueOfHits / (this.totalNumberOfHits * 300) : 1;
     this.updateDisplay();
-}
+    if (pos) {
+        this.createScorePopup(pos, amount);
+    }
+};
+
+Score.prototype.createScorePopup = function(pos, score) {
+    var popupElement = document.createElement("div");
+    popupElement.className = "scorePopup";
+    popupElement.style.left = (pos.x + currentPlay.marginWidth) * pixelRatio + "px";
+    popupElement.style.top = (pos.y + currentPlay.marginHeight) * pixelRatio + "px";
+    popupElement.style.fontSize = csPixel * 0.32 + "px";
+    popupElement.style.animation = "1s scorePopup linear forwards";
+    var color = (function() {
+        if (score == 300) {
+            return "#38b8e8";
+        } else if (score == 100) {
+            return "#57e11a";
+        } else if (score == 50) {
+            return "#d6ac52";
+        }
+        return "red";
+    })();
+    popupElement.innerHTML = (function() {
+        if (score == 0) {
+            return "miss";
+        }
+        return score;
+    })();
+    popupElement.style.color = color;
+    popupElement.style.textShadow = "0px 0px 20px " + color;
+
+    playareaDiv.appendChild(popupElement);
+};
 
 Score.prototype.break = function() {
     this.combo = 0;
-}
+};
 
 Score.prototype.updateDisplay = function() {
     if (this.score != this.prevScore) {
@@ -86,4 +117,4 @@ Score.prototype.updateDisplay = function() {
     this.prevScore = this.score;
     this.prevAccuracy = this.accuracy;
     this.prevCombo = this.combo;
-}
+};
