@@ -5,11 +5,14 @@ function Circle(data) {
     this.hittable = true;
 }
 
+Circle.prototype = Object.create(HitObject.prototype);
+Circle.prototype.constructor = Circle;
+
 Circle.prototype.remove = function() {
-    objectContainerDiv.removeChild(this.containerDiv);
+    currentScene.elements["objectContainerDiv"].removeChild(this.containerDiv);
 };
 Circle.prototype.append = function() {
-    objectContainerDiv.appendChild(this.containerDiv);
+    currentScene.elements["objectContainerDiv"].appendChild(this.containerDiv);
 };
 
 Circle.prototype.show = function(offset) {

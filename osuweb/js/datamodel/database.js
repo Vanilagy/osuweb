@@ -1,6 +1,8 @@
 function Database(directoryEntry) {
     this.directoryEntry = directoryEntry;
-    this.beatmapSetEntrys = [];
+    this.beatmapSetEntrys = {};
+    this.finishedBeatmapSetEntrys = 0;
+    this.processesRunning = 0;
     this.skinEntrys = [];
 
     this.isMap = function(fileEntrys) {
@@ -27,7 +29,17 @@ function Database(directoryEntry) {
 
     };
 
-    this.processDirectoryEntries = function(entries) {
+    this.directoryCallback = function(reader, entries, dirName, results) {
+        if(!results.length) {
+            this.processDirectoryEntries(entries, dirName);
+        }
+        else {
+            entries = entries.concat(results);
+            reader.readEntries(this.directoryCallback.bind(this, reader, entries, dirName));
+        }
+    };
+
+    this.processDirectoryEntries = function(entries, dirName) {
         let files = [];
         let directories = [];
 
@@ -42,19 +54,33 @@ function Database(directoryEntry) {
         }
 
         if(this.isMap(files)) {
-            this.beatmapSetEntrys.push(new BeatmapSetEntry(files));
+            var beatmapSetEntry = new BeatmapSetEntry(files, (function() {
+                this.finishedBeatmapSetEntrys++;
+                console.log(this.finishedBeatmapSetEntrys + " (time passed: "+(window.performance.now()-this.startTime)+")");
+                this.processesRunning--;
+            }).bind(this))
+
+            if(beatmapSetEntry[dirName] == undefined) this.beatmapSetEntrys[dirName] = beatmapSetEntry;
         }
         else if(this.isSkin(files)) {
             this.skinEntrys.push(new SkinEntry(files));
+            this.processesRunning--;
         }
-        else if(entry.isDirectory) {
-            var dirReader = entry.createReader();
-            dirReader.readEntries(this.processDirectoryEntries.bind(this));
+        else {
+            for(var i = 0; i < directories.length; i++) {
+                var dirReader = directories[i].createReader();
+                dirReader.readEntries(this.directoryCallback.bind(this, dirReader, [], directories[i].name));
+            }
+            this.processesRunning--;
         }
     };
 
     if(this.directoryEntry != undefined) {
+        this.startTime = window.performance.now();
+
         var reader = directoryEntry.createReader();
-        reader.readEntries(this.processDirectoryEntries.bind(this));
+        reader.readEntries(this.directoryCallback.bind(this, reader, [], directoryEntry.name));
+
+        console.log(this.beatmapSetEntrys);
     }
 }

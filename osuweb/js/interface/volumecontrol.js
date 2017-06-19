@@ -3,7 +3,7 @@
  */
 
 function VolumeControl() {
-    this.canvas = currentScene.osuwebCanvas;
+    this.canvas = currentScene.elements["osuwebCanvas"];
     this.ctx = this.canvas.getContext("2d");
     this.radius = 0;
     this.targetRadius = 80;
@@ -17,7 +17,7 @@ function VolumeControl() {
     this.fadeOutStart = 2000;
     this.lastChange = window.performance.now();
 
-    this.targetMaster = settings.master;
+    this.targetMaster = settingsData.master;
 
     this.animationLoop = (function() {
         var frameModifier = (window.performance.now() - this.lastFrame) / (1000/60.0);
@@ -35,12 +35,12 @@ function VolumeControl() {
             this.alpha = Math.min(1.0, Math.pow(this.entranceAnimation / this.entranceEnd, 0.25));
         }
 
-        if(this.targetMaster != settings.master) {
+        if(this.targetMaster != settingsData.master) {
             this
 
-            settings.setMaster(settings.master + (Math.pow(Math.abs(this.targetMaster - settings.master), 1.5) * (this.targetMaster > settings.master ? 1 : -1)) * frameModifier);
+            settings.setMaster(settingsData.master + (Math.pow(Math.abs(this.targetMaster - settingsData.master), 1.5) * (this.targetMaster > settingsData.master ? 1 : -1)) * frameModifier);
 
-            if(Math.abs(this.targetMaster - settings.master) < 0.01) {
+            if(Math.abs(this.targetMaster - settingsData.master) < 0.01) {
                 settings.setMaster(this.targetMaster);
             }
         }
@@ -74,7 +74,7 @@ function VolumeControl() {
         requestAnimationFrame(this.animationLoop);
     }).bind(this);
 
-    //requestAnimationFrame(this.animationLoop);
+    requestAnimationFrame(this.animationLoop);
 
     this.animateMaster = function(value) {
         this.targetMaster += value;
@@ -91,7 +91,7 @@ function VolumeControl() {
         this.ctx.font = Math.round((this.radius / 80.0) * 30)+"px Calibri";
         this.ctx.fillStyle = "white";
 
-        var text = Math.round(settings.master*100)+"%";
+        var text = Math.round(settingsData.master*100)+"%";
         var textSize = this.ctx.measureText(text);
 
         this.ctx.fillText(text, this.canvas.width - 125 - textSize.width / 2, this.canvas.height - 125 + 8);
@@ -102,14 +102,14 @@ function VolumeControl() {
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.globalAlpha = this.alpha;
-        if(settings.master >= 0.9999999) {
+        if(settingsData.master >= 0.9999999) {
             this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2*Math.PI);
         }
-        else if(settings.master <= 0.0000001) {
+        else if(settingsData.master <= 0.0000001) {
             this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2*Math.PI);
         }
         else {
-            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 2*Math.PI*settings.master-0.5*Math.PI, -0.5*Math.PI);
+            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 2*Math.PI*settingsData.master-0.5*Math.PI, -0.5*Math.PI);
         }
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "rgba(60,80,91,0.95)";
@@ -117,7 +117,7 @@ function VolumeControl() {
         this.ctx.shadowBlur = 20;
         this.ctx.stroke();
         this.ctx.beginPath();
-        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), -0.5*Math.PI, 2*Math.PI*settings.master-0.5*Math.PI);
+        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), -0.5*Math.PI, 2*Math.PI*settingsData.master-0.5*Math.PI);
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "white";
         this.ctx.shadowColor = "#35b5ff";

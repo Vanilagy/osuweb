@@ -4,6 +4,8 @@ function BeatmapEntry(text) {
     for(var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
 
+        if(line.startsWith("[HitObjects]")) break;
+
         if(line.startsWith("AudioFilename")) this.audioFile=line.split(':')[1].trim();
         if(line.startsWith("PreviewTime")) this.previewTime=parseInt(line.split(':')[1].trim(), 10);
         if(line.startsWith("Mode")) this.mode=parseInt(line.split(':')[1].trim(), 10);

@@ -1,5 +1,8 @@
 function SceneLoading() {
     SceneBase.call(this);
 
-    this.loadingDiv = document.getElementById("loading");
+    this.elements["loadingDiv"] = document.getElementById("loading");
 }
+
+SceneLoading.prototype = Object.create(SceneBase.prototype);
+SceneLoading.prototype.constructor = SceneLoading;

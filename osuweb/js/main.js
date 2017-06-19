@@ -9,17 +9,22 @@ var controls = {
     volumeControl: null
 };
 
-var settings = {
+var settingsData = JSON.parse(localStorage.getItem("settings")) || {
     music: 0.8,
     sound: 0.8,
-    master: 0.8,
+    master: 0.8
+};
+
+var settings = {
     setMaster: function(value) {
-        this.master = value;
+        settingsData.master = value;
 
         currentAudio.setVolume(value);
 
-        if(this.master > 1.0) this.master = 1.0;
-        if(this.master < 0.0) this.master = 0.0;
+        if(settingsData.master > 1.0) settingsData.master = 1.0;
+        if(settingsData.master < 0.0) settingsData.master = 0.0;
+
+        localStorage.setItem("settings", JSON.stringify(settingsData));
     },
     changeMaster: function(value) {
         if(controls.volumeControl == null) {
@@ -32,7 +37,7 @@ var settings = {
 
 var database = null;
 
-var defaultSkinElements = {};
+var defaultSkin = null;
 
 var currentBeatmapSet = null;
 var currentBeatmap = null;

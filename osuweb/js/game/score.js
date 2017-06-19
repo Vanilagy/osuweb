@@ -110,10 +110,10 @@ Score.prototype.createScorePopup = function(hitObject, score) {
     popupElement.style.color = color;
     popupElement.style.textShadow = "0px 0px 20px " + color;
 
-    playareaDiv.appendChild(popupElement);
+    currentScene.elements["playareaDiv"].appendChild(popupElement);
 
     setTimeout(function() {
-        playareaDiv.removeChild(popupElement);
+        currentScene.elements["playareaDiv"].removeChild(popupElement);
     }, 1000);
 };
 
@@ -123,20 +123,20 @@ Score.prototype.break = function() {
 
 Score.prototype.updateDisplay = function() {
     if (this.score != this.prevScore) {
-        GraphicUtil.interpolate(this.prevScore, this.score, 150, "easeOut", function(x) {
-            currentScene.scoreDisplay.innerHTML = ("00000000" + Math.floor(x)).slice(-8);
+        MathUtil.interpolate(this.prevScore, this.score, 150, "easeOut", function(x) {
+            currentScene.elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(-8);
         }, "scoreIncreaseAnimation");
     }
     if (this.accuracy != this.prevAccuracy) {
-        GraphicUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOut", function(x) {
-            currentScene.accuracyDisplay.innerHTML = (Math.floor(x * 10000) / 100).toFixed(2) + "%";
+        MathUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOut", function(x) {
+            currentScene.elements["accuracyDisplayP"].innerHTML = (Math.floor(x * 10000) / 100).toFixed(2) + "%";
         }, "accuracyChangeAnimation");
     }
     if (this.combo != this.prevCombo) {
-        currentScene.comboDisplay.innerHTML = this.combo + "x";
-        currentScene.comboDisplay.style.animation = "none";
-        currentScene.comboDisplay.offsetWidth;
-        currentScene.comboDisplay.style.animation = "0.5s pulseCombo ease-out forwards";
+        currentScene.elements["comboDisplayP"].innerHTML = this.combo + "x";
+        currentScene.elements["comboDisplayP"].style.animation = "none";
+        currentScene.elements["comboDisplayP"].offsetWidth;
+        currentScene.elements["comboDisplayP"].style.animation = "0.5s pulseCombo ease-out forwards";
     }
     
     this.prevScore = this.score;

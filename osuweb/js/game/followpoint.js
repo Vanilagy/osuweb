@@ -23,13 +23,13 @@ function FollowPoint(obj1, obj2) {
 }
 
 FollowPoint.prototype.spawn = function() {
-    objectContainerDiv.appendChild(this.canvas);
+    currentScene.elements["objectContainerDiv"].appendChild(this.canvas);
     var ctx = this.canvas.getContext("2d");
 
     this.update = function() {
         var shouldEnd = audioCurrentTime >= this.endTime + 300;
         if (shouldEnd) {
-            objectContainerDiv.removeChild(this.canvas);
+            currentScene.elements["objectContainerDiv"].removeChild(this.canvas);
         } else {
             var timeDif = this.endTime - this.startTime;
             var startingPointX = Math.max(0, Math.min(1, (audioCurrentTime - (this.startTime + 0)) / timeDif)) * this.length;
