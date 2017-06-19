@@ -71,7 +71,7 @@ Slider.prototype.score = function() {
             return 50;
         }
         return 0;
-    })(), false, true, this.basePoint);
+    })(), false, true, this);
 }
 
 Slider.prototype.updateStackPosition = function() {
@@ -273,7 +273,8 @@ Slider.prototype.pushPos = function(pos) { // Pushes endpoint to array
 
 Slider.prototype.draw = function() {
     var sliderWidth = this.maxX - this.minX, sliderHeight = this.maxY - this.minY;
-    var sliderBodyRadius = halfCsPixel * (1 - circleBorderWidth);
+    var reductionFactor = 0.92;
+    var sliderBodyRadius = halfCsPixel * (reductionFactor - circleBorderWidth);
     var maxFollowCircleRadius = (halfCsPixel * 2.18);
     
     this.containerDiv = document.createElement("div");
@@ -310,7 +311,7 @@ Slider.prototype.draw = function() {
             ctx.fill();*/
         }
 
-        ctx.lineWidth = csPixel;
+        ctx.lineWidth = csPixel * reductionFactor;
         ctx.strokeStyle = "white";
         ctx.lineCap = "round";
         ctx.lineJoin= "round";

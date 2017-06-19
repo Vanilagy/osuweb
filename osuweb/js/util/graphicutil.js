@@ -1,6 +1,6 @@
 var pi2 = Math.PI * 2;
 var maximumTracePointDistance = 3; // The maximum distance two points in a slider's traced path can be apart – used to control detail in sliders.
-var circleBorderWidth = 1.5 / 16; // in relation to circle radius
+var circleBorderWidth = 1.75 / 16; // in relation to circle radius
 var interpolationStorage = {};
 
 var GraphicUtil = {

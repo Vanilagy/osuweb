@@ -17,6 +17,8 @@ function Score(beatmap) {
 
     this.totalNumberOfHits = 0;
     this.totalValueOfHits = 0;
+
+    this.comboWorthValues = {}; // Used to determine elite beats. A value of 0 means perfect, anything above is some sort of katu, and everything below means the player hit 50s or misses.
     
     this.difficultyMultiplier = (function() {
         var difficultyPoints = Math.floor(beatmap.CS) + Math.floor(beatmap.HP) + Math.floor(beatmap.OD);
@@ -36,7 +38,7 @@ function Score(beatmap) {
     this.modMultiplier = 1;
 }
 
-Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrease, pos) {
+Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrease, hitObject) {
     if (amount == 0) {
         this.break();
     } else {
@@ -58,16 +60,28 @@ Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrea
     
     this.accuracy = (this.totalNumberOfHits) ? this.totalValueOfHits / (this.totalNumberOfHits * 300) : 1;
     this.updateDisplay();
-    if (pos) {
-        this.createScorePopup(pos, amount);
+    if (hitObject) {
+        var comboNum = hitObject.comboInfo.comboNum;
+        if (this.comboWorthValues[comboNum] == undefined) {
+            this.comboWorthValues[comboNum] = 0;
+        }
+        if (amount < 300) {
+            this.comboWorthValues[comboNum] += -10e7 + 10e5 * amount + 1;
+        }
+
+        this.createScorePopup(hitObject, amount);
+
+        if (hitObject.comboInfo.isLast) {
+            delete this.comboWorthValues[comboNum];
+        }
     }
 };
 
-Score.prototype.createScorePopup = function(pos, score) {
+Score.prototype.createScorePopup = function(hitObject, score) {
     var popupElement = document.createElement("div");
     popupElement.className = "scorePopup";
-    popupElement.style.left = (pos.x + currentPlay.marginWidth) * pixelRatio + "px";
-    popupElement.style.top = (pos.y + currentPlay.marginHeight) * pixelRatio + "px";
+    popupElement.style.left = (hitObject.basePoint.x + currentPlay.marginWidth) * pixelRatio + "px";
+    popupElement.style.top = (hitObject.basePoint.y + currentPlay.marginHeight) * pixelRatio + "px";
     popupElement.style.fontSize = csPixel * 0.32 + "px";
     popupElement.style.animation = "1s scorePopup linear forwards";
     var color = (function() {
@@ -81,15 +95,26 @@ Score.prototype.createScorePopup = function(pos, score) {
         return "red";
     })();
     popupElement.innerHTML = (function() {
+        if (this.comboWorthValues[hitObject.comboInfo.comboNum] >= 0 && hitObject.comboInfo.isLast) {
+            if (this.comboWorthValues[hitObject.comboInfo.comboNum] == 0) {
+                return "激";
+            } else {
+                return "喝";
+            }
+        }
         if (score == 0) {
-            return "miss";
+            return "X";
         }
         return score;
-    })();
+    }).bind(this)();
     popupElement.style.color = color;
     popupElement.style.textShadow = "0px 0px 20px " + color;
 
     playareaDiv.appendChild(popupElement);
+
+    setTimeout(function() {
+        playareaDiv.removeChild(popupElement);
+    }, 1000);
 };
 
 Score.prototype.break = function() {

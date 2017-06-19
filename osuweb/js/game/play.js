@@ -29,7 +29,8 @@ function Play(beatmap, audio) {
     this.marginWidth = (GraphicUtil.playAreaDimensions.x - GraphicUtil.coordinateDimensions.x) / 2;
     this.marginHeight = this.marginWidth * GraphicUtil.widthToHeightRatio;
 
-    csOsuPixel = 109 - 9 * this.beatmap.CS;
+    csOsuPixel = /*109 - 9 * this.beatmap.CS*/ 64 * (1.0 - 0.7 * (this.beatmap.CS - 5) / 5);
+    console.log(64 * (1.0 - 0.7 * (this.beatmap.CS - 5) / 5) - (109 - 9 * this.beatmap.CS));
     csPixel = Math.round(csOsuPixel * pixelRatio);
     halfCsPixel = csPixel / 2;
 
@@ -62,7 +63,8 @@ function Play(beatmap, audio) {
         }
         var comboInfo = {
             comboNum: nextCombo,
-            n: comboCount++
+            n: comboCount++,
+            isLast: (this.beatmap.hitObjects[o + 1]) ? this.beatmap.hitObjects[o + 1].newCombo != null : true
         };
 
         if (currentTimingPoint < this.beatmap.timingPoints.length) {
@@ -221,7 +223,7 @@ Play.prototype.gameLoop = function() {
             }
             // Fade out object when it has not been hit
             if (audioCurrentTime >= hitObject.time + (199.5 - 10 * currentPlay.beatmap.OD) && hitObject.hittable) {
-                this.score.addScore(0, false, true, hitObject.basePoint);
+                this.score.addScore(0, false, true, hitObject);
                 hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
                 hitObject.hittable = false;
             }
@@ -406,14 +408,14 @@ Play.prototype.registerClick = function() {
 
                 if (score >= 50) {
                     if (hitObject.type == "circle") {
-                        this.score.addScore(score, false, false, hitObject.basePoint);
+                        this.score.addScore(score, false, false, hitObject);
                     } else {
                         this.score.addScore(30, true);
                     }
                     hitObject.hit(true);
                 } else {
                     if (hitObject.type == "circle") {
-                        this.score.addScore(0, false, true, hitObject.basePoint);
+                        this.score.addScore(0, false, true, hitObject);
                     } else {
                         this.score.addScore(0, true, true);
                     }
