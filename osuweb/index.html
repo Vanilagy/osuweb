@@ -73,7 +73,7 @@
 
             transition: transform 0.4s ease-out, letter-spacing 10s ease-out, opacity 1s linear;
         }
-        #songselect {
+        #osu {
             position:absolute;
             left: 50%;
             top: 50%;
@@ -209,14 +209,15 @@
 
 <div id="container">
     <!------------ MENU ------------->
-    <input type="button" id="songselect" value="osu!" onclick="startSongSelect()">
+    <input type="button" id="osu" value="osu!" onclick="startSongSelect()">
     <!-------- SONG SELECT ---------->
     <div id ="topbar"></div>
     <div id ="bottombar"></div>
     <div id ="scoreboard"></div>
     <div id ="songpanels"></div>
     <div id ="searchbar"></div>
-    <!--<input type="file" id="beatmap" webkitdirectory multiple>-->
+
+    <input type="file" id="beatmap" webkitdirectory multiple>
 </div>
 
 <div id="foreground">
@@ -318,6 +319,8 @@
                 setTimeout(function () {
                     currentScene.elements["loadingDiv"].style.display = "none";
                     currentScene.elements["foregroundDiv"].style.display = "none";
+                    currentScene = new SceneMenu();
+                    currentScene.elements["osuInput"].style.display = "block";
                     currentAudio.playAudioFromOffsetWithLoop(0, 0, 0, currentAudio.buffer.duration);
                 }, 1000)
             }, 2000)
@@ -356,6 +359,8 @@
     };
 
     document.getElementById("beatmap").addEventListener("change", function(e) {
+        currentScene.elements["osuInput"].style.display = "none";
+
         currentScene = new SceneGameOsu();
 
         new BeatmapSet(e.target.files, function(beatmapset) {

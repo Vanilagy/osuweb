@@ -9,7 +9,7 @@ var controls = {
     volumeControl: null
 };
 
-var settingsData = {
+var settingsData = JSON.parse(localStorage.getItem("settings")) || {
     music: 0.8,
     sound: 0.8,
     master: 0.8
