@@ -60,7 +60,7 @@ Slider.prototype.hit = function(success) {
     
     this.sliderHeadContainer.style.animation = (success) ? "0.15s destroyHitCircle linear forwards" : "0.15s fadeOut linear forwards";
     this.approachCircleCanvas.style.display = "none"; 
-}
+};
 
 Slider.prototype.score = function() {
     var fraction = (((this.scoring.head) ? 1 : 0) + ((this.scoring.end) ? 1 : 0) + this.scoring.ticks) / (1 + this.repeat + this.sliderTickCompletions.length);
@@ -75,7 +75,15 @@ Slider.prototype.score = function() {
         }
         return 0;
     })(), false, true, this);
-}
+};
+
+Slider.prototype.playTickSound = function() {
+    var skin = currentSkin || defaultSkin;
+
+    var audioObj = skin.skinElements[this.hitSoundInfo.bodySampleSet + "-hitnormal"];
+    audioObj.playAudio();
+    audioObj.setVolume(this.hitSoundInfo.sliderEndHitSoundInfos[0].volume);
+};
 
 Slider.prototype.updateStackPosition = function() {
     this.x += this.stackHeight * -4;

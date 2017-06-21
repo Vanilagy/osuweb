@@ -237,7 +237,7 @@ function Beatmap(file, callback) {
 
                         var additions = [];
 
-                        for(var j = 0; j < additionsValuesRaw; j++) {
+                        for(var j = 0; j < additionsValuesRaw.length; j++) {
                             additions.push(parseInt(additionsValuesRaw[j], 10));
                         }
 
@@ -248,20 +248,15 @@ function Beatmap(file, callback) {
 
                         if(values[9] != undefined) {
                             var splitEdgeSampleSetsRaw = values[9].split('|');
+
+                            for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
+                                var val = splitEdgeSampleSetsRaw[j].split(':');
+
+                                edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
+                            }
+
+                            slider["edgeSamplings"] = edgeSamplings;
                         }
-                        else {
-                            var splitEdgeSampleSetsRaw = [];
-
-                            for(var j = 0; j < sliderSections.length; j++) splitEdgeSampleSetsRaw.push("0:0");
-                        }
-
-                        for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
-                            var val = splitEdgeSampleSetsRaw[j].split(':');
-
-                            edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
-                        }
-
-                        slider["edgeSamplings"] = edgeSamplings;
 
                         // body samplings
                         if(values[10] != undefined) {
@@ -272,6 +267,34 @@ function Beatmap(file, callback) {
                         }
 
                         slider["bodySamplings"] = {sampleSet: parseInt(sliderBodySamplingValues[0], 10), sampleSetAddition: parseInt(sliderBodySamplingValues[1], 10)};
+                    }
+
+                    if(slider.additions == undefined) {
+                        var additions = [];
+
+                        for(var j = 0; j < slider.repeat + 1; j++) {
+                            additions.push(0);
+                        }
+
+                        slider["additions"] = additions;
+                    }
+                    if(slider.edgeSamplings == undefined) {
+                        var edgeSamplings = [];
+
+                        var splitEdgeSampleSetsRaw = [];
+
+                        for(var j = 0; j < slider.repeat + 1; j++) splitEdgeSampleSetsRaw.push("0:0");
+
+                        for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
+                            var val = splitEdgeSampleSetsRaw[j].split(':');
+
+                            edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
+                        }
+
+                        slider["edgeSamplings"] = edgeSamplings;
+                    }
+                    if(slider.bodySamplings == undefined) {
+                        slider["bodySamplings"] = {sampleSet: 0, sampleSetAddition: 0};
                     }
 
                     this.hitObjects.push(slider);
@@ -307,7 +330,7 @@ function Beatmap(file, callback) {
         }
 
         if(this.colours.length == 0) {
-            this.colours = [{r:255,g:0,b:0},{r:0,g:255,b:0},{r:0,g:0,b:255},{r:0,g:255,b:255}];
+            this.colours = [{r:255,g:192,b:0},{r:0,g:202,b:0},{r:18,g:124,b:255},{r:242,g:24,b:57}];
         }
 
         callback();

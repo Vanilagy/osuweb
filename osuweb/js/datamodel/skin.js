@@ -32,7 +32,7 @@ Skin.prototype.loadOSK = function(zip) {
             if(output == "arraybuffer") {
                 try {
                     if(result.byteLength > 0) {
-                        this.skinElements[rawFileName] = new Audio(result, function(){}, 5);
+                        this.skinElements[rawFileName] = new Audio(result, function(){}, 500);
                     }
                 }
                 catch(e) {
@@ -48,3 +48,12 @@ Skin.prototype.loadOSK = function(zip) {
     }
     this.callback(true);
 };
+
+Skin.prototype.getSampleSetName = function(id) {
+    switch (id) {
+        case 1: return "normal";
+        case 2: return "soft";
+        case 3: return "drum";
+        default: return "normal";
+    }
+}

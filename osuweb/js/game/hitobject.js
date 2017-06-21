@@ -30,3 +30,29 @@ HitObject.prototype.updateStackPosition = function() {
     this.x += this.stackHeight * -4;
     this.y += this.stackHeight * -4;
 };
+
+HitObject.prototype.playHitSound = function(data) {
+    var skin = currentSkin || defaultSkin;
+
+    var audioObj = skin.skinElements[data.sampleSet + "-hitnormal"];
+
+    audioObj.playAudio();
+    audioObj.setVolume(data.volume);
+
+    // Gets information stored in additions bitfield
+    if ((data.additions & 2) == 2) {
+        var audioObj = skin.skinElements[data.sampleSetAddition + "-hitwhistle"];
+        audioObj.playAudio();
+        audioObj.setVolume(data.volume);
+    }
+    if ((data.additions & 4) == 4) {
+        var audioObj = skin.skinElements[data.sampleSetAddition + "-hitfinish"];
+        audioObj.playAudio();
+        audioObj.setVolume(data.volume);
+    }
+    if ((data.additions & 8) == 8) {
+        var audioObj = skin.skinElements[data.sampleSetAddition + "-hitclap"];
+        audioObj.playAudio();
+        audioObj.setVolume(data.volume);
+    }
+};

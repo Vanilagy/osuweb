@@ -59,7 +59,7 @@ Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrea
     }
     
     this.accuracy = (this.totalNumberOfHits) ? this.totalValueOfHits / (this.totalNumberOfHits * 300) : 1;
-    this.updateDisplay();
+    this.updateDisplay(amount);
     if (hitObject) {
         var comboNum = hitObject.comboInfo.comboNum;
         if (this.comboWorthValues[comboNum] == undefined) {
@@ -121,10 +121,10 @@ Score.prototype.break = function() {
     this.combo = 0;
 };
 
-Score.prototype.updateDisplay = function() {
+Score.prototype.updateDisplay = function(amount) {
     if (this.score != this.prevScore) {
         MathUtil.interpolate(this.prevScore, this.score, 150, "easeOut", function(x) {
-            currentScene.elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(-8);
+            currentScene.elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(Math.min(-8, -Math.floor(x).toString().length));
         }, "scoreIncreaseAnimation");
     }
     if (this.accuracy != this.prevAccuracy) {

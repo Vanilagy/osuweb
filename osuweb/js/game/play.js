@@ -43,6 +43,8 @@ function Play(beatmap, audio) {
     var currentTimingPoint = 1;
     var currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
     var currentMsPerBeatMultiplier = 100;
+    var currentSampleSet = this.beatmap.timingPoints[0].sampleSet;
+    var currentVolume = this.beatmap.timingPoints[0].volume;
 
     var comboCount = 1;
     var nextCombo = 0;
@@ -77,6 +79,9 @@ function Play(beatmap, audio) {
                     currentMsPerBeatMultiplier = 100;
                     currentMsPerBeat = timingPoint.msPerBeat;
                 }
+
+                currentSampleSet = timingPoint.sampleSet;
+                currentVolume = timingPoint.volume;
 
                 currentTimingPoint++;
 
@@ -115,9 +120,35 @@ function Play(beatmap, audio) {
             console.log(obj.type);
         }
 
+        if (obj.type == "circle") {
+            var hitSoundInfo = {
+                sampleSet: Skin.prototype.getSampleSetName((obj.samplings.sampleSet) ? obj.samplings.sampleSet : currentSampleSet),
+                sampleSetAddition: Skin.prototype.getSampleSetName((obj.samplings.sampleSetAddition) ? obj.samplings.sampleSetAddition : currentSampleSet),
+                additions: obj.hitSound,
+                volume: currentVolume / 100
+            };
+        } else if (obj.type == "slider") {
+            var sliderEndHitSoundInfos = [];
+
+            for (var i = 0; i < obj.additions.length; i++) {
+                sliderEndHitSoundInfos.push({
+                    sampleSet: Skin.prototype.getSampleSetName((obj.edgeSamplings[i].sampleSet) ? obj.edgeSamplings[i].sampleSet : currentSampleSet),
+                    sampleSetAddition: Skin.prototype.getSampleSetName((obj.edgeSamplings[i].sampleSetAddition) ? obj.edgeSamplings[i].sampleSetAddition : currentSampleSet),
+                    additions: obj.additions[i],
+                    volume: currentVolume / 100
+                });
+            }
+
+            var hitSoundInfo = {
+                sliderEndHitSoundInfos: sliderEndHitSoundInfos,
+                bodySampleSet: Skin.prototype.getSampleSetName((obj.bodySamplings.sampleSet) ? obj.bodySamplings.sampleSet : currentSampleSet)
+            };
+        }
+
         if (newObject != null) {
             newObject.id = hitObjectId;
             newObject.comboInfo = comboInfo;
+            newObject.hitSoundInfo = hitSoundInfo;
             this.hitObjects.push(newObject);
         }
 
@@ -276,8 +307,10 @@ Play.prototype.gameLoop = function() {
                         
                         if (completionsToEval[i] % 1 == 0) { // if reverse
                             currentPlay.score.addScore(30, true);
+                            hitObject.playHitSound(hitObject.hitSoundInfo.sliderEndHitSoundInfos[completionsToEval[i]]);
                         } else { // if tick
                             currentPlay.score.addScore(10, true);
+                            hitObject.playTickSound();
                         }
                     } else if (completionsToEval[i] != hitObject.repeat) {
                         currentPlay.score.addScore(0, true, true);
@@ -406,13 +439,17 @@ Play.prototype.registerClick = function() {
                 var timeDelta = Math.abs(audioCurrentTime - hitObject.time);
                 var score = TimingUtil.getScoreFromHitDelta(timeDelta);
 
+
                 if (score >= 50) {
                     if (hitObject.type == "circle") {
                         this.score.addScore(score, false, false, hitObject);
+                        hitObject.playHitSound(hitObject.hitSoundInfo);
                     } else {
                         this.score.addScore(30, true);
+                        hitObject.playHitSound(hitObject.hitSoundInfo.sliderEndHitSoundInfos[0]);
                     }
                     hitObject.hit(true);
+
                 } else {
                     if (hitObject.type == "circle") {
                         this.score.addScore(0, false, true, hitObject);
@@ -427,7 +464,7 @@ Play.prototype.registerClick = function() {
             }
         }
     }
-}
+};
 
 Play.prototype.applyStackShift = function() {
     var lastStackEnd = 0;

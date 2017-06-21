@@ -183,7 +183,7 @@
             font-family: monospace;
             font-size: 50px;
             margin: 0;
-            transform-origin: 0% 100%
+            transform-origin: 0% 100%;
             display: none;
         }
         #ingameContainer {
@@ -300,7 +300,7 @@
         var audioLoad = false;
         var skinLoad = false;
 
-        setTimeout(function() {if(skinLoad && audioLoad) finishLoading(); else timePassed = true;}, 2000);
+        setTimeout(function() {if(skinLoad && audioLoad) finishLoading(); else timePassed = true;}, 500);
 
         defaultSkin = new Skin("./assets/default.osk", function() {if(timePassed && audioLoad) finishLoading(); else skinLoad = true});
 
