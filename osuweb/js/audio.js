@@ -55,6 +55,8 @@ Audio.prototype.playAudioFromOffset = function(time, offset) {
 }
 
 Audio.prototype.playAudioFromOffsetWithLoop = function(time, offset, loopStart, loopEnd) {
+    if(this.buffer == null) return;
+
     var enableLoop = false;
 
     if(loopStart != undefined && loopStart != -1) {

@@ -80,7 +80,7 @@ Slider.prototype.score = function() {
 Slider.prototype.playTickSound = function() {
     var skin = currentSkin || defaultSkin;
 
-    var audioObj = skin.skinElements[this.hitSoundInfo.bodySampleSet + "-hitnormal"];
+    var audioObj = skin.skinElements[this.hitSoundInfo.bodySampleSet + "-slidertick"];
     audioObj.playAudio();
     audioObj.setVolume(this.hitSoundInfo.sliderEndHitSoundInfos[0].volume);
 };

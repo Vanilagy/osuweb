@@ -118,6 +118,11 @@ Score.prototype.createScorePopup = function(hitObject, score) {
 };
 
 Score.prototype.break = function() {
+    if(this.combo >= 30) {
+        (currentSkin || defaultSkin).skinElements["combobreak"].setVolume(settingsData.master * settingsData.sound);
+        (currentSkin || defaultSkin).skinElements["combobreak"].playAudio();
+    }
+
     this.combo = 0;
 };
 
