@@ -34,7 +34,7 @@ Spinner.prototype.append = function() {
 
 Spinner.prototype.show = function() {
     this.containerDiv.style.visibility = "visible";
-    this.containerDiv.style.transition = "opacity 0.15s linear";
+    this.containerDiv.style.transition = "opacity 0.35s linear";
     this.containerDiv.style.opacity = 1;
 
     this.update();

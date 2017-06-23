@@ -453,7 +453,7 @@ Play.prototype.gameLoop = function() {
     
     // Makes hitObjects show up on-screen
     if (this.currentHitObject < this.hitObjects.length) {
-        while (this.hitObjects[this.currentHitObject].time - ((this.hitObjects[this.currentHitObject].type != "spinner") ? this.ARMs : 150) <= audioCurrentTime) {
+        while (this.hitObjects[this.currentHitObject].time - ((this.hitObjects[this.currentHitObject].type != "spinner") ? this.ARMs : 350) <= audioCurrentTime) {
             var hitObject = this.hitObjects[this.currentHitObject];
 
             hitObject.show(audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
