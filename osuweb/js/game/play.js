@@ -155,9 +155,6 @@ function Play(beatmap, audio) {
         hitObjectId++;
     }
 
-    // Scoremeter preparation
-    this.accmeter = new AccMeter();
-
     for (var i = 1; i < this.hitObjects.length; i++) {
         var prevObj = this.hitObjects[i - 1], currObj = this.hitObjects[i];
         if (prevObj.comboInfo.comboNum == currObj.comboInfo.comboNum && prevObj.comboInfo.n != currObj.comboInfo.n) {
@@ -187,6 +184,10 @@ function Play(beatmap, audio) {
         this.hitObjects[z].updateStackPosition();
         this.hitObjects[z].draw();
     }
+
+    this.accmeter = new AccMeter();
+
+    this.progressbar = new ProgressBar();
     
     console.info("Map build time: " + (window.performance.now() - mapGenerationStartTime).toFixed(2) + "ms", this.hitObjects);
 

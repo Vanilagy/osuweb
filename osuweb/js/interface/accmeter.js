@@ -33,6 +33,4 @@ AccMeter.prototype.addRating = function(timeDelta) {
     tickDiv.style.backgroundColor = color;
 
     this.wrapper.appendChild(tickDiv);
-
-    //tickDiv.style.opacity = "0";
 };

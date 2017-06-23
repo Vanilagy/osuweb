@@ -3,7 +3,7 @@
  */
 
 function VolumeControl() {
-    this.canvas = currentScene.elements["osuwebCanvas"];
+    this.canvas = currentScene.elements.osuwebCanvas;
     this.ctx = this.canvas.getContext("2d");
     this.radius = 0;
     this.targetRadius = 80;

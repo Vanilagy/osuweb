@@ -151,8 +151,9 @@
         }
         #scoreDisplay {
             position: absolute;
-            top: 5px;
-            right: 5px;
+            top: 1vh;
+            right: 1vh;
+            height: 6vh;
             text-align: right;
             color: white;
             text-shadow: 2px 2px 5px black;
@@ -163,8 +164,9 @@
         }
         #accuracyDisplay {
             position: absolute;
-            top: 50px;
-            right: 5px;
+            top: 50%;
+            right: 0;
+            transform: translate(0%, -50%);
             text-align: right;
             color: white;
             text-shadow: 2px 2px 5px black;
@@ -172,6 +174,26 @@
             font-size: 30px;
             margin: 0;
             display: none;
+        }
+        #progress {
+            position: absolute;
+            width: 5vh;
+            height: 100%;
+            margin: 0;
+            display: none;
+        }
+        #accContainer {
+            position: absolute;
+            top: 8vh;
+            right: 1vh;
+            height: 5vh;
+            margin: 0;
+            display: none;
+        }
+        #accWrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
         }
         #comboDisplay {
             position: absolute;
@@ -293,7 +315,12 @@
 
 <section id="ingameContainer">
     <p id="scoreDisplay">00000000</p>
-    <p id="accuracyDisplay">100.00%</p>
+    <div id="accContainer">
+        <div id="accWrapper">
+            <canvas id="progress"></canvas>
+            <p id="accuracyDisplay">100.00%</p>
+        </div>
+    </div>
     <p id="comboDisplay">0x</p>
     <div id="accmeter">
         <div id="accstrip-wrapper" style="width: 100%; height: 100%; position: relative;">
@@ -344,7 +371,6 @@
 <script src="js/game/hitobject.js"></script>
 <script src="js/game/circle.js"></script>
 <script src="js/game/slider.js"></script>
-<script src="js/game/accmeter.js"></script>
 <script src="js/game/scenes/scenebase.js"></script>
 <script src="js/game/scenes/sceneloading.js"></script>
 <script src="js/game/scenes/scenemenu.js"></script>
@@ -352,6 +378,8 @@
 <script src="js/game/scenes/scenegameosu.js"></script>
 
 <script src="js/interface/volumecontrol.js"></script>
+<script src="js/interface/accmeter.js"></script>
+<script src="js/interface/progressbar.js"></script>
 
 <script src="js/util/fileutil.js"></script>
 <script src="js/util/graphicutil.js"></script>
@@ -424,8 +452,6 @@
 
     function startSongSelect() {
         document.getElementById("songselect").style.display = "none";
-
-
     }
 
     document.getElementById("container").addEventListener("wheel", function(e) {
