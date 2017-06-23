@@ -116,11 +116,11 @@ function Play(beatmap, audio) {
             newObject.endTime = newObject.time + newObject.repeat * newObject.length / timingInfo.sliderVelocity;
             newObject.timingInfo = timingInfo;
             newObject.sliderTickCompletions = sliderTickCompletions;
-        } else {
-            console.log(obj.type);
+        } else if (obj.type == "spinner") {
+            var newObject = new Spinner(obj);
         }
 
-        if (obj.type == "circle") {
+        if (obj.type == "circle" || obj.type == "spinner") {
             var hitSoundInfo = {
                 sampleSet: Skin.prototype.getSampleSetName((obj.samplings.sampleSet) ? obj.samplings.sampleSet : currentSampleSet),
                 sampleSetAddition: Skin.prototype.getSampleSetName((obj.samplings.sampleSetAddition) ? obj.samplings.sampleSetAddition : currentSampleSet),
@@ -219,8 +219,9 @@ var logGameLoopStatistics = true;
 
 Play.prototype.gameLoop = function() {
     ///// DEBUG /////
+    var timeDif = window.performance.now() - this.lastTickClockTime;
+
     if (logGameLoopStatistics) {
-        var timeDif = window.performance.now() - this.lastTickClockTime;
         this.recordedTickSpeeds.push(timeDif);
         if (timeDif > 1000 / 60) {
             console.warn("Slow clock: " + timeDif.toFixed(2) + "ms since last execution!");
@@ -247,7 +248,7 @@ Play.prototype.gameLoop = function() {
     }
     
     // hitObject updates
-    var userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
+    var userPlayfieldCoords = inputData.userPlayfieldCoords;
     for (var id in this.onScreenHitObjects) {
         var hitObject = this.onScreenHitObjects[id];
 
@@ -269,8 +270,6 @@ Play.prototype.gameLoop = function() {
                 continue;
             }
         } else if (hitObject.type == "slider") {
-
-
             // Handle scoring of slider ticks and reverses
             if ((hitObject.sliderTickCompletions[hitObject.currentSliderTick] != undefined || hitObject.currentRepeat < hitObject.repeat) &&  audioCurrentTime >= hitObject.time) {
                 var completion = Math.min(hitObject.repeat, hitObject.timingInfo.sliderVelocity * (audioCurrentTime - hitObject.time) / hitObject.length);
@@ -348,6 +347,47 @@ Play.prototype.gameLoop = function() {
                 delete this.onScreenHitObjects[id];
                 continue;
             }
+        } else if (hitObject.type == "spinner") {
+            if (audioCurrentTime >= hitObject.time) {
+                // Activate spinner
+                if (!hitObject.active) {
+                    hitObject.active = true;
+                    hitObject.lastTimeSampled = window.performance.now();
+                }
+                // Spinner clear
+                if (hitObject.absoluteDegreesRotated / (Math.PI * 2) >= hitObject.requiredSpins) {
+                    hitObject.clear();
+                }
+                // Spinner bonuses
+                if (hitObject.cleared) {
+                    if ((hitObject.absoluteDegreesRotated - hitObject.requiredSpins * Math.PI * 2) / (Math.PI * 2) >= hitObject.completedBonusSpins + 1) {
+                        hitObject.scoreBonusSpin();
+                    }
+                }
+                // Count full spins
+                if (hitObject.absoluteDegreesRotated / (Math.PI * 2) >= hitObject.completedSpins + 1) {
+                    hitObject.completedSpins = Math.floor(hitObject.absoluteDegreesRotated / (Math.PI * 2));
+                    hitObject.readyForSound = true;
+                    if (!hitObject.cleared) {
+                        currentPlay.score.addScore(100, true, true);
+                    }
+                }
+            }
+
+            // Spinner end
+            if (audioCurrentTime >= hitObject.endTime && !hitObject.completed) {
+                hitObject.score();
+                hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
+                currentScene.elements["accmeterDiv"].style.opacity = 1;
+                hitObject.active = false;
+                hitObject.completed = true;
+            }
+            // Remove object completely
+            if (audioCurrentTime >= hitObject.endTime + 150) {
+                hitObject.remove();
+                delete this.onScreenHitObjects[id];
+                continue;
+            }
         }
     }
 
@@ -413,11 +453,15 @@ Play.prototype.gameLoop = function() {
     
     // Makes hitObjects show up on-screen
     if (this.currentHitObject < this.hitObjects.length) {
-        while (this.hitObjects[this.currentHitObject].time - this.ARMs <= audioCurrentTime) {
+        while (this.hitObjects[this.currentHitObject].time - ((this.hitObjects[this.currentHitObject].type != "spinner") ? this.ARMs : 150) <= audioCurrentTime) {
             var hitObject = this.hitObjects[this.currentHitObject];
 
             hitObject.show(audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
             this.onScreenHitObjects[hitObject.id] = hitObject;
+
+            if (hitObject.type == "spinner") {
+                currentScene.elements["accmeterDiv"].style.opacity = 0;
+            }
 
             this.currentHitObject++;
 

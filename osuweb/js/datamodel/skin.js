@@ -32,7 +32,7 @@ Skin.prototype.loadOSK = function(zip) {
             if(output == "arraybuffer") {
                 try {
                     if(result.byteLength > 0) {
-                        this.skinElements[rawFileName] = new Audio(result, function(){}, 500);
+                        this.skinElements[rawFileName] = new Audio(result, function(){}, 1000);
                     }
                 }
                 catch(e) {

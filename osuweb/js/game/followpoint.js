@@ -1,15 +1,21 @@
 function FollowPoint(obj1, obj2) {
     this.startTime = obj1.endTime;
     this.endTime = obj2.time;
-    this.startPos = obj1.basePoint;
-    this.endPos = obj2.startPoint;
+    this.startPos = {
+        x: obj1.basePoint.x - obj1.stackHeight * 4,
+        y: obj1.basePoint.y - obj1.stackHeight * 4
+    };
+    this.endPos = {
+        x: obj2.startPoint.x - obj2.stackHeight * 4,
+        y: obj2.startPoint.y - obj2.stackHeight * 4
+    };
     
-    this.length = Math.hypot(obj1.basePoint.x - obj2.startPoint.x, obj1.basePoint.y - obj2.startPoint.y) * pixelRatio;
+    this.length = Math.hypot(this.startPos.x - this.endPos.x, this.startPos.y - this.endPos.y) * pixelRatio;
     this.height = 2 * pixelRatio;
-    this.angle = Math.atan2(obj2.startPoint.y - obj1.basePoint.y, obj2.startPoint.x - obj1.basePoint.x);
+    this.angle = Math.atan2(this.endPos.y - this.startPos.y, this.endPos.x - this.startPos.x);
     this.centerPoint = {
-        x: (obj1.basePoint.x + obj2.startPoint.x) / 2,
-        y: (obj1.basePoint.y + obj2.startPoint.y) / 2
+        x: (this.startPos.x + this.endPos.x) / 2,
+        y: (this.startPos.y + this.endPos.y) / 2
     }
     
     this.canvas = document.createElement("canvas");
@@ -32,7 +38,7 @@ FollowPoint.prototype.spawn = function() {
             currentScene.elements["objectContainerDiv"].removeChild(this.canvas);
         } else {
             var timeDif = this.endTime - this.startTime;
-            var startingPointX = Math.max(0, Math.min(1, (audioCurrentTime - (this.startTime + 0)) / timeDif)) * this.length;
+            var startingPointX = Math.max(0, Math.min(1, (audioCurrentTime - (this.startTime + 300)) / timeDif)) * this.length;
             var endPointX = Math.max(0, Math.min(1, (audioCurrentTime - (this.startTime - 450)) / timeDif)) * this.length;
             ctx.clearRect(0, 0, this.length, this.height);
             ctx.beginPath();

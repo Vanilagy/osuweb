@@ -141,5 +141,22 @@ var MathUtil = {
                 return Math.cos(Math.PI * completion) * -0.5 + 0.5;
             }
         }
+    },
+    getNormalizedAngleDelta: function(alpha, beta) {
+        var difference = alpha - beta;
+        if (beta - alpha < -Math.PI) {
+            difference -= Math.PI * 2;
+        } else if (difference < -Math.PI) {
+            difference += Math.PI * 2;
+        }
+        return difference;
     }
-}
+};
+
+Array.prototype.getAvg = function() {
+    var total = 0, len = this.length;
+    for (var i = 0; i < len; i++) {
+        total += this[i];
+    }
+    return total / len;
+};

@@ -80,8 +80,8 @@ Score.prototype.addScore = function(amount, comboIndependant, supressComboIncrea
 Score.prototype.createScorePopup = function(hitObject, score) {
     var popupElement = document.createElement("div");
     popupElement.className = "scorePopup";
-    popupElement.style.left = (hitObject.basePoint.x + currentPlay.marginWidth) * pixelRatio + "px";
-    popupElement.style.top = (hitObject.basePoint.y + currentPlay.marginHeight) * pixelRatio + "px";
+    popupElement.style.left = (hitObject.basePoint.x - hitObject.stackHeight * 4 + currentPlay.marginWidth) * pixelRatio + "px";
+    popupElement.style.top = (hitObject.basePoint.y - hitObject.stackHeight * 4 + currentPlay.marginHeight) * pixelRatio + "px";
     popupElement.style.fontSize = csPixel * 0.32 + "px";
     popupElement.style.animation = "1s scorePopup linear forwards";
     var color = (function() {
@@ -118,9 +118,10 @@ Score.prototype.createScorePopup = function(hitObject, score) {
 };
 
 Score.prototype.break = function() {
-    if(this.combo >= 30) {
-        (currentSkin || defaultSkin).skinElements["combobreak"].setVolume(settingsData.master * settingsData.sound);
-        (currentSkin || defaultSkin).skinElements["combobreak"].playAudio();
+    if(this.combo > 20) {
+        var audioObj = (currentSkin || defaultSkin).skinElements["combobreak"];
+        audioObj.setVolume(settingsData.master * settingsData.sound);
+        audioObj.playAudio();
     }
 
     this.combo = 0;

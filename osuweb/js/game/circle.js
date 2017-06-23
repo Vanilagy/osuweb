@@ -8,27 +8,11 @@ function Circle(data) {
 Circle.prototype = Object.create(HitObject.prototype);
 Circle.prototype.constructor = Circle;
 
-Circle.prototype.remove = function() {
-    currentScene.elements["objectContainerDiv"].removeChild(this.containerDiv);
-};
-Circle.prototype.append = function() {
-    currentScene.elements["objectContainerDiv"].appendChild(this.containerDiv);
-};
-
-Circle.prototype.show = function(offset) {
-    HitObject.prototype.show.call(this, offset);
-};
-
 Circle.prototype.hit = function(success) {
     this.hittable = false;
     
     this.containerDiv.style.animation = (success) ? "0.15s destroyHitCircle linear forwards" : "0.15s fadeOut linear forwards";
     this.approachCircleCanvas.style.display = "none";
-}
-
-Circle.prototype.updateStackPosition = function() {
-    this.x += this.stackHeight * -4;
-    this.y += this.stackHeight * -4;
 };
 
 Circle.prototype.draw = function() {

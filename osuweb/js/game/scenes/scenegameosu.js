@@ -4,6 +4,7 @@ function SceneGameOsu() {
     this.elements["playareaDiv"] =  document.getElementById("playarea");
     this.elements["objectContainerDiv"] =  document.getElementById("objectContainer");
     this.elements["progressCanvas"] = document.getElementById("progress");
+    this.elements["spinnerContainerContainer"] = document.getElementById("spinnerContainerContainer");
     this.elements["ingameContainerSection"] = document.getElementById("ingameContainer");
 
     // Accmeter (bottom-middle)

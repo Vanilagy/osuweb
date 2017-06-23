@@ -18,7 +18,12 @@ var InputUtil = {
 document.addEventListener("mousemove", function(event) {
     inputData.mouseX = event.clientX;
     inputData.mouseY = event.clientY;
+    inputData.lastMousePosUpdateTime = window.performance.now();
+    if (currentPlay) {
+        inputData.userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
+    }
     refreshCursor();
+
 });
 document.addEventListener("mousedown", function(e) {
     console.log("down: "+e.button);
@@ -53,7 +58,9 @@ var inputData = {
         k1: false,
         k2: false
     },
-    isHolding: false
+    isHolding: false,
+    lastMousePosUpdateTime: window.performance.now(),
+    userPlayfieldCoords: null
 };
 
 var keyCodeBindings = {

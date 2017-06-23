@@ -1,6 +1,7 @@
+<!DOCTYPE fuck your mom>
 <html>
 <head>
-    <title>Playarea</title>
+    <title>osu!web</title>
     <meta charset="utf-8">
     <style>
         html,body {
@@ -14,6 +15,7 @@
             background: black;
             overflow: /*fucking*/ hidden;
             cursor: none;
+            font-family: "Arial", monospace;
         }
         #playarea {
             width: 512px;
@@ -227,6 +229,8 @@
             -moz-transform: translate(-50%, 0%);
             -ms-transform: translate(-50%, 0%);
             -o-transform: translate(-50%, 0%);
+
+            transition: opacity 0.2s;
         }
         .accstrip {
             position: absolute;
@@ -310,6 +314,58 @@
             z-index: 2000000;
             pointer-events: none;
         }
+        #spinnerContainerContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .spinnerContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .spinnerContainer h1 {
+            text-align: center;
+            color: white;
+            font-family: "Arial", sans-serif;
+            position: absolute;
+            width: 100%;
+        }
+        .center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes increaseSpinnerBonus {
+            from {transform: scale(1.3);}
+            to {transform: scale(1);}
+        }
+        .spmContainer {
+            position: absolute;
+            transform: translate(-50%, 0);
+            background: rgba(0, 0, 0, 0.5);
+            border: 3px solid white;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            left: 50%;
+            bottom: 0;
+            height: 55px;
+            width: 160px;
+            border-bottom: none;
+        }
+        .spmContainer p {
+            color: white;
+            font-size: 30px;
+            text-align: center;
+            font-weight: 100;
+            margin: 0;
+            margin-top: 12px;
+        }
     </style>
 </head>
 <body>
@@ -320,6 +376,7 @@
 <canvas id="osuweb"></canvas>
 
 <section id="ingameContainer">
+    <div id="spinnerContainerContainer"></div>
     <p id="scoreDisplay">00000000</p>
     <div id="accContainer">
         <div id="accWrapper">
@@ -378,6 +435,7 @@
 <script src="js/game/hitobject.js"></script>
 <script src="js/game/circle.js"></script>
 <script src="js/game/slider.js"></script>
+<script src="js/game/spinner.js"></script>
 <script src="js/game/scenes/scenebase.js"></script>
 <script src="js/game/scenes/sceneloading.js"></script>
 <script src="js/game/scenes/scenemenu.js"></script>
@@ -500,8 +558,17 @@
                 keys.push(key);
             }
             currentAudio.stop();
+            console.log(currentBeatmapSet.difficulties[keys[0]]);
 
-            currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[prompt("Difficulty: (" + keys.join(", ") + ")")], function() {
+            currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[(function() {
+                var issuedBullshit = prompt("Enter difficulty: (" + keys.join(", ") + ") or id");
+
+                if (Number(issuedBullshit) == issuedBullshit) {
+                    return keys[issuedBullshit];
+                } else {
+                    return issuedBullshit;
+                }
+            })()], function() {
                 new Play(currentBeatmap, currentAudio);
                 currentScene.elements["objectContainerDiv"].style.display = "block";
                 currentScene.setElementVisibility(true);

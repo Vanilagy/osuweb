@@ -19,11 +19,11 @@ HitObject.prototype.show = function(offset) {
 };
 
 HitObject.prototype.remove = function() {
-    objectContainerDiv.removeChild(this.containerDiv);
+    currentScene.elements["objectContainerDiv"].removeChild(this.containerDiv);
 };
 
 HitObject.prototype.append = function() {
-    objectContainerDiv.appendChild(this.containerDiv);
+    currentScene.elements["objectContainerDiv"].appendChild(this.containerDiv);
 };
 
 HitObject.prototype.updateStackPosition = function() {

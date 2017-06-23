@@ -15,12 +15,13 @@ function Slider(data) {
         head: false,
         ticks: 0,
         end: false
-    }
+    };
     this.currentSliderTick = 0;
     this.currentRepeat = 0;
     this.lastPulseTime = -10e6;
     this.hittable = true;
     this.fadingOut = false;
+    this.highestSPMThisFrame = 0;
     this.beingHeldDown = true;
     this.letGoTime = null;
 
@@ -37,13 +38,6 @@ function Slider(data) {
 
 Slider.prototype = Object.create(HitObject.prototype);
 Slider.prototype.constructor = Slider;
-
-Slider.prototype.append = function() {
-    currentScene.elements["objectContainerDiv"].appendChild(this.containerDiv);
-};
-Slider.prototype.remove = function() {
-    currentScene.elements["objectContainerDiv"].removeChild(this.containerDiv);
-};
 
 Slider.prototype.show = function(offset) {
     HitObject.prototype.show.call(this, offset);
@@ -441,7 +435,7 @@ Slider.prototype.draw = function() {
             
             var followCircleRadius = halfCsPixel * (
                 /* base */ 1
-              + /* enlarge on start */ Math.min(1, (audioCurrentTime - this.time) / 100)
+              + /* enlarge on start */ Math.max(0, Math.min(1, (audioCurrentTime - this.time) / 100))
               + ((this.letGoTime == null) ?
                     /* pulse */ Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.18))
                   + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (audioCurrentTime - this.endTime) / 175))), 2) * 0.5
