@@ -155,6 +155,9 @@ function Play(beatmap, audio) {
         hitObjectId++;
     }
 
+    // Scoremeter preparation
+    this.accmeter = new AccMeter();
+
     for (var i = 1; i < this.hitObjects.length; i++) {
         var prevObj = this.hitObjects[i - 1], currObj = this.hitObjects[i];
         if (prevObj.comboInfo.comboNum == currObj.comboInfo.comboNum && prevObj.comboInfo.n != currObj.comboInfo.n) {
@@ -436,11 +439,12 @@ Play.prototype.registerClick = function() {
             var dist = Math.hypot(userPlayfieldCoords.x - hitObject.x, userPlayfieldCoords.y - hitObject.y);
 
             if (dist <= csOsuPixel / 2) {
-                var timeDelta = Math.abs(audioCurrentTime - hitObject.time);
-                var score = TimingUtil.getScoreFromHitDelta(timeDelta);
-
+                var timeDelta = audioCurrentTime - hitObject.time;
+                var score = TimingUtil.getScoreFromHitDelta(Math.abs(timeDelta));
 
                 if (score >= 50) {
+                    this.accmeter.addRating(timeDelta);
+
                     if (hitObject.type == "circle") {
                         this.score.addScore(score, false, false, hitObject);
                         hitObject.playHitSound(hitObject.hitSoundInfo);

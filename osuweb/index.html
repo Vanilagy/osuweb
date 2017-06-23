@@ -193,6 +193,75 @@
             position: absolute;
             display: none;
         }
+        #accmeter {
+            position:absolute;
+            bottom: 0;
+            left: 50%;
+            height: 3%;
+            background-color: black;
+
+            transform: translate(-50%, 0%);
+            -webkit-transform: translate(-50%, 0%);
+            -moz-transform: translate(-50%, 0%);
+            -ms-transform: translate(-50%, 0%);
+            -o-transform: translate(-50%, 0%);
+        }
+        .accstrip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            height: 33%;
+            width: 100%;
+
+            transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+        }
+        #accstrip-50 {
+            background-color: orange;
+            z-index: 1;
+        }
+        #accstrip-100 {
+            background-color: greenyellow;
+            z-index: 2;
+        }
+        #accstrip-300 {
+            background-color: deepskyblue;
+            z-index: 3;
+        }
+        #acctick-X {
+            background-color: white;
+            position: absolute;
+            left: 50%;
+            height: 100%;
+            z-index: 5;
+
+            transform: translate(-50%, 0%);
+            -webkit-transform: translate(-50%, 0%);
+            -moz-transform: translate(-50%, 0%);
+            -ms-transform: translate(-50%, 0%);
+            -o-transform: translate(-50%, 0%);
+        }
+        @keyframes fadeOut {
+            from {opacity: 1;}
+            to {opacity: 0;}
+        }
+        .acctick {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            z-index: 4;
+            animation: fadeOut 10s linear forwards;
+            opacity: 1;
+
+            transform: translate(-50%, 0%);
+            -webkit-transform: translate(-50%, 0%);
+            -moz-transform: translate(-50%, 0%);
+            -ms-transform: translate(-50%, 0%);
+            -o-transform: translate(-50%, 0%);
+        }
         .scorePopup {
             transform: translate(-50%, -50%);
             z-index: 1500000;
@@ -226,6 +295,14 @@
     <p id="scoreDisplay">00000000</p>
     <p id="accuracyDisplay">100.00%</p>
     <p id="comboDisplay">0x</p>
+    <div id="accmeter">
+        <div id="accstrip-wrapper" style="width: 100%; height: 100%; position: relative;">
+            <div class="accstrip" id="accstrip-50"></div>
+            <div class="accstrip" id="accstrip-100"></div>
+            <div class="accstrip" id="accstrip-300"></div>
+            <div id="acctick-X"></div>
+        </div>
+    </div>
     <div id="playarea">
         <div id="objectContainer"></div>
     </div>
@@ -267,6 +344,7 @@
 <script src="js/game/hitobject.js"></script>
 <script src="js/game/circle.js"></script>
 <script src="js/game/slider.js"></script>
+<script src="js/game/accmeter.js"></script>
 <script src="js/game/scenes/scenebase.js"></script>
 <script src="js/game/scenes/sceneloading.js"></script>
 <script src="js/game/scenes/scenemenu.js"></script>
