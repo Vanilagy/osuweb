@@ -23,6 +23,8 @@ function AccMeter() {
             for(var index in this.lastRatings) {
                 var rating = this.lastRatings[index];
 
+                if(typeof rating === "function") continue;
+
                 if(rating.time < window.performance.now() - 10000) {
                     this.lastRatings.splice(index, 1);
 
@@ -45,8 +47,8 @@ function AccMeter() {
                 var oldValue = Math.round(currentScene.elements.accarrowImg.style.left.substr(0, currentScene.elements.accarrowImg.style.left.length - 2));
                 var newValue = currentScene.elements.accmeterDiv.clientWidth / 2 - currentScene.elements.accarrowImg.clientWidth / 2.0 + this.lastAvgDelta * this.scale;
 
-
                 if(currentScene.elements.accarrowImg.style.left == "") {
+                    console.log(newValue);
                     currentScene.elements.accarrowImg.style.left = newValue;
                 }
                 else {

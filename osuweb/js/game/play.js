@@ -393,7 +393,7 @@ Play.prototype.gameLoop = function() {
 
     // Handles breaks
     if(audioCurrentTime > this.hitObjects[0].time - 1500 && this.startBreak) {
-        document.getElementById("background-dim").style.opacity = "0.8";
+        document.getElementById("background-dim").style.opacity = "0.90";
         this.inBreak = false;
         this.startBreak = false;
     }
@@ -418,7 +418,7 @@ Play.prototype.gameLoop = function() {
         }
 
         if (this.inBreak && this.nextBreak != null && audioCurrentTime > this.nextBreak.end) {
-            document.getElementById("background-dim").style.opacity = "0.95";
+            document.getElementById("background-dim").style.opacity = "0.90";
             this.inBreak = false;
             this.nextBreak = null;
         }
