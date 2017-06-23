@@ -374,7 +374,7 @@ Play.prototype.gameLoop = function() {
         }
 
         if (this.inBreak && this.nextBreak != null && audioCurrentTime > this.nextBreak.end) {
-            document.getElementById("background-dim").style.opacity = "0.8";
+            document.getElementById("background-dim").style.opacity = "0.95";
             this.inBreak = false;
             this.nextBreak = null;
         }

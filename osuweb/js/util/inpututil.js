@@ -20,11 +20,18 @@ document.addEventListener("mousemove", function(event) {
     inputData.mouseY = event.clientY;
     refreshCursor();
 });
-document.addEventListener("mousedown", function() {
-    changeMouseButtonState(true, true);
+document.addEventListener("mousedown", function(e) {
+    console.log("down: "+e.button);
+    if(e.button == 0) changeMouseButtonState(true, true);
+    else if(e.button == 2) changeMouseButtonState(false, true);
 });
-document.addEventListener("mouseup", function() {
-    changeMouseButtonState(true, false);
+document.addEventListener("mouseup", function(e) {
+    console.log("up: "+e.button);
+    if(e.button == 0) changeMouseButtonState(true, false);
+    else if(e.button == 2) changeMouseButtonState(false, false);
+});
+document.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
 });
 document.addEventListener("keydown", function(event) {
     if (keyCodeBindings[event.keyCode]) {
@@ -73,7 +80,7 @@ function changeMouseButtonState(isLeft, bool) {
     if (isLeft && inputData.inputButtonStates["k1"] == false && inputData.inputButtonStates["m1"] != bool) {
         inputData.inputButtonStates["m1"] = bool;
         newPress = true;
-    } else if (!isLeft && inputData.inputButtonStates["k2"] == false && inputData.inputButtonStates["m1"] != false) {
+    } else if (!isLeft && inputData.inputButtonStates["k2"] == false && inputData.inputButtonStates["m2"] != bool) {
         inputData.inputButtonStates["m2"] = bool;
         newPress = true;
     }
