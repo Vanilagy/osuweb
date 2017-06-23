@@ -2,6 +2,8 @@ function AccMeter() {
     this.scale = 2;
     this.wrapper = currentScene.elements.accmeterDiv;
 
+    this.lastRatings = [];
+
     currentScene.elements.accmeterDiv.style.width = (199.5 - 10 * currentPlay.beatmap.OD) * 2 * this.scale;
 
     currentScene.elements.accstrip50Div.style.width = (199.5 - 10 * currentPlay.beatmap.OD) * 2 * this.scale;
@@ -11,6 +13,56 @@ function AccMeter() {
     currentScene.elements.acctickXDiv.style.width = this.scale;
 
     this.center = Math.floor((199.5 - 10 * currentPlay.beatmap.OD) * 2 * this.scale / 2) - Math.floor(this.scale / 2);
+
+    this.arrowUpdate = (function() {
+
+        if(this.newRating) {
+            var deltaCount = 0;
+            var deltaSum = 0;
+
+            for(var index in this.lastRatings) {
+                var rating = this.lastRatings[index];
+
+                if(rating.time < window.performance.now() - 10000) {
+                    this.lastRatings.splice(index, 1);
+
+                    this.wrapper.removeChild(rating.element);
+                }
+                else {
+                    deltaSum += rating.delta;
+                    deltaCount++;
+                }
+            }
+
+            this.lastAvgDelta = deltaSum / deltaCount;
+
+            if(deltaCount == 0) {
+                currentScene.elements.accarrowImg.style.display = "none";
+            }
+            else {
+                currentScene.elements.accarrowImg.style.display = "block";
+
+                var oldValue = Math.round(currentScene.elements.accarrowImg.style.left.substr(0, currentScene.elements.accarrowImg.style.left.length - 2));
+                var newValue = currentScene.elements.accmeterDiv.clientWidth / 2 - currentScene.elements.accarrowImg.clientWidth / 2.0 + this.lastAvgDelta * this.scale;
+
+
+                if(currentScene.elements.accarrowImg.style.left == "") {
+                    currentScene.elements.accarrowImg.style.left = newValue;
+                }
+                else {
+                    console.log(oldValue);
+                    MathUtil.interpolate(oldValue, newValue, 500, "easeOut", function(val) {currentScene.elements.accarrowImg.style.left = val;}, "accarrow", 60);
+                }
+            }
+
+
+            this.newRating = false;
+        }
+
+        requestAnimationFrame(this.arrowUpdate);
+    }.bind(this));
+
+    requestAnimationFrame(this.arrowUpdate);
 }
 
 AccMeter.prototype.addRating = function(timeDelta) {
@@ -33,4 +85,8 @@ AccMeter.prototype.addRating = function(timeDelta) {
     tickDiv.style.backgroundColor = color;
 
     this.wrapper.appendChild(tickDiv);
+
+    this.lastRatings.push({time: window.performance.now(), delta: timeDelta, element: tickDiv});
+
+    this.newRating = true;
 };

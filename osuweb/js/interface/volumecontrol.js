@@ -36,8 +36,6 @@ function VolumeControl() {
         }
 
         if(this.targetMaster != settingsData.master) {
-            this
-
             settings.setMaster(settingsData.master + (Math.pow(Math.abs(this.targetMaster - settingsData.master), 1.5) * (this.targetMaster > settingsData.master ? 1 : -1)) * frameModifier);
 
             if(Math.abs(this.targetMaster - settingsData.master) < 0.01) {
