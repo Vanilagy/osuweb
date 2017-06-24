@@ -34,8 +34,9 @@ Spinner.prototype.append = function() {
 
 Spinner.prototype.show = function() {
     this.containerDiv.style.visibility = "visible";
-    this.containerDiv.style.transition = "opacity 0.35s linear";
+    this.containerDiv.style.transition = "opacity 0.4s linear";
     this.containerDiv.style.opacity = 1;
+    this.spmContainer.style.transform = "translate(-50%, 0)";
 
     this.update();
 };
@@ -50,15 +51,21 @@ Spinner.prototype.update = function() {
         var now = window.performance.now();
         var timeDifference = now - this.lastTimeSampled;
 
-        if (this.lastPoint != undefined && inputData.isHolding) {
-            var angleFromLastPoint = Math.atan2(inputData.userPlayfieldCoords.y - this.lastPoint.y, inputData.userPlayfieldCoords.x - this.lastPoint.x);
-            var optimalAngle = Math.atan2(Math.sin(currentAngle) - Math.sin(this.lastAngle), Math.cos(currentAngle) - Math.cos(this.lastAngle));
-            var angleDifference = MathUtil.getNormalizedAngleDelta(currentAngle, this.lastAngle);
-            var circularInaccuracy = MathUtil.getNormalizedAngleDelta(angleFromLastPoint, optimalAngle);
-            var pheta = MathUtil.getNormalizedAngleDelta(currentAngle, optimalAngle); // angle between mousePos, center point and optimalAngle
-            var circularCorrectness = 1 - Math.abs(circularInaccuracy) / Math.abs(pheta) * 0.15 /* less punishment */;
+        if (this.lastPoint != undefined && inputData.isHolding || autoplay) {
+            if (autoplay) {
+                angleDifference = 10000; // something large
+            } else {
+                var angleFromLastPoint = Math.atan2(inputData.userPlayfieldCoords.y - this.lastPoint.y, inputData.userPlayfieldCoords.x - this.lastPoint.x);
+                var optimalAngle = Math.atan2(Math.sin(currentAngle) - Math.sin(this.lastAngle), Math.cos(currentAngle) - Math.cos(this.lastAngle));
+                var angleDifference = MathUtil.getNormalizedAngleDelta(currentAngle, this.lastAngle);
+                var circularInaccuracy = MathUtil.getNormalizedAngleDelta(angleFromLastPoint, optimalAngle);
+                var pheta = MathUtil.getNormalizedAngleDelta(currentAngle, optimalAngle); // angle between mousePos, center point and optimalAngle
+                var circularCorrectness = 1 - Math.abs(circularInaccuracy) / Math.abs(pheta) * 0.15 /* less punishment */;
 
-            angleDifference *= circularCorrectness;
+                angleDifference *= circularCorrectness;
+            }
+
+            angleDifference = Math.min(angleDifference, 0.05 * timeDifference /* peppy only allows 5% a spin per millisecond */);
 
             this.absoluteDegreesRotated += Math.abs(angleDifference);
             this.totalDegreesRotated += angleDifference;
@@ -74,7 +81,7 @@ Spinner.prototype.update = function() {
             }
         }
 
-        this.SPMSamples.push(Math.min(477 /* ;^) */, Math.abs((angleDifference / (Math.PI * 2)) / timeDifference) * 60000));
+        this.SPMSamples.push(Math.abs((angleDifference / (Math.PI * 2)) / timeDifference) * 60000);
         if (this.SPMSamples.length > 12) {
             this.SPMSamples.splice(0, 1);
         }
@@ -85,7 +92,7 @@ Spinner.prototype.update = function() {
 
         this.updateApproachCircle(Math.max(0, 1 - completion));
         this.circleElement.style.transform = "translate(-50%, -50%) rotate(" + this.totalDegreesRotated + "rad)";
-        this.spmDisplay.innerHTML = "SPM: " + Math.ceil(this.SPMSamples.getAvg());
+        this.spmDisplay.innerHTML = "SPM: " + Math.floor(this.SPMSamples.getAvg());
     }
 
     if (completion < 1) { // CANCER IDK WHAT'S GOING ON

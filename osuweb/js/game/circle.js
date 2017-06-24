@@ -8,10 +8,19 @@ function Circle(data) {
 Circle.prototype = Object.create(HitObject.prototype);
 Circle.prototype.constructor = Circle;
 
-Circle.prototype.hit = function(success) {
+Circle.prototype.hit = function(timeDelta) {
+    var score = TimingUtil.getScoreFromHitDelta(Math.abs(timeDelta));
     this.hittable = false;
+
+    if (score) {
+        currentPlay.score.addScore(score, false, false, this);
+        this.playHitSound(this.hitSoundInfo);
+        currentPlay.accmeter.addRating(timeDelta);
+    } else {
+        currentPlay.score.addScore(0, false, true, this);
+    }
     
-    this.containerDiv.style.animation = (success) ? "0.15s destroyHitCircle linear forwards" : "0.15s fadeOut linear forwards";
+    this.containerDiv.style.animation = (score) ? "0.15s destroyHitCircle linear forwards" : "0.15s fadeOut linear forwards";
     this.approachCircleCanvas.style.display = "none";
 };
 

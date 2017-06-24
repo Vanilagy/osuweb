@@ -48,11 +48,20 @@ Slider.prototype.show = function(offset) {
     }
 };
 
-Slider.prototype.hit = function(success) {
-    this.scoring.head = success;
+Slider.prototype.hit = function(timeDelta) {
+    var score = TimingUtil.getScoreFromHitDelta(Math.abs(timeDelta));
+    this.scoring.head = score != 0;
     this.hittable = false;
-    
-    this.sliderHeadContainer.style.animation = (success) ? "0.15s destroyHitCircle linear forwards" : "0.15s fadeOut linear forwards";
+
+    if (score) {
+        currentPlay.score.addScore(30, true);
+        this.playHitSound(this.hitSoundInfo.sliderEndHitSoundInfos[0]);
+        currentPlay.accmeter.addRating(timeDelta);
+    } else {
+        currentPlay.score.addScore(0, true, true);
+    }
+
+    this.sliderHeadContainer.style.animation = (score) ? "0.15s destroyHitCircle linear forwards" : "0.15s fadeOut linear forwards";
     this.approachCircleCanvas.style.display = "none"; 
 };
 

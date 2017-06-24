@@ -3,6 +3,8 @@ var csOsuPixel, csPixel, halfCsPixel;
 var playareaBoundingRectLeft, playareaBoundingRectTop;
 var audioCurrentTime = null;
 
+var autoplay = true;
+
 function Play(beatmap, audio) {
     currentPlay = this;
 
@@ -24,6 +26,8 @@ function Play(beatmap, audio) {
         playareaBoundingRectLeft = currentScene.elements["playareaDiv"].getBoundingClientRect().left;
         playareaBoundingRectTop = currentScene.elements["playareaDiv"].getBoundingClientRect().top;
     });
+
+    inputData.userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
 
     pixelRatio = this.playAreaWidth / GraphicUtil.playAreaDimensions.x;
     this.marginWidth = (GraphicUtil.playAreaDimensions.x - GraphicUtil.coordinateDimensions.x) / 2;
@@ -255,6 +259,7 @@ Play.prototype.gameLoop = function() {
         if (hitObject.type == "circle") {
             // Remove approach circle
             if (audioCurrentTime >= hitObject.time && hitObject.hittable) {
+                if (autoplay) hitObject.hit(audioCurrentTime - hitObject.time); // AUTO hitting
                 hitObject.approachCircleCanvas.style.visibility = "hidden";
             }
             // Fade out object when it has not been hit
@@ -301,7 +306,7 @@ Play.prototype.gameLoop = function() {
                     
                     var dist = Math.hypot(tickPosition.x / pixelRatio - userPlayfieldCoords.x, tickPosition.y / pixelRatio - userPlayfieldCoords.y);
                     
-                    if (dist <= csOsuPixel && inputData.isHolding) {
+                    if (dist <= csOsuPixel && inputData.isHolding || autoplay) {
                         if (completionsToEval[i] == hitObject.repeat) {
                             hitObject.scoring.end = true;
                         } else {
@@ -326,6 +331,7 @@ Play.prototype.gameLoop = function() {
             }
             // Remove approach circle
             if (audioCurrentTime >= hitObject.time && hitObject.hittable) {
+                if (autoplay) hitObject.hit(audioCurrentTime - hitObject.time);
                 hitObject.approachCircleCanvas.style.display = "none";
             }
             // Fade out slider head when it has not been hit
@@ -453,7 +459,7 @@ Play.prototype.gameLoop = function() {
     
     // Makes hitObjects show up on-screen
     if (this.currentHitObject < this.hitObjects.length) {
-        while (this.hitObjects[this.currentHitObject].time - ((this.hitObjects[this.currentHitObject].type != "spinner") ? this.ARMs : 350) <= audioCurrentTime) {
+        while (this.hitObjects[this.currentHitObject].time - ((this.hitObjects[this.currentHitObject].type != "spinner") ? this.ARMs : 400) <= audioCurrentTime) {
             var hitObject = this.hitObjects[this.currentHitObject];
 
             hitObject.show(audioCurrentTime - (this.hitObjects[this.currentHitObject].time - this.ARMs));
@@ -484,31 +490,7 @@ Play.prototype.registerClick = function() {
             var dist = Math.hypot(userPlayfieldCoords.x - hitObject.x, userPlayfieldCoords.y - hitObject.y);
 
             if (dist <= csOsuPixel / 2) {
-                var timeDelta = audioCurrentTime - hitObject.time;
-                var score = TimingUtil.getScoreFromHitDelta(Math.abs(timeDelta));
-
-                if (score >= 50) {
-                    this.accmeter.addRating(timeDelta);
-
-                    if (hitObject.type == "circle") {
-                        this.score.addScore(score, false, false, hitObject);
-                        hitObject.playHitSound(hitObject.hitSoundInfo);
-                    } else {
-                        this.score.addScore(30, true);
-                        hitObject.playHitSound(hitObject.hitSoundInfo.sliderEndHitSoundInfos[0]);
-                    }
-                    hitObject.hit(true);
-
-                } else {
-                    if (hitObject.type == "circle") {
-                        this.score.addScore(0, false, true, hitObject);
-                    } else {
-                        this.score.addScore(0, true, true);
-                    }
-
-                    hitObject.hit(false);
-                }
-
+                hitObject.hit(audioCurrentTime - hitObject.time);
                 break;
             }
         }
