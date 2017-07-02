@@ -126,7 +126,7 @@ export class ProcessedBeatmap {
                 };
                 let sliderTickCompletions = [];
 
-                for (let tickCompletion = 0; tickCompletion < obj.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / GAME_STATE.currentPlay.beatmap.sliderTickRate)) / obj.length) {
+                for (let tickCompletion = 0; tickCompletion < obj.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / GAME_STATE.currentPlay.beatmap.difficulty.TR)) / obj.length) {
                     let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
 
                     if (t > 0 && t < 1) {
