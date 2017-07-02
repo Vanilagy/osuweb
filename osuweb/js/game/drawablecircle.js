@@ -23,7 +23,7 @@ export class DrawableCircle extends DrawableHitObject {
             GAME_STATE.currentPlay.score.addScore(0, false, true, this);
         }
 
-        this.containerDiv.style.animation = (score) ? "0.15s destroyHitCircle linear forwards" : "0.15s fadeOut linear forwards";
+        this.containerDiv.style.animation = (score) ? "0.10s destroyHitCircle linear forwards" : "0.10s fadeOut linear forwards";
         this.approachCircleCanvas.style.display = "none";
     }
 
