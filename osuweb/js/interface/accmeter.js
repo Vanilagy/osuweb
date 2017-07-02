@@ -10,15 +10,15 @@ export class AccMeter {
 
         this.lastRatings = [];
 
-        GAME_STATE.currentScene.elements.accmeterDiv.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.OD) * 2 * this.scale;
+        GAME_STATE.currentScene.elements.accmeterDiv.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
 
-        GAME_STATE.currentScene.elements.accstrip50Div.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.OD) * 2 * this.scale;
-        GAME_STATE.currentScene.elements.accstrip100Div.style.width = (139.5 - 8 * GAME_STATE.currentPlay.beatmap.OD) * 2 * this.scale;
-        GAME_STATE.currentScene.elements.accstrip300Div.style.width = (79.5 - 6 * GAME_STATE.currentPlay.beatmap.OD) * 2 * this.scale;
+        GAME_STATE.currentScene.elements.accstrip50Div.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
+        GAME_STATE.currentScene.elements.accstrip100Div.style.width = (139.5 - 8 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
+        GAME_STATE.currentScene.elements.accstrip300Div.style.width = (79.5 - 6 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
 
         GAME_STATE.currentScene.elements.acctickXDiv.style.width = this.scale;
 
-        this.center = Math.floor((199.5 - 10 * GAME_STATE.currentPlay.beatmap.OD) * 2 * this.scale / 2) - Math.floor(this.scale / 2);
+        this.center = Math.floor((199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale / 2) - Math.floor(this.scale / 2);
 
         this.arrowUpdate = (function () {
             let deltaCount = 0;
@@ -79,10 +79,10 @@ export class AccMeter {
 
         let color = null;
 
-        if (Math.abs(timeDelta) < 79.5 - 6 * GAME_STATE.currentPlay.beatmap.OD) {
+        if (Math.abs(timeDelta) < 79.5 - 6 * GAME_STATE.currentPlay.beatmap.difficulty.OD) {
             color = "deepskyblue";
         }
-        else if (Math.abs(timeDelta) < 139.5 - 8 * GAME_STATE.currentPlay.beatmap.OD) {
+        else if (Math.abs(timeDelta) < 139.5 - 8 * GAME_STATE.currentPlay.beatmap.difficulty.OD) {
             color = "greenyellow";
         }
         else {

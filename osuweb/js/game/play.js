@@ -1,7 +1,6 @@
 "use strict";
 
 import {GraphicUtil} from "../util/graphicutil";
-import {Skin} from "../datamodel/skin";
 import {AccMeter} from "../interface/accmeter";
 import {ProgressBar} from "../interface/progressbar";
 import {DrawableCircle} from "../game/drawablecircle";
@@ -10,11 +9,13 @@ import {DrawableSpinner} from "../game/drawablespinner";
 import {GAME_STATE, AUDIO_MANAGER} from "../main";
 import {TimingUtil} from "../util/timingutil";
 import {InputUtil, INPUT_STATE} from "../util/inpututil";
-import {FollowPoint, POINT_DISTANCE, PRE_EMPT} from "./followpoint";
+import {PRE_EMPT} from "./followpoint";
 import {Score} from "./score";
 import {MathUtil} from "../util/mathutil";
 import {Console} from "../console";
 import {DrawableHitObject} from "./drawablehitobject";
+import {ProcessedBeatmap} from "../datamodel/processedbeatmap";
+import {BeatmapDifficulty} from "../datamodel/beatmapdifficulty";
 
 export let AUTOPLAY = true;
 
@@ -23,7 +24,8 @@ export class Play {
         GAME_STATE.currentPlay = this;
 
         this.audio = audio;
-        this.beatmap = beatmap;
+        this.beatmap = new ProcessedBeatmap(beatmap);
+        this.beatmap.process();
 
         // doesn't do shit yet LUL
         //ingameContainer.style.width = window.innerWidth + "px";
@@ -33,26 +35,11 @@ export class Play {
         this.marginHeight = this.marginWidth * GraphicUtil.getAspectRatio();
 
         // The diameter of a circle on the screen (relative to playfield area)
-        this.csOsuPixel = GraphicUtil.getCSOsuPixelSize(this.beatmap.CS);
+        this.csOsuPixel = this.beatmap.difficulty.getCirclePixelSize();
         this.csPixel = Math.round(this.csOsuPixel * GraphicUtil.getPixelRatio());
         this.halfCsPixel = this.csPixel / 2;
 
-        this.ARMs = TimingUtil.getApproachTimeMSForAR(this.beatmap.AR);
-
-        this.hitObjects = [];
-        this.followPoints = [];
-
-        //Progression variables
-        this.currentTimingPoint = 1;
-        this.currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
-        this.currentMsPerBeatMultiplier = 100;
-        this.currentSampleSet = this.beatmap.timingPoints[0].sampleSet;
-        this.currentVolume = this.beatmap.timingPoints[0].volume;
-
-        this.generateDrawableHitObjects();
-        this.calculateFollowPoints();
-        this.calculateZOrder();
-        this.applyStackShift();
+        this.ARMs = this.beatmap.difficulty.getApproachTime();
 
         /*
         for (let z = 0; z < this.hitObjects.length; z++) {
@@ -87,151 +74,6 @@ export class Play {
         this.stupidClock = window.performance.now();
     }
 
-    calculateZOrder() {
-        let zIndexBase = 1000000;
-        let zIndexSortedArray = this.hitObjects.slice(0).sort(function (a, b) {
-            if (Math.round(a.endTime) !== Math.round(b.endTime)) {
-                return Math.round(a.endTime) - Math.round(b.endTime);
-            } else {
-                return b.time - a.time;
-            }
-        });
-        for (let i = 0; i < zIndexSortedArray.length; i++) {
-            zIndexSortedArray[i].zIndex = zIndexBase - i;
-        }
-    }
-
-    calculateFollowPoints() {
-        for (let i = 1; i < this.hitObjects.length; i++) {
-            let prevObj = this.hitObjects[i - 1];
-            let currObj = this.hitObjects[i];
-
-            if (prevObj.comboInfo.comboNum === currObj.comboInfo.comboNum && prevObj.comboInfo.n !== currObj.comboInfo.n) {
-                let dist = Math.hypot(prevObj.endPoint.x - currObj.startPoint.x, prevObj.endPoint.y - currObj.startPoint.y);
-
-                if (dist > POINT_DISTANCE * 3) {
-                    this.followPoints.push(new FollowPoint(prevObj, currObj));
-                }
-            }
-        }
-    }
-
-    generateDrawableHitObjects() {
-        let hitObjectId = 0;
-        let comboCount = 1;
-        let nextCombo = 0;
-
-        let mapGenerationStartTime = window.performance.now();
-
-        for (let o = 0; o < this.beatmap.hitObjects.length; o++) {
-            let obj = this.beatmap.hitObjects[o];
-
-            if (obj.newCombo !== null) {
-                if (obj.newCombo === -1) {
-                    nextCombo++;
-                }
-                else {
-                    nextCombo += obj.newCombo + 1;
-                }
-                comboCount = 1;
-            }
-            let comboInfo = {
-                comboNum: nextCombo,
-                n: comboCount++,
-                isLast: (this.beatmap.hitObjects[o + 1]) ? this.beatmap.hitObjects[o + 1].newCombo !== null : true
-            };
-
-            if (this.currentTimingPoint < this.beatmap.timingPoints.length) {
-                while (this.beatmap.timingPoints[this.currentTimingPoint].offset <= obj.time) {
-                    let timingPoint = this.beatmap.timingPoints[this.currentTimingPoint];
-
-                    if (timingPoint.inherited) {
-                        this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
-                    } else {
-                        this.currentMsPerBeatMultiplier = 100;
-                        this.currentMsPerBeat = timingPoint.msPerBeat;
-                    }
-
-                    this.currentSampleSet = timingPoint.sampleSet;
-                    this.currentVolume = timingPoint.volume;
-
-                    this.currentTimingPoint++;
-
-                    if (this.currentTimingPoint === this.beatmap.timingPoints.length) {
-                        break;
-                    }
-                }
-            }
-
-            let newObject = null;
-
-            if (obj.constructor.name === "Circle") {
-                newObject = new DrawableCircle(obj);
-            } else if (obj.constructor.name === "Slider") {
-                newObject = new DrawableSlider(obj);
-
-                let timingInfo = {
-                    msPerBeat: this.currentMsPerBeat,
-                    msPerBeatMultiplier: this.currentMsPerBeatMultiplier,
-                    sliderVelocity: 100 * this.beatmap.SV / (this.currentMsPerBeat * (this.currentMsPerBeatMultiplier / 100))
-                };
-                let sliderTickCompletions = [];
-
-                for (let tickCompletion = 0; tickCompletion < obj.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / GAME_STATE.currentPlay.beatmap.sliderTickRate)) / obj.length) {
-                    let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
-
-                    if (t > 0 && t < 1) {
-                        sliderTickCompletions.push(tickCompletion);
-                    }
-                }
-
-                newObject.endTime = obj.time + obj.repeat * obj.length / timingInfo.sliderVelocity;
-                newObject.timingInfo = timingInfo;
-                newObject.sliderTickCompletions = sliderTickCompletions;
-            } else if (obj.constructor.name === "Spinner") {
-                newObject = new DrawableSpinner(obj);
-            }
-
-            let hitSoundInfo = null;
-            let sliderEndHitSoundInfos = null;
-
-            if (obj.constructor.name === "Circle" || obj.constructor.name === "Spinner") {
-                hitSoundInfo = {
-                    sampleSet: Skin.getSampleSetName((obj.samplings.sampleSet) ? obj.samplings.sampleSet : this.currentSampleSet),
-                    sampleSetAddition: Skin.getSampleSetName((obj.samplings.sampleSetAddition) ? obj.samplings.sampleSetAddition : this.currentSampleSet),
-                    additions: obj.hitSound,
-                    volume: this.currentVolume / 100
-                };
-            } else if (obj.constructor.name === "Slider") {
-                sliderEndHitSoundInfos = [];
-
-                for (let i = 0; i < obj.additions.length; i++) {
-                    sliderEndHitSoundInfos.push({
-                        sampleSet: Skin.getSampleSetName((obj.edgeSamplings[i].sampleSet) ? obj.edgeSamplings[i].sampleSet : this.currentSampleSet),
-                        sampleSetAddition: Skin.getSampleSetName((obj.edgeSamplings[i].sampleSetAddition) ? obj.edgeSamplings[i].sampleSetAddition : this.currentSampleSet),
-                        additions: obj.additions[i],
-                        volume: this.currentVolume / 100
-                    });
-                }
-
-                hitSoundInfo = {
-                    sliderEndHitSoundInfos: sliderEndHitSoundInfos,
-                    bodySampleSet: Skin.getSampleSetName((obj.bodySamplings.sampleSet) ? obj.bodySamplings.sampleSet : this.currentSampleSet)
-                };
-            }
-
-            if (newObject !== null) {
-                newObject.id = hitObjectId;
-                newObject.comboInfo = comboInfo;
-                newObject.hitSoundInfo = hitSoundInfo;
-                this.hitObjects.push(newObject);
-            }
-
-            hitObjectId++;
-        }
-        return mapGenerationStartTime;
-    }
-
     updatePlayareaSize(callback) {
         let playAreaDimensions = GraphicUtil.getPlayAreaDimensions();
 
@@ -245,7 +87,43 @@ export class Play {
     }
 
     gameLoop() {
-        ///// DEBUG /////
+        this.doDebugOutput();
+
+        // Starts the song
+        if (!this.audioStarted) {
+            AUDIO_MANAGER.playSongByName(this.audio, this.audioOffset, 0, false);
+            console.log("Audio start offset: " + AUDIO_MANAGER.getCurrentSongTime().toFixed(2) + "ms");
+
+            this.audioStarted = true;
+        }
+
+        // hitObject updates
+        this.updateHitObjects();
+
+        // Handles breaks
+        this.handleBreaks();
+
+        // Makes follow points show up on-screen
+        this.handleFollowPoints();
+
+        setTimeout(this.gameLoop.bind(this));
+    }
+
+    handleFollowPoints() {
+        if (this.currentFollowPoint < this.beatmap.followPoints.length) {
+            while (this.beatmap.followPoints[this.currentFollowPoint].startTime - PRE_EMPT <= AUDIO_MANAGER.getCurrentSongTime()) {
+                this.beatmap.followPoints[this.currentFollowPoint].spawn();
+
+                this.currentFollowPoint++;
+
+                if (this.currentFollowPoint === this.beatmap.followPoints.length) {
+                    break;
+                }
+            }
+        }
+    }
+
+    doDebugOutput() {
         let timeDif = window.performance.now() - this.lastTickClockTime;
 
         this.recordedTickSpeeds.push(timeDif);
@@ -261,17 +139,10 @@ export class Play {
             Console.verbose("Current average clock tick speed: " + (sum / this.recordedTickSpeeds.length).toFixed(2) + "ms / " + (1000 / (sum / this.recordedTickSpeeds.length)).toFixed(2) + "Hz");
             this.stupidClock = window.performance.now();
         }
-        ///// DEBUG END /////
+    }
 
-        // Starts the song
-        if (!this.audioStarted) {
-            AUDIO_MANAGER.playSongByName(this.audio, this.audioOffset, 0, false);
-            console.log("Audio start offset: " + AUDIO_MANAGER.getCurrentSongTime().toFixed(2) + "ms");
-
-            this.audioStarted = true;
-        }
-
-        // hitObject updates
+    updateHitObjects() {
+        // Handle HitObject interaction
         let userPlayfieldCoords = InputUtil.getCursorPlayfieldCoords();
         for (let id in this.onScreenHitObjects) {
             let hitObject = this.onScreenHitObjects[id];
@@ -283,7 +154,7 @@ export class Play {
                     hitObject.approachCircleCanvas.style.visibility = "hidden";
                 }
                 // Fade out object when it has not been hit
-                if (AUDIO_MANAGER.getCurrentSongTime() >= hitObject.startTime + (199.5 - 10 * GAME_STATE.currentPlay.beatmap.OD) && hitObject.hittable) {
+                if (AUDIO_MANAGER.getCurrentSongTime() >= hitObject.startTime + this.beatmap.difficulty.getHitDeltaForRating(300) && hitObject.hittable) {
                     this.score.addScore(0, false, true, hitObject);
                     hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
                     hitObject.hittable = false;
@@ -344,7 +215,7 @@ export class Play {
                     hitObject.approachCircleCanvas.style.display = "none";
                 }
                 // Fade out slider head when it has not been hit
-                if (AUDIO_MANAGER.getCurrentSongTime() >= hitObject.startTime + (199.5 - 10 * GAME_STATE.currentPlay.beatmap.OD) && hitObject.hittable) {
+                if (AUDIO_MANAGER.getCurrentSongTime() >= hitObject.startTime + this.beatmap.difficulty.getHitDeltaForRating(50) && hitObject.hittable) {
                     this.score.addScore(0, true, true);
                     hitObject.sliderHeadContainer.style.animation = "0.15s fadeOut linear forwards";
                     hitObject.hittable = false;
@@ -406,13 +277,45 @@ export class Play {
             }
         }
 
-        // Handles breaks
-        if (AUDIO_MANAGER.getCurrentSongTime() > this.hitObjects[0].startTime - 1500 && this.startBreak) {
+        // Append new HitObjects
+        while (this.beatmap.hitObjects.length > this.lastAppendedHitObject && this.lastAppendedHitObject - this.currentHitObject < 1) {
+            let nextTime = this.beatmap.hitObjects[this.lastAppendedHitObject].startTime;
+
+            while (this.beatmap.hitObjects.length > this.lastAppendedHitObject && this.beatmap.hitObjects[this.lastAppendedHitObject].startTime <= nextTime) {
+                this.beatmap.hitObjects[this.lastAppendedHitObject].draw();
+                this.beatmap.hitObjects[this.lastAppendedHitObject].append();
+                this.lastAppendedHitObject++;
+            }
+        }
+
+        // Makes HitObjects show up on-screen
+        if (this.currentHitObject < this.beatmap.hitObjects.length) {
+            while (this.beatmap.hitObjects[this.currentHitObject].startTime - ((this.beatmap.hitObjects[this.currentHitObject].constructor !== "DrawableSpinner") ? this.beatmap.difficulty.getApproachTime() : BeatmapDifficulty.getApproachTime(5)) <= AUDIO_MANAGER.getCurrentSongTime()) {
+                let hitObject = this.beatmap.hitObjects[this.currentHitObject];
+
+                hitObject.show(AUDIO_MANAGER.getCurrentSongTime() - (this.beatmap.hitObjects[this.currentHitObject].startTime - this.beatmap.difficulty.getApproachTime()));
+                this.onScreenHitObjects[hitObject.id] = hitObject;
+
+                if (hitObject.constructor.name === "DrawableSpinner") {
+                    GAME_STATE.currentScene.elements["accmeterDiv"].style.opacity = 0;
+                }
+
+                this.currentHitObject++;
+
+                if (this.currentHitObject === this.beatmap.hitObjects.length) {
+                    break;
+                }
+            }
+        }
+    }
+
+    handleBreaks() {
+        if (AUDIO_MANAGER.getCurrentSongTime() > this.beatmap.hitObjects[0].startTime - 1500 && this.startBreak) {
             document.getElementById("background-dim").style.opacity = "0.90";
             this.inBreak = false;
             this.startBreak = false;
         }
-        else if (this.hitObjects[this.hitObjects.length - 1].endTime - AUDIO_MANAGER.getCurrentSongTime() < -300) {
+        else if (this.beatmap.hitObjects[this.beatmap.hitObjects.length - 1].endTime - AUDIO_MANAGER.getCurrentSongTime() < -300) {
             document.getElementById("background-dim").style.opacity = "0";
             this.inBreak = true;
         }
@@ -442,52 +345,6 @@ export class Play {
                 this.inBreak = true;
             }
         }
-
-        // Makes follow points show up on-screen
-        if (this.currentFollowPoint < this.followPoints.length) {
-            while (this.followPoints[this.currentFollowPoint].startTime - PRE_EMPT <= AUDIO_MANAGER.getCurrentSongTime()) {
-                this.followPoints[this.currentFollowPoint].spawn();
-
-                this.currentFollowPoint++;
-
-                if (this.currentFollowPoint === this.followPoints.length) {
-                    break;
-                }
-            }
-        }
-
-        // Appends upcoming hitObjects to the playarea
-        while (this.hitObjects.length > this.lastAppendedHitObject && this.lastAppendedHitObject - this.currentHitObject < 1) {
-            let nextTime = this.hitObjects[this.lastAppendedHitObject].startTime;
-
-            while (this.hitObjects.length > this.lastAppendedHitObject && this.hitObjects[this.lastAppendedHitObject].startTime <= nextTime) {
-                this.hitObjects[this.lastAppendedHitObject].draw();
-                this.hitObjects[this.lastAppendedHitObject].append();
-                this.lastAppendedHitObject++;
-            }
-        }
-
-        // Makes hitObjects show up on-screen
-        if (this.currentHitObject < this.hitObjects.length) {
-            while (this.hitObjects[this.currentHitObject].startTime - ((this.hitObjects[this.currentHitObject].constructor !== "DrawableSpinner") ? this.ARMs : 400) <= AUDIO_MANAGER.getCurrentSongTime()) {
-                let hitObject = this.hitObjects[this.currentHitObject];
-
-                hitObject.show(AUDIO_MANAGER.getCurrentSongTime() - (this.hitObjects[this.currentHitObject].startTime - this.ARMs));
-                this.onScreenHitObjects[hitObject.id] = hitObject;
-
-                if (hitObject.constructor.name === "DrawableSpinner") {
-                    GAME_STATE.currentScene.elements["accmeterDiv"].style.opacity = 0;
-                }
-
-                this.currentHitObject++;
-
-                if (this.currentHitObject === this.hitObjects.length) {
-                    break;
-                }
-            }
-        }
-
-        setTimeout(this.gameLoop.bind(this));
     }
 
     registerClick() {
@@ -504,102 +361,6 @@ export class Play {
                     break;
                 }
             }
-        }
-    }
-
-    applyStackShift() {
-        let lastStackEnd = 0;
-        let stackThreshold = this.ARMs * this.beatmap.stackLeniency;
-        let stackSnapDistance = 3;
-
-        let extendedEndIndex = this.hitObjects.length - 1;
-        for (let i = this.hitObjects.length - 1; i >= 0; i--) {
-            let hitObject = this.hitObjects[i];
-
-            let stackBaseIndex = i;
-            for (let b = i + 1; b < this.hitObjects.length; b++) {
-                let objectB = this.hitObjects[b];
-                let stackBaseObject = hitObject;
-
-                if (stackBaseObject.constructor.name === "DrawableSpinner") break;
-                if (objectB.constructor.name === "DrawableSpinner") continue;
-
-                let endTime = stackBaseObject.endTime;
-
-                if (objectB.startTime - endTime > stackThreshold) break;
-
-                if (Math.hypot(stackBaseObject.startPoint.x - objectB.startPoint.x, stackBaseObject.startPoint.y - objectB.startPoint.y) < stackSnapDistance ||
-                    stackBaseObject.constructor.name === "DrawableSlider" && MathUtil.distance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
-                    stackBaseIndex = b;
-
-                    objectB.stackHeight = 0;
-                }
-            }
-
-            if (stackBaseIndex > extendedEndIndex) {
-                extendedEndIndex = stackBaseIndex;
-                if (extendedEndIndex === this.beatmap.hitObjects.length - 1)
-                    break;
-            }
-        }
-
-        let extendedStartIndex = 0;
-        for (let i = extendedEndIndex; i > 0; i--) {
-            let n = i;
-
-            let objectI = this.hitObjects[i];
-            if (objectI.stackHeight !== 0 || objectI.constructor.name === "DrawableSpinner") continue;
-            if (objectI.constructor.name === "DrawableCircle") {
-                while (--n >= 0) {
-                    let objectN = this.hitObjects[n];
-                    if (objectN.constructor.name === "DrawableSpinner") continue;
-
-                    let endTime = objectN.endTime;
-
-                    if (objectI.startTime - endTime > stackThreshold)
-                        break;
-
-                    if (n < extendedStartIndex) {
-                        objectN.stackHeight = 0;
-                        extendedStartIndex = n;
-                    }
-
-                    if (objectN.constructor.name === "DrawableSlider" && MathUtil.distance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
-                        let offset = objectI.stackHeight - objectN.stackHeight + 1;
-
-                        for (let j = n + 1; j <= i; j++) {
-                            let objectJ = this.hitObjects[j];
-                            if (MathUtil.distance(objectN.endPoint, objectJ.startPoint) < stackSnapDistance)
-                                objectJ.stackHeight -= offset;
-                        }
-                        break;
-                    }
-
-                    if (MathUtil.distance(objectN.startPoint, objectI.startPoint) < stackSnapDistance) {
-                        objectN.stackHeight = objectI.stackHeight + 1;
-                        objectI = objectN;
-                    }
-                }
-            }
-            else if (objectI.constructor.name === "DrawableSlider") {
-                while (--n >= 0) {
-                    let objectN = this.hitObjects[n];
-
-                    if (objectN.constructor.name === "Spinner") continue;
-
-                    if (objectI.startTime - objectN.startTime > stackThreshold)
-                        break;
-
-                    if (MathUtil.distance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
-                        objectN.stackHeight = objectI.stackHeight + 1;
-                        objectI = objectN;
-                    }
-                }
-            }
-        }
-
-        for (let z = 0; z < this.hitObjects.length; z++) {
-            this.hitObjects[z].applyStackPosition();
         }
     }
 

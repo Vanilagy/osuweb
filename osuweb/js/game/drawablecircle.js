@@ -1,7 +1,6 @@
 "use strict";
 
 import {DrawableHitObject} from "./drawablehitobject";
-import {TimingUtil} from "../util/timingutil";
 import {GAME_STATE} from "../main";
 import {GraphicUtil} from "../util/graphicutil";
 
@@ -13,7 +12,7 @@ export class DrawableCircle extends DrawableHitObject {
     }
 
     hit(timeDelta) {
-        let score = TimingUtil.getScoreFromHitDelta(Math.abs(timeDelta));
+        let score = GAME_STATE.currentPlay.beatmap.difficulty.getRatingForHitDelta(Math.abs(timeDelta));
         this.hittable = false;
 
         if (score) {

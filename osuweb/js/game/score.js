@@ -30,7 +30,7 @@ export class Score {
         this.comboWorthValues = {}; // Used to determine elite beats. A value of 0 means perfect, anything above is some sort of katu, and everything below means the player hit 50s or misses.
 
         this.difficultyMultiplier = (function () {
-            let difficultyPoints = Math.floor(beatmap.CS) + Math.floor(beatmap.HP) + Math.floor(beatmap.OD);
+            let difficultyPoints = Math.floor(beatmap.difficulty.CS) + Math.floor(beatmap.difficulty.HP) + Math.floor(beatmap.difficulty.OD);
 
             if (difficultyPoints <= 5) {
                 return 2;

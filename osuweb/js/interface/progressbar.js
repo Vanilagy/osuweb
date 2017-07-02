@@ -11,8 +11,8 @@ export class ProgressBar {
         this.ctx = this.canvas.getContext("2d");
 
         this.prelude = 2000;
-        this.mapStartTime = GAME_STATE.currentPlay.hitObjects[0].startTime;
-        this.mapEndTime = GAME_STATE.currentPlay.hitObjects[GAME_STATE.currentPlay.hitObjects.length - 1].endTime;
+        this.mapStartTime = GAME_STATE.currentPlay.beatmap.hitObjects[0].startTime;
+        this.mapEndTime = GAME_STATE.currentPlay.beatmap.hitObjects[GAME_STATE.currentPlay.beatmap.hitObjects.length - 1].endTime;
 
         this.animationLoop = (function () {
             if (GAME_STATE.currentScene.elements.progressCanvas.clientWidth > 0) {

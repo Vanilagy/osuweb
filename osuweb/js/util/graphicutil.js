@@ -10,9 +10,6 @@ export class GraphicUtil {
 
         return baseDimensions.height / baseDimensions.width;
     }
-    static getCSOsuPixelSize(CS) {
-        return 64 * (1.0 - 0.7 * (CS - 5) / 5);
-    }
     static getBasePlayfieldDimensions() {
         return {
             width: 512,

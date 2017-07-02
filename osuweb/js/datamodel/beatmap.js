@@ -5,11 +5,14 @@ import {Spinner} from "./spinner";
 import {Slider} from "./slider";
 import {Circle} from "./circle";
 import {Console} from "../console";
+import {BeatmapDifficulty} from "./beatmapdifficulty";
 
 export class Beatmap {
     constructor(file, callback) {
         Console.verbose("--- START BEATMAP LOADING ---");
         this.callback = callback;
+
+        this.difficulty = new BeatmapDifficulty();
 
         this.events = [];
         this.timingPoints = [];
@@ -146,7 +149,7 @@ export class Beatmap {
                 if (line.startsWith("PreviewTime")) this.previewTime = parseInt(line.split(':')[1].trim(), 10);
                 if (line.startsWith("Countdown")) this.countdown = parseInt(line.split(':')[1].trim(), 10);
                 if (line.startsWith("SampleSet")) this.sampleSet = parseInt(line.split(':')[1].trim(), 10);
-                if (line.startsWith("StackLeniency")) this.stackLeniency = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("StackLeniency")) this.difficulty.SL = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("Mode")) this.mode = parseInt(line.split(':')[1].trim(), 10);
                 if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = parseInt(line.split(':')[1].trim(), 10);
                 if (line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard = parseInt(line.split(':')[1].trim(), 10);
@@ -162,12 +165,12 @@ export class Beatmap {
                 if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim(), 10);
                 if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
 
-                if (line.startsWith("HPDrainRate")) this.HP = line.split(':')[1].trim();
-                if (line.startsWith("CircleSize")) this.CS = line.split(':')[1].trim();
-                if (line.startsWith("OverallDifficulty")) this.OD = line.split(':')[1].trim();
-                if (line.startsWith("ApproachRate")) this.AR = line.split(':')[1].trim();
-                if (line.startsWith("SliderMultiplier")) this.SV = line.split(':')[1].trim();
-                if (line.startsWith("SliderTickRate")) this.sliderTickRate = line.split(':')[1].trim();
+                if (line.startsWith("HPDrainRate")) this.difficulty.HP = line.split(':')[1].trim();
+                if (line.startsWith("CircleSize")) this.difficulty.CS = line.split(':')[1].trim();
+                if (line.startsWith("OverallDifficulty")) this.difficulty.OD = line.split(':')[1].trim();
+                if (line.startsWith("ApproachRate")) this.difficulty.AR = line.split(':')[1].trim();
+                if (line.startsWith("SliderMultiplier")) this.difficulty.SV = line.split(':')[1].trim();
+                if (line.startsWith("SliderTickRate")) this.difficulty.TR = line.split(':')[1].trim();
 
                 Console.verbose("Read header property: "+line);
             }

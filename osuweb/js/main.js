@@ -175,7 +175,7 @@ document.getElementById("beatmap").addEventListener("change", function(e) {
         AUDIO_MANAGER.stopSong();
         console.log(GAME_STATE.currentBeatmapSet.difficulties[keys[0]]);
 
-        GAME_STATE.currentBeatmapSet.loadDifficulty(GAME_STATE.currentBeatmapSet.difficulties[(function() {
+        GAME_STATE.currentBeatmapSet.loadDifficulty(GAME_STATE.currentBeatmapSet.difficulties[keys.length === 1 ? keys[0] : (function() {
             let issuedBullshit = prompt("Enter difficulty: (" + keys.join(", ") + ") or id");
 
             if (Number(issuedBullshit) === issuedBullshit) {

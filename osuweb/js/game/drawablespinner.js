@@ -14,7 +14,7 @@ export class DrawableSpinner extends DrawableHitObject {
         this.endTime = spinner.endTime;
 
         this.duration = this.endTime - this.startTime;
-        this.requiredSpins = (100 + GAME_STATE.currentPlay.beatmap.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
+        this.requiredSpins = (100 + GAME_STATE.currentPlay.beatmap.difficulty.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
         this.active = false;
         this.cleared = false;
         this.completed = false;

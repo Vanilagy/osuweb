@@ -2,7 +2,6 @@
 
 import {CIRCLE_BORDER_WIDTH, GraphicUtil, PI2} from "../util/graphicutil";
 import {GAME_STATE, AUDIO_MANAGER} from "../main";
-import {TimingUtil} from "../util/timingutil";
 import {SliderCurveBezier} from "../util/slidercurvebezier";
 import {SliderCurvePassthrough} from "../util/slidercurvepassthrough";
 import {DrawableHitObject} from "./drawablehitobject";
@@ -52,7 +51,7 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     hit(timeDelta) {
-        let score = TimingUtil.getScoreFromHitDelta(Math.abs(timeDelta));
+        let score = GAME_STATE.currentPlay.beatmap.difficulty.getRatingForHitDelta(Math.abs(timeDelta));
         this.scoring.head = score !== 0;
         this.hittable = false;
 
