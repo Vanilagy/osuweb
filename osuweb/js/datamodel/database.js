@@ -1,50 +1,63 @@
-function Database(directoryEntry) {
-    this.directoryEntry = directoryEntry;
-    this.beatmapSetEntrys = {};
-    this.finishedBeatmapSetEntrys = 0;
-    this.processesRunning = 0;
-    this.skinEntrys = [];
+"use strict";
 
-    this.isMap = function(fileEntrys) {
-        let osuFileExists = false;
-        let soundFileExists = false;
+export class Database {
+    constructor(directoryEntry) {
+        this.directoryEntry = directoryEntry;
+        this.beatmapSetEntrys = {};
+        this.finishedBeatmapSetEntrys = 0;
+        this.processesRunning = 0;
+        this.skinEntrys = [];
 
-        for(var fileEntry in fileEntrys) {
-            let entry = fileEntrys[fileEntry];
+        this.isMap = function (fileEntrys) {
+            let osuFileExists = false;
+            let soundFileExists = false;
 
-            if(entry.name.endsWith(".osu")) {
-                osuFileExists = true;
+            for (let fileEntry in fileEntrys) {
+                let entry = fileEntrys[fileEntry];
+
+                if (entry.name.endsWith(".osu")) {
+                    osuFileExists = true;
+                }
+                else if (entry.name.endsWith(".mp3") || entry.name.endsWith(".wav") || entry.name.endsWith(".ogg")) {
+                    soundFileExists = true;
+                }
+
+                if (osuFileExists && soundFileExists) return true;
             }
-            else if(entry.name.endsWith(".mp3") || entry.name.endsWith(".wav") || entry.name.endsWith(".ogg")) {
-                soundFileExists = true;
+
+            return false;
+        };
+
+        this.isSkin = function (fileEntrys) {
+
+        };
+
+        let directoryCallback = function (reader, entries, dirName, results) {
+            if (!results.length) {
+                this.processDirectoryEntries(entries, dirName);
             }
+            else {
+                entries = entries.concat(results);
+                reader.readEntries(this.directoryCallback.bind(this, reader, entries, dirName));
+            }
+        };
 
-            if(osuFileExists && soundFileExists) return true;
+        if (this.directoryEntry !== undefined) {
+            this.startTime = window.performance.now();
+
+            let reader = directoryEntry.createReader();
+            reader.readEntries(directoryCallback.bind(this, reader, [], directoryEntry.name));
+
+            console.log(this.beatmapSetEntrys);
         }
+    }
 
-        return false;
-    };
-
-    this.isSkin = function(fileEntrys) {
-
-    };
-
-    this.directoryCallback = function(reader, entries, dirName, results) {
-        if(!results.length) {
-            this.processDirectoryEntries(entries, dirName);
-        }
-        else {
-            entries = entries.concat(results);
-            reader.readEntries(this.directoryCallback.bind(this, reader, entries, dirName));
-        }
-    };
-
-    this.processDirectoryEntries = function(entries, dirName) {
+    processDirectoryEntries(entries, dirName) {
         let files = [];
         let directories = [];
 
-        for (var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
+        for (let i = 0; i < entries.length; i++) {
+            let entry = entries[i];
             if (entry.isDirectory) {
                 directories.push(entry);
             }
@@ -53,34 +66,25 @@ function Database(directoryEntry) {
             }
         }
 
-        if(this.isMap(files)) {
-            var beatmapSetEntry = new BeatmapSetEntry(files, (function() {
+        if (this.isMap(files)) {
+            let beatmapSetEntry = new BeatmapSetEntry(files, (function () {
                 this.finishedBeatmapSetEntrys++;
-                console.log(this.finishedBeatmapSetEntrys + " (time passed: "+(window.performance.now()-this.startTime)+")");
+                console.log(this.finishedBeatmapSetEntrys + " (time passed: " + (window.performance.now() - this.startTime) + ")");
                 this.processesRunning--;
             }).bind(this))
 
-            if(beatmapSetEntry[dirName] == undefined) this.beatmapSetEntrys[dirName] = beatmapSetEntry;
+            if (beatmapSetEntry[dirName] === undefined) this.beatmapSetEntrys[dirName] = beatmapSetEntry;
         }
-        else if(this.isSkin(files)) {
+        else if (this.isSkin(files)) {
             this.skinEntrys.push(new SkinEntry(files));
             this.processesRunning--;
         }
         else {
-            for(var i = 0; i < directories.length; i++) {
-                var dirReader = directories[i].createReader();
+            for (let i = 0; i < directories.length; i++) {
+                let dirReader = directories[i].createReader();
                 dirReader.readEntries(this.directoryCallback.bind(this, dirReader, [], directories[i].name));
             }
             this.processesRunning--;
         }
-    };
-
-    if(this.directoryEntry != undefined) {
-        this.startTime = window.performance.now();
-
-        var reader = directoryEntry.createReader();
-        reader.readEntries(this.directoryCallback.bind(this, reader, [], directoryEntry.name));
-
-        console.log(this.beatmapSetEntrys);
     }
 }

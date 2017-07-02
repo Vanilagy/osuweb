@@ -1,30 +1,34 @@
-function SceneBase() {
-    this.elements = {};
+"use strict";
 
-    this.elements["backgroundDiv"] = document.getElementById("background");
-    this.elements["foregroundDiv"] = document.getElementById("foreground");
-    this.elements["osuwebCanvas"] = document.getElementById("osuweb");
+export class SceneBase {
+    constructor() {
+        this.elements = {};
 
-    return this;
-}
+        this.elements["backgroundDiv"] = document.getElementById("background");
+        this.elements["foregroundDiv"] = document.getElementById("foreground");
+        this.elements["osuwebCanvas"] = document.getElementById("osuweb");
 
-SceneBase.prototype.setElementVisibility = function(value, fade, transition) {
-    this.visible = !this.visible;
+        return this;
+    }
 
-    for(var elem in this.elements) {
-        var object = this.elements[elem];
+    setElementVisibility = function (value, fade, transition) {
+        this.visible = !this.visible;
 
-        if (fade) {
-            object.style.transition = transition != undefined ? "opacity 1s linear" : transition;
+        for (let elem in this.elements) {
+            let object = this.elements[elem];
 
-            object.style.opacity = value ? "1" : "0";
+            if (fade) {
+                object.style.transition = transition !== undefined ? "opacity 1s linear" : transition;
 
-            setTimeout((function () {
+                object.style.opacity = value ? "1" : "0";
+
+                setTimeout((function () {
+                    object.style.display = value ? "block" : "none";
+                }).bind(this), 1000)
+            }
+            else {
                 object.style.display = value ? "block" : "none";
-            }).bind(this), 1000)
-        }
-        else {
-            object.style.display = value ? "block" : "none";
+            }
         }
     }
-};
+}

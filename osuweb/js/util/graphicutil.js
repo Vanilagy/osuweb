@@ -1,69 +1,90 @@
-var pi2 = Math.PI * 2;
-var maximumTracePointDistance = 3; // The maximum distance two points in a slider's traced path can be apart – used to control detail in sliders.
-var circleBorderWidth = 1.75 / 16; // in relation to circle radius
-var interpolationStorage = {};
+import {GAME_STATE} from "../main";
+"use strict";
 
-var GraphicUtil = {
-    widthToHeightRatio: 3 / 4,
-    coordinateDimensions: {
-        x: 512,
-        y: 384
-    },
-    playAreaDimensions: {
-        x: 640,
-        y: 480
-    },
-    pi2: Math.PI * 2,
-    drawCircle: function(context, x, y, comboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
+export const PI2 = Math.PI * 2;
+export const CIRCLE_BORDER_WIDTH = 1.75 / 16; // in relation to circle radius
+
+export class GraphicUtil {
+    static getAspectRatio() {
+        let baseDimensions = this.getBasePlayfieldDimensions();
+
+        return baseDimensions.height / baseDimensions.width;
+    }
+    static getCSOsuPixelSize(CS) {
+        return 64 * (1.0 - 0.7 * (CS - 5) / 5);
+    }
+    static getBasePlayfieldDimensions() {
+        return {
+            width: 512,
+            height: 384
+        };
+    }
+    static getBaseScreenDimensions() {
+        return {
+            width: 640,
+            height: 480
+        };
+    }
+    static getPlayAreaDimensions() {
+        let playAreaHeight = Math.floor(window.innerHeight * 0.95 / 4) * 4;
+        let playAreaWidth = playAreaHeight / GraphicUtil.getAspectRatio();
+
+        return {width: playAreaWidth, height: playAreaHeight};
+    }
+    static getPixelRatio() {
+        return GraphicUtil.getPlayAreaDimensions().width / GraphicUtil.getBaseScreenDimensions().width;
+    }
+    static drawCircle(context, x, y, comboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
         context.beginPath(); // Draw circle base (will become border)
-        context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel, 0, pi2);
+        context.arc(x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, GAME_STATE.currentPlay.halfCsPixel - 5, 0, PI2);
         context.fillStyle = "white";
         context.fill();
 
-        var colour = currentBeatmap.colours[comboInfo.comboNum % currentBeatmap.colours.length];
-        var colourString = "rgb(" + Math.round(colour.r * 0.8) + "," + Math.round(colour.g * 0.8) + "," + Math.round(colour.b * 0.8) + ")";
-        var darkColourString = "rgb(" + Math.round(colour.r * 0.3) + "," + Math.round(colour.g * 0.3) + "," + Math.round(colour.b * 0.3) + ")";
+        let colour = GAME_STATE.currentBeatmap.colours[comboInfo.comboNum % GAME_STATE.currentBeatmap.colours.length];
+        let colourString = "rgb(" + Math.round(colour.r * 0.8) + "," + Math.round(colour.g * 0.8) + "," + Math.round(colour.b * 0.8) + ")";
+        let darkColourString = "rgb(" + Math.round(colour.r * 0.3) + "," + Math.round(colour.g * 0.3) + "," + Math.round(colour.b * 0.3) + ")";
 
-        var radialGradient = context.createRadialGradient(x + halfCsPixel, y + halfCsPixel, 0, x + halfCsPixel, y + halfCsPixel, halfCsPixel);
+        let radialGradient = context.createRadialGradient(x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, 0, x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, GAME_STATE.currentPlay.halfCsPixel - 5);
         radialGradient.addColorStop(0, colourString);
         radialGradient.addColorStop(1, darkColourString);
 
         context.beginPath(); // Draw circle body with radial gradient
-        context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * (1 - circleBorderWidth), 0, pi2);
+        context.arc(x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, (GAME_STATE.currentPlay.halfCsPixel - 5) * (1 - CIRCLE_BORDER_WIDTH), 0, PI2);
         context.fillStyle = radialGradient;
         context.fill();
         context.fillStyle = "rgba(255, 255, 255, 0.5)";
         context.globalCompositeOperation = "destination-out"; // Transparency
         context.fill();
 
-        var innerType = "number";
+        let innerType = "number";
         context.globalCompositeOperation = "source-over";
 
-        if (innerType == "number") {
-            context.font = "lighter " + (csPixel * 0.41) + "px Arial";
-            context.textAlign = "center", context.textBaseline = "middle";
+        if (innerType === "number") {
+            context.font = "lighter " + (GAME_STATE.currentPlay.csPixel * 0.41) + "px Arial";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
             context.fillStyle = "white";
-            context.fillText(comboInfo.n, x + halfCsPixel, y + halfCsPixel);
+            context.fillText(comboInfo.n, x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel);
         } else {
             context.beginPath();
-            context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * 0.25, 0, pi2);
+            context.arc(x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, GAME_STATE.currentPlay.halfCsPixel * 0.25, 0, PI2);
             context.fillStyle = "white";
             context.fill();
         }
-    },
-    drawApproachCircle: function(context, x, y, comboNum) {
+    }
+    static drawApproachCircle(context, x, y, comboNum) {
         context.beginPath();
-        context.arc(x + halfCsPixel, y + halfCsPixel, halfCsPixel * ((1 - circleBorderWidth) + 1) / 2, 0, pi2);
-        var color = currentPlay.beatmap.colours[comboNum % currentPlay.beatmap.colours.length];
+        context.arc(x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, GAME_STATE.currentPlay.halfCsPixel * ((1 - CIRCLE_BORDER_WIDTH) + 1) / 2, 0, PI2);
+        let color = GAME_STATE.currentPlay.beatmap.colours[comboNum % GAME_STATE.currentPlay.beatmap.colours.length];
         context.strokeStyle = "rgb(" + color.r + ", " + color.g + ", " + color.b + ")";
-        context.lineWidth = halfCsPixel * circleBorderWidth;
+        context.lineWidth = GAME_STATE.currentPlay.halfCsPixel * CIRCLE_BORDER_WIDTH / 3;
         context.stroke();
-    },
-    getCoordFromCoordArray: function(arr, percent) {
-        var actualIdx = percent * (arr.length - 1);
-        var lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
-        var lowerPos = arr[lowerIdx];
-        var upperPos = arr[upperIdx];
+    }
+    static getCoordFromCoordArray(arr, percent) {
+        let actualIdx = percent * (arr.length - 1);
+        let lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
+        let lowerPos = arr[lowerIdx];
+        let upperPos = arr[upperIdx];
 
         return { // Linear interpolation
             x: lowerPos.x * (1 - (actualIdx - lowerIdx)) + upperPos.x * (actualIdx - lowerIdx),

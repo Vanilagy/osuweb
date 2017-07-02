@@ -1,25 +1,32 @@
-function BeatmapSetEntry(fileEntrys, callback) {
-    this.beatmapEntrys = {};
-    this.loadingMaps = 0;
-    this.beatmapSetID = -1;
+"use strict";
 
-    for(var fileEntry in fileEntrys) {
-        if(fileEntrys[fileEntry].name.endsWith(".osu")) {
-            this.loadingMaps++;
-            fileEntrys[fileEntry].file((function(file) {
-                FileUtil.loadFileAsString(file, (function(content) {
-                    var beatmap = new BeatmapEntry(content.target.result)
+import {BeatmapEntry} from "./beatmapentry";
+import {FileUtil} from "../util/fileutil";
 
-                    if(this.beatmapSetID == -1 && beatmap.beatmapSetID != undefined) {
-                        this.beatmapSetID = beatmap.beatmapSetID;
-                    }
+export class BeatmapSetEntry {
+    constructor(fileEntrys, callback) {
+        this.beatmapEntrys = {};
+        this.loadingMaps = 0;
+        this.beatmapSetID = -1;
 
-                    this.beatmapEntrys[beatmap.beatmapID] = beatmap;
+        for (let fileEntry in fileEntrys) {
+            if (fileEntrys[fileEntry].name.endsWith(".osu")) {
+                this.loadingMaps++;
+                fileEntrys[fileEntry].file((function (file) {
+                    FileUtil.loadFileAsString(file, (function (content) {
+                        let beatmap = new BeatmapEntry(content.target.result);
 
-                    this.loadingMaps--;
-                    if(this.loadingMaps == 0) callback();
+                        if (this.beatmapSetID === -1 && beatmap.beatmapSetID !== undefined) {
+                            this.beatmapSetID = beatmap.beatmapSetID;
+                        }
+
+                        this.beatmapEntrys[beatmap.beatmapID] = beatmap;
+
+                        this.loadingMaps--;
+                        if (this.loadingMaps === 0) callback();
+                    }).bind(this));
                 }).bind(this));
-            }).bind(this));
+            }
         }
     }
 }

@@ -1,8 +1,11 @@
-function SceneGame() {
-    SceneBase.call(this);
+"use strict";
 
-    this.elements["backgroundDimDiv"] = document.getElementById("background-dim");
+import {SceneBase} from "./scenebase";
+
+export class SceneGame extends SceneBase {
+    constructor() {
+        super();
+
+        this.elements["backgroundDimDiv"] = document.getElementById("background-dim");
+    }
 }
-
-SceneGame.prototype = Object.create(SceneBase.prototype);
-SceneGame.prototype.constructor = SceneGame;

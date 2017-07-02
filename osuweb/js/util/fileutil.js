@@ -1,40 +1,48 @@
-var FileUtil = {
-	loadFileAsDataUrl: function(file, onLoad) {
-		var reader = new FileReader();
+"use strict";
+
+import {ZIP} from "../main"
+import {Audio} from "../audio/audio";
+
+export class FileUtil {
+    constructor() {
+
+    }
+	static loadFileAsDataUrl(file, onLoad) {
+        let reader = new FileReader();
 
 		reader.onload = onLoad;
 
 		reader.readAsDataURL(file);
-	},
-    loadFileAsString: function(file, onLoad) {
-        var reader = new FileReader();
+	}
+    static loadFileAsString(file, onLoad) {
+        let reader = new FileReader();
 
         reader.onload = onLoad;
 
         reader.readAsText(file);
-    },
-	loadAudioFromFile: function(file, onFileLoad, onAudioLoad, isMusic) {
+    }
+    static loadAudio(file, onFileLoad, onAudioLoad, isUrl = false, isMusic = false) {
+        if(typeof file === "string" && isUrl) {
+            let request = new XMLHttpRequest();
+            request.open('GET', file, true);
+            request.responseType = 'arraybuffer';
+            request.onload = (function(e) {
+                onFileLoad(new Audio(e.target.response, onAudioLoad, isMusic));
+            });
+            request.send();
+        }
         // This is a zip entry
-        if(typeof file == "string") {
-            zip.file(file).async("arraybuffer").then((function(result) {
-                onFileLoad(new Audio(result, onAudioLoad));
+        else if(typeof file === "string") {
+            ZIP.file(file).async("arraybuffer").then((function(result) {
+                onFileLoad(new Audio(result, onAudioLoad, 5, isMusic));
             }));
         }
         else {
-            var reader = new FileReader();
+            let reader = new FileReader();
             reader.onload = (function(e) {
-                onFileLoad(new Audio(e.target.result, onAudioLoad));
+                onFileLoad(new Audio(e.target.result, onAudioLoad, 5, isMusic));
             });
             reader.readAsArrayBuffer(file);
         }
-    },
-    loadAudioFromURL: function(url, onFileLoad, onAudioLoad, isMusic) {
-        var request = new XMLHttpRequest();
-        request.open('GET', url, true);
-        request.responseType = 'arraybuffer';
-        request.onload = (function(e) {
-            onFileLoad(new Audio(e.target.response, onAudioLoad, isMusic));
-        });
-        request.send();
     }
 }

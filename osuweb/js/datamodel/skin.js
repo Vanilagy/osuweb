@@ -1,59 +1,72 @@
-function Skin(resource, callback) {
-    this.callback = callback;
-    this.skinElements = {};
+"use strict";
 
-    if (Object.prototype.toString.call(resource) === '[object Array]') {
-        alert('Array!');
-        this.callback(false);
-    }
-    else if(Object.prototype.toString.call(resource) === '[object File]') {
-        zip.loadAsync(resource).then(this.loadOSK.bind(this));
-    }
-    else if(Object.prototype.toString.call(resource) === '[object String]') {
-        JSZipUtils.getBinaryContent(resource, (function(err, data) {
-            if(err) {
-                console.log(err);
-            }
+import {ZIP, AUDIO_MANAGER} from "../main";
 
-            zip.loadAsync(data).then(this.loadOSK.bind(this));
-        }).bind(this));
-    }
-}
+export class Skin {
+    constructor(resource, name, callback = null) {
+        this.callback = callback;
+        this.skinElements = {};
+        this.name = name;
 
-Skin.prototype.loadOSK = function(zip) {
-    for(var key in zip.files) {
-        // Get our keyname from filename
-        let rawFileName = key.replace(/\.[^/.]+$/, "");
-        // Determine how to read this entry
-        let output = "string";
-        if(key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) output = "arraybuffer";
-        if(key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) output = "base64";
-        zip.file(key).async(output).then((function(result) {
-            if(output == "arraybuffer") {
-                try {
-                    if(result.byteLength > 0) {
-                        this.skinElements[rawFileName] = new Audio(result, function(){}, 1000);
+        if (Object.prototype.toString.call(resource) === '[object Array]') {
+            alert('Array!');
+            this.callback(false);
+        }
+        else if (Object.prototype.toString.call(resource) === '[object File]') {
+            ZIP.loadAsync(resource).then(this.loadOSK.bind(this));
+        }
+        else if (Object.prototype.toString.call(resource) === '[object String]') {
+            JSZipUtils.getBinaryContent(resource, (function (err, data) {
+                if (err) {
+                    console.log(err);
+                }
+
+                ZIP.loadAsync(data).then(this.loadOSK.bind(this));
+            }).bind(this));
+        }
+    }
+
+    loadOSK(zip) {
+        for (let key in zip.files) {
+            // Get our keyname from filename
+            let rawFileName = key.replace(/\.[^/.]+$/, "");
+            // Determine how to read this entry
+            let output = "string";
+            if (key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) output = "arraybuffer";
+            if (key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) output = "base64";
+            zip.file(key).async(output).then((result) => {
+                if (output === "arraybuffer") {
+                    try {
+                        if (result.byteLength > 0) {
+                            this.skinElements[rawFileName] = rawFileName+this.name;
+
+                            AUDIO_MANAGER.loadSoundArrayBuffer(result, rawFileName+this.name, 50);
+                        }
+                    }
+                    catch (e) {
+                        console.log(e + rawFileName);
                     }
                 }
-                catch(e) {
-                    console.log(rawFileName);
+                else {
+                    this.skinElements[rawFileName] = result;
                 }
-            }
-            else {
-                this.skinElements[rawFileName] = result;
-            }
-        }).bind(this), (function(fuckme) {
-            console.log(fuckme);
-        }).bind(this));
-    }
-    this.callback(true);
-};
+            }, (fuckme) => {
+                console.log(fuckme);
+            });
+        }
+        if(this.callback !== null) this.callback(true);
+    };
 
-Skin.prototype.getSampleSetName = function(id) {
-    switch (id) {
-        case 1: return "normal";
-        case 2: return "soft";
-        case 3: return "drum";
-        default: return "normal";
+    static getSampleSetName(id) {
+        switch (id) {
+            case 1:
+                return "normal";
+            case 2:
+                return "soft";
+            case 3:
+                return "drum";
+            default:
+                return "normal";
+        }
     }
 }

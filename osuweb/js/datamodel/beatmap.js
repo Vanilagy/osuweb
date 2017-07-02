@@ -1,99 +1,85 @@
-function Beatmap(file, callback) {
-    var read = function(e){
+"use strict";
+
+import {ZIP} from "../main";
+import {Spinner} from "./spinner";
+import {Slider} from "./slider";
+import {Circle} from "./circle";
+import {Console} from "../console";
+
+export class Beatmap {
+    constructor(file, callback) {
+        Console.verbose("--- START BEATMAP LOADING ---");
+        this.callback = callback;
+
         this.events = [];
         this.timingPoints = [];
         this.hitObjects = [];
         this.colours = [];
 
-        var timingPointIndex = 0;
+        this.circles = 0;
+        this.sliders = 0;
+        this.spinners = 0;
 
-        var lines = (typeof e == "string" ? e : e.target.result).split('\n');
+        // Load text from file
+        if (Object.prototype.toString.call(file) === "[object File]") {
+            Console.verbose("Load Beatmap from file: "+file.name);
+            let reader = new FileReader();
+            reader.onload = (result) => this.parseBeatmap(result.currentTarget.result);
+            reader.readAsText(file);
+        }
+        // Read text from a zip entry
+        else if (typeof file === "string") {
+            Console.verbose("Load Beatmap from zip entry: "+file);
+            ZIP.file(file).async("string").then(this.parseBeatmap.bind(this), (fuckme) => {
+                Console.error("Fatal error while reading zip entry: "+fuckme);
+            });
+        }
+    }
 
-        var section = "header";
-        var eventType = "";
+    parseBeatmap(text) {
+        Console.debug("Start beatmap parsing...");
+        let timingPointIndex = 0;
 
-        for(var i = 0; i < lines.length; i++){
-            var line = lines[i].trim();
+        let lines = text.split('\n');
 
-            if(line == "") continue;
+        let section = "header";
 
-            if(line.startsWith("osu file format v") && !line.endsWith("14")) console.log("The beatmap version seems to be older than supported. We could run into issue here!");
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
 
-            if(line == "[General]") {
-                section = "general";
-                continue;
+            if (line === "") continue;
+
+            if (line.startsWith("osu file format v")) {
+                this.version = line.substr(line.length - 2, 2);
+
+                Console.debug("Beatmap version: "+this.version);
+
+                if(!line.endsWith("14")) Console.warn("The beatmap version seems to be older than supported. We could run into issue here!");
             }
-            if(line == "[Metadata]") {
-                section = "metadata";
-                continue;
-            }
-            if(line == "[Difficulty]")  {
-                section = "difficulty";
-                continue;
-            }
-            if(line == "[Events]")  {
-                section = "events";
-                continue;
-            }
-            if(line == "[TimingPoints]")  {
-                section = "timing";
-                continue;
-            }
-            if(line == "[HitObjects]")  {
-                section = "hitObjects";
-                continue;
-            }
-            if(line == "[Colours]")  {
-                section = "colours";
-                continue;
-            }
+            else if(line.startsWith("[") && line.endsWith("]")) {
+                section = line.substr(1,line.length-2).toLowerCase();
 
-            if(section != "timing" && section != "hitObjects") {
-                if(line.startsWith("AudioFilename")) this.audioFile=line.split(':')[1].trim();
-                if(line.startsWith("AudioLeadIn")) this.audioLeadIn=parseInt(line.split(':')[1].trim(), 10);
-                if(line.startsWith("PreviewTime")) this.previewTime=parseInt(line.split(':')[1].trim(), 10);
-                if(line.startsWith("Countdown")) this.countdown=parseInt(line.split(':')[1].trim(), 10);
-                if(line.startsWith("SampleSet")) this.sampleSet=parseInt(line.split(':')[1].trim(), 10);
-                if(line.startsWith("StackLeniency")) this.stackLeniency=parseFloat(line.split(':')[1].trim());
-                if(line.startsWith("Mode")) this.mode=parseInt(line.split(':')[1].trim(), 10);
-                if(line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks=parseInt(line.split(':')[1].trim(), 10);
-                if(line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard=parseInt(line.split(':')[1].trim(), 10);
-
-                if(line.startsWith("Title")) this.title=line.split(':')[1].trim();
-                if(line.startsWith("TitleUnicode")) this.titleUnicode=line.split(':')[1].trim();
-                if(line.startsWith("Artist")) this.artist=line.split(':')[1].trim();
-                if(line.startsWith("ArtistUnicode")) this.artistUnicode=line.split(':')[1].trim();
-                if(line.startsWith("Creator")) this.creator=line.split(':')[1].trim();
-                if(line.startsWith("Version")) this.version=line.split(':')[1].trim();
-                if(line.startsWith("Source")) this.source=line.split(':')[1].trim();
-                if(line.startsWith("Tags")) this.tags=line.split(':')[1].trim();
-                if(line.startsWith("BeatmapID")) this.beatmapID=parseInt(line.split(':')[1].trim(), 10);
-                if(line.startsWith("BeatmapSetID")) this.beatmapSetID=parseInt(line.split(':')[1].trim(), 10);
-
-                if(line.startsWith("HPDrainRate")) this.HP=line.split(':')[1].trim();
-                if(line.startsWith("CircleSize")) this.CS=line.split(':')[1].trim();
-                if(line.startsWith("OverallDifficulty")) this.OD=line.split(':')[1].trim();
-                if(line.startsWith("ApproachRate")) this.AR=line.split(':')[1].trim();
-                if(line.startsWith("SliderMultiplier")) this.SV=line.split(':')[1].trim();
-                if(line.startsWith("SliderTickRate")) this.sliderTickRate=line.split(':')[1].trim();
+                Console.debug("Reading new section: "+line);
             }
-            if(section == "colours") {
-                var col = line.split(':')[1].trim().split(',');
+            else if (section === "colours") {
+                let col = line.split(':')[1].trim().split(',');
 
                 this.colours.push({
                     r: parseInt(col[0], 10),
                     g: parseInt(col[1], 10),
                     b: parseInt(col[2], 10),
                 });
+
+                Console.verbose("Added color #"+this.colours.length+": "+col);
             }
-            if(section == "timing") {
-                var values = line.split(',');
+            else if (section === "timingpoints") {
+                let values = line.split(',');
 
                 this.timingPoints.push({
                     index: timingPointIndex++,
                     offset: parseInt(values[0], 10),
                     msPerBeat: parseFloat(values[1]),
-                    BPM: parseFloat(values[1]) > 0 ? 60000/values[1] : -1,
+                    BPM: parseFloat(values[1]) > 0 ? 60000 / values[1] : -1,
                     meter: parseInt(values[2], 10),
                     sampleType: parseInt(values[3], 10),
                     sampleSet: parseInt(values[4], 10),
@@ -101,18 +87,20 @@ function Beatmap(file, callback) {
                     inherited: parseFloat(values[1]) < 0,
                     kiai: parseInt(values[7], 10),
                 });
+
+                Console.verbose("Added timing point #"+this.timingPoints.length+": "+this.timingPoints[this.timingPoints.length - 1]);
             }
-            if(section == "events") {
-                if(line.startsWith("//")) continue;
+            else if (section === "events") {
+                if (line.startsWith("//")) continue;
 
-                var values = line.split(',');
+                let values = line.split(',');
 
-                switch(values[0]) {
+                switch (values[0]) {
                     case "0":
                         this.events.push({
                             type: "image",
                             time: parseInt(values[1], 10),
-                            file: values[2].substring(1,values[2].length - 1),
+                            file: values[2].substring(1, values[2].length - 1),
                             x: parseInt(values[3], 10),
                             y: parseInt(values[4], 10)
                         });
@@ -125,233 +113,84 @@ function Beatmap(file, callback) {
                         });
                         break;
                 }
+
+                {let evt = this.events[this.events.length - 1]; if(evt !== null && evt !== undefined) Console.verbose("Added \""+evt.type+"\" event (#"+this.events.length+"): "+evt); }
             }
+            else if (section === "hitobjects") {
+                let values = line.split(',');
 
-            if(section == "hitObjects") {
-                var values = line.split(',');
+                let hitObjectData = parseInt(values[3], 10) % 16;
 
-                var hitObjectData = parseInt(values[3], 10);
-
-                var comboSkip = 0;
-
-                while(hitObjectData > 12) {
-                    hitObjectData -= 16;
-                    comboSkip++;
+                if (hitObjectData === 1 || hitObjectData === 5) {
+                    this.hitObjects.push(new Circle(values));
+                    this.circles++;
+                    Console.verbose("Circle added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
                 }
-
-                // circle
-                if(hitObjectData == 1 || hitObjectData == 5) {
-                    var circle = {
-                        type: "circle",
-                        newCombo: hitObjectData == 5 ? (comboSkip > 0 ? comboSkip : -1) : null,
-                        x: parseInt(values[0], 10),
-                        y: parseInt(values[1], 10),
-                        time: parseInt(values[2], 10),
-                        hitSound: parseInt(values[4], 10),
-                    };
-
-                    // samplings
-                    if(values[5] != undefined) {
-                        var SamplingValues = values[5].split(':');
-                    }
-                    else {
-                        var SamplingValues = [0, 0];
-                    }
-
-                    circle["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
-
-                    this.hitObjects.push(circle);
+                else if (hitObjectData === 2 || hitObjectData === 6) {
+                    this.hitObjects.push(new Slider(values));
+                    this.sliders++;
+                    Console.verbose("Slider added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
                 }
-                // slider
-                else if(hitObjectData == 2 || hitObjectData == 6) {
-                    var sliderPoints = values[5].split("|");
-
-                    var sliderType = sliderPoints[0];
-
-                    var sliderSections = [];
-
-                    var sliderSectionPoints = [{x: parseInt(values[0], 10), y: parseInt(values[1], 10)}];
-
-                    var lastPoint = null;
-
-                    for(var j = 1; j < sliderPoints.length; j++) {
-                        var coords = sliderPoints[j].split(':');
-
-                        var nextPoint = {x: parseInt(coords[0], 10), y: parseInt(coords[1], 10)};
-
-                        // end section if same point appears twice and start a new one if end is not reached
-                        if(JSON.stringify(lastPoint) === JSON.stringify(nextPoint)) {
-                            if(sliderPoints.length == 3 && sliderSectionPoints.length == 3 && sliderType == "P") {
-                                var sectionType = "circle";
-                            }
-                            else if(sliderSectionPoints.length == 2) {
-                                var sectionType = "linear";
-                            }
-                            else {
-                                var sectionType = "bezier";
-                            }
-
-                            if(sliderSectionPoints.length > 1) sliderSections.push({type: sectionType, values: sliderSectionPoints});
-
-                            sliderSectionPoints = [];
-                            sliderSectionPoints.push(nextPoint);
-                        }
-                        else {
-                            sliderSectionPoints.push(nextPoint);
-                        }
-
-                        if(j + 1 == sliderPoints.length) {
-                            if(sliderPoints.length == 3 && sliderSectionPoints.length == 3 && sliderType == "P") {
-                                var sectionType = "circle";
-                            }
-                            else if(sliderSectionPoints.length == 2) {
-                                var sectionType = "linear";
-                            }
-                            else {
-                                var sectionType = "bezier";
-                            }
-
-                            if(sliderSectionPoints.length > 1) sliderSections.push({type: sectionType, values: sliderSectionPoints});
-                        }
-
-                        lastPoint = nextPoint;
-                    }
-
-                    var slider = {
-                        type: "slider",
-                        newCombo: hitObjectData == 6 ? (comboSkip > 0 ? comboSkip : -1) : null,
-                        x: parseInt(values[0], 10),
-                        y: parseInt(values[1], 10),
-                        time: parseInt(values[2], 10),
-                        hitSound: parseInt(values[4], 10),
-                        sections: sliderSections,
-                        repeat: parseInt(values[6], 10),
-                        length: parseFloat(values[7])
-                    };
-
-                    slider.startPoint = [slider.x, slider.y];
-
-                    if(values.length > 8) {
-                        // edgeAdditions
-                        var additionsValuesRaw = values[8].split('|');
-
-                        var additions = [];
-
-                        for(var j = 0; j < additionsValuesRaw.length; j++) {
-                            additions.push(parseInt(additionsValuesRaw[j], 10));
-                        }
-
-                        slider["additions"] = additions;
-
-                        // edge samplings
-                        var edgeSamplings = [];
-
-                        if(values[9] != undefined) {
-                            var splitEdgeSampleSetsRaw = values[9].split('|');
-
-                            for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
-                                var val = splitEdgeSampleSetsRaw[j].split(':');
-
-                                edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
-                            }
-
-                            slider["edgeSamplings"] = edgeSamplings;
-                        }
-
-                        // body samplings
-                        if(values[10] != undefined) {
-                            var sliderBodySamplingValues = values[10].split(':');
-                        }
-                        else {
-                            var sliderBodySamplingValues = [0, 0];
-                        }
-
-                        slider["bodySamplings"] = {sampleSet: parseInt(sliderBodySamplingValues[0], 10), sampleSetAddition: parseInt(sliderBodySamplingValues[1], 10)};
-                    }
-
-                    if(slider.additions == undefined) {
-                        var additions = [];
-
-                        for(var j = 0; j < slider.repeat + 1; j++) {
-                            additions.push(0);
-                        }
-
-                        slider["additions"] = additions;
-                    }
-                    if(slider.edgeSamplings == undefined) {
-                        var edgeSamplings = [];
-
-                        var splitEdgeSampleSetsRaw = [];
-
-                        for(var j = 0; j < slider.repeat + 1; j++) splitEdgeSampleSetsRaw.push("0:0");
-
-                        for(var j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
-                            var val = splitEdgeSampleSetsRaw[j].split(':');
-
-                            edgeSamplings.push({sampleSet: parseInt(val[0], 10), sampleSetAddition: parseInt(val[1], 10)});
-                        }
-
-                        slider["edgeSamplings"] = edgeSamplings;
-                    }
-                    if(slider.bodySamplings == undefined) {
-                        slider["bodySamplings"] = {sampleSet: 0, sampleSetAddition: 0};
-                    }
-
-                    this.hitObjects.push(slider);
-                }
-                // spinner
-                else if(hitObjectData == 8 || hitObjectData == 12) {
-                    var spinner = {
-                        type: "spinner",
-                        newCombo: hitObjectData == 12 ? (comboSkip > 0 ? comboSkip : -1) : null,
-                        x: parseInt(values[0], 10),
-                        y: parseInt(values[1], 10),
-                        time: parseInt(values[2], 10),
-                        hitSound: parseInt(values[4], 10),
-                        endTime: parseInt(values[5], 10),
-                    };
-
-                    // samplings
-                    if(values[6] != undefined) {
-                        var SamplingValues = values[6].split(':');
-                    }
-                    else {
-                        var SamplingValues = [0, 0];
-                    }
-
-                    spinner["samplings"] = {sampleSet: parseInt(SamplingValues[0], 10), sampleSetAddition: parseInt(SamplingValues[1], 10)};
-
-                    this.hitObjects.push(spinner);
+                else if (hitObjectData === 8 || hitObjectData === 12) {
+                    this.hitObjects.push(new Spinner(values));
+                    this.spinners++;
+                    Console.verbose("Spinner added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
                 }
                 else {
-                    console.log("peppy plz: "+values[3]);
+                    Console.verbose("Unrecognized HitObject-type! (peppy plz)");
                 }
+            }
+            else {
+                if (line.startsWith("AudioFilename")) this.audioFilename = line.split(':')[1].trim();
+                if (line.startsWith("AudioLeadIn")) this.audioLeadIn = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("PreviewTime")) this.previewTime = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("Countdown")) this.countdown = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("SampleSet")) this.sampleSet = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("StackLeniency")) this.stackLeniency = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("Mode")) this.mode = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard = parseInt(line.split(':')[1].trim(), 10);
+
+                if (line.startsWith("Title")) this.title = line.split(':')[1].trim();
+                if (line.startsWith("TitleUnicode")) this.titleUnicode = line.split(':')[1].trim();
+                if (line.startsWith("Artist")) this.artist = line.split(':')[1].trim();
+                if (line.startsWith("ArtistUnicode")) this.artistUnicode = line.split(':')[1].trim();
+                if (line.startsWith("Creator")) this.creator = line.split(':')[1].trim();
+                if (line.startsWith("Version")) this.version = line.split(':')[1].trim();
+                if (line.startsWith("Source")) this.source = line.split(':')[1].trim();
+                if (line.startsWith("Tags")) this.tags = line.split(':')[1].trim();
+                if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
+
+                if (line.startsWith("HPDrainRate")) this.HP = line.split(':')[1].trim();
+                if (line.startsWith("CircleSize")) this.CS = line.split(':')[1].trim();
+                if (line.startsWith("OverallDifficulty")) this.OD = line.split(':')[1].trim();
+                if (line.startsWith("ApproachRate")) this.AR = line.split(':')[1].trim();
+                if (line.startsWith("SliderMultiplier")) this.SV = line.split(':')[1].trim();
+                if (line.startsWith("SliderTickRate")) this.sliderTickRate = line.split(':')[1].trim();
+
+                Console.verbose("Read header property: "+line);
             }
         }
 
-        if(this.colours.length == 0) {
-            this.colours = [{r:255,g:192,b:0},{r:0,g:202,b:0},{r:18,g:124,b:255},{r:242,g:24,b:57}];
+        if (this.colours.length === 0) {
+            this.colours = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
+            Console.info("No combo colours in Beatmap found. Using default ones!");
         }
 
-        callback();
+        this.AR = this.AR || 5;
+
+        Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
+        Console.verbose("--- BEATMAP LOADING FINISHED ---");
+
+        this.callback(this);
     }
 
-    if(Object.prototype.toString.call(file) == "[object File]") {
-        var reader = new FileReader();
-        reader.onload = (read).bind(this);
-        reader.readAsText(file);
-    }
-    else if(typeof file == "string") {
-        zip.file(file).async("string").then((read).bind(this), (function(fuckme) {
-            console.log(fuckme);
-        }).bind(this));
-    }
-}
+    getNextNonInheritedTimingPoint(num) {
+        for(let i = num + 1; i < this.timingPoints.length; i++) {
+            if(!this.timingPoints[i].inherited) return this.timingPoints[i];
+        }
 
-Beatmap.prototype.getNextNonInheritedTimingPoint = function(num) {
-    for(var i = num + 1; i < this.timingPoints.length; i++) {
-        if(!this.timingPoints[i].inherited) return this.timingPoints[i];
+        return null;
     }
-
-    return null;
 }

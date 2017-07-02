@@ -1,65 +1,92 @@
-/**
- * Created by Sebastian on 07.06.2017.
- */
+"use strict";
 
-function VolumeControl() {
-    this.canvas = currentScene.elements.osuwebCanvas;
-    this.ctx = this.canvas.getContext("2d");
-    this.radius = 0;
-    this.targetRadius = 80;
-    this.alpha = 0;
+import {GAME_STATE, SETTINGS} from "../main";
 
-    this.entranceAnimation = 0;
-    this.entranceEnd = 30;
-    this.lastFrame = window.performance.now();
+export class VolumeControl {
+    constructor() {
+        // The canvas and context to draw on
+        this.canvas = GAME_STATE.currentScene.elements.osuwebCanvas;
+        this.ctx = this.canvas.getContext("2d");
 
-    // The time this will fade away after no changes
-    this.fadeOutStart = 2000;
-    this.lastChange = window.performance.now();
+        // The radius of the master control
+        this.radius = 0;
+        // The radius to approach to frame-independently
+        this.targetRadius = 80;
+        // The opacity of this control
+        this.alpha = 0;
 
-    this.targetMaster = settingsData.master;
+        // The progression of the fade-in animation in frames
+        this.entranceAnimation = 0;
+        // The number of frames after which the entrance animation should be complete
+        this.entranceEnd = 30;
+        // The time of the last frame to frame-independently calculate the progress
+        this.lastFrame = window.performance.now();
 
-    this.animationLoop = (function() {
-        var frameModifier = (window.performance.now() - this.lastFrame) / (1000/60.0);
+        // The time this will fade away after no changes
+        this.fadeOutStart = 2000;
+        // The time the user last made an input into this control
+        this.lastChange = window.performance.now();
+
+        // The value of master to approach to
+        this.targetMaster = SETTINGS.data.master;
+    }
+
+    startRender() {
+        requestAnimationFrame(this.renderLoop.bind(this));
+    }
+
+    renderLoop() {
+        // The progression made last call relative to a stable 60 fps (3 = 3 frames on 60 fps passed since last call)
+        let frameModifier = (window.performance.now() - this.lastFrame) / (1000 / 60.0);
+        // Update last frame time
         this.lastFrame = window.performance.now();
 
         // entrance animation
-        if(this.entranceAnimation <= this.entranceEnd) {
+        if (this.entranceAnimation <= this.entranceEnd) {
+            // Add the amount of passed frames
             this.entranceAnimation += frameModifier;
 
-            var t = this.entranceAnimation * 1 / 10;
 
-            var amplitudeNow = -0.3 * Math.pow(Math.E, -1.8*t) * Math.cos(2*Math.PI*t) + 1;
-            console.log(amplitudeNow);
+            let t = this.entranceAnimation * 1 / 10;
+
+            // A decreasing sinuoidal curve to use for the bouncing animation
+            // f(x) = -0.3 * e^(1.8*t) * cos(2*pi*t) + 1
+            let amplitudeNow = -0.3 * Math.pow(Math.E, -1.8 * t) * Math.cos(2 * Math.PI * t) + 1;
+
+            // Set radius according to curve
             this.radius = this.targetRadius * amplitudeNow;
+            // Set alpha according to entrance animation progress
             this.alpha = Math.min(1.0, Math.pow(this.entranceAnimation / this.entranceEnd, 0.25));
         }
 
-        if(this.targetMaster != settingsData.master) {
-            settings.setMaster(settingsData.master + (Math.pow(Math.abs(this.targetMaster - settingsData.master), 1.5) * (this.targetMaster > settingsData.master ? 1 : -1)) * frameModifier);
+        // Approach the target value
+        if (this.targetMaster !== SETTINGS.data.master) {
+            SETTINGS.setMaster(SETTINGS.data.master + (Math.pow(Math.abs(this.targetMaster - SETTINGS.data.master), 1.5) * (this.targetMaster > SETTINGS.data.master ? 1 : -1)) * frameModifier);
 
-            if(Math.abs(this.targetMaster - settingsData.master) < 0.01) {
-                settings.setMaster(this.targetMaster);
+            if (Math.abs(this.targetMaster - SETTINGS.data.master) < 0.01) {
+                SETTINGS.setMaster(this.targetMaster);
             }
         }
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        var lastChangeDiff = window.performance.now() - this.lastChange;
+        // Calculate time since last user input
+        let lastChangeDiff = window.performance.now() - this.lastChange;
 
-        if(lastChangeDiff > 1500) {
-            lastChangeDiff -= 1500;
-
-            this.alpha = Math.max(0.0, this.alpha - 1/15 * frameModifier);
+        // After some time of not changing anything make the control fade out
+        if (lastChangeDiff > 1500) {
+            this.alpha = Math.max(0.0, this.alpha - 1 / 15 * frameModifier);
             this.radius = Math.max(0.0, this.radius - 2 * frameModifier);
 
-            if(this.alpha <= 0.00001) {
-                controls.volumeControl = null;
+            // Destroy this object when alpha reaches (close to) 0
+            if (this.alpha <= 0.00001) {
+                GAME_STATE.controls.volumeControl = null;
                 return;
             }
         }
-        else if(this.entranceAnimation > this.entranceEnd) {
-            this.alpha = Math.min(1.0, this.alpha + 1/15 * frameModifier);
+        // When sound was changed while fading out fade it in again
+        else if (this.entranceAnimation > this.entranceEnd) {
+            this.alpha = Math.min(1.0, this.alpha + 1 / 15 * frameModifier);
             this.radius = Math.min(this.targetRadius, this.radius + 2 * frameModifier);
         }
 
@@ -69,45 +96,46 @@ function VolumeControl() {
 
         this.drawTextMaster();
 
-        requestAnimationFrame(this.animationLoop);
-    }).bind(this);
+        requestAnimationFrame(this.renderLoop.bind(this));
+    }
 
-    requestAnimationFrame(this.animationLoop);
-
-    this.animateMaster = function(value) {
+    animateMaster(value) {
         this.targetMaster += value;
 
-        if(this.targetMaster > 1.0) this.targetMaster = 1.0;
-        if(this.targetMaster < 0.0) this.targetMaster = 0.0;
+        if (this.targetMaster > 1.0) this.targetMaster = 1.0;
+        if (this.targetMaster < 0.0) this.targetMaster = 0.0;
 
         this.lastChange = window.performance.now();
     };
 
-    this.drawTextMaster = function() {
+    drawTextMaster() {
         this.ctx.save();
         this.ctx.globalAlpha = this.alpha;
-        this.ctx.font = Math.round((this.radius / 80.0) * 30)+"px Calibri";
+        this.ctx.font = Math.round((this.radius / 80.0) * 30) + "px Calibri";
         this.ctx.fillStyle = "white";
 
-        var text = Math.round(settingsData.master*100)+"%";
-        var textSize = this.ctx.measureText(text);
+        let text = Math.round(SETTINGS.data.master * 100) + "%";
+        let textSize = this.ctx.measureText(text);
 
         this.ctx.fillText(text, this.canvas.width - 125 - textSize.width / 2, this.canvas.height - 125 + 8);
         this.ctx.restore();
     };
 
-    this.drawVolumeBarMaster = function() {
+    drawVolumeBarMaster() {
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.globalAlpha = this.alpha;
-        if(settingsData.master >= 0.9999999) {
-            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2*Math.PI);
+        if (SETTINGS.data.master >= 0.9999999) {
+            // Render glowing ring at 100%
+            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
         }
-        else if(settingsData.master <= 0.0000001) {
-            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2*Math.PI);
+        else if (SETTINGS.data.master <= 0.0000001) {
+            // Render full empty circle at 0%
+            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
         }
         else {
-            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 2*Math.PI*settingsData.master-0.5*Math.PI, -0.5*Math.PI);
+            // Render the unfilled part of the gauge
+            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI, -0.5 * Math.PI);
         }
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "rgba(60,80,91,0.95)";
@@ -115,7 +143,7 @@ function VolumeControl() {
         this.ctx.shadowBlur = 20;
         this.ctx.stroke();
         this.ctx.beginPath();
-        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), -0.5*Math.PI, 2*Math.PI*settingsData.master-0.5*Math.PI);
+        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), -0.5 * Math.PI, 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI);
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "white";
         this.ctx.shadowColor = "#35b5ff";
@@ -124,11 +152,11 @@ function VolumeControl() {
         this.ctx.restore();
     };
 
-    this.drawBackgroundMaster = function() {
+    drawBackgroundMaster() {
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.globalAlpha = this.alpha;
-        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, this.radius, 0, 2*Math.PI);
+        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, this.radius, 0, 2 * Math.PI);
         this.ctx.fill();
         this.ctx.restore();
     };

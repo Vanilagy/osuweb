@@ -1,8 +1,11 @@
-function SceneMenu() {
-    SceneBase.call(this);
+"use strict";
 
-    this.elements["osuInput"] = document.getElementById("osu");
+import {SceneBase} from "./scenebase";
+
+export class SceneMenu extends SceneBase {
+    constructor() {
+        super();
+
+        this.elements["osuInput"] = document.getElementById("osu");
+    }
 }
-
-SceneMenu.prototype = Object.create(SceneBase.prototype);
-SceneMenu.prototype.constructor = SceneMenu;

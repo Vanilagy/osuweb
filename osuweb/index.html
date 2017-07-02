@@ -368,6 +368,20 @@
             margin: 0;
             margin-top: 12px;
         }
+        #songpanels {
+            border: 1px solid white;
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 40%;
+            display: none;
+        }
+        #songpanelswrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -401,15 +415,18 @@
     </div>
 </section>
 
+<section id="songSelectionContainer">
+</section>
+
 <div id="container">
     <!------------ MENU ------------->
     <input type="button" id="osu" value="osu!" onclick="startSongSelect()">
     <!-------- SONG SELECT ---------->
-    <div id ="topbar"></div>
-    <div id ="bottombar"></div>
-    <div id ="scoreboard"></div>
-    <div id ="songpanels"></div>
-    <div id ="searchbar"></div>
+    <div id="topbar"></div>
+    <div id="bottombar"></div>
+    <div id="scoreboard"></div>
+    <div id="songpanels"></div>
+    <div id="searchbar"></div>
 
     <input type="file" id="beatmap" webkitdirectory multiple>
 </div>
@@ -421,171 +438,6 @@
 <script src="js/lib/jszip.min.js"></script>
 <script src="js/lib/jszip-utils.min.js"></script>
 
-<script src="js/main.js"></script>
-<script src="js/audio.js"></script>
-
-<script src="js/datamodel/beatmap.js"></script>
-<script src="js/datamodel/beatmapentry.js"></script>
-<script src="js/datamodel/beatmapset.js"></script>
-<script src="js/datamodel/beatmapsetentry.js"></script>
-<script src="js/datamodel/database.js"></script>
-<script src="js/datamodel/skin.js"></script>
-
-<script src="js/game/play.js"></script>
-<script src="js/game/score.js"></script>
-<script src="js/game/followpoint.js"></script>
-<script src="js/game/hitobject.js"></script>
-<script src="js/game/circle.js"></script>
-<script src="js/game/slider.js"></script>
-<script src="js/game/spinner.js"></script>
-<script src="js/game/scenes/scenebase.js"></script>
-<script src="js/game/scenes/sceneloading.js"></script>
-<script src="js/game/scenes/scenemenu.js"></script>
-<script src="js/game/scenes/scenegame.js"></script>
-<script src="js/game/scenes/scenegameosu.js"></script>
-
-<script src="js/interface/volumecontrol.js"></script>
-<script src="js/interface/accmeter.js"></script>
-<script src="js/interface/progressbar.js"></script>
-
-<script src="js/util/fileutil.js"></script>
-<script src="js/util/graphicutil.js"></script>
-<script src="js/util/mathutil.js"></script>
-<script src="js/util/timingutil.js"></script>
-<script src="js/util/inpututil.js"></script>
-
-<script>
-    window.onload = function() {
-        // No initialization because loading is the base
-        currentScene = new SceneLoading();
-
-        window.onresize();
-
-        currentScene.elements["loadingDiv"].style.transform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.elements["loadingDiv"].style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.elements["loadingDiv"].style.oTransform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.elements["loadingDiv"].style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
-        currentScene.elements["loadingDiv"].style.msTransform = "translate(-50%, -50%) scale(1, 1)";
-
-        currentScene.elements["loadingDiv"].style.letterSpacing = "25px";
-
-        var timePassed = false;
-        var audioLoad = false;
-        var skinLoad = false;
-
-        setTimeout(function() {if(skinLoad && audioLoad) finishLoading(); else timePassed = true;}, 500);
-
-        defaultSkin = new Skin("./assets/default.osk", function() {if(timePassed && audioLoad) finishLoading(); else skinLoad = true});
-
-        FileUtil.loadAudioFromURL("./audio/circles.mp3", function(audio) {
-            currentAudio = audio;
-        }, function() {
-            if(timePassed && skinLoad) finishLoading(); else audioLoad = true
-        });
-    };
-
-    window.onresize = function() {
-        var ctx = currentScene.elements["osuwebCanvas"].getContext("2d");
-
-        ctx.canvas.width  = window.innerWidth;
-        ctx.canvas.height = window.innerHeight;
-    }
-
-    function finishLoading() {
-        cursorElement.src = "data:image/png;base64,"+defaultSkin.skinElements["cursor"];
-
-        currentScene.elements["loadingDiv"].style.opacity = 0;
-
-        setTimeout(function() {
-            currentScene.elements["loadingDiv"].style.transition = "opacity 1s linear";
-            currentScene.elements["loadingDiv"].innerHTML = "WELCOME";
-            currentScene.elements["loadingDiv"].style.opacity = 1;
-            defaultSkin.skinElements["welcome"].playAudio(0);
-
-            setTimeout(function () {
-                currentScene.elements["loadingDiv"].style.opacity = 0;
-                currentScene.elements["foregroundDiv"].style.opacity = 0;
-
-                setTimeout(function () {
-                    currentScene.elements["loadingDiv"].style.display = "none";
-                    currentScene.elements["foregroundDiv"].style.display = "none";
-                    currentScene = new SceneMenu();
-                    currentScene.elements["osuInput"].style.display = "block";
-                    currentAudio.playAudioFromOffsetWithLoop(0, 0, 0, currentAudio.buffer.duration);
-                }, 1000)
-            }, 2000)
-        }, 1100);
-    }
-
-    function startSongSelect() {
-        document.getElementById("songselect").style.display = "none";
-    }
-
-    document.getElementById("container").addEventListener("wheel", function(e) {
-       settings.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
-    });
-
-    document.getElementById("container").ondragenter = function(e) {
-       e.preventDefault();
-    };
-
-    document.getElementById("container").ondragover = function(e) {
-       e.preventDefault();
-    };
-
-    document.getElementById("container").ondrop = function(e) {
-        e.preventDefault();
-        var length = e.dataTransfer.items.length;
-        for (var i = 0; i < length; i++) {
-            var entry = e.dataTransfer.items[i].webkitGetAsEntry();
-            if (entry.isFile) {
-               console.log(entry);
-            } else if (entry.isDirectory) {
-               database = new Database(entry);
-            }
-        }
-    };
-
-    document.getElementById("beatmap").addEventListener("change", function(e) {
-        currentScene.elements["osuInput"].style.display = "none";
-
-        currentScene = new SceneGameOsu();
-
-        new BeatmapSet(e.target.files, function(beatmapset) {
-            currentBeatmapSet = beatmapset;
-            document.getElementById("beatmap").style.visibility = "hidden";
-
-            var keys = [];
-            for (var key in currentBeatmapSet.difficulties) {
-                keys.push(key);
-            }
-            currentAudio.stop();
-            console.log(currentBeatmapSet.difficulties[keys[0]]);
-
-            currentBeatmapSet.loadDifficulty(currentBeatmapSet.difficulties[(function() {
-                var issuedBullshit = prompt("Enter difficulty: (" + keys.join(", ") + ") or id");
-
-                if (Number(issuedBullshit) == issuedBullshit) {
-                    return keys[issuedBullshit];
-                } else {
-                    return issuedBullshit;
-                }
-            })()], function() {
-                new Play(currentBeatmap, currentAudio);
-                currentScene.elements["objectContainerDiv"].style.display = "block";
-                currentScene.setElementVisibility(true);
-                currentPlay.start();
-            });
-        });
-    });
-
-    var timeSinceLastBitch = window.performance.now();
-    function derp() {
-        var now = window.performance.now();
-        console.log(now - timeSinceLastBitch);
-        timeSinceLastBitch = now;
-        setTimeout(derp);
-    }
-</script>
+<script src="bundle.js"></script>
 </body>
 </html>

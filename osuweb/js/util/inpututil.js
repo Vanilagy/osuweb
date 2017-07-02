@@ -1,114 +1,106 @@
-var cursorElement = document.getElementById("cursor");
+"use strict";
 
-var InputUtil = {
-    mouseXElement: function(mouseX, element) {
+import {GAME_STATE, SETTINGS} from "../main";
+import {GraphicUtil as GRAPHIC_UTIL} from "./graphicutil";
+
+export let cursorElement = document.getElementById("cursor");
+export let playareaElement = document.getElementById("playarea");
+
+let playfieldBounds = null;
+
+export class InputUtil {
+    static mouseXElement(mouseX, element) {
         return mouseX - element.getBoundingClientRect().left;
-    },
-    mouseYElement: function(mouseY, element) {
+    }
+
+    static mouseYElement(mouseY, element) {
         return mouseY - element.getBoundingClientRect().top;
-    },
-    getUserPlayfieldCoords: function() {
+    }
+
+    static updatePlayfieldBounds() {
+        playfieldBounds = {
+            x: playareaElement.getBoundingClientRect().left,
+            y: playareaElement.getBoundingClientRect().top,
+            width: playareaElement.clientWidth,
+            height: playareaElement.clientHeight
+        };
+    }
+
+    static getPlayfieldBounds() {
+        return playfieldBounds;
+    }
+
+    static getCursorPlayfieldCoords() {
+        let playfieldBounds = InputUtil.getPlayfieldBounds();
+
+        if(playfieldBounds === null) return {x: 0, y: 0};
+
         return {
-            x: (inputData.mouseX - playareaBoundingRectLeft) / pixelRatio - currentPlay.marginWidth,
-            y: (inputData.mouseY - playareaBoundingRectTop) / pixelRatio - currentPlay.marginHeight
+            x: (INPUT_STATE.mouseX - playfieldBounds.x) / GRAPHIC_UTIL.getPixelRatio() - GAME_STATE.currentPlay.marginWidth,
+            y: (INPUT_STATE.mouseY - playfieldBounds.y) / GRAPHIC_UTIL.getPixelRatio() - GAME_STATE.currentPlay.marginHeight
+        };
+    }
+
+    static updateCursor() {
+        cursorElement.style.transform = "translate(calc(" + INPUT_STATE.mouseX + "px - 50%), calc(" + INPUT_STATE.mouseY + "px - 50%))";
+    }
+
+    static press() {
+        if (GAME_STATE.currentPlay) {
+            GAME_STATE.currentPlay.registerClick();
         }
     }
-};
 
-document.addEventListener("mousemove", function(event) {
-    inputData.mouseX = event.clientX;
-    inputData.mouseY = event.clientY;
-    inputData.lastMousePosUpdateTime = window.performance.now();
-    if (currentPlay) {
-        inputData.userPlayfieldCoords = InputUtil.getUserPlayfieldCoords();
+    static updateHoldingState() {
+        INPUT_STATE.isHolding = INPUT_STATE.inputButtonStates["m1"] || INPUT_STATE.inputButtonStates["m2"] || INPUT_STATE.inputButtonStates["k1"] || INPUT_STATE.inputButtonStates["k2"];
     }
-    refreshCursor();
 
-});
-document.addEventListener("mousedown", function(e) {
-    console.log("down: "+e.button);
-    if(e.button == 0) changeMouseButtonState(true, true);
-    else if(e.button == 2) changeMouseButtonState(false, true);
-});
-document.addEventListener("mouseup", function(e) {
-    console.log("up: "+e.button);
-    if(e.button == 0) changeMouseButtonState(true, false);
-    else if(e.button == 2) changeMouseButtonState(false, false);
-});
-document.addEventListener("contextmenu", function(e) {
-    e.preventDefault();
-});
-document.addEventListener("keydown", function(event) {
-    if (keyCodeBindings[event.keyCode]) {
-        changeKeyButtonState(event.keyCode, true);
+    static changeMouseButtonState(isLeft, bool) {
+        let newPress = false;
+        if (isLeft && INPUT_STATE.inputButtonStates["k1"] === false && INPUT_STATE.inputButtonStates["m1"] !== bool) {
+            INPUT_STATE.inputButtonStates["m1"] = bool;
+            newPress = true;
+        } else if (!isLeft && INPUT_STATE.inputButtonStates["k2"] === false && INPUT_STATE.inputButtonStates["m2"] !== bool) {
+            INPUT_STATE.inputButtonStates["m2"] = bool;
+            newPress = true;
+        }
+
+        InputUtil.updateHoldingState();
+        if (newPress && bool) {
+            InputUtil.press();
+        }
     }
-});
-document.addEventListener("keyup", function(event) {
-    if (keyCodeBindings[event.keyCode]) {
-        changeKeyButtonState(event.keyCode, false);
-    }
-});
 
-var inputData = {
-    mouseX: Math.round(document.width / 2),
-    mouseY: Math.round(document.height / 2),
-    inputButtonStates: {
-        m1: false,
-        m2: false,
-        k1: false,
-        k2: false
-    },
-    isHolding: false,
-    lastMousePosUpdateTime: window.performance.now(),
-    userPlayfieldCoords: null
-};
+    static changeKeyButtonState(keycode, bool) {
+        let newPress = false;
+        if (SETTINGS.data.keyCodeBindings["k1"] === keycode && INPUT_STATE.inputButtonStates["m1"] === false && INPUT_STATE.inputButtonStates["k1"] !== bool) {
+            INPUT_STATE.inputButtonStates["k1"] = bool;
+            newPress = true;
+        } else if (SETTINGS.data.keyCodeBindings["k2"] === keycode && INPUT_STATE.inputButtonStates["m2"] === false && INPUT_STATE.inputButtonStates["k2"] !== bool) {
+            INPUT_STATE.inputButtonStates["k2"] = bool;
+            newPress = true;
+        }
 
-var keyCodeBindings = {
-    88: "k1",
-    89: "k2"
-};
-
-function refreshCursor() {
-    cursorElement.style.transform = "translate(calc(" + inputData.mouseX + "px - 50%), calc(" + inputData.mouseY + "px - 50%))";
-}
-
-function press() {
-    if (currentPlay) {
-        currentPlay.registerClick();
+        InputUtil.updateHoldingState();
+        if (newPress && bool) {
+            InputUtil.press();
+        }
     }
 }
 
-function updateHoldingState() {
-    inputData.isHolding = inputData.inputButtonStates["m1"] || inputData.inputButtonStates["m2"] || inputData.inputButtonStates["k1"] || inputData.inputButtonStates["m2"];
+class InputState {
+    constructor() {
+        this.mouseX = Math.round(document.width / 2);
+        this.mouseY = Math.round(document.height / 2);
+        this.inputButtonStates = {
+            m1: false,
+            m2: false,
+            k1: false,
+            k2: false
+        };
+        this.isHolding = false;
+        this.lastMousePosUpdateTime = window.performance.now();
+    }
 }
 
-function changeMouseButtonState(isLeft, bool) {
-    var newPress = false;
-    if (isLeft && inputData.inputButtonStates["k1"] == false && inputData.inputButtonStates["m1"] != bool) {
-        inputData.inputButtonStates["m1"] = bool;
-        newPress = true;
-    } else if (!isLeft && inputData.inputButtonStates["k2"] == false && inputData.inputButtonStates["m2"] != bool) {
-        inputData.inputButtonStates["m2"] = bool;
-        newPress = true;
-    }
-    
-    updateHoldingState();
-    if (newPress && bool) {
-        press();
-    }
-}
-function changeKeyButtonState(keycode, bool) {
-    var newPress = false;
-    if (keyCodeBindings[keycode] == "k1" && inputData.inputButtonStates["m1"] == false && inputData.inputButtonStates["k1"] != bool) {
-        inputData.inputButtonStates["k1"] = bool;
-        newPress = true;
-    } else if (keyCodeBindings[keycode] == "k2" && inputData.inputButtonStates["m2"] == false && inputData.inputButtonStates["k2"] != bool) {
-        inputData.inputButtonStates["k2"] = bool;
-        newPress = true;
-    }
-
-    updateHoldingState();
-    if (newPress && bool) {
-        press();
-    }
-}
+export let INPUT_STATE = new InputState();

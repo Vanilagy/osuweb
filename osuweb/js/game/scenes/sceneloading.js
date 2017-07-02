@@ -1,8 +1,11 @@
-function SceneLoading() {
-    SceneBase.call(this);
+"use strict";
 
-    this.elements["loadingDiv"] = document.getElementById("loading");
+import {SceneBase} from "./scenebase";
+
+export class SceneLoading extends SceneBase {
+    constructor() {
+        super();
+
+        this.elements["loadingDiv"] = document.getElementById("loading");
+    }
 }
-
-SceneLoading.prototype = Object.create(SceneBase.prototype);
-SceneLoading.prototype.constructor = SceneLoading;

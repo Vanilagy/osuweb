@@ -1,6 +1,11 @@
-function SceneSongSelect() {
-    SceneBase.call(this);
-}
+"use strict";
 
-SceneSongSelect.prototype = Object.create(SceneBase.prototype);
-SceneSongSelect.prototype.constructor = SceneSongSelect;
+import {SceneBase} from "./scenebase";
+
+export class SceneSongSelect extends SceneBase {
+    constructor() {
+        super();
+
+        this.elements["songpanelsDiv"] = document.getElementById("songpanels");
+    }
+}
