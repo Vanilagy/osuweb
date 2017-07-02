@@ -3,6 +3,7 @@
 import {SliderCurve} from "./slidercurve";
 import {GraphicUtil} from "./graphicutil";
 import {MathUtil} from "./mathutil";
+import {SliderCurveBezier} from "./slidercurvebezier";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
@@ -17,6 +18,21 @@ export class SliderCurvePassthrough extends SliderCurve {
         let points = this.sections[0].values;
 
         let centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
+
+        // Slider seems to have all points on one line. Parsing it as linear slider instead
+        if(!isFinite(centerPos.x) || !isFinite(centerPos.y)) {
+            // Remove middle point
+            this.sections[0].values.splice(1,1);
+
+            let curve = new SliderCurveBezier(this.slider);
+
+            curve.calculateEqualDistancePoints();
+
+            this.equalDistancePoints = curve.equalDistancePoints;
+
+            return;
+        }
+
         let radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
         let a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
             a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
