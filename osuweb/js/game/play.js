@@ -10,7 +10,7 @@ import {DrawableSpinner} from "../game/drawablespinner";
 import {GAME_STATE, AUDIO_MANAGER} from "../main";
 import {TimingUtil} from "../util/timingutil";
 import {InputUtil, INPUT_STATE} from "../util/inpututil";
-import {FollowPoint} from "./followpoint";
+import {FollowPoint, POINT_DISTANCE, PRE_EMPT} from "./followpoint";
 import {Score} from "./score";
 import {MathUtil} from "../util/mathutil";
 import {Console} from "../console";
@@ -103,11 +103,13 @@ export class Play {
 
     calculateFollowPoints() {
         for (let i = 1; i < this.hitObjects.length; i++) {
-            let prevObj = this.hitObjects[i - 1], currObj = this.hitObjects[i];
+            let prevObj = this.hitObjects[i - 1];
+            let currObj = this.hitObjects[i];
+
             if (prevObj.comboInfo.comboNum === currObj.comboInfo.comboNum && prevObj.comboInfo.n !== currObj.comboInfo.n) {
                 let dist = Math.hypot(prevObj.endPoint.x - currObj.startPoint.x, prevObj.endPoint.y - currObj.startPoint.y);
 
-                if (dist > 100) {
+                if (dist > POINT_DISTANCE * 3) {
                     this.followPoints.push(new FollowPoint(prevObj, currObj));
                 }
             }
@@ -443,7 +445,7 @@ export class Play {
 
         // Makes follow points show up on-screen
         if (this.currentFollowPoint < this.followPoints.length) {
-            while (this.followPoints[this.currentFollowPoint].startTime - 450 <= AUDIO_MANAGER.getCurrentSongTime()) {
+            while (this.followPoints[this.currentFollowPoint].startTime - PRE_EMPT <= AUDIO_MANAGER.getCurrentSongTime()) {
                 this.followPoints[this.currentFollowPoint].spawn();
 
                 this.currentFollowPoint++;

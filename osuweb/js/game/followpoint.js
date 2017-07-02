@@ -3,6 +3,9 @@
 import {GraphicUtil} from "../util/graphicutil";
 import {AUDIO_MANAGER, GAME_STATE} from "../main";
 
+export const POINT_DISTANCE = 32;
+export const PRE_EMPT = 800;
+
 export class FollowPoint {
     constructor(hitObjectStart, hitObjectEnd) {
         this.startTime = hitObjectStart.endTime;
@@ -43,47 +46,49 @@ export class FollowPoint {
     }
 
     update() {
-        let shouldEnd = AUDIO_MANAGER.getCurrentSongTime() >= this.endTime + 300;
-        if (shouldEnd) {
+        let timeDif = this.endTime - this.startTime;
+        let relTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
+
+        let renderStart = Math.max(0, Math.min(1, (relTime - timeDif) / timeDif)) * this.length;
+        let renderEnd = Math.max(0, Math.min(1, (relTime - timeDif + PRE_EMPT) / timeDif)) * this.length;
+
+        if(renderStart >= 1) {
             GAME_STATE.currentScene.elements["objectContainerDiv"].removeChild(this.canvas);
-        } else {
-            let timeDif = this.endTime - this.startTime;
-            let startingPointX = Math.max(0, Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime + 300)) / timeDif)) * this.length;
-            let endPointX = Math.max(0, Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime - 450)) / timeDif)) * this.length;
-            this.ctx.clearRect(0, 0, this.length, this.height);
-            this.ctx.beginPath();
-            this.ctx.rect(startingPointX, 0, endPointX, this.height);
-            this.ctx.fillStyle = "white";
-            this.ctx.globalCompositeOperation = "source-over";
-            this.ctx.fill();
-
-            this.ctx.globalCompositeOperation = "destination-out";
-            let fadeInLength = 90 * GraphicUtil.getPixelRatio();
-
-            if (isNaN(startingPointX) && !shouldEnd) {
-                //requestAnimationFrame(this.render.bind(this));
-                return;
-            }
-
-            let leftGradient = this.ctx.createLinearGradient(startingPointX, 0, startingPointX + fadeInLength, 0);
-            leftGradient.addColorStop(0, "rgba(255, 255, 255, 1.0)");
-            leftGradient.addColorStop(1, "rgba(255, 255, 255, 0.0)");
-
-            this.ctx.beginPath();
-            this.ctx.rect(startingPointX, 0, fadeInLength, this.height);
-            this.ctx.fillStyle = leftGradient;
-            this.ctx.fill();
-
-            let rightGradient = this.ctx.createLinearGradient(this.length - fadeInLength, 0, this.length, 0);
-            rightGradient.addColorStop(0, "rgba(255, 255, 255, 0.0)");
-            rightGradient.addColorStop(1, "rgba(255, 255, 255, 1.0)");
-
-            this.ctx.beginPath();
-            this.ctx.rect(this.length - fadeInLength, 0, fadeInLength, this.height);
-            this.ctx.fillStyle = rightGradient;
-            this.ctx.fill();
-
-            requestAnimationFrame(this.update.bind(this));
+            return;
         }
+
+        this.ctx.clearRect(0, 0, this.length, this.height);
+        this.ctx.beginPath();
+        this.ctx.rect(renderStart, 0, renderEnd, this.height);
+        this.ctx.fillStyle = "white";
+        this.ctx.globalCompositeOperation = "source-over";
+        this.ctx.fill();
+        this.ctx.globalCompositeOperation = "destination-out";
+        let fadeInLength = 90 * GraphicUtil.getPixelRatio();
+
+        if (isNaN(renderStart)) {
+            //requestAnimationFrame(this.render.bind(this));
+            return;
+        }
+
+        let leftGradient = this.ctx.createLinearGradient(renderStart, 0, renderStart + fadeInLength, 0);
+        leftGradient.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+        leftGradient.addColorStop(1, "rgba(255, 255, 255, 0.0)");
+
+        this.ctx.beginPath();
+        this.ctx.rect(renderStart, 0, fadeInLength, this.height);
+        this.ctx.fillStyle = leftGradient;
+        this.ctx.fill();
+
+        let rightGradient = this.ctx.createLinearGradient(this.length - fadeInLength, 0, this.length, 0);
+        rightGradient.addColorStop(0, "rgba(255, 255, 255, 0.0)");
+        rightGradient.addColorStop(1, "rgba(255, 255, 255, 1.0)");
+
+        this.ctx.beginPath();
+        this.ctx.rect(this.length - fadeInLength, 0, fadeInLength, this.height);
+        this.ctx.fillStyle = rightGradient;
+        this.ctx.fill();
+
+        requestAnimationFrame(this.update.bind(this));
     }
 }
