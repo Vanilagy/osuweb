@@ -1,0 +1,14 @@
+{
+  "name": "osuweb",
+  "version": "0.0.1",
+  "devDependencies": {
+    "babel-preset-es2015": "latest",
+    "browserify": "^14.4.0",
+    "grunt": "latest",
+    "grunt-babel": "latest",
+    "grunt-browserify": "^5.0.0",
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-newer": "^1.3.0",
+    "load-grunt-tasks": "latest"
+  }
+}
