@@ -2,7 +2,7 @@
 
 import {Settings} from "./settings";
 import {AudioManager} from "./audio/audiomanager";
-import {InputUtil, INPUT_STATE, cursorElement} from "./util/inpututil";
+import {InputUtil, INPUT_STATE} from "./util/inpututil";
 import {Skin} from "./datamodel/skin";
 import {SceneMenu} from "./game/scenes/scenemenu";
 import {SceneSongSelect} from "./game/scenes/scenesongselect";
@@ -10,15 +10,16 @@ import {SceneGameOsu} from "./game/scenes/scenegameosu";
 import {BeatmapSet} from "./datamodel/beatmapset";
 import {Play} from "./game/play";
 import {SceneLoading} from "./game/scenes/sceneloading";
+import {Database} from "./datamodel/database";
+import {SceneManager} from "./game/scenes/scenemanager";
 
 export let GAME_STATE = {
-    currentScene: null,
     currentBeatmapSet: null,
     currentBeatmap: null,
     defaultSkin: null,
     currentSkin: null,
     currentPlay: null,
-    database: null,
+    database: new Database(),
     controls: {
         volumeControl: null
     }
@@ -27,6 +28,7 @@ export let GAME_STATE = {
 export let ZIP = new JSZip();
 
 export let AUDIO_MANAGER = new AudioManager();
+export let SCENE_MANAGER = new SceneManager();
 
 export let SETTINGS = new Settings();
 
@@ -51,7 +53,7 @@ document.addEventListener("contextmenu", function(e) {
     e.preventDefault();
 });
 document.addEventListener("keydown", function(event) {
-    for(var key in SETTINGS.data.keyCodeBindings) {
+    for(let key in SETTINGS.data.keyCodeBindings) {
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, true);
             if(key === "k2") InputUtil.changeKeyButtonState(event.keyCode, true);
@@ -59,7 +61,7 @@ document.addEventListener("keydown", function(event) {
     }
 });
 document.addEventListener("keyup", function(event) {
-    for(var key in SETTINGS.data.keyCodeBindings) {
+    for(let key in SETTINGS.data.keyCodeBindings) {
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, false);
             if(key === "k2") InputUtil.changeKeyButtonState(event.keyCode, false);
@@ -67,18 +69,18 @@ document.addEventListener("keyup", function(event) {
     }
 });
 window.onload = function() {
-    // No initialization because loading is the base
-    GAME_STATE.currentScene = new SceneLoading();
-
     window.onresize();
 
-    GAME_STATE.currentScene.elements["loadingDiv"].style.transform = "translate(-50%, -50%) scale(1, 1)";
-    GAME_STATE.currentScene.elements["loadingDiv"].style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
-    GAME_STATE.currentScene.elements["loadingDiv"].style.oTransform = "translate(-50%, -50%) scale(1, 1)";
-    GAME_STATE.currentScene.elements["loadingDiv"].style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
-    GAME_STATE.currentScene.elements["loadingDiv"].style.msTransform = "translate(-50%, -50%) scale(1, 1)";
+    // No initialization because loading is the base
+    SCENE_MANAGER.setScene(new SceneLoading());
 
-    GAME_STATE.currentScene.elements["loadingDiv"].style.letterSpacing = "25px";
+    SCENE_MANAGER.getScene().elements["loadingDiv"].style.transform = "translate(-50%, -50%) scale(1, 1)";
+    SCENE_MANAGER.getScene().elements["loadingDiv"].style.webkitTransform = "translate(-50%, -50%) scale(1, 1)";
+    SCENE_MANAGER.getScene().elements["loadingDiv"].style.oTransform = "translate(-50%, -50%) scale(1, 1)";
+    SCENE_MANAGER.getScene().elements["loadingDiv"].style.mozTransform = "translate(-50%, -50%) scale(1, 1)";
+    SCENE_MANAGER.getScene().elements["loadingDiv"].style.msTransform = "translate(-50%, -50%) scale(1, 1)";
+
+    SCENE_MANAGER.getScene().elements["loadingDiv"].style.letterSpacing = "25px";
 
     let timePassed = false;
     let audioLoad = false;
@@ -94,48 +96,27 @@ window.onload = function() {
 };
 
 window.onresize = function() {
-    let ctx = GAME_STATE.currentScene.elements["osuwebCanvas"].getContext("2d");
+    let ctx = SCENE_MANAGER.getCanvas().getContext("2d");
 
     ctx.canvas.width  = window.innerWidth;
     ctx.canvas.height = window.innerHeight;
 };
 
 function finishLoading() {
-    cursorElement.src = "data:image/png;base64,"+GAME_STATE.defaultSkin.skinElements["cursor"];
-
-    GAME_STATE.currentScene.elements["loadingDiv"].style.opacity = 0;
-
-    setTimeout(function() {
-        GAME_STATE.currentScene.elements["loadingDiv"].style.transition = "opacity 1s linear";
-        GAME_STATE.currentScene.elements["loadingDiv"].innerHTML = "WELCOME";
-        GAME_STATE.currentScene.elements["loadingDiv"].style.opacity = 1;
-        AUDIO_MANAGER.playSound(GAME_STATE.defaultSkin.skinElements["welcome"]);
-
-        setTimeout(function () {
-            GAME_STATE.currentScene.elements["loadingDiv"].style.opacity = 0;
-            GAME_STATE.currentScene.elements["foregroundDiv"].style.opacity = 0;
-
-            setTimeout(function () {
-                GAME_STATE.currentScene.elements["loadingDiv"].style.display = "none";
-                GAME_STATE.currentScene.elements["foregroundDiv"].style.display = "none";
-                GAME_STATE.currentScene = new SceneMenu();
-                GAME_STATE.currentScene.elements["osuInput"].style.display = "block";
-                AUDIO_MANAGER.playSongByName("circles", 0, 0, true);
-            }, 1000)
-        }, 2000)
-    }, 1100);
+    SCENE_MANAGER.switchScene(new SceneMenu(), (result) => {});
 }
 
-function startSongSelect() {
-    GAME_STATE.currentScene.elements["osuInput"].style.display = "none";
-
-    GAME_STATE.currentScene = new SceneSongSelect();
-
-    GAME_STATE.currentScene.elements["songpanelsDiv"].style.display = "block";
-}
+document.getElementById("osu").onclick = () => {
+    SCENE_MANAGER.switchScene(new SceneSongSelect());
+};
 
 document.getElementById("container").addEventListener("wheel", function(e) {
-    SETTINGS.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
+    if(SCENE_MANAGER.getScene().constructor.name === "SceneSongSelect") {
+        SCENE_MANAGER.getScene().scroll(Math.round(e.deltaY / 100.0));
+    }
+    else {
+        SETTINGS.changeMaster(0.05 * -Math.round(e.deltaY / 100.0));
+    }
 });
 
 document.getElementById("container").ondragenter = function(e) {
@@ -160,13 +141,8 @@ document.getElementById("container").ondrop = function(e) {
 };
 
 document.getElementById("beatmap").addEventListener("change", function(e) {
-    GAME_STATE.currentScene.elements["osuInput"].style.display = "none";
-
-    GAME_STATE.currentScene = new SceneGameOsu();
-
     new BeatmapSet(e.target.files, function(beatmapset) {
         GAME_STATE.currentBeatmapSet = beatmapset;
-        document.getElementById("beatmap").style.visibility = "hidden";
 
         let keys = [];
         for (let key in GAME_STATE.currentBeatmapSet.difficulties) {
@@ -178,17 +154,17 @@ document.getElementById("beatmap").addEventListener("change", function(e) {
         GAME_STATE.currentBeatmapSet.loadDifficulty(GAME_STATE.currentBeatmapSet.difficulties[keys.length === 1 ? keys[0] : (function() {
             let issuedBullshit = prompt("Enter difficulty: (" + keys.join(", ") + ") or id");
 
-            if (Number(issuedBullshit) === issuedBullshit) {
+            if (!isNaN(Number(issuedBullshit))) {
                 return keys[issuedBullshit];
             } else {
                 return issuedBullshit;
             }
         })()], () => {
-            new Play(GAME_STATE.currentBeatmap, GAME_STATE.currentBeatmap.audioName);
+            SCENE_MANAGER.switchScene(new SceneGameOsu(), (result) => {
+                new Play(GAME_STATE.currentBeatmap, GAME_STATE.currentBeatmap.audioName);
 
-            GAME_STATE.currentScene.elements["objectContainerDiv"].style.display = "block";
-            GAME_STATE.currentScene.setElementVisibility(true);
-            GAME_STATE.currentPlay.updatePlayareaSize(() => GAME_STATE.currentPlay.start());
+                GAME_STATE.currentPlay.updatePlayareaSize(() => GAME_STATE.currentPlay.start());
+            });
         });
     });
 });

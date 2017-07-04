@@ -1,22 +1,22 @@
 "use strict";
 
-import {GAME_STATE} from "../main";
+import {GAME_STATE, SCENE_MANAGER} from "../main";
 import {MathUtil} from "../util/mathutil";
 
 export class AccMeter {
     constructor() {
         this.scale = 2;
-        this.wrapper = GAME_STATE.currentScene.elements.accmeterDiv;
+        this.wrapper = SCENE_MANAGER.getScene().elements.accmeterDiv;
 
         this.lastRatings = [];
 
-        GAME_STATE.currentScene.elements.accmeterDiv.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
+        SCENE_MANAGER.getScene().elements.accmeterDiv.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
 
-        GAME_STATE.currentScene.elements.accstrip50Div.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
-        GAME_STATE.currentScene.elements.accstrip100Div.style.width = (139.5 - 8 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
-        GAME_STATE.currentScene.elements.accstrip300Div.style.width = (79.5 - 6 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
+        SCENE_MANAGER.getScene().elements.accstrip50Div.style.width = (199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
+        SCENE_MANAGER.getScene().elements.accstrip100Div.style.width = (139.5 - 8 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
+        SCENE_MANAGER.getScene().elements.accstrip300Div.style.width = (79.5 - 6 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale;
 
-        GAME_STATE.currentScene.elements.acctickXDiv.style.width = this.scale;
+        SCENE_MANAGER.getScene().elements.acctickXDiv.style.width = this.scale;
 
         this.center = Math.floor((199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale / 2) - Math.floor(this.scale / 2);
 
@@ -32,7 +32,7 @@ export class AccMeter {
                 if (rating.time < window.performance.now() - 10000) {
                     this.lastRatings.splice(index, 1);
 
-                    this.wrapper.removeChild(rating.element);
+                    this.wrapper.removeChild(rating._element);
                 }
                 else {
                     deltaSum += rating.delta;
@@ -41,24 +41,24 @@ export class AccMeter {
             }
 
             if (deltaCount === 0) {
-                GAME_STATE.currentScene.elements.accarrowImg.style.display = "none";
+                SCENE_MANAGER.getScene().elements.accarrowImg.style.display = "none";
             }
 
             if (this.newRating) {
                 this.lastAvgDelta = deltaSum / deltaCount;
 
                 if (deltaCount > 0) {
-                    GAME_STATE.currentScene.elements.accarrowImg.style.display = "block";
+                    SCENE_MANAGER.getScene().elements.accarrowImg.style.display = "block";
 
-                    let oldValue = Math.round(GAME_STATE.currentScene.elements.accarrowImg.style.left.substr(0, GAME_STATE.currentScene.elements.accarrowImg.style.left.length - 2));
-                    let newValue = GAME_STATE.currentScene.elements.accmeterDiv.clientWidth / 2 - GAME_STATE.currentScene.elements.accarrowImg.clientWidth / 2.0 + this.lastAvgDelta * this.scale;
+                    let oldValue = Math.round(SCENE_MANAGER.getScene().elements.accarrowImg.style.left.substr(0, SCENE_MANAGER.getScene().elements.accarrowImg.style.left.length - 2));
+                    let newValue = SCENE_MANAGER.getScene().elements.accmeterDiv.clientWidth / 2 - SCENE_MANAGER.getScene().elements.accarrowImg.clientWidth / 2.0 + this.lastAvgDelta * this.scale;
 
-                    if (GAME_STATE.currentScene.elements.accarrowImg.style.left === "") {
-                        GAME_STATE.currentScene.elements.accarrowImg.style.left = newValue;
+                    if (SCENE_MANAGER.getScene().elements.accarrowImg.style.left === "") {
+                        SCENE_MANAGER.getScene().elements.accarrowImg.style.left = newValue;
                     }
                     else {
                         MathUtil.interpolate(oldValue, newValue, 500, "easeOut", function (val) {
-                            GAME_STATE.currentScene.elements.accarrowImg.style.left = val;
+                            SCENE_MANAGER.getScene().elements.accarrowImg.style.left = val;
                         }, "accarrow", 60);
                     }
                 }
@@ -95,7 +95,7 @@ export class AccMeter {
 
         this.wrapper.appendChild(tickDiv);
 
-        this.lastRatings.push({time: window.performance.now(), delta: timeDelta, element: tickDiv});
+        this.lastRatings.push({time: window.performance.now(), delta: timeDelta, _element: tickDiv});
 
         this.newRating = true;
     }

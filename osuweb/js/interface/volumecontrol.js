@@ -1,11 +1,11 @@
 "use strict";
 
-import {GAME_STATE, SETTINGS} from "../main";
+import {GAME_STATE, SETTINGS, SCENE_MANAGER} from "../main";
 
 export class VolumeControl {
     constructor() {
         // The canvas and context to draw on
-        this.canvas = GAME_STATE.currentScene.elements.osuwebCanvas;
+        this.canvas = SCENE_MANAGER.getCanvas();
         this.ctx = this.canvas.getContext("2d");
 
         // The radius of the master control

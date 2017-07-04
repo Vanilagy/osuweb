@@ -1,6 +1,6 @@
 "use strict";
 
-import {GAME_STATE, AUDIO_MANAGER} from "../main";
+import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../main";
 import {INPUT_STATE, InputUtil} from "../util/inpututil";
 import {AUTOPLAY} from "./play";
 import {GraphicUtil, PI2} from "../util/graphicutil";
@@ -28,11 +28,11 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     remove() {
-        GAME_STATE.currentScene.elements["spinnerContainerContainer"].removeChild(this.containerDiv);
+        SCENE_MANAGER.getScene().elements["spinnerContainerContainer"].removeChild(this.containerDiv);
     }
 
     append() {
-        GAME_STATE.currentScene.elements["spinnerContainerContainer"].appendChild(this.containerDiv);
+        SCENE_MANAGER.getScene().elements["spinnerContainerContainer"].appendChild(this.containerDiv);
     }
 
     show() {
@@ -45,7 +45,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     render() {
-        let accurateCurrentTime = window.performance.now() - GAME_STATE.currentPlay.audioStartTime + GAME_STATE.currentPlay.audioOffset;
+        let accurateCurrentTime = window.performance.now() - GAME_STATE.currentPlay.audioStartTime + GAME_STATE.currentPlay.audioInterlude;
         let completion = (accurateCurrentTime - this.startTime) / this.duration;
 
         if (accurateCurrentTime >= this.startTime && accurateCurrentTime < this.endTime) {

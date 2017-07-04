@@ -30,10 +30,10 @@ export class ProcessedBeatmap {
     }
 
     process() {
-        this.generateDrawableHitObjects(this.sourceBeatmap);
-        this.calculateFollowPoints();
+        this.generateDrawableHitObjects();
         this.calculateZOrder();
         this.applyStackShift();
+        this.calculateFollowPoints();
     }
 
     calculateZOrder() {
@@ -65,15 +65,15 @@ export class ProcessedBeatmap {
         }
     }
 
-    generateDrawableHitObjects(beatmap) {
+    generateDrawableHitObjects() {
         let hitObjectId = 0;
         let comboCount = 1;
         let nextCombo = 0;
 
         let mapGenerationStartTime = window.performance.now();
 
-        for (let o = 0; o < beatmap.hitObjects.length; o++) {
-            let obj = beatmap.hitObjects[o];
+        for (let o = 0; o < this.sourceBeatmap.hitObjects.length; o++) {
+            let obj = this.sourceBeatmap.hitObjects[o];
 
             if (obj.newCombo !== null) {
                 if (obj.newCombo === -1) {
@@ -87,12 +87,12 @@ export class ProcessedBeatmap {
             let comboInfo = {
                 comboNum: nextCombo,
                 n: comboCount++,
-                isLast: (beatmap.hitObjects[o + 1]) ? beatmap.hitObjects[o + 1].newCombo !== null : true
+                isLast: (this.sourceBeatmap.hitObjects[o + 1]) ? this.sourceBeatmap.hitObjects[o + 1].newCombo !== null : true
             };
 
-            if (this.currentTimingPoint < beatmap.timingPoints.length) {
-                while (beatmap.timingPoints[this.currentTimingPoint].offset <= obj.time) {
-                    let timingPoint = beatmap.timingPoints[this.currentTimingPoint];
+            if (this.currentTimingPoint < this.sourceBeatmap.timingPoints.length) {
+                while (this.sourceBeatmap.timingPoints[this.currentTimingPoint].offset <= obj.time) {
+                    let timingPoint = this.sourceBeatmap.timingPoints[this.currentTimingPoint];
 
                     if (timingPoint.inherited) {
                         this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
@@ -106,7 +106,7 @@ export class ProcessedBeatmap {
 
                     this.currentTimingPoint++;
 
-                    if (this.currentTimingPoint === beatmap.timingPoints.length) {
+                    if (this.currentTimingPoint === this.sourceBeatmap.timingPoints.length) {
                         break;
                     }
                 }
@@ -132,6 +132,10 @@ export class ProcessedBeatmap {
                     if (t > 0 && t < 1) {
                         sliderTickCompletions.push(tickCompletion);
                     }
+                }
+
+                if(obj.length < 5) {
+                    console.log();
                 }
 
                 newObject.endTime = obj.time + obj.repeat * obj.length / timingInfo.sliderVelocity;

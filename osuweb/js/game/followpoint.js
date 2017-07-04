@@ -1,10 +1,10 @@
 "use strict";
 
 import {GraphicUtil} from "../util/graphicutil";
-import {AUDIO_MANAGER, GAME_STATE} from "../main";
+import {AUDIO_MANAGER, GAME_STATE, SCENE_MANAGER} from "../main";
 
 export const POINT_DISTANCE = 32;
-export const PRE_EMPT = 800;
+export const PRE_EMPT = 450;
 
 export class FollowPoint {
     constructor(hitObjectStart, hitObjectEnd) {
@@ -39,7 +39,7 @@ export class FollowPoint {
         this.canvas.style.top = (this.centerPoint.y + GAME_STATE.currentPlay.marginHeight) * GraphicUtil.getPixelRatio() + "px";
         this.canvas.style.transform = "translate(-50%, -50%) rotate(" + this.angle + "rad)";
 
-        GAME_STATE.currentScene.elements["objectContainerDiv"].appendChild(this.canvas);
+        SCENE_MANAGER.getScene().elements["objectContainerDiv"].appendChild(this.canvas);
         this.ctx = this.canvas.getContext("2d");
 
         this.update.bind(this)();
@@ -49,45 +49,50 @@ export class FollowPoint {
         let timeDif = this.endTime - this.startTime;
         let relTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
 
-        let renderStart = Math.max(0, Math.min(1, (relTime - timeDif) / timeDif)) * this.length;
-        let renderEnd = Math.max(0, Math.min(1, (relTime - timeDif + PRE_EMPT) / timeDif)) * this.length;
+        let renderStart = (relTime - timeDif) / timeDif;
+        let renderEnd = (relTime - timeDif + PRE_EMPT) / timeDif;
 
-        if(renderStart >= 1) {
-            GAME_STATE.currentScene.elements["objectContainerDiv"].removeChild(this.canvas);
+        if(renderStart >= 0.9) {
+            SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this.canvas);
             return;
         }
 
-        this.ctx.clearRect(0, 0, this.length, this.height);
-        this.ctx.beginPath();
-        this.ctx.rect(renderStart, 0, renderEnd, this.height);
-        this.ctx.fillStyle = "white";
-        this.ctx.globalCompositeOperation = "source-over";
-        this.ctx.fill();
-        this.ctx.globalCompositeOperation = "destination-out";
-        let fadeInLength = 90 * GraphicUtil.getPixelRatio();
+        if(!(renderEnd < 0.1 || renderStart > 0.9)) {
+            let renderStartX = Math.max(0.1, Math.min(0.9, renderStart)) * this.length;
+            let renderEndX = Math.max(0.1, Math.min(0.9, renderEnd)) * this.length;
 
-        if (isNaN(renderStart)) {
-            //requestAnimationFrame(this.render.bind(this));
-            return;
+            this.ctx.clearRect(0, 0, this.length, this.height);
+            this.ctx.beginPath();
+            this.ctx.rect(renderStartX, 0, renderEndX - renderStartX, this.height);
+            this.ctx.fillStyle = "white";
+            this.ctx.globalCompositeOperation = "source-over";
+            this.ctx.fill();
+            this.ctx.globalCompositeOperation = "destination-out";
+            let fadeInLength = this.length * 0.2 * GraphicUtil.getPixelRatio();
+
+            if (isNaN(renderStartX)) {
+                //requestAnimationFrame(this.render.bind(this));
+                return;
+            }
+
+            let leftGradient = this.ctx.createLinearGradient(renderStartX, 0, renderStartX + fadeInLength, 0);
+            leftGradient.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+            leftGradient.addColorStop(1, "rgba(255, 255, 255, 0.0)");
+
+            this.ctx.beginPath();
+            this.ctx.rect(renderStartX, 0, fadeInLength, this.height);
+            this.ctx.fillStyle = leftGradient;
+            this.ctx.fill();
+
+            let rightGradient = this.ctx.createLinearGradient(this.length * 0.9 - fadeInLength, 0, this.length * 0.9, 0);
+            rightGradient.addColorStop(0, "rgba(255, 255, 255, 0.0)");
+            rightGradient.addColorStop(1, "rgba(255, 255, 255, 1.0)");
+
+            this.ctx.beginPath();
+            this.ctx.rect(this.length * 0.9 - fadeInLength, 0, fadeInLength, this.height);
+            this.ctx.fillStyle = rightGradient;
+            this.ctx.fill();
         }
-
-        let leftGradient = this.ctx.createLinearGradient(renderStart, 0, renderStart + fadeInLength, 0);
-        leftGradient.addColorStop(0, "rgba(255, 255, 255, 1.0)");
-        leftGradient.addColorStop(1, "rgba(255, 255, 255, 0.0)");
-
-        this.ctx.beginPath();
-        this.ctx.rect(renderStart, 0, fadeInLength, this.height);
-        this.ctx.fillStyle = leftGradient;
-        this.ctx.fill();
-
-        let rightGradient = this.ctx.createLinearGradient(this.length - fadeInLength, 0, this.length, 0);
-        rightGradient.addColorStop(0, "rgba(255, 255, 255, 0.0)");
-        rightGradient.addColorStop(1, "rgba(255, 255, 255, 1.0)");
-
-        this.ctx.beginPath();
-        this.ctx.rect(this.length - fadeInLength, 0, fadeInLength, this.height);
-        this.ctx.fillStyle = rightGradient;
-        this.ctx.fill();
 
         requestAnimationFrame(this.update.bind(this));
     }

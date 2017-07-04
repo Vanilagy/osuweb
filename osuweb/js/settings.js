@@ -27,10 +27,10 @@ export class Settings {
     setMaster(value) {
         this.data.master = value;
 
-        AUDIO_MANAGER.updateVolume();
-
         if(this.data.master > 1.0) this.data.master = 1.0;
         if(this.data.master < 0.0) this.data.master = 0.0;
+
+        AUDIO_MANAGER.updateVolume();
 
         this.saveSettings();
     }

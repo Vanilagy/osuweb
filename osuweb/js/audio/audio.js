@@ -22,6 +22,7 @@ export class Audio {
         this.sourceNodes = new Array(bufferCount);
         this.currentNodeNumber = -1;
         this.nextNodeNumber = 0;
+        this.volume = 1;
 
         this.onEnded = () => {};
 
@@ -96,15 +97,15 @@ export class Audio {
     }
 
     updateVolumeAll(customVolume = 1) {
-        for(let key in this.gainNodes) this.gainNodes[key].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * customVolume;
+        this.volume = customVolume;
+
+        for(let key in this.gainNodes) this.gainNodes[key].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * this.volume;
     }
 
     updateVolume(customVolume = 1) {
-        this.gainNodes[this.nextNodeNumber].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * customVolume;
-    }
+        this.volume = customVolume;
 
-    setVolume(value) {
-        for(let key in this.gainNodes) this.gainNodes[key].gain.value = value;
+        this.gainNodes[this.nextNodeNumber].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * this.volume;
     }
 
     onError(err) {

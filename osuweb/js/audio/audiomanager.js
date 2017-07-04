@@ -77,7 +77,7 @@ export class AudioManager {
         this._currentSong.setOnEnded(this.onSongEnded);
         this._currentSong.play(delay === 0 ? 0 : (this.audioCtx.currentTime + delay), offset, !loop ? -1 : offset, !loop ? -1 : this._currentSong.duration);
 
-        this._currentSongStartTime = this.audioCtx.currentTime + delay;
+        this._currentSongStartTime = this.audioCtx.currentTime + delay - offset;
         this._currentSongPlaying = true;
         this._currentSongLooping = loop;
         this._paused = false;
@@ -158,7 +158,7 @@ export class AudioManager {
 
         let sound = this._soundLibrary[name];
 
-        this._currentSounds.push(sound)
+        this._currentSounds.push(sound);
 
         sound.updateVolume(volume);
         sound.play();

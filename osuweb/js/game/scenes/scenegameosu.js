@@ -27,4 +27,29 @@ export class SceneGameOsu extends SceneGame {
         this.elements["accContainerDiv"] = document.getElementById("accContainer");
         this.elements["accWrapperDiv"] = document.getElementById("accWrapper");
     }
+
+    render() {
+        return super.render();
+    }
+
+    preOpen(callback) {
+        callback(true);
+    }
+
+    postOpen(callback) {
+        this.showElements([
+            "playareaDiv", "objectContainerDiv", "progressCanvas", "spinnerContainerContainer", "ingameContainerSection",
+            "accarrowImg", "accmeterDiv", "accstrip50Div", "accstrip100Div", "accstrip300Div", "acctickXDiv",
+            "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv"]);
+
+        callback(true);
+    }
+
+    preClose(callback) {
+        callback(true);
+    }
+
+    postClose(callback) {
+        callback(true);
+    }
 }

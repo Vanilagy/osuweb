@@ -1,6 +1,6 @@
 "use strict";
 
-import {GAME_STATE, AUDIO_MANAGER} from "../main";
+import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../main";
 
 export class DrawableHitObject {
     constructor(hitObject) {
@@ -28,11 +28,11 @@ export class DrawableHitObject {
     }
 
     remove() {
-        GAME_STATE.currentScene.elements["objectContainerDiv"].removeChild(this.containerDiv);
+        SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this.containerDiv);
     }
 
     append() {
-        GAME_STATE.currentScene.elements["objectContainerDiv"].appendChild(this.containerDiv);
+        SCENE_MANAGER.getScene().elements["objectContainerDiv"].appendChild(this.containerDiv);
     }
 
     applyStackPosition() {

@@ -1,6 +1,6 @@
 "use strict";
 
-import {GAME_STATE, AUDIO_MANAGER} from "../main";
+import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../main";
 import {GraphicUtil} from "../util/graphicutil";
 import {MathUtil} from "../util/mathutil";
 
@@ -121,10 +121,10 @@ export class Score {
         popupElement.style.color = color;
         popupElement.style.textShadow = "0px 0px 20px " + color;
 
-        GAME_STATE.currentScene.elements["playareaDiv"].appendChild(popupElement);
+        SCENE_MANAGER.getScene().elements["playareaDiv"].appendChild(popupElement);
 
         setTimeout(function () {
-            GAME_STATE.currentScene.elements["playareaDiv"].removeChild(popupElement);
+            SCENE_MANAGER.getScene().elements["playareaDiv"].removeChild(popupElement);
         }, 1000);
     }
 
@@ -141,18 +141,18 @@ export class Score {
     updateDisplay(amount) {
         if (this.score !== this.prevScore) {
             MathUtil.interpolate(this.prevScore, this.score, 150, "easeOut", function (x) {
-                GAME_STATE.currentScene.elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(Math.min(-8, -Math.floor(x).toString().length));
+                SCENE_MANAGER.getScene().elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(Math.min(-8, -Math.floor(x).toString().length));
             }, "scoreIncreaseAnimation");
         }
         if (this.accuracy !== this.prevAccuracy) {
             MathUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOut", function (x) {
-                GAME_STATE.currentScene.elements["accuracyDisplayP"].innerHTML = (Math.floor(x * 10000) / 100).toFixed(2) + "%";
+                SCENE_MANAGER.getScene().elements["accuracyDisplayP"].innerHTML = (Math.floor(x * 10000) / 100).toFixed(2) + "%";
             }, "accuracyChangeAnimation");
         }
         if (this.combo !== this.prevCombo) {
-            GAME_STATE.currentScene.elements["comboDisplayP"].innerHTML = this.combo + "x";
-            GAME_STATE.currentScene.elements["comboDisplayP"].style.animation = "none";
-            GAME_STATE.currentScene.elements["comboDisplayP"].style.animation = "0.5s pulseCombo ease-out forwards";
+            SCENE_MANAGER.getScene().elements["comboDisplayP"].innerHTML = this.combo + "x";
+            SCENE_MANAGER.getScene().elements["comboDisplayP"].style.animation = "none";
+            SCENE_MANAGER.getScene().elements["comboDisplayP"].style.animation = "0.5s pulseCombo ease-out forwards";
         }
 
         this.prevScore = this.score;

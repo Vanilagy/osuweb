@@ -7,7 +7,7 @@ import {SliderCurvePassthrough} from "../util/slidercurvepassthrough";
 import {DrawableHitObject} from "./drawablehitobject";
 import {MathUtil} from "../util/mathutil";
 
-const SNAKING_SLIDERS = false;
+const SNAKING_SLIDERS = true;
 
 export class DrawableSlider extends DrawableHitObject {
     constructor(slider) {
@@ -126,6 +126,8 @@ export class DrawableSlider extends DrawableHitObject {
         this.containerDiv.style.top = (this.minY - GAME_STATE.currentPlay.halfCsPixel) + GAME_STATE.currentPlay.marginHeight * GraphicUtil.getPixelRatio() + "px";
         this.containerDiv.style.visibility = "hidden";
         this.containerDiv.style.opacity = 0;
+        this.containerDiv.style.webkitTransform = "transformZ(0)";
+        this.containerDiv.style.backfaceVisibility = "hidden";
         this.containerDiv.style.zIndex = this.zIndex;
 
         this.baseCanvas = document.createElement("canvas"); // Create local object canvas
@@ -142,6 +144,8 @@ export class DrawableSlider extends DrawableHitObject {
         this.overlay = document.createElement("canvas");
         this.overlay.setAttribute("width", Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel));
         this.overlay.setAttribute("height", Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
+        this.overlay.style.webkitTransform = "transformZ(0)";
+        this.overlay.style.backfaceVisibility = "hidden";
         this.overlayCtx = this.overlay.getContext("2d");
 
         this.followCircleCanvas = document.createElement("canvas");
@@ -194,7 +198,7 @@ export class DrawableSlider extends DrawableHitObject {
         if (initialRender) {
             thisCompletion = 1;
         } else {
-            thisCompletion = Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime - GAME_STATE.currentPlay.ARMs)) / GAME_STATE.currentPlay.ARMs * 2.5);
+            thisCompletion = Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime - GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime())) / GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime() * 2.5);
         }
 
         let targetIndex = Math.floor(thisCompletion * (this.curve.equalDistancePoints.length - 1));
@@ -234,7 +238,7 @@ export class DrawableSlider extends DrawableHitObject {
 
     renderOverlay() {
         let completion = 0;
-        let currentSliderTime = window.performance.now() - GAME_STATE.currentPlay.audioStartTime + GAME_STATE.currentPlay.audioOffset - this.startTime;
+        let currentSliderTime = window.performance.now() - GAME_STATE.currentPlay.audioStartTime + GAME_STATE.currentPlay.audioInterlude - this.startTime;
         let isMoving = currentSliderTime >= 0;
 
         this.overlayCtx.clearRect(0, 0, Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel), Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
@@ -310,6 +314,8 @@ export class DrawableSlider extends DrawableHitObject {
             let fadeOutCompletion = Math.min(1, Math.max(0, (AUDIO_MANAGER.getCurrentSongTime() - this.letGoTime) / 120));
             this.followCircleCanvas.style.transform = "translate(" + (sliderBallPos.x - this.minX + GAME_STATE.currentPlay.halfCsPixel - this.maxFollowCircleRadius) + "px," + (sliderBallPos.y - this.minY + GAME_STATE.currentPlay.halfCsPixel - this.maxFollowCircleRadius) + "px) scale(" + ((this.letGoTime === null) ? 1 : 1 + fadeOutCompletion * 0.5) + ")"; // transform is gazillions of times faster than absolute positioning
             this.followCircleCanvas.style.opacity = (this.letGoTime === null) ? 1 : (1 - fadeOutCompletion);
+            this.followCircleCanvas.style.webkitTransform = "transformZ(0)";
+            this.followCircleCanvas.style.backfaceVisibility = "hidden";
 
             let colour = GAME_STATE.currentBeatmap.colours[this.comboInfo.comboNum % GAME_STATE.currentBeatmap.colours.length];
             let colourString = "rgb(" + colour.r + "," + colour.g + "," + colour.b + ")";

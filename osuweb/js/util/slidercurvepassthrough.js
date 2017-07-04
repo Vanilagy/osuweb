@@ -17,6 +17,20 @@ export class SliderCurvePassthrough extends SliderCurve {
     calculateEqualDistancePoints() {
         let points = this.sections[0].values;
 
+        // Monstrata plz
+        if(JSON.stringify(points[0]) === JSON.stringify(points[2])) {
+            this.sections[0] = {type: "linear", values: [points[0], points[1]]};
+            this.sections[1] = {type: "linear", values: [points[1], points[2]]};
+
+            let curve = new SliderCurveBezier(this.slider);
+
+            curve.calculateEqualDistancePoints();
+
+            this.equalDistancePoints = curve.equalDistancePoints;
+
+            return;
+        }
+
         let centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
 
         // Slider seems to have all points on one line. Parsing it as linear slider instead

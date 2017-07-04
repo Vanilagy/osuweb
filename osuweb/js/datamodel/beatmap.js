@@ -165,12 +165,12 @@ export class Beatmap {
                 if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim(), 10);
                 if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
 
-                if (line.startsWith("HPDrainRate")) this.difficulty.HP = line.split(':')[1].trim();
-                if (line.startsWith("CircleSize")) this.difficulty.CS = line.split(':')[1].trim();
-                if (line.startsWith("OverallDifficulty")) this.difficulty.OD = line.split(':')[1].trim();
-                if (line.startsWith("ApproachRate")) this.difficulty.AR = line.split(':')[1].trim();
-                if (line.startsWith("SliderMultiplier")) this.difficulty.SV = line.split(':')[1].trim();
-                if (line.startsWith("SliderTickRate")) this.difficulty.TR = line.split(':')[1].trim();
+                if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("OverallDifficulty")) this.difficulty.OD = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("ApproachRate")) this.difficulty.AR = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(line.split(':')[1].trim());
 
                 Console.verbose("Read header property: "+line);
             }

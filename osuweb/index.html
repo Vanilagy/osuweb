@@ -369,13 +369,23 @@
             margin-top: 12px;
         }
         #songpanels {
-            border: 1px solid white;
             position: absolute;
             top: 0;
             right: 0;
             height: 100%;
             width: 40%;
             display: none;
+        }
+        div .songpanel {
+            position: absolute;
+            height: 14vh;
+            width: 100%;
+            margin-top: 1vh;
+            margin-bottom: 1vh;
+            right: 0;
+            background-color: white;
+            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
         }
         #songpanelswrapper {
             position: relative;
@@ -420,12 +430,14 @@
 
 <div id="container">
     <!------------ MENU ------------->
-    <input type="button" id="osu" value="osu!" onclick="startSongSelect()">
+    <input type="button" id="osu" value="osu!">
     <!-------- SONG SELECT ---------->
     <div id="topbar"></div>
     <div id="bottombar"></div>
     <div id="scoreboard"></div>
-    <div id="songpanels"></div>
+    <div id="songpanels">
+        <div id="songpanelswrapper"></div>
+    </div>
     <div id="searchbar"></div>
 
     <input type="file" id="beatmap" webkitdirectory multiple>

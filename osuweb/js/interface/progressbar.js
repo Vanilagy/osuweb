@@ -1,13 +1,13 @@
 "use strict";
 
-import {GAME_STATE, AUDIO_MANAGER} from "../main";
+import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../main";
 
 export class ProgressBar {
     constructor() {
         // TODO: insert real max width of accuracy text
-        GAME_STATE.currentScene.elements.accContainerDiv.style.width = "calc(5vh + 1vw + 6vw)";
+        SCENE_MANAGER.getScene().elements.accContainerDiv.style.width = "calc(5vh + 1vw + 6vw)";
 
-        this.canvas = GAME_STATE.currentScene.elements.progressCanvas;
+        this.canvas = SCENE_MANAGER.getScene().elements.progressCanvas;
         this.ctx = this.canvas.getContext("2d");
 
         this.prelude = 2000;
@@ -15,9 +15,9 @@ export class ProgressBar {
         this.mapEndTime = GAME_STATE.currentPlay.beatmap.hitObjects[GAME_STATE.currentPlay.beatmap.hitObjects.length - 1].endTime;
 
         this.animationLoop = (function () {
-            if (GAME_STATE.currentScene.elements.progressCanvas.clientWidth > 0) {
-                this.canvas.width = GAME_STATE.currentScene.elements.progressCanvas.clientWidth;
-                this.canvas.height = GAME_STATE.currentScene.elements.progressCanvas.clientHeight;
+            if (SCENE_MANAGER.getScene().elements.progressCanvas.clientWidth > 0) {
+                this.canvas.width = SCENE_MANAGER.getScene().elements.progressCanvas.clientWidth;
+                this.canvas.height = SCENE_MANAGER.getScene().elements.progressCanvas.clientHeight;
             }
 
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
