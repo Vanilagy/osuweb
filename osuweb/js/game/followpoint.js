@@ -46,20 +46,20 @@ export class FollowPoint {
     }
 
     update() {
-        let timeDif = this.endTime - this.startTime;
+        let duration = this.endTime - this.startTime;
         let relTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
 
-        let renderStart = (relTime - timeDif) / timeDif;
-        let renderEnd = (relTime - timeDif + PRE_EMPT) / timeDif;
+        let renderStart = relTime / duration;
+        let renderEnd = (relTime + PRE_EMPT) / duration;
 
-        if(renderStart >= 0.9) {
+        if(renderStart >= 1) {
             SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this.canvas);
             return;
         }
 
-        if(!(renderEnd < 0.1 || renderStart > 0.9)) {
-            let renderStartX = Math.max(0.1, Math.min(0.9, renderStart)) * this.length;
-            let renderEndX = Math.max(0.1, Math.min(0.9, renderEnd)) * this.length;
+        if(!(renderEnd < 0 || renderStart > 1)) {
+            let renderStartX = Math.max(0, Math.min(1, renderStart)) * this.length;
+            let renderEndX = Math.max(0, Math.min(1, renderEnd)) * this.length;
 
             this.ctx.clearRect(0, 0, this.length, this.height);
             this.ctx.beginPath();
@@ -84,12 +84,12 @@ export class FollowPoint {
             this.ctx.fillStyle = leftGradient;
             this.ctx.fill();
 
-            let rightGradient = this.ctx.createLinearGradient(this.length * 0.9 - fadeInLength, 0, this.length * 0.9, 0);
+            let rightGradient = this.ctx.createLinearGradient(this.length - fadeInLength, 0, this.length, 0);
             rightGradient.addColorStop(0, "rgba(255, 255, 255, 0.0)");
             rightGradient.addColorStop(1, "rgba(255, 255, 255, 1.0)");
 
             this.ctx.beginPath();
-            this.ctx.rect(this.length * 0.9 - fadeInLength, 0, fadeInLength, this.height);
+            this.ctx.rect(this.length - fadeInLength, 0, fadeInLength, this.height);
             this.ctx.fillStyle = rightGradient;
             this.ctx.fill();
         }
