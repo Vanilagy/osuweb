@@ -1,13 +1,20 @@
 "use strict";
 
-import {
-    DEBUG, DEBUG_PREFIX, ERROR, ERROR_PREFIX, INFO, INFO_PREFIX, VERBOSE, VERBOSE_PREFIX, WARNING,
-    WARNING_PREFIX
-} from "./constants";
+const VERBOSE_PREFIX = "[VERBOSE]";
+const DEBUG_PREFIX = "[DEBUG]";
+const WARNING_PREFIX = "[WARNING]";
+const INFO_PREFIX = "[INFO]";
+const ERROR_PREFIX = "[ERROR]";
+
+const VERBOSE = true;
+const DEBUG = true;
+const WARNING = true;
+const INFO = true;
+const ERROR = true;
 
 export class Console {
     static verbose(message) {
-        if(VERBOSE) console.debug(VERBOSE_PREFIX+" "+message);
+        if(VERBOSE) console.debug("["+window.performance.now().toFixed(0)+"ms] "+VERBOSE_PREFIX+" "+message);
     }
 
     static error(message) {

@@ -35,6 +35,10 @@ export class DrawableHitObject {
         SCENE_MANAGER.getScene().elements["objectContainerDiv"].appendChild(this.containerDiv);
     }
 
+    render() {
+
+    }
+
     applyStackPosition() {
         this.x += this.stackHeight * -4;
         this.y += this.stackHeight * -4;

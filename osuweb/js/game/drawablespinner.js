@@ -45,6 +45,8 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     render() {
+        if (completion >= 1) return;
+
         let accurateCurrentTime = window.performance.now() - GAME_STATE.currentPlay.audioStartTime + GAME_STATE.currentPlay.audioInterlude;
         let completion = (accurateCurrentTime - this.startTime) / this.duration;
 
@@ -95,10 +97,6 @@ export class DrawableSpinner extends DrawableHitObject {
             this.updateApproachCircle(Math.max(0, 1 - completion));
             this.circleElement.style.transform = "translate(-50%, -50%) rotate(" + this.totalDegreesRotated + "rad)";
             this.spmDisplay.innerHTML = "SPM: " + Math.floor(MathUtil.getAvg(this.SPMSamples));
-        }
-
-        if (completion < 1) { // CANCER IDK WHAT'S GOING ON
-            requestAnimationFrame(this.render.bind(this));
         }
     }
 

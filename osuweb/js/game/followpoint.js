@@ -42,10 +42,10 @@ export class FollowPoint {
         SCENE_MANAGER.getScene().elements["objectContainerDiv"].appendChild(this.canvas);
         this.ctx = this.canvas.getContext("2d");
 
-        this.update.bind(this)();
+        GAME_STATE.currentPlay.onScreenFollowPoints[this.startTime] = this;
     }
 
-    update() {
+    render() {
         let duration = this.endTime - this.startTime;
         let relTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
 
@@ -54,6 +54,7 @@ export class FollowPoint {
 
         if(renderStart >= 1) {
             SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this.canvas);
+            delete GAME_STATE.currentPlay.onScreenFollowPoints[this.startTime];
             return;
         }
 
@@ -93,7 +94,5 @@ export class FollowPoint {
             this.ctx.fillStyle = rightGradient;
             this.ctx.fill();
         }
-
-        requestAnimationFrame(this.update.bind(this));
     }
 }

@@ -16,7 +16,7 @@ import {DrawableHitObject} from "./drawablehitobject";
 import {ProcessedBeatmap} from "../datamodel/processedbeatmap";
 import {BeatmapDifficulty} from "../datamodel/beatmapdifficulty";
 
-export let AUTOPLAY = true;
+export let AUTOPLAY = false;
 
 export class Play {
     constructor(beatmap, audio) {
@@ -58,6 +58,7 @@ export class Play {
         this.lastAppendedHitObject = 0;
         this.currentFollowPoint = 0;
         this.onScreenHitObjects = {};
+        this.onScreenFollowPoints = {};
 
         this.inBreak = true;
         this.startBreak = true;
@@ -69,6 +70,23 @@ export class Play {
         this.lastTickClockTime = window.performance.now();
         this.recordedTickSpeeds = [];
         this.stupidClock = window.performance.now();
+
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    render() {
+        if(this.progressbar) this.progressbar.render.bind(this.progressbar)();
+        if(this.accmeter) this.accmeter.render.bind(this.accmeter)();
+
+        for(let key in this.onScreenHitObjects) {
+            this.onScreenHitObjects[key].render.bind(this.onScreenHitObjects[key])();
+        }
+
+        for(let key in this.onScreenFollowPoints) {
+            this.onScreenFollowPoints[key].render.bind(this.onScreenFollowPoints[key])();
+        }
+
+        requestAnimationFrame(this.render.bind(this));
     }
 
     updatePlayareaSize(callback) {
@@ -84,7 +102,7 @@ export class Play {
     }
 
     gameLoop() {
-        this.doDebugOutput();
+        //this.doDebugOutput();
 
         // Starts the song
         if (!this.audioStarted) {
@@ -153,7 +171,7 @@ export class Play {
                     hitObject.approachCircleCanvas.style.visibility = "hidden";
                 }
                 // Fade out object when it has not been hit
-                if (currentTime >= hitObject.startTime + this.beatmap.difficulty.getHitDeltaForRating(300) && hitObject.hittable) {
+                if (currentTime >= hitObject.startTime + this.beatmap.difficulty.getHitDeltaForRating(50) && hitObject.hittable) {
                     this.score.addScore(0, false, true, hitObject);
                     hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
                     hitObject.hittable = false;
@@ -357,8 +375,8 @@ export class Play {
 
                 if (dist <= this.csOsuPixel / 2) {
                     hitObject.hit(AUDIO_MANAGER.getCurrentSongTime() - hitObject.startTime);
-                    break;
                 }
+                break;
             }
         }
     }

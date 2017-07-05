@@ -95,6 +95,8 @@ export class Score {
         popupElement.style.top = (hitObject.endPoint.y - hitObject.stackHeight * 4 + GAME_STATE.currentPlay.marginHeight) * GraphicUtil.getPixelRatio() + "px";
         popupElement.style.fontSize = GAME_STATE.currentPlay.csPixel * 0.32 + "px";
         popupElement.style.animation = "1s scorePopup linear forwards";
+        popupElement.style.webkitTransform = "transformZ(0)";
+        popupElement.style.backfaceVisibility = "hidden";
         let color = (function () {
             if (score === 300) {
                 return "#38b8e8";

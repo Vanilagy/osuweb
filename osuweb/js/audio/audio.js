@@ -12,15 +12,16 @@ export class Audio {
         this.creationCallback = callback;
 
         if (bufferCount === undefined) bufferCount = 2;
-        this.gainNodes = new Array(bufferCount);
+        this.gainNodes = new Array(Math.min(bufferCount, 5));
 
         for(let i = 0; i < this.gainNodes.length; i++)  {
             this.gainNodes[i] = AUDIO_MANAGER.getContext().createGain();
             this.gainNodes[i].connect(AUDIO_MANAGER.getContext().destination);
         }
+        this.currentGainNodeIndex = 0;
 
         this.sourceNodes = new Array(bufferCount);
-        this.currentNodeNumber = -1;
+        this.currentSourceNodeIndex = -1;
         this.nextNodeNumber = 0;
         this.volume = 1;
 
@@ -33,23 +34,15 @@ export class Audio {
             for (let i = 0; i < bufferCount; i++) {
                 this.createNode(i);
             }
-        }).bind(this), this.onError);
+        }).bind(this), this.onError.bind(this));
     }
 
     createNode(index) {
-        let i = index;
-
         this.sourceNodes[index] = AUDIO_MANAGER.getContext().createBufferSource();
         this.sourceNodes[index].buffer = this.buffer;
-        this.sourceNodes[index].connect(this.gainNodes[index]);
 
         // Recreate node on end
-        this.sourceNodes[index].onended = (function (e) {
-            this.onEnded();
-            this.currentNodeNumber = -1;
-            this.sourceNodes[index].disconnect();
-            this.createNode(i);
-        }).bind(this);
+        this.sourceNodes[index].onended = this.onAudioEnded.bind(this, index);
 
         if (this.creationCallback !== undefined && this.creationCallback !== null) {
             this.creationCallback();
@@ -58,8 +51,15 @@ export class Audio {
         }
     }
 
+    onAudioEnded(index) {
+        this.onEnded();
+        this.currentSourceNodeIndex = -1;
+        this.sourceNodes[index].disconnect();
+        this.createNode(index);
+    }
+
     isRunning() {
-        return this.currentNodeNumber !== -1;
+        return this.currentSourceNodeIndex !== -1;
     }
 
     play(time = 0, offset = 0, loopStart = -1, loopEnd = -1) {
@@ -77,18 +77,20 @@ export class Audio {
         }
 
         if(enableLoop) this.sourceNodes[this.nextNodeNumber].loop = enableLoop;
+        this.sourceNodes[this.nextNodeNumber].connect(this.gainNodes[(++this.currentGainNodeIndex) % this.gainNodes.length]);
+        this.updateVolume(this.volume);
         this.sourceNodes[this.nextNodeNumber].start(time, Math.max(offset, 0));
 
-        this.currentNodeNumber = this.nextNodeNumber++;
+        this.currentSourceNodeIndex = this.nextNodeNumber++;
         this.nextNodeNumber %= this.sourceNodes.length;
     }
 
     stop(time) {
         if (time === undefined) time = 0;
 
-        if (this.currentNodeNumber >= 0) {
-            this.sourceNodes[this.currentNodeNumber].stop(time);
-            this.sourceNodes[this.currentNodeNumber].disconnect();
+        if (this.currentSourceNodeIndex >= 0) {
+            this.sourceNodes[this.currentSourceNodeIndex].stop(time);
+            this.sourceNodes[this.currentSourceNodeIndex].disconnect();
         }
     }
 
@@ -105,7 +107,7 @@ export class Audio {
     updateVolume(customVolume = 1) {
         this.volume = customVolume;
 
-        this.gainNodes[this.nextNodeNumber].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * this.volume;
+        this.gainNodes[this.currentGainNodeIndex % this.gainNodes.length].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * this.volume;
     }
 
     onError(err) {

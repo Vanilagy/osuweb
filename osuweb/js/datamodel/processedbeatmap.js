@@ -55,7 +55,7 @@ export class ProcessedBeatmap {
             let prevObj = this.hitObjects[i - 1];
             let currObj = this.hitObjects[i];
 
-            if (prevObj.comboInfo.comboNum === currObj.comboInfo.comboNum && prevObj.comboInfo.n !== currObj.comboInfo.n) {
+            if (prevObj.comboInfo.comboNum === currObj.comboInfo.comboNum && prevObj.comboInfo.n !== currObj.comboInfo.n && prevObj.constructor.name !== "DrawableSpinner" && currObj.constructor.name !== "DrawableSpinner") {
                 let dist = Math.hypot(prevObj.endPoint.x - currObj.startPoint.x, prevObj.endPoint.y - currObj.startPoint.y);
 
                 if (dist > POINT_DISTANCE * 3) {

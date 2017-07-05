@@ -75,10 +75,10 @@ export class InputUtil {
         let newPress = false;
         if (SETTINGS.data.keyCodeBindings["k1"] === keycode && INPUT_STATE.inputButtonStates["m1"] === false && INPUT_STATE.inputButtonStates["k1"] !== bool) {
             INPUT_STATE.inputButtonStates["k1"] = bool;
-            newPress = true;
+            newPress = bool === true ;
         } else if (SETTINGS.data.keyCodeBindings["k2"] === keycode && INPUT_STATE.inputButtonStates["m2"] === false && INPUT_STATE.inputButtonStates["k2"] !== bool) {
             INPUT_STATE.inputButtonStates["k2"] = bool;
-            newPress = true;
+            newPress = bool === true;
         }
 
         InputUtil.updateHoldingState();

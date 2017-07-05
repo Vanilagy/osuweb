@@ -19,57 +19,53 @@ export class AccMeter {
         SCENE_MANAGER.getScene().elements.acctickXDiv.style.width = this.scale;
 
         this.center = Math.floor((199.5 - 10 * GAME_STATE.currentPlay.beatmap.difficulty.OD) * 2 * this.scale / 2) - Math.floor(this.scale / 2);
+    }
 
-        this.arrowUpdate = (function () {
-            let deltaCount = 0;
-            let deltaSum = 0;
+    render() {
+        let deltaCount = 0;
+        let deltaSum = 0;
 
-            for (let index in this.lastRatings) {
-                let rating = this.lastRatings[index];
+        for (let index in this.lastRatings) {
+            let rating = this.lastRatings[index];
 
-                if (typeof rating === "function") continue;
+            if (typeof rating === "function") continue;
 
-                if (rating.time < window.performance.now() - 10000) {
-                    this.lastRatings.splice(index, 1);
+            if (rating.time < window.performance.now() - 10000) {
+                this.lastRatings.splice(index, 1);
 
-                    this.wrapper.removeChild(rating._element);
+                this.wrapper.removeChild(rating._element);
+            }
+            else {
+                deltaSum += rating.delta;
+                deltaCount++;
+            }
+        }
+
+        if (deltaCount === 0) {
+            SCENE_MANAGER.getScene().elements.accarrowImg.style.display = "none";
+        }
+
+        if (this.newRating) {
+            this.lastAvgDelta = deltaSum / deltaCount;
+
+            if (deltaCount > 0) {
+                SCENE_MANAGER.getScene().elements.accarrowImg.style.display = "block";
+
+                let oldValue = Math.round(SCENE_MANAGER.getScene().elements.accarrowImg.style.left.substr(0, SCENE_MANAGER.getScene().elements.accarrowImg.style.left.length - 2));
+                let newValue = SCENE_MANAGER.getScene().elements.accmeterDiv.clientWidth / 2 - SCENE_MANAGER.getScene().elements.accarrowImg.clientWidth / 2.0 + this.lastAvgDelta * this.scale;
+
+                if (SCENE_MANAGER.getScene().elements.accarrowImg.style.left === "") {
+                    SCENE_MANAGER.getScene().elements.accarrowImg.style.left = newValue;
                 }
                 else {
-                    deltaSum += rating.delta;
-                    deltaCount++;
+                    MathUtil.interpolate(oldValue, newValue, 500, "easeOut", function (val) {
+                        SCENE_MANAGER.getScene().elements.accarrowImg.style.left = val;
+                    }, "accarrow", 60);
                 }
             }
 
-            if (deltaCount === 0) {
-                SCENE_MANAGER.getScene().elements.accarrowImg.style.display = "none";
-            }
-
-            if (this.newRating) {
-                this.lastAvgDelta = deltaSum / deltaCount;
-
-                if (deltaCount > 0) {
-                    SCENE_MANAGER.getScene().elements.accarrowImg.style.display = "block";
-
-                    let oldValue = Math.round(SCENE_MANAGER.getScene().elements.accarrowImg.style.left.substr(0, SCENE_MANAGER.getScene().elements.accarrowImg.style.left.length - 2));
-                    let newValue = SCENE_MANAGER.getScene().elements.accmeterDiv.clientWidth / 2 - SCENE_MANAGER.getScene().elements.accarrowImg.clientWidth / 2.0 + this.lastAvgDelta * this.scale;
-
-                    if (SCENE_MANAGER.getScene().elements.accarrowImg.style.left === "") {
-                        SCENE_MANAGER.getScene().elements.accarrowImg.style.left = newValue;
-                    }
-                    else {
-                        MathUtil.interpolate(oldValue, newValue, 500, "easeOut", function (val) {
-                            SCENE_MANAGER.getScene().elements.accarrowImg.style.left = val;
-                        }, "accarrow", 60);
-                    }
-                }
-
-                this.newRating = false;
-            }
-
-            requestAnimationFrame(this.arrowUpdate);
-        }.bind(this));
-
-        requestAnimationFrame(this.arrowUpdate);
+            this.newRating = false;
+        }
     }
 
     addRating(timeDelta) {

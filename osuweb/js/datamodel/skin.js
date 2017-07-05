@@ -40,7 +40,7 @@ export class Skin {
                         if (result.byteLength > 0) {
                             this.skinElements[rawFileName] = rawFileName+this.name;
 
-                            AUDIO_MANAGER.loadSoundArrayBuffer(result, rawFileName+this.name, 50);
+                            AUDIO_MANAGER.loadSoundArrayBuffer(result, rawFileName+this.name, 500);
                         }
                     }
                     catch (e) {
