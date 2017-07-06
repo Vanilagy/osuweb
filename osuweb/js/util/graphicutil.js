@@ -71,10 +71,10 @@ export class GraphicUtil {
     }
     static drawApproachCircle(context, x, y, comboNum) {
         context.beginPath();
-        context.arc(x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, GAME_STATE.currentPlay.halfCsPixel * ((1 - CIRCLE_BORDER_WIDTH) + 1) / 2, 0, PI2);
+        context.arc(x + GAME_STATE.currentPlay.halfCsPixel, y + GAME_STATE.currentPlay.halfCsPixel, (GAME_STATE.currentPlay.halfCsPixel - 5) * ((1 - CIRCLE_BORDER_WIDTH) + 1) / 2, 0, PI2);
         let color = GAME_STATE.currentPlay.beatmap.colours[comboNum % GAME_STATE.currentPlay.beatmap.colours.length];
         context.strokeStyle = "rgb(" + color.r + ", " + color.g + ", " + color.b + ")";
-        context.lineWidth = GAME_STATE.currentPlay.halfCsPixel * CIRCLE_BORDER_WIDTH / 3;
+        context.lineWidth = GAME_STATE.currentPlay.halfCsPixel * CIRCLE_BORDER_WIDTH / 2.75;
         context.stroke();
     }
     static getCoordFromCoordArray(arr, percent) {

@@ -188,7 +188,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.approachCircleCanvas = document.createElement("canvas");
         this.approachCircleCanvas.setAttribute("width", GAME_STATE.currentPlay.csPixel);
         this.approachCircleCanvas.setAttribute("height", GAME_STATE.currentPlay.csPixel);
-        this.approachCircleCanvas.style.transform = "scale(3.5)";
+        this.approachCircleCanvas.style.transform = "scale(4)";
 
         let approachCtx = this.approachCircleCanvas.getContext("2d");
         Console.verbose(DEBUG_PREFIX+" Pre-rendering approachcircle to approachcircle canvas...");

@@ -25,6 +25,8 @@ export class DrawableSpinner extends DrawableHitObject {
         this.SPMSamples = [0];
         this.lastTimeSampled = null;
         this.readyForSound = false;
+
+        this.centerRadius = 5;
     }
 
     remove() {
@@ -160,7 +162,7 @@ export class DrawableSpinner extends DrawableHitObject {
         circleCtx.stroke();
 
         circleCtx.beginPath();
-        circleCtx.arc(35 * pixelRatio, 35 * pixelRatio, 5 * pixelRatio, 0, PI2);
+        circleCtx.arc(35 * pixelRatio, 35 * pixelRatio, this.centerRadius * pixelRatio, 0, PI2);
         circleCtx.fillStyle = "white";
         circleCtx.fill();
 
@@ -213,8 +215,8 @@ export class DrawableSpinner extends DrawableHitObject {
 
         this.approachCircleCtx.clearRect(0, 0, 400 * pixelRatio, 400 * pixelRatio);
         this.approachCircleCtx.beginPath();
-        this.approachCircleCtx.arc(200 * pixelRatio, 200 * pixelRatio, 195 * pixelRatio * scalar, 0, PI2);
-        this.approachCircleCtx.lineWidth = 5 * pixelRatio * scalar;
+        this.approachCircleCtx.arc(200 * pixelRatio, 200 * pixelRatio, (195 - this.centerRadius) * pixelRatio * scalar + this.centerRadius * pixelRatio, 0, PI2);
+        this.approachCircleCtx.lineWidth = Math.sqrt(5 * pixelRatio * scalar) * 2;
         this.approachCircleCtx.strokeStyle = "white";
         this.approachCircleCtx.stroke();
     }
