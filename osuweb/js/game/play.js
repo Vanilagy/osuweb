@@ -16,7 +16,7 @@ import {DrawableHitObject} from "./drawablehitobject";
 import {ProcessedBeatmap} from "../datamodel/processedbeatmap";
 import {BeatmapDifficulty} from "../datamodel/beatmapdifficulty";
 
-export let AUTOPLAY = false;
+export let AUTOPLAY = true;
 
 export class Play {
     constructor(beatmap, audio) {
@@ -69,8 +69,6 @@ export class Play {
         this.lastTickClockTime = window.performance.now();
         this.recordedTickSpeeds = [];
         this.stupidClock = window.performance.now();
-
-        requestAnimationFrame(this.render.bind(this));
     }
 
     render() {
@@ -84,8 +82,6 @@ export class Play {
         for(let key in this.onScreenFollowPoints) {
             this.onScreenFollowPoints[key].render.bind(this.onScreenFollowPoints[key])();
         }
-
-        requestAnimationFrame(this.render.bind(this));
     }
 
     updatePlayareaSize(callback) {
@@ -122,7 +118,7 @@ export class Play {
         // Makes follow points show up on-screen
         this.handleFollowPoints(currentTime);
 
-        setTimeout(this.gameLoop.bind(this));
+        setTimeout(this.gameLoop.bind(this), 0);
     }
 
     handleFollowPoints(currentTime) {

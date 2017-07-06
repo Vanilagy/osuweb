@@ -31,11 +31,7 @@ export class VolumeControl {
         this.targetMaster = SETTINGS.data.master;
     }
 
-    startRender() {
-        requestAnimationFrame(this.renderLoop.bind(this));
-    }
-
-    renderLoop() {
+    render() {
         // The progression made last call relative to a stable 60 fps (3 = 3 frames on 60 fps passed since last call)
         let frameModifier = (window.performance.now() - this.lastFrame) / (1000 / 60.0);
         // Update last frame time
@@ -95,8 +91,6 @@ export class VolumeControl {
         this.drawVolumeBarMaster();
 
         this.drawTextMaster();
-
-        requestAnimationFrame(this.renderLoop.bind(this));
     }
 
     animateMaster(value) {

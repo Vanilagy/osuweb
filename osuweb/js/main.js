@@ -39,7 +39,6 @@ document.addEventListener("mousemove", function(event) {
     if (GAME_STATE.currentPlay) {
         INPUT_STATE.userPlayfieldCoords = InputUtil.getCursorPlayfieldCoords();
     }
-    InputUtil.updateCursor();
 });
 document.addEventListener("mousedown", function(e) {
     if(e.button === 0) InputUtil.changeMouseButtonState(true, true);
@@ -168,6 +167,18 @@ document.getElementById("beatmap").addEventListener("change", function(e) {
         });
     });
 });
+
+// Global render loop
+function render() {
+    if(GAME_STATE.controls.volumeControl) GAME_STATE.controls.volumeControl.render();
+
+    if(GAME_STATE.currentPlay) GAME_STATE.currentPlay.render();
+
+    InputUtil.updateCursor();
+
+    requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
 
 export function clone(obj) {
     let copy;

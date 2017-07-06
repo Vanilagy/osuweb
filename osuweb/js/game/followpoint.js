@@ -72,7 +72,6 @@ export class FollowPoint {
             let fadeInLength = this.length * 0.2 * GraphicUtil.getPixelRatio();
 
             if (isNaN(renderStartX)) {
-                //requestAnimationFrame(this.render.bind(this));
                 return;
             }
 
