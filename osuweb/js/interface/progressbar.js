@@ -25,13 +25,13 @@ export class ProgressBar {
 
         this.ctx.beginPath();
         this.ctx.lineWidth = this.canvas.height / 2.0 + 1;
-        if (GAME_STATE.currentPlay.audioStartTime !== null && AUDIO_MANAGER.getCurrentSongTime() < this.mapStartTime) {
+        if (GAME_STATE.currentPlay.audioStarted && AUDIO_MANAGER.getCurrentSongTime() < this.mapStartTime) {
             let preludeProgress = (AUDIO_MANAGER.getCurrentSongTime() + this.prelude) / (this.mapStartTime + this.prelude);
 
             this.ctx.strokeStyle = "rgba(0,255,0,0.5)";
             this.ctx.arc(this.canvas.width / 2.0, this.canvas.height / 2.0, this.canvas.height / 4.0 - 3, Math.PI * 2 * preludeProgress + Math.PI * 1.5, Math.PI * 1.5);
         }
-        else if (GAME_STATE.currentPlay.audioStartTime !== null) {
+        else if (GAME_STATE.currentPlay.audioStarted) {
             let songProgress = (AUDIO_MANAGER.getCurrentSongTime() - this.mapStartTime) / (this.mapEndTime - this.mapStartTime);
 
             if (songProgress > 1) songProgress = 1;

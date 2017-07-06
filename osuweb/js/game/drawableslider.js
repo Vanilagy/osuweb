@@ -270,7 +270,7 @@ export class DrawableSlider extends DrawableHitObject {
 
     renderOverlay() {
         let completion = 0;
-        let currentSliderTime = window.performance.now() - GAME_STATE.currentPlay.audioStartTime + GAME_STATE.currentPlay.audioInterlude - this.startTime;
+        let currentSliderTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
         let isMoving = currentSliderTime >= 0;
 
         if(currentSliderTime >= this.endTime - this.startTime + 175) return;

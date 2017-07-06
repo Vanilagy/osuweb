@@ -91,7 +91,7 @@ export class Beatmap {
                     kiai: parseInt(values[7], 10),
                 });
 
-                Console.verbose("Added timing point #"+this.timingPoints.length+": "+this.timingPoints[this.timingPoints.length - 1]);
+                Console.verbose("Added timing point #"+this.timingPoints.length+": "+JSON.stringify(this.timingPoints[this.timingPoints.length - 1]));
             }
             else if (section === "events") {
                 if (line.startsWith("//")) continue;

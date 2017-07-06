@@ -47,7 +47,6 @@ export class Play {
         this.accmeter = new AccMeter();
         this.progressbar = new ProgressBar();
 
-        this.audioStartTime = null;
         this.audioInterlude = 2;
         this.metronome = null;
         this.nextMetronome = null;
@@ -385,7 +384,6 @@ export class Play {
         // stop running song
         AUDIO_MANAGER.stopSong();
 
-        this.audioStartTime = window.performance.now() + this.audioInterlude * 1000;
         this.gameLoop();
     }
 }

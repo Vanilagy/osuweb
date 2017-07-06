@@ -95,7 +95,8 @@ export class ProcessedBeatmap {
                     let timingPoint = this.sourceBeatmap.timingPoints[this.currentTimingPoint];
 
                     if (timingPoint.inherited) {
-                        this.currentMsPerBeatMultiplier = -timingPoint.msPerBeat;
+                        // TODO is there a a lower limit?
+                        this.currentMsPerBeatMultiplier = Math.min(1000, -timingPoint.msPerBeat);
                     } else {
                         this.currentMsPerBeatMultiplier = 100;
                         this.currentMsPerBeat = timingPoint.msPerBeat;
@@ -122,7 +123,7 @@ export class ProcessedBeatmap {
                 let timingInfo = {
                     msPerBeat: this.currentMsPerBeat,
                     msPerBeatMultiplier: this.currentMsPerBeatMultiplier,
-                    sliderVelocity: 100 * this.difficulty.SV / (this.currentMsPerBeat * (this.currentMsPerBeatMultiplier / 100))
+                    sliderVelocity: 100 * this.difficulty.SV * (100 / this.currentMsPerBeatMultiplier) / (this.currentMsPerBeat)
                 };
                 let sliderTickCompletions = [];
 
@@ -132,10 +133,6 @@ export class ProcessedBeatmap {
                     if (t > 0 && t < 1) {
                         sliderTickCompletions.push(tickCompletion);
                     }
-                }
-
-                if(obj.length < 5) {
-                    console.log();
                 }
 
                 newObject.endTime = obj.time + obj.repeat * obj.length / timingInfo.sliderVelocity;

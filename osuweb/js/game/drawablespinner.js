@@ -49,7 +49,7 @@ export class DrawableSpinner extends DrawableHitObject {
     render() {
         if (completion >= 1) return;
 
-        let accurateCurrentTime = window.performance.now() - GAME_STATE.currentPlay.audioStartTime + GAME_STATE.currentPlay.audioInterlude;
+        let accurateCurrentTime = AUDIO_MANAGER.getCurrentSongTime();
         let completion = (accurateCurrentTime - this.startTime) / this.duration;
 
         if (accurateCurrentTime >= this.startTime && accurateCurrentTime < this.endTime) {
