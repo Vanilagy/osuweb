@@ -157,8 +157,8 @@ export class DrawableSlider extends DrawableHitObject {
 
         Console.verbose(DEBUG_PREFIX+" Creating overlay canvas...");
         this.overlay = document.createElement("canvas");
-        this.overlay.setAttribute("width", Math.ceil(this.sliderWidth, 3840 + GAME_STATE.currentPlay.csPixel));
-        this.overlay.setAttribute("height", Math.ceil(his.sliderHeight, 2160 + GAME_STATE.currentPlay.csPixel));
+        this.overlay.setAttribute("width", Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel));
+        this.overlay.setAttribute("height", Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
         this.overlay.style.webkitTransform = "transformZ(0)";
         this.overlay.style.backfaceVisibility = "hidden";
         this.overlayCtx = this.overlay.getContext("2d");
