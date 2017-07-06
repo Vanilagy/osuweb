@@ -29,11 +29,26 @@ grunt.initConfig({
             files: "js/**/*.js",
             tasks: ['newer:babel', 'browserify']
         }
+    },
+    "node-minify": {
+        uglify: {
+            compressor: 'uglifyjs',
+            options: {
+                warnings: true,
+                mangle: true,
+                compress: true
+            },
+            files: {
+                'bundle.min.js':  ['bundle.js']
+            }
+        }
     }
 });
 
 grunt.loadNpmTasks('grunt-contrib-watch');
 grunt.loadNpmTasks('grunt-newer');
 grunt.loadNpmTasks('grunt-browserify');
+grunt.loadNpmTasks('grunt-node-minify');
 
 grunt.registerTask('default', ['watch']);
+grunt.registerTask('release', ['newer:babel', 'browserify', 'node-minify:uglify']);
