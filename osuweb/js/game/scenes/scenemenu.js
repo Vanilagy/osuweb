@@ -9,6 +9,8 @@ export class SceneMenu extends SceneBase {
 
         this.addElement("osuInput", "osu");
         this.addElement("beatmapInput", "beatmap");
+        this.addElement("snakingInput", "snaking");
+        this.addElement("autoInput", "auto");
     }
 
     preOpen(callback) {
@@ -25,6 +27,8 @@ export class SceneMenu extends SceneBase {
     
     preClose(callback) {
         this.hideElements(["beatmapInput", "osuInput"]);
+
+        this.elements["snakingInput"].disabled = true;
 
         callback(true);
     }

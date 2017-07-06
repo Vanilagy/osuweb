@@ -16,11 +16,11 @@ import {DrawableHitObject} from "./drawablehitobject";
 import {ProcessedBeatmap} from "../datamodel/processedbeatmap";
 import {BeatmapDifficulty} from "../datamodel/beatmapdifficulty";
 
-export let AUTOPLAY = true;
-
 export class Play {
     constructor(beatmap, audio) {
         GAME_STATE.currentPlay = this;
+
+        this.autoplay = document.getElementById("auto").checked;
 
         this.audio = audio;
         this.beatmap = new ProcessedBeatmap(beatmap);
@@ -162,7 +162,7 @@ export class Play {
             if (hitObject.constructor.name === "DrawableCircle") {
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
-                    if (AUTOPLAY) hitObject.hit(currentTime - hitObject.startTime); // AUTO hitting
+                    if (this.autoplay) hitObject.hit(currentTime - hitObject.startTime); // AUTO hitting
                     hitObject.approachCircleCanvas.style.visibility = "hidden";
                 }
                 // Fade out object when it has not been hit
@@ -198,7 +198,7 @@ export class Play {
 
                         let dist = Math.hypot(tickPosition.x / GraphicUtil.getPixelRatio() - userPlayfieldCoords.x, tickPosition.y / GraphicUtil.getPixelRatio() - userPlayfieldCoords.y);
 
-                        if (dist <= this.csOsuPixel && INPUT_STATE.isHolding || AUTOPLAY) {
+                        if (dist <= this.csOsuPixel && INPUT_STATE.isHolding || this.autoplay) {
                             if (completionsToEval[i] === hitObject.hitObject.repeat) {
                                 hitObject.scoring.end = true;
                             } else {
@@ -223,7 +223,7 @@ export class Play {
                 }
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
-                    if (AUTOPLAY) hitObject.hit(currentTime - hitObject.startTime);
+                    if (this.autoplay) hitObject.hit(currentTime - hitObject.startTime);
                     hitObject.approachCircleCanvas.style.display = "none";
                 }
                 // Fade out slider head when it has not been hit

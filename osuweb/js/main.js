@@ -12,6 +12,7 @@ import {Play} from "./game/play";
 import {SceneLoading} from "./game/scenes/sceneloading";
 import {Database} from "./datamodel/database";
 import {SceneManager} from "./game/scenes/scenemanager";
+import {SLIDER_SETTINGS} from "./game/drawableslider";
 
 export let GAME_STATE = {
     currentBeatmapSet: null,
@@ -104,6 +105,14 @@ window.onresize = function() {
 function finishLoading() {
     SCENE_MANAGER.switchScene(new SceneMenu(), (result) => {});
 }
+
+document.getElementById("snaking").addEventListener("change", () => {
+    SLIDER_SETTINGS.snaking = document.getElementById("snaking").checked;
+});
+
+document.getElementById("auto").addEventListener("change", () => {
+    if(GAME_STATE.currentPlay) GAME_STATE.currentPlay.autoplay = document.getElementById("auto").checked;
+});
 
 document.getElementById("osu").onclick = () => {
     SCENE_MANAGER.switchScene(new SceneSongSelect());

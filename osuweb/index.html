@@ -20,6 +20,7 @@
             -moz-user-select: -moz-none;
             -ms-user-select: none;
             user-select: none;
+            color: white;
         }
         #playarea {
             width: 512px;
@@ -444,15 +445,17 @@
     </div>
     <div id="searchbar"></div>
 
-    <input type="file" id="beatmap" webkitdirectory multiple>
+    <input type="file" id="beatmap" webkitdirectory multiple><br />
+    <input type="checkbox" id="snaking" /> Slider snaking (can be performance heavy)<br />
+    <input type="checkbox" id="auto" /> Auto
 </div>
 
 <div id="foreground">
     <div id="loading">LOADING</div>
 </div>
 
-<script src="js/lib/jszip.min.js"></script>
-<script src="js/lib/jszip-utils.min.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script src="lib/jszip-utils.min.js"></script>
 
 <script src="bundle.js"></script>
 </body>

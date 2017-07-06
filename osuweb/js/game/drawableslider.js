@@ -8,9 +8,11 @@ import {DrawableHitObject} from "./drawablehitobject";
 import {MathUtil} from "../util/mathutil";
 import {Console} from "../console";
 
-const SNAKING_SLIDERS = false;
-
 const DEBUG_PREFIX = "[SLIDER]";
+
+export let SLIDER_SETTINGS = {
+    snaking: false
+};
 
 export class DrawableSlider extends DrawableHitObject {
     constructor(slider) {
@@ -48,7 +50,7 @@ export class DrawableSlider extends DrawableHitObject {
         super.show(offset);
         this.renderOverlay();
 
-        if (SNAKING_SLIDERS) {
+        if (SLIDER_SETTINGS.snaking) {
             this.renderBase.bind(this)(false);
         }
     }
@@ -148,15 +150,15 @@ export class DrawableSlider extends DrawableHitObject {
 
         this.baseCtx = this.baseCanvas.getContext("2d");
 
-        if (!SNAKING_SLIDERS) {
+        if (!SLIDER_SETTINGS.snaking || this.curve.equalDistancePoints.length > 1000) {
             Console.verbose(DEBUG_PREFIX+" Pre-rendering slider body since snaking is disabled.");
             this.renderBase.bind(this)(true);
         }
 
         Console.verbose(DEBUG_PREFIX+" Creating overlay canvas...");
         this.overlay = document.createElement("canvas");
-        this.overlay.setAttribute("width", Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel));
-        this.overlay.setAttribute("height", Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
+        this.overlay.setAttribute("width", Math.ceil(this.sliderWidth, 3840 + GAME_STATE.currentPlay.csPixel));
+        this.overlay.setAttribute("height", Math.ceil(his.sliderHeight, 2160 + GAME_STATE.currentPlay.csPixel));
         this.overlay.style.webkitTransform = "transformZ(0)";
         this.overlay.style.backfaceVisibility = "hidden";
         this.overlayCtx = this.overlay.getContext("2d");
@@ -216,7 +218,7 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     render() {
-        if(SNAKING_SLIDERS) this.renderBase(false);
+        if(SLIDER_SETTINGS.snaking) this.renderBase(false);
         this.renderOverlay();
     }
 

@@ -2,7 +2,6 @@
 
 import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../main";
 import {INPUT_STATE, InputUtil} from "../util/inpututil";
-import {AUTOPLAY} from "./play";
 import {GraphicUtil, PI2} from "../util/graphicutil";
 import {DrawableHitObject} from "./drawablehitobject";
 import {MathUtil} from "../util/mathutil";
@@ -47,10 +46,10 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     render() {
-        if (completion >= 1) return;
-
         let accurateCurrentTime = AUDIO_MANAGER.getCurrentSongTime();
         let completion = (accurateCurrentTime - this.startTime) / this.duration;
+
+        if (completion >= 1) return;
 
         if (accurateCurrentTime >= this.startTime && accurateCurrentTime < this.endTime) {
             let currentAngle = Math.atan2(InputUtil.getCursorPlayfieldCoords().y - 192, InputUtil.getCursorPlayfieldCoords().x - 256);
@@ -58,8 +57,8 @@ export class DrawableSpinner extends DrawableHitObject {
             let now = window.performance.now();
             let timeDifference = this.lastTimeSampled === null ? 0 : now - this.lastTimeSampled;
 
-            if (this.lastPoint !== undefined && INPUT_STATE.isHolding || AUTOPLAY) {
-                if (AUTOPLAY) {
+            if (this.lastPoint !== undefined && INPUT_STATE.isHolding || GAME_STATE.currentPlay.autoplay) {
+                if (GAME_STATE.currentPlay.autoplay) {
                     angleDifference = 10000; // something large (like my dick - A)
                 } else {
                     let angleFromLastPoint = Math.atan2(InputUtil.getCursorPlayfieldCoords().y - this.lastPoint.y, InputUtil.getCursorPlayfieldCoords().x - this.lastPoint.x);
