@@ -29,6 +29,8 @@ export class SceneGameOsu extends SceneGame {
 
         this.addElement("snakingInput", "snaking");
         this.addElement("autoInput", "auto");
+        this.addElement("snakingDiv", "snakingOption");
+        this.addElement("autoDiv", "autoOption");
     }
 
     render() {
@@ -45,7 +47,7 @@ export class SceneGameOsu extends SceneGame {
         this.showElements([
             "playareaDiv", "objectContainerDiv", "progressCanvas", "spinnerContainerContainer", "ingameContainerSection",
             "accarrowImg", "accmeterDiv", "accstrip50Div", "accstrip100Div", "accstrip300Div", "acctickXDiv",
-            "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingInput", "autoInput"]);
+            "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv", "autoDiv"]);
 
         callback(true);
     }

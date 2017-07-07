@@ -6,16 +6,16 @@ import {Beatmap} from "./beatmap";
 
 export class BeatmapSet {
     constructor(files, callback) {
-        this.files = files;
+        this.files = files[0].name.endsWith(".osz") ? files[0] : files;
         this.audioFiles = [];
         this.imageFiles = [];
         this.difficulties = {};
         this.osz = false;
 
-        if (Object.prototype.toString.call(files) === '[object File]') {
+        if (Object.prototype.toString.call(this.files) === '[object File]') {
             this.osz = true;
 
-            ZIP.loadAsync(files).then((function (zip) {
+            ZIP.loadAsync(this.files).then((function (zip) {
                 this.files = zip.files;
 
                 for (let key in zip.files) {
@@ -51,20 +51,20 @@ export class BeatmapSet {
             }).bind(this));
         }
         else {
-            for (let i = 0; i < files.length; i++) {
-                let filename = files[i].name.toLowerCase();
+            for (let i = 0; i < this.files.length; i++) {
+                let filename = this.files[i].name.toLowerCase();
 
                 if (filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
-                    this.audioFiles.push(files[i]);
+                    this.audioFiles.push(this.files[i]);
                     continue;
                 }
                 if (filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
-                    this.imageFiles.push(files[i]);
+                    this.imageFiles.push(this.files[i]);
                     continue;
                 }
 
                 let regex = /\[([^\[^\]]+)]\.osu$/g;
-                let str = files[i].webkitRelativePath;
+                let str = this.files[i].webkitRelativePath;
                 let m;
 
                 while ((m = regex.exec(str)) !== null) {
@@ -76,7 +76,7 @@ export class BeatmapSet {
                     // The result can be accessed through the `m`-variable.
                     m.forEach((function (match, groupIndex) {
                         if (groupIndex === 1) {
-                            this.difficulties[match] = files[i];
+                            this.difficulties[match] = this.files[i];
                         }
                     }).bind(this));
                 }

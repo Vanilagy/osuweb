@@ -24,7 +24,7 @@ export class SceneManager {
                 newScene.postOpen(oldScene, (result) => {});
             }
 
-            callback();
+            if(callback) callback();
         });
     }
 

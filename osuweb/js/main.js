@@ -23,6 +23,10 @@ export let GAME_STATE = {
     database: new Database(),
     controls: {
         volumeControl: null
+    },
+    screen: {
+        width: 640,
+        height: 480
     }
 };
 
@@ -57,6 +61,10 @@ document.addEventListener("contextmenu", function(e) {
     e.preventDefault();
 });
 document.addEventListener("keydown", function(event) {
+    if (event.keyCode == 13) {
+        toggleFullScreen();
+    }
+
     for(let key in SETTINGS.data.keyCodeBindings) {
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, true);
@@ -64,6 +72,15 @@ document.addEventListener("keydown", function(event) {
         }
     }
 });
+function toggleFullScreen() {
+    if (!document.webkitFullscreenElement) {
+        document.getElementById("wrapper").webkitRequestFullscreen();
+    } else {
+        if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+    }
+}
 document.addEventListener("keyup", function(event) {
     for(let key in SETTINGS.data.keyCodeBindings) {
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
@@ -101,6 +118,9 @@ window.onload = function() {
 
 window.onresize = function() {
     let ctx = SCENE_MANAGER.getCanvas().getContext("2d");
+
+    GAME_STATE.screen.width = window.innerWidth;
+    GAME_STATE.screen.height = window.innerHeight;
 
     ctx.canvas.width  = window.innerWidth;
     ctx.canvas.height = window.innerHeight;
@@ -145,7 +165,7 @@ document.getElementById("container").ondrop = function(e) {
     for (let i = 0; i < length; i++) {
         let entry = e.dataTransfer.items[i].webkitGetAsEntry();
         if (entry.isFile) {
-            console.log(entry);
+            entry.file((file) => loadBeatmapFromFile(file));
         } else if (entry.isDirectory) {
             GAME_STATE.database = new Database(entry);
         }
@@ -153,7 +173,11 @@ document.getElementById("container").ondrop = function(e) {
 };
 
 document.getElementById("beatmap").addEventListener("change", function(e) {
-    new BeatmapSet(e.target.files, function(beatmapset) {
+    loadBeatmapFromFile(e.target.files);
+});
+
+function loadBeatmapFromFile(files) {
+    new BeatmapSet(files, function(beatmapset) {
         GAME_STATE.currentBeatmapSet = beatmapset;
 
         let keys = [];
@@ -179,13 +203,22 @@ document.getElementById("beatmap").addEventListener("change", function(e) {
             });
         });
     });
-});
+}
 
+// The progression made last call relative to a stable 60 fps (3 = 3 frames on 60 fps passed since last call)
+// Update last frame time
+let lastFrame = window.performance.now();
 // Global render loop
 function render() {
-    if(GAME_STATE.controls.volumeControl) GAME_STATE.controls.volumeControl.render();
+    let frameModifier = (window.performance.now() - lastFrame) / (1000 / 60.0);
 
-    if(GAME_STATE.currentPlay) GAME_STATE.currentPlay.render();
+    lastFrame = window.performance.now();
+
+    SCENE_MANAGER.getScene().render(frameModifier);
+
+    if(GAME_STATE.controls.volumeControl) GAME_STATE.controls.volumeControl.render(frameModifier);
+
+    if(GAME_STATE.currentPlay) GAME_STATE.currentPlay.render(frameModifier);
 
     InputUtil.updateCursor();
 

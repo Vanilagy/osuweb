@@ -5,3 +5,4 @@ osuweb/.idea/watcherTasks.xml
 osuweb/dist/
 osuweb/playground/
 osuweb/node_modules/
+osuweb/bundle.min.js
