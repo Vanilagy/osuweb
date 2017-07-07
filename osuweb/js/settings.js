@@ -38,7 +38,6 @@ export class Settings {
     changeMaster(value) {
         if(GAME_STATE.controls.volumeControl === null) {
             GAME_STATE.controls.volumeControl = new VolumeControl();
-            GAME_STATE.controls.volumeControl.startRender();
         }
 
         GAME_STATE.controls.volumeControl.animateMaster(value);

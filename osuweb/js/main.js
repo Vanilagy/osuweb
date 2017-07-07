@@ -33,6 +33,10 @@ export let SCENE_MANAGER = new SceneManager();
 
 export let SETTINGS = new Settings();
 
+
+document.getElementById("cursor").style.webkitTransform = "transformZ(0)";
+document.getElementById("cursor").style.backfaceVisibility = "hidden";
+
 document.addEventListener("mousemove", function(event) {
     INPUT_STATE.mouseX = event.clientX;
     INPUT_STATE.mouseY = event.clientY;

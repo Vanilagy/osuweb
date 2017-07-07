@@ -40,7 +40,7 @@ export class DrawableCircle extends DrawableHitObject {
 
         this.containerDiv.style.visibility = "hidden";
         this.containerDiv.style.opacity = 0;
-        this.containerDiv.style.webkitTransform = "transformZ(0)";
+        this.containerDiv.style.webkitTransform = "translateZ(0)";
         this.containerDiv.style.backfaceVisibility = "hidden";
         this.containerDiv.style.transition = "opacity " + (GAME_STATE.currentPlay.ARMs / 1000 / 3) + "s linear";
 

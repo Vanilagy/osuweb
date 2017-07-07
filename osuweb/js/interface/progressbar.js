@@ -13,12 +13,16 @@ export class ProgressBar {
         this.prelude = 2000;
         this.mapStartTime = GAME_STATE.currentPlay.beatmap.hitObjects[0].startTime;
         this.mapEndTime = GAME_STATE.currentPlay.beatmap.hitObjects[GAME_STATE.currentPlay.beatmap.hitObjects.length - 1].endTime;
+
+        this.sizeSet = false;
     }
 
     render() {
-        if (SCENE_MANAGER.getScene().elements.progressCanvas.clientWidth > 0) {
-            this.canvas.width = SCENE_MANAGER.getScene().elements.progressCanvas.clientWidth;
-            this.canvas.height = SCENE_MANAGER.getScene().elements.progressCanvas.clientHeight;
+        if (!this.sizeSet && this.canvas.clientWidth > 0) {
+            this.canvas.width = this.canvas.clientWidth;
+            this.canvas.height = this.canvas.clientHeight;
+
+            this.sizeSet = true;
         }
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

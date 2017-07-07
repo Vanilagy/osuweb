@@ -42,7 +42,7 @@ export class InputUtil {
     }
 
     static updateCursor() {
-        cursorElement.style.transform = "translate(calc(" + INPUT_STATE.mouseX + "px - 50%), calc(" + INPUT_STATE.mouseY + "px - 50%))";
+        cursorElement.style.transform = "translate3d(calc(" + INPUT_STATE.mouseX + "px - 50%), calc(" + INPUT_STATE.mouseY + "px - 50%), 0)";
     }
 
     static press() {

@@ -13,12 +13,12 @@ export class SceneLoading extends SceneBase {
 
     transition(newScene, callback) {
         if(newScene.constructor.name === "SceneMenu") {
-            this.preClose((result) => {
+            this.preClose(newScene, (result) => {
                 if(!result) Console.warn("Unexpected result when closing SceneLoading!");
 
                 SCENE_MANAGER.setScene(newScene);
 
-                newScene.postOpen((result) => {
+                newScene.postOpen(this, (result) => {
                     if(!result) Console.warn("Unexpected result when opening SceneMenu!");
 
                     callback(true);
@@ -30,15 +30,15 @@ export class SceneLoading extends SceneBase {
         }
     }
 
-    preOpen(callback) {
+    preOpen(oldScene, callback) {
         callback(false);
     }
     
-    postOpen(callback) {
+    postOpen(oldScene, callback) {
         callback(false);
     }
 
-    preClose(callback) {
+    preClose(newScene, callback) {
         this.elements.cursor.src = "data:image/png;base64,"+GAME_STATE.defaultSkin.skinElements["cursor"];
 
         this.elements["loadingDiv"].style.opacity = 0;
@@ -62,7 +62,7 @@ export class SceneLoading extends SceneBase {
         }, 1100);
     }
     
-    postClose() {
+    postClose(newScene, callback) {
         callback(true);
     }
 }

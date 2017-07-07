@@ -28,7 +28,7 @@ export class DrawableHitObject {
     }
 
     remove() {
-        SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this.containerDiv);
+        if(SCENE_MANAGER.getScene().elements["objectContainerDiv"].contains(this.containerDiv)) SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this.containerDiv);
     }
 
     append() {

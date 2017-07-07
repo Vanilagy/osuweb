@@ -37,7 +37,8 @@ export class FollowPoint {
         this.canvas.style.zIndex = 0;
         this.canvas.style.left = (this.centerPoint.x + GAME_STATE.currentPlay.marginWidth) * GraphicUtil.getPixelRatio() + "px";
         this.canvas.style.top = (this.centerPoint.y + GAME_STATE.currentPlay.marginHeight) * GraphicUtil.getPixelRatio() + "px";
-        this.canvas.style.transform = "translate(-50%, -50%) rotate(" + this.angle + "rad)";
+        this.canvas.style.transform = "translate3d(-50%, -50%, 0) rotate(" + this.angle + "rad)";
+        this.canvas.style.backfaceVisibility = "hidden";
 
         SCENE_MANAGER.getScene().elements["objectContainerDiv"].appendChild(this.canvas);
         this.ctx = this.canvas.getContext("2d");

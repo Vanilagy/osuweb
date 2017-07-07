@@ -29,7 +29,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     remove() {
-        SCENE_MANAGER.getScene().elements["spinnerContainerContainer"].removeChild(this.containerDiv);
+        if(SCENE_MANAGER.getScene().elements["spinnerContainerContainer"].contains(this.containerDiv)) SCENE_MANAGER.getScene().elements["spinnerContainerContainer"].removeChild(this.containerDiv);
     }
 
     append() {

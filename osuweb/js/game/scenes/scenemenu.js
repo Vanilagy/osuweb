@@ -13,11 +13,11 @@ export class SceneMenu extends SceneBase {
         this.addElement("autoInput", "auto");
     }
 
-    preOpen(callback) {
+    preOpen(oldScene, callback) {
         callback(true);
     }
 
-    postOpen(callback) {
+    postOpen(oldScene, callback) {
         this.elements["osuInput"].style.display = "block";
 
         AUDIO_MANAGER.playSongByName("circles", 0, 0, true);
@@ -25,15 +25,15 @@ export class SceneMenu extends SceneBase {
         callback(true);
     }
     
-    preClose(callback) {
-        this.hideElements(["beatmapInput", "osuInput"]);
+    preClose(newScene, callback) {
+        this.hideElements(["beatmapInput", "osuInput", "snakingInput", "autoInput"]);
 
         this.elements["snakingInput"].disabled = true;
 
         callback(true);
     }
 
-    postClose(callback) {
+    postClose(newScene, callback) {
         callback(true);
     }
 }

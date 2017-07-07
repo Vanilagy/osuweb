@@ -72,6 +72,8 @@ export class Play {
     }
 
     render() {
+        if(this.audioStarted) this.gameLoop();
+
         if(this.progressbar) this.progressbar.render.bind(this.progressbar)();
         if(this.accmeter) this.accmeter.render.bind(this.accmeter)();
 
@@ -99,14 +101,6 @@ export class Play {
     gameLoop() {
         //this.doDebugOutput();
 
-        // Starts the song
-        if (!this.audioStarted) {
-            AUDIO_MANAGER.playSongByName(this.audio, this.audioInterlude, 0, false);
-            console.log("Audio start offset: " + AUDIO_MANAGER.getCurrentSongTime().toFixed(2) + "ms");
-
-            this.audioStarted = true;
-        }
-
         let currentTime = AUDIO_MANAGER.getCurrentSongTime();
 
         // hitObject updates
@@ -117,8 +111,6 @@ export class Play {
 
         // Makes follow points show up on-screen
         this.handleFollowPoints(currentTime);
-
-        setTimeout(this.gameLoop.bind(this), 0);
     }
 
     handleFollowPoints(currentTime) {
@@ -379,6 +371,14 @@ export class Play {
     start() {
         // stop running song
         AUDIO_MANAGER.stopSong();
+
+        // Starts the song
+        if (!this.audioStarted) {
+            AUDIO_MANAGER.playSongByName(this.audio, this.audioInterlude, 0, false);
+            console.log("Audio start offset: " + AUDIO_MANAGER.getCurrentSongTime().toFixed(2) + "ms");
+
+            this.audioStarted = true;
+        }
 
         this.gameLoop();
     }

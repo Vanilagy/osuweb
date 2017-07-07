@@ -13,15 +13,15 @@ export class SceneManager {
             if (!result) {
                 let oldScene = this._currentScene;
 
-                oldScene.preClose((result) => {});
+                oldScene.preClose(newScene, (result) => {});
 
-                newScene.preOpen((result) => {});
+                newScene.preOpen(oldScene, (result) => {});
 
                 this._currentScene = newScene;
 
-                oldScene.postClose((result) => {});
+                oldScene.postClose(newScene, (result) => {});
 
-                newScene.postOpen((result) => {});
+                newScene.postOpen(oldScene, (result) => {});
             }
 
             callback();

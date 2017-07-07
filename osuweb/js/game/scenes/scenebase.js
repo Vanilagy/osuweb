@@ -34,22 +34,22 @@ export class SceneBase {
         callback(false);
     }
 
-    preOpen(callback) {
+    preOpen(oldScene, callback) {
         Console.warn("Undefined method was called: "+(this.constructor.name)+".preOpen()");
         callback(true);
     }
 
-    postOpen(callback) {
+    postOpen(oldScene, callback) {
         Console.warn("Undefined method was called: "+(this.constructor.name)+".postOpen()");
         callback(true);
     }
 
-    preClose(callback) {
+    preClose(newScene, callback) {
         Console.warn("Undefined method was called: "+(this.constructor.name)+".preClose()");
         callback(true);
     }
 
-    postClose(callback) {
+    postClose(newScene, callback) {
         Console.warn("Undefined method was called: "+(this.constructor.name)+".postOpen()");
         callback(true);
     }

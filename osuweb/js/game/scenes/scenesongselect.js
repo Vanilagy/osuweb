@@ -20,11 +20,11 @@ export class SceneSongSelect extends SceneBase {
         }
     }
 
-    preOpen(callback) {
+    preOpen(oldScene, callback) {
         callback(true);
     }
 
-    postOpen(callback) {
+    postOpen(oldScene, callback) {
         callback(true);
 
         this.elements["songpanelsDiv"].style.display = "block";
@@ -32,11 +32,11 @@ export class SceneSongSelect extends SceneBase {
         this.initializePanels();
     }
 
-    preClose(callback) {
+    preClose(newScene, callback) {
         callback(true);
     }
 
-    postClose(callback) {
+    postClose(newScene, callback) {
         callback(true);
     }
 
