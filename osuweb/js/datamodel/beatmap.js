@@ -26,6 +26,11 @@ export class Beatmap {
         this.sliders = 0;
         this.spinners = 0;
 
+        this.bpmMin = 120;
+        this.bpmMax = 120;
+
+        this._ARFound = false;
+
         if (typeof file === "string" && file.startsWith("osu file format v")) {
             this.parseBeatmap(file);
         }
@@ -166,9 +171,9 @@ export class Beatmap {
                 if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = parseInt(line.split(':')[1].trim(), 10);
                 if (line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard = parseInt(line.split(':')[1].trim(), 10);
 
-                if (line.startsWith("Title")) this.title = line.split(':')[1].trim();
+                if (line.startsWith("Title:")) this.title = line.split(':')[1].trim();
                 if (line.startsWith("TitleUnicode")) this.titleUnicode = line.split(':')[1].trim();
-                if (line.startsWith("Artist")) this.artist = line.split(':')[1].trim();
+                if (line.startsWith("Artist:")) this.artist = line.split(':')[1].trim();
                 if (line.startsWith("ArtistUnicode")) this.artistUnicode = line.split(':')[1].trim();
                 if (line.startsWith("Creator")) this.creator = line.split(':')[1].trim();
                 if (line.startsWith("Version")) this.version = line.split(':')[1].trim();
@@ -180,7 +185,7 @@ export class Beatmap {
                 if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("OverallDifficulty")) this.difficulty.OD = parseFloat(line.split(':')[1].trim());
-                if (line.startsWith("ApproachRate")) this.difficulty.AR = parseFloat(line.split(':')[1].trim());
+                if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(line.split(':')[1].trim()); this._ARFound = true;}
                 if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(line.split(':')[1].trim());
 
@@ -192,6 +197,8 @@ export class Beatmap {
             this.colours = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
             Console.info("No combo colours in Beatmap found. Using default ones!");
         }
+
+        if(!this._ARFound) this.difficulty.AR = this.difficulty.OD;
 
         Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
         Console.verbose("--- BEATMAP LOADING FINISHED ---");
