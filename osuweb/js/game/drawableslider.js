@@ -123,6 +123,20 @@ export class DrawableSlider extends DrawableHitObject {
         }
     };
 
+    destroy() {
+        this.remove();
+
+        this.containerDiv = null;
+        this.baseCanvas = null;
+        this.baseCtx = null;
+        this.approachCircleCanvas = null;
+        this.overlay = null;
+        this.overlayCtx = null;
+        this.followCircleCanvas = null;
+        this.sliderBallCtx = null;
+        this.sliderHeadContainer = null;
+    }
+
     draw() {
         Console.debug(DEBUG_PREFIX+" Creating slider DOM elements...");
         let time = window.performance.now();
@@ -139,7 +153,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.containerDiv.style.top = (this.minY - GAME_STATE.currentPlay.halfCsPixel) + GAME_STATE.currentPlay.marginHeight * GraphicUtil.getPixelRatio() + "px";
         this.containerDiv.style.visibility = "hidden";
         this.containerDiv.style.opacity = 0;
-        this.containerDiv.style.webkitTransform = "translateZ(0)";
+        this.containerDiv.style.transform = "translateZ(0)";
         this.containerDiv.style.backfaceVisibility = "hidden";
         this.containerDiv.style.zIndex = this.zIndex;
 
@@ -159,7 +173,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.overlay = document.createElement("canvas");
         this.overlay.setAttribute("width", Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel));
         this.overlay.setAttribute("height", Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
-        this.overlay.style.webkitTransform = "translateZ(0)";
+        this.overlay.style.transform = "translateZ(0)";
         this.overlay.style.backfaceVisibility = "hidden";
         this.overlayCtx = this.overlay.getContext("2d");
 

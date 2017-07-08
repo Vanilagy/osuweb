@@ -7,8 +7,8 @@ import {Beatmap} from "./beatmap";
 export class BeatmapSet {
     constructor(files, callback) {
         this.files = files[0].name.endsWith(".osz") ? files[0] : files;
-        this.audioFiles = [];
-        this.imageFiles = [];
+        this._audioFiles = [];
+        this._imageFiles = [];
         this.difficulties = {};
         this.osz = false;
 
@@ -20,11 +20,11 @@ export class BeatmapSet {
 
                 for (let key in zip.files) {
                     if (key.endsWith(".mp3") || key.endsWith(".wav") || key.endsWith(".ogg")) {
-                        this.audioFiles.push(key);
+                        this._audioFiles.push(key);
                         continue;
                     }
                     if (key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) {
-                        this.imageFiles.push(key);
+                        this._imageFiles.push(key);
                         continue;
                     }
 
@@ -55,11 +55,11 @@ export class BeatmapSet {
                 let filename = this.files[i].name.toLowerCase();
 
                 if (filename.endsWith(".mp3") || filename.endsWith(".wav") || filename.endsWith(".ogg")) {
-                    this.audioFiles.push(this.files[i]);
+                    this._audioFiles.push(this.files[i]);
                     continue;
                 }
                 if (filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".png") || filename.endsWith(".gif")) {
-                    this.imageFiles.push(this.files[i]);
+                    this._imageFiles.push(this.files[i]);
                     continue;
                 }
 
@@ -96,11 +96,11 @@ export class BeatmapSet {
                  if (GAME_STATE.currentBeatmap.events[i].type === "image") {
                      let imageFileName = GAME_STATE.currentBeatmap.events[i].file;
 
-                     for (let j = 0; j < this.imageFiles.length; j++) {
-                         let imageName = typeof this.imageFiles[j] === "string" ? this.imageFiles[j] : this.imageFiles[j].name;
+                     for (let j = 0; j < this._imageFiles.length; j++) {
+                         let imageName = typeof this._imageFiles[j] === "string" ? this._imageFiles[j] : this._imageFiles[j].name;
 
                          if (imageName === imageFileName) {
-                             imageFile = this.imageFiles[j];
+                             imageFile = this._imageFiles[j];
                              break;
                          }
                      }
@@ -123,25 +123,81 @@ export class BeatmapSet {
              }
 
              // find audio file
-             beatmap.audioFile = null;
              beatmap.audioName = "";
 
-             for (let i = 0; i < this.audioFiles.length; i++) {
-                 beatmap.audioName = typeof this.audioFiles[i] === "string" ? this.audioFiles[i] : this.audioFiles[i].name;
+             for (let i = 0; i < this._audioFiles.length; i++) {
+                 beatmap.audioName = typeof this._audioFiles[i] === "string" ? this._audioFiles[i] : this._audioFiles[i].name;
 
-                 if (beatmap.audioName === GAME_STATE.currentBeatmap["audioFilename"]) {
-                     beatmap.audioFile = this.audioFiles[i];
-                     break;
-                 }
+                 if (beatmap.audioName === GAME_STATE.currentBeatmap["audioFilename"]) break;
              }
 
-             AUDIO_MANAGER.loadSong(beatmap.audioFile, beatmap.audioName, false, audioCallback);
+             this.loadSongFileByName(beatmap.audioName, (key) => audioCallback(key))
         });
     }
 
-    selectDifficulty(difficultyFile, audioFiles, imageFiles) {
-        this.loadDifficulty(difficultyFile, audioFiles, imageFiles, function () {
-            currentAudio.playAudioFromOffsetWithLoop(0, GAME_STATE.currentBeatmap["previewTime"] / 1000.0, GAME_STATE.currentBeatmap["previewTime"] / 1000.0)
+    getMainImageName() {
+        let counts = {};
+
+        for(let key in this.difficulties) {
+            let imageName = this.difficulties[key].getBackgroundImageName();
+
+            if(counts[imageName] === undefined) {
+                counts[imageName] = 1;
+            }
+            else {
+                counts[imageName]++;
+            }
+        }
+
+        let biggestName = null;
+        let biggestValue = 0;
+
+        for(let key in counts) {
+            if(counts[key] > biggestValue) {
+                biggestValue = counts[key];
+                biggestName = key;
+            }
+        }
+
+        return biggestName;
+    }
+
+    getImageFileByName() {
+
+    }
+
+    loadSongFileByName(fileName, callback) {
+        this.getAudioFileByName(fileName, (audio) => {
+            audio.key = fileName + ":" + Math.random();
+            AUDIO_MANAGER.loadSong(audio, audio.key, false, () => {
+                callback(audio.key);
+            });
         });
+    }
+
+    getAudioFileByName(fileName, callback) {
+        for(let key in this._audioFiles) {
+            let file = this._audioFiles[key];
+
+            if(typeof file === "string" && file === fileName) {
+                callback(ZIP.file(file));
+                return;
+            }
+
+            if(Object.prototype.toString.call(file) === "[object File]" && file.name.endsWith(fileName)) {
+                callback(file);
+                return;
+            }
+
+            if(Object.prototype.toString.call(file) === "[object FileEntry]" && file.name.endsWith(fileName)) {
+                file.file((f) => {
+                    this._audioFiles[key] = f;
+                    callback(f)
+                });
+                return;
+            }
+        }
+
+        callback(null);
     }
 }

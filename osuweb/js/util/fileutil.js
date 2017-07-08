@@ -37,12 +37,17 @@ export class FileUtil {
                 onFileLoad(new Audio(result, onAudioLoad, 5, isMusic));
             }));
         }
-        else {
+        else if(Object.prototype.toString.call(file) === "[object File]") {
             let reader = new FileReader();
             reader.onload = (function(e) {
                 onFileLoad(new Audio(e.target.result, onAudioLoad, 5, isMusic));
             });
             reader.readAsArrayBuffer(file);
+        }
+        else if(Object.prototype.toString.call(file) === "[object Object]") {
+            file.async("arraybuffer").then((function(result) {
+                onFileLoad(new Audio(result, onAudioLoad, 5, isMusic));
+            }));
         }
     }
 }

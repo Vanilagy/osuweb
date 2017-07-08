@@ -21,6 +21,14 @@ export class SceneBase {
         this.elements[name] = document.getElementById(id);
     }
 
+    onMouseDown(position, key) {
+
+    }
+
+    onMouseMove(position) {
+
+    }
+
     render() {
 
     }

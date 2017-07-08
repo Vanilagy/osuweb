@@ -72,8 +72,6 @@ export class Play {
     }
 
     render() {
-        if(this.audioStarted) this.gameLoop();
-
         if(this.progressbar) this.progressbar.render.bind(this.progressbar)();
         if(this.accmeter) this.accmeter.render.bind(this.accmeter)();
 
@@ -84,6 +82,8 @@ export class Play {
         for(let key in this.onScreenFollowPoints) {
             this.onScreenFollowPoints[key].render.bind(this.onScreenFollowPoints[key])();
         }
+
+        this.score.updateDisplay();
     }
 
     updatePlayareaSize(callback) {
@@ -111,6 +111,8 @@ export class Play {
 
         // Makes follow points show up on-screen
         this.handleFollowPoints(currentTime);
+
+        setTimeout(this.gameLoop.bind(this), 0);
     }
 
     handleFollowPoints(currentTime) {
@@ -165,7 +167,7 @@ export class Play {
                 }
                 // Remove object completely
                 if (currentTime >= hitObject.startTime + 400) {
-                    hitObject.remove();
+                    hitObject.destroy();
                     delete this.onScreenHitObjects[id];
                     continue;
                 }
@@ -227,13 +229,12 @@ export class Play {
                 // On slider end
                 if (currentTime >= hitObject.endTime && !hitObject.fadingOut) {
                     hitObject.score();
-
                     hitObject.containerDiv.style.animation = "0.175s fadeOut linear forwards";
                     hitObject.fadingOut = true;
                 }
                 // Remove object completely
                 if (currentTime >= hitObject.endTime + 150) {
-                    hitObject.remove();
+                    hitObject.destroy();
                     delete this.onScreenHitObjects[id];
                     continue;
                 }
@@ -267,14 +268,14 @@ export class Play {
                 // Spinner end
                 if (currentTime >= hitObject.endTime && !hitObject.completed) {
                     hitObject.score();
-                    hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
+                    hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards"
                     SCENE_MANAGER.getScene().elements["accmeterDiv"].style.opacity = 1;
                     hitObject.active = false;
                     hitObject.completed = true;
                 }
                 // Remove object completely
                 if (currentTime >= hitObject.endTime + 150) {
-                    hitObject.remove();
+                    hitObject.destroy();
                     delete this.onScreenHitObjects[id];
                     continue;
                 }

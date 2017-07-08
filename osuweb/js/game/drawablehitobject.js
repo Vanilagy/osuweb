@@ -1,6 +1,7 @@
 "use strict";
 
 import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../main";
+import {Console} from "../console";
 
 export class DrawableHitObject {
     constructor(hitObject) {
@@ -25,6 +26,13 @@ export class DrawableHitObject {
         this.containerDiv.style.opacity = 1;
         this.approachCircleCanvas.style.transform = "scale(1.0)";
         this.approachCircleCanvas.style.transition = "transform " + ((GAME_STATE.currentPlay.ARMs - offset) / 1000) + "s linear";
+    }
+
+    destroy() {
+        this.remove();
+
+        this.containerDiv = null;
+        this.approachCircleCanvas = null;
     }
 
     remove() {

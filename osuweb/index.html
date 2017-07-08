@@ -1,9 +1,21 @@
-<!DOCTYPE fuck your mom>
+<!DOCTYPE fuck>
 <html>
 <head>
     <title>osu!web</title>
     <meta charset="utf-8">
     <style>
+        @font-face {
+            font-family: Exo2LightItalic;
+            src: url(assets/Exo2-LightItalic.otf);
+        }
+        @font-face {
+            font-family: Exo2SemiBoldItalic;
+            src: url(assets/Exo2-SemiBoldItalic.otf);
+        }
+        @font-face {
+            font-family: Venera;
+            src: url(assets/Venera.otf);
+        }
         html,body {
             min-width: 100%;
             width: 100%;
@@ -50,6 +62,7 @@
             z-index: -300;
             background-image: url("./img/background.jpg");
             background-size: cover;
+            transition: background-image 0.2s linear, filter 0.2s linear;
         }
         #foreground {
             width: 100%;
@@ -69,7 +82,7 @@
 
             color: white;
             text-shadow: #5CF 0 0 25px;
-            font-family: "Calibri";
+            font-family: "Calibri", "Venera";
             font-size: 5vmax;
             letter-spacing: 15px;
 
@@ -378,19 +391,91 @@
             top: 0;
             right: 0;
             height: 100%;
-            width: 40%;
+            width: 45%;
             display: none;
         }
-        div .songpanel {
+        div.songpanelbackground {
             position: absolute;
-            height: 14vh;
-            width: 100%;
             margin-top: 1vh;
             margin-bottom: 1vh;
             right: 0;
+            z-index: 0;
+            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+            background-color: black;
+            filter: blur(20px);
+        }
+        canvas.songpanel {
+            position: absolute;
+            margin-top: 1vh;
+            margin-bottom: 1vh;
+            right: 0;
+            z-index: 1;
             background-color: white;
             -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
             clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+            transform: translate(0, 0);
+            -webkit-transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
+            -moz-transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
+            -o-transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
+            transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
+        }
+        canvas.songpanel:hover {
+            transform: translate(-10%, 0);
+        }
+        div.songpaneloverlay {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            height: 14vh;
+            margin-top: 1vh;
+            margin-bottom: 1vh;
+            right: 0;
+            z-index: 2;
+            background: -webkit-linear-gradient(left,rgba(0,0,0,0.35),rgba(0,0,0,0));
+            background: -o-linear-gradient(right,rgba(0,0,0,0.35),rgba(0,0,0,0));
+            background: -moz-linear-gradient(right,rgba(0,0,0,0.35),rgba(0,0,0,0));
+            background: linear-gradient(to right,rgba(0,0,0,0.35),rgba(0,0,0,0));
+            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+        }
+        div.diffpanelbackground {
+            position: absolute;
+            height: 9vh;
+            width: 100%;
+            margin-top: 0.5vh;
+            margin-bottom: 0.5vh;
+            right: 0;
+            background-color: gray;
+            z-index: 1;
+            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+            filter: blur(20px);
+        }
+        div.diffpanel {
+            position: absolute;
+            height: 9vh;
+            width: 100%;
+            margin-top: 0.5vh;
+            margin-bottom: 0.5vh;
+            right: 0;
+            background-color: white;
+            z-index: 1;
+            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+            -webkit-box-shadow: 0 0 20px black;
+            -moz-box-shadow: 0 0 20px black;
+            box-shadow: 0 0 20px black;
+        }
+        div.diffpaneloverlay {
+            height: 100%;
+            width: 100%;
+            background: -webkit-linear-gradient(bottom,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
+            background: -o-linear-gradient(top,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
+            background: -moz-linear-gradient(top,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
+            background: linear-gradient(to top,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
+            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
         }
         #songpanelswrapper {
             position: relative;

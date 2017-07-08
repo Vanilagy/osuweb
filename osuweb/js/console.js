@@ -6,7 +6,7 @@ const WARNING_PREFIX = "[WARNING]";
 const INFO_PREFIX = "[INFO]";
 const ERROR_PREFIX = "[ERROR]";
 
-const VERBOSE = true;
+const VERBOSE = false;
 const DEBUG = true;
 const WARNING = true;
 const INFO = true;

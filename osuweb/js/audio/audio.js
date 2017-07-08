@@ -12,7 +12,7 @@ export class Audio {
         this.creationCallback = callback;
 
         if (bufferCount === undefined) bufferCount = 2;
-        this.gainNodes = new Array(Math.min(bufferCount, 5));
+        this.gainNodes = new Array(Math.min(bufferCount, 2));
 
         for(let i = 0; i < this.gainNodes.length; i++)  {
             this.gainNodes[i] = AUDIO_MANAGER.getContext().createGain();

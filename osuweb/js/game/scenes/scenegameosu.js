@@ -1,10 +1,19 @@
 "use strict";
 
 import {SceneGame} from "./scenegame";
+import {Play} from "../play";
+import {GAME_STATE} from "../../main";
+import {Console} from "../../console";
 
 export class SceneGameOsu extends SceneGame {
-    constructor() {
+    constructor(beatmap, beatmapset) {
         super();
+
+        this._beatmap = beatmap || GAME_STATE.currentBeatmap;
+        this._beatmapset = beatmapset || GAME_STATE.currentBeatmapSet;
+
+        GAME_STATE.currentBeatmap = beatmap;
+        GAME_STATE.currentBeatmapSet = beatmapset;
 
         this.addElement("playareaDiv", "playarea");
         this.addElement("objectContainerDiv", "objectContainer");
@@ -48,6 +57,24 @@ export class SceneGameOsu extends SceneGame {
             "playareaDiv", "objectContainerDiv", "progressCanvas", "spinnerContainerContainer", "ingameContainerSection",
             "accarrowImg", "accmeterDiv", "accstrip50Div", "accstrip100Div", "accstrip300Div", "acctickXDiv",
             "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv", "autoDiv"]);
+
+        this._beatmapset.getAudioFileByName(this._beatmap.audioFilename, (audioFile) => {
+            if(audioFile.key !== undefined) {
+                new Play(this._beatmap, audioFile.key);
+
+                GAME_STATE.currentPlay.updatePlayareaSize(() => GAME_STATE.currentPlay.start());
+            }
+            else if(audioFile !== null) {
+                GAME_STATE.currentBeatmapSet.loadSongFileByName(this._beatmap.audioFilename, (key) => {
+                    new Play(this._beatmap, key);
+
+                    GAME_STATE.currentPlay.updatePlayareaSize(() => GAME_STATE.currentPlay.start());
+                });
+            }
+            else {
+                Console.error("No soundfile could be found!");
+            }
+        });
 
         callback(true);
     }

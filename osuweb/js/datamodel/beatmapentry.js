@@ -35,6 +35,33 @@ export class BeatmapEntry {
             if (line.startsWith("ApproachRate")) this.difficulty.AR = parseFloat(line.split(':')[1].trim());
             if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(line.split(':')[1].trim());
             if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(line.split(':')[1].trim());
+
+            else if (section === "events") {
+                if (line.startsWith("//")) continue;
+
+                let values = line.split(',');
+
+                switch (values[0]) {
+                    case "0":
+                        this.events.push({
+                            type: "image",
+                            time: parseInt(values[1], 10),
+                            file: values[2].substring(1, values[2].length - 1),
+                            x: parseInt(values[3], 10),
+                            y: parseInt(values[4], 10)
+                        });
+                        break;
+                    case "2":
+                        this.events.push({
+                            type: "break",
+                            start: parseInt(values[1], 10),
+                            end: parseInt(values[2], 10)
+                        });
+                        break;
+                }
+
+                {let evt = this.events[this.events.length - 1]; if(evt !== null && evt !== undefined) Console.verbose("Added \""+evt.type+"\" event (#"+this.events.length+"): "+evt); }
+            }
         }
     }
 }

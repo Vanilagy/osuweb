@@ -8,7 +8,6 @@ import {SceneMenu} from "./game/scenes/scenemenu";
 import {SceneSongSelect} from "./game/scenes/scenesongselect";
 import {SceneGameOsu} from "./game/scenes/scenegameosu";
 import {BeatmapSet} from "./datamodel/beatmapset";
-import {Play} from "./game/play";
 import {SceneLoading} from "./game/scenes/sceneloading";
 import {Database} from "./datamodel/database";
 import {SceneManager} from "./game/scenes/scenemanager";
@@ -48,6 +47,10 @@ document.addEventListener("mousemove", function(event) {
     if (GAME_STATE.currentPlay) {
         INPUT_STATE.userPlayfieldCoords = InputUtil.getCursorPlayfieldCoords();
     }
+
+    let newPosition = {x: INPUT_STATE.mouseX, y: INPUT_STATE.mouseY};
+
+    SCENE_MANAGER.getScene().onMouseMove(newPosition)
 });
 document.addEventListener("mousedown", function(e) {
     if(e.button === 0) InputUtil.changeMouseButtonState(true, true);
@@ -187,7 +190,7 @@ function loadBeatmapFromFile(files) {
         AUDIO_MANAGER.stopSong();
         console.log(GAME_STATE.currentBeatmapSet.difficulties[keys[0]]);
 
-        GAME_STATE.currentBeatmapSet.loadDifficulty(GAME_STATE.currentBeatmapSet.difficulties[keys.length === 1 ? keys[0] : (function() {
+        GAME_STATE.currentBeatmapSet.loadDifficulty(GAME_STATE.currentBeatmapSet.difficulties[keys.length === 1 ? keys[0] : (() => {
             let issuedBullshit = prompt("Enter difficulty: \n\n" + keys.join("\n")+"\n");
 
             if (!isNaN(Number(issuedBullshit))) {
@@ -196,11 +199,7 @@ function loadBeatmapFromFile(files) {
                 return issuedBullshit;
             }
         })()], () => {
-            SCENE_MANAGER.switchScene(new SceneGameOsu(), (result) => {
-                new Play(GAME_STATE.currentBeatmap, GAME_STATE.currentBeatmap.audioName);
-
-                GAME_STATE.currentPlay.updatePlayareaSize(() => GAME_STATE.currentPlay.start());
-            });
+            SCENE_MANAGER.switchScene(new SceneGameOsu());
         });
     });
 }
@@ -210,6 +209,10 @@ function loadBeatmapFromFile(files) {
 let lastFrame = window.performance.now();
 // Global render loop
 function render() {
+    InputUtil.updateCursor();
+    InputUtil.updateMouseDelta();
+
+    // Calculate frame modifier for frame-independant animation
     let frameModifier = (window.performance.now() - lastFrame) / (1000 / 60.0);
 
     lastFrame = window.performance.now();
@@ -219,8 +222,6 @@ function render() {
     if(GAME_STATE.controls.volumeControl) GAME_STATE.controls.volumeControl.render(frameModifier);
 
     if(GAME_STATE.currentPlay) GAME_STATE.currentPlay.render(frameModifier);
-
-    InputUtil.updateCursor();
 
     requestAnimationFrame(render);
 }

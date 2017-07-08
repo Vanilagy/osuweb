@@ -28,6 +28,17 @@ export class DrawableSpinner extends DrawableHitObject {
         this.centerRadius = 5;
     }
 
+    destroy() {
+        this.remove();
+
+        this.containerDiv = null;
+        this.approachCircleCanvas = null;
+        this.spmContainer = null;
+        this.bonusSpinsCounter = null;
+        this.hasBeenClearedDisplay = null;
+        this.circleElement = null;
+    }
+
     remove() {
         if(SCENE_MANAGER.getScene().elements["spinnerContainerContainer"].contains(this.containerDiv)) SCENE_MANAGER.getScene().elements["spinnerContainerContainer"].removeChild(this.containerDiv);
     }

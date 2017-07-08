@@ -8,12 +8,15 @@ import {Console} from "../console";
 import {BeatmapDifficulty} from "./beatmapdifficulty";
 
 export class Beatmap {
-    constructor(file, callback) {
+    constructor(file, callback, loadFlat = false) {
         Console.verbose("--- START BEATMAP LOADING ---");
         this.callback = callback;
 
         this.difficulty = new BeatmapDifficulty();
 
+        this.audioKey = null;
+
+        this.loadFlat = loadFlat;
         this.events = [];
         this.timingPoints = [];
         this.hitObjects = [];
@@ -23,8 +26,11 @@ export class Beatmap {
         this.sliders = 0;
         this.spinners = 0;
 
+        if (typeof file === "string" && file.startsWith("osu file format v")) {
+            this.parseBeatmap(file);
+        }
         // Load text from file
-        if (Object.prototype.toString.call(file) === "[object File]") {
+        else if (Object.prototype.toString.call(file) === "[object File]") {
             Console.verbose("Load Beatmap from file: "+file.name);
             let reader = new FileReader();
             reader.onload = (result) => this.parseBeatmap(result.currentTarget.result);
@@ -125,19 +131,25 @@ export class Beatmap {
                 let hitObjectData = parseInt(values[3], 10) % 16;
 
                 if (hitObjectData === 1 || hitObjectData === 5) {
-                    this.hitObjects.push(new Circle(values));
+                    if(!this.loadFlat) {
+                        this.hitObjects.push(new Circle(values));
+                        Console.verbose("Circle added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
+                    }
                     this.circles++;
-                    Console.verbose("Circle added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
                 }
                 else if (hitObjectData === 2 || hitObjectData === 6) {
-                    this.hitObjects.push(new Slider(values));
+                    if(!this.loadFlat) {
+                        this.hitObjects.push(new Slider(values));
+                        Console.verbose("Slider added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
+                    }
                     this.sliders++;
-                    Console.verbose("Slider added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
                 }
                 else if (hitObjectData === 8 || hitObjectData === 12) {
-                    this.hitObjects.push(new Spinner(values));
+                    if(!this.loadFlat) {
+                        this.hitObjects.push(new Spinner(values));
+                        Console.verbose("Spinner added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
+                    }
                     this.spinners++;
-                    Console.verbose("Spinner added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
                 }
                 else {
                     Console.verbose("Unrecognized HitObject-type! (peppy plz)");
@@ -181,12 +193,22 @@ export class Beatmap {
             Console.info("No combo colours in Beatmap found. Using default ones!");
         }
 
-        this.AR = this.AR || 5;
-
         Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
         Console.verbose("--- BEATMAP LOADING FINISHED ---");
 
-        this.callback(this);
+        if(this.callback) this.callback(this);
+    }
+
+    getBackgroundImageName() {
+        for(let key in this.events) {
+            let evt = this.events[key];
+
+            if(evt.type === "image") {
+                return evt.file;
+            }
+        }
+
+        return "";
     }
 
     getNextNonInheritedTimingPoint(num) {

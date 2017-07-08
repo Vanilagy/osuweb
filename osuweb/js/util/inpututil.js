@@ -8,6 +8,8 @@ export let playareaElement = document.getElementById("playarea");
 
 let playfieldBounds = null;
 
+let lastFrameMousePos = null;
+
 export class InputUtil {
     static mouseXElement(mouseX, element) {
         return mouseX - element.getBoundingClientRect().left;
@@ -39,6 +41,15 @@ export class InputUtil {
             x: (INPUT_STATE.mouseX - playfieldBounds.x) / GRAPHIC_UTIL.getPixelRatio() - GAME_STATE.currentPlay.marginWidth,
             y: (INPUT_STATE.mouseY - playfieldBounds.y) / GRAPHIC_UTIL.getPixelRatio() - GAME_STATE.currentPlay.marginHeight
         };
+    }
+
+    static updateMouseDelta() {
+        // Get mouseDelta for lastFrame
+        if(lastFrameMousePos) {
+            INPUT_STATE.mouseDelta = {x: INPUT_STATE.mouseX - lastFrameMousePos.x, y: INPUT_STATE.mouseY - lastFrameMousePos.y};
+        }
+
+        lastFrameMousePos = {x: INPUT_STATE.mouseX, y: INPUT_STATE.mouseY};
     }
 
     static updateCursor() {
@@ -92,6 +103,7 @@ class InputState {
     constructor() {
         this.mouseX = Math.round(document.width / 2);
         this.mouseY = Math.round(document.height / 2);
+        this.mouseDelta = {x: 0, y: 0};
         this.inputButtonStates = {
             m1: false,
             m2: false,

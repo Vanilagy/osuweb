@@ -2,6 +2,7 @@
 
 import {FileUtil} from "../util/fileutil";
 import {Audio} from "./audio";
+import {Console} from "../console";
 
 // Audio = music (not sounds)
 export class AudioManager {
@@ -30,17 +31,40 @@ export class AudioManager {
         this._nextSongOffset = 0;
 
         this._currentSounds = [];
+
+        this._isLoading = false;
+        this._loadingQueue = [];
     }
 
     // Loads an audio to the library and starts playback immediately
     loadSong(fileOrUrl, name, play = false, callback = null, isUrl = false) {
+        if(this.isLoading) {
+            this._loadingQueue.push({fileOrUrl: fileOrUrl, play: play, callback: callback, isUrl: isUrl});
+            return;
+        }
+
+        Console.debug("Start loading song '"+name+"'...");
+
+        this._isLoading = true;
+
         FileUtil.loadAudio(fileOrUrl, (audio) => {
             this._songLibrary[name] = audio;
+        }, () => {
+            if(callback !== null) callback();
+
             if(play) {
                 this.playSongByName(name);
             }
-        }, () => {
-            if(callback !== null) callback();
+
+            Console.debug("Loading song '"+name+"' complete!");
+
+            if(this._loadingQueue.length > 0) {
+                let req = this._loadingQueue.shift();
+                this.loadSong(req.fileOrUrl, req.name, req.callback, req.isUrl);
+            }
+            else {
+                this._isLoading = false;
+            }
         }, isUrl, true);
     }
 

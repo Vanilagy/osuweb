@@ -68,7 +68,7 @@ export class Score {
         }
 
         this.accuracy = (this.totalNumberOfHits) ? this.totalValueOfHits / (this.totalNumberOfHits * 300) : 1;
-        this.updateDisplay(amount);
+
         if (hitObject) {
             let comboNum = hitObject.comboInfo.comboNum;
             if (this.comboWorthValues[comboNum] === undefined) {
@@ -125,7 +125,7 @@ export class Score {
 
         SCENE_MANAGER.getScene().elements["playareaDiv"].appendChild(popupElement);
 
-        setTimeout(function () {
+        setTimeout(() => {
             SCENE_MANAGER.getScene().elements["playareaDiv"].removeChild(popupElement);
         }, 1000);
     }
@@ -140,7 +140,7 @@ export class Score {
         this.combo = 0;
     }
 
-    updateDisplay(amount) {
+    updateDisplay() {
         if (this.score !== this.prevScore) {
             MathUtil.interpolate(this.prevScore, this.score, 150, "easeOut", function (x) {
                 SCENE_MANAGER.getScene().elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(Math.min(-8, -Math.floor(x).toString().length));
