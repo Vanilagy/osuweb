@@ -18,7 +18,7 @@ export class BeatmapPanel {
         this._visible = false;
         this._hideTime = -999999999999999;
 
-        this._stars = new DifficultyCalculator(this._beatmap).calculate(null);
+        //this._stars = new DifficultyCalculator(this._beatmap).calculate(null);
 
         Console.debug(this._stars);
 
