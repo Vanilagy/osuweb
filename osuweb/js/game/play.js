@@ -26,6 +26,8 @@ export class Play {
         this.beatmap = new ProcessedBeatmap(beatmap);
         this.beatmap.process();
 
+        GAME_STATE.currentBeatmap = this.beatmap;
+
         // doesn't do shit yet LUL
         //ingameContainer.style.width = window.innerWidth + "px";
         //ingameContainer.style.height = window.innerHeight + "px";
