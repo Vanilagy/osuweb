@@ -5,9 +5,10 @@ import {GAME_STATE} from "../main";
 import {GraphicUtil} from "../util/graphicutil";
 
 export class DrawableCircle extends DrawableHitObject {
-    constructor(circle) {
+    constructor(circle, beatmap) {
         super(circle);
 
+        this.beatmap = beatmap;
         this.hittable = true;
     }
 

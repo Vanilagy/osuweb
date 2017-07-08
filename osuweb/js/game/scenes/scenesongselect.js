@@ -67,12 +67,12 @@ export class SceneSongSelect extends SceneBase {
         this._panelScroll += this._panelScrollSpeed;
 
         if(!INPUT_STATE.inputButtonStates.m1) {
-            if (this._panelScroll > 50 - BeatmapSetPanel.getPercentPanelHeight() / 2) {
-                this._panelScroll -= (this._panelScroll - (50 - BeatmapSetPanel.getPercentPanelHeight() / 2)) * 0.25 * frameModifier;
+            if (this._panelScroll > 50 - BeatmapSetPanel.getPercentFullPanelHeight() / 2) {
+                this._panelScroll -= (this._panelScroll - (50 - BeatmapSetPanel.getPercentFullPanelHeight() / 2)) * 0.25 * frameModifier;
                 this._forceUpdate = true;
             }
-            if (this._panelScroll < -((this._panels.length - 1) * BeatmapSetPanel.getPercentPanelHeight() + (this._activePanel ? this._activePanel.getSubPanels().length * BeatmapPanel.getPercentPanelHeight() : 0) - 50 + BeatmapSetPanel.getPercentPanelHeight() / 2)) {
-                this._panelScroll -= (this._panelScroll + ((this._panels.length - 1) * BeatmapSetPanel.getPercentPanelHeight() + (this._activePanel ? this._activePanel.getSubPanels().length * BeatmapPanel.getPercentPanelHeight() : 0) - 50 + BeatmapSetPanel.getPercentPanelHeight() / 2)) * 0.25 * frameModifier;
+            if (this._panelScroll < -((this._panels.length - 1) * BeatmapSetPanel.getPercentFullPanelHeight() + (this._activePanel ? this._activePanel.getSubPanels().length * BeatmapPanel.getPercentFullPanelHeight() : 0) - 50 + BeatmapSetPanel.getPercentFullPanelHeight() / 2)) {
+                this._panelScroll -= (this._panelScroll + ((this._panels.length - 1) * BeatmapSetPanel.getPercentFullPanelHeight() + (this._activePanel ? this._activePanel.getSubPanels().length * BeatmapPanel.getPercentFullPanelHeight() : 0) - 50 + BeatmapSetPanel.getPercentFullPanelHeight() / 2)) * 0.25 * frameModifier;
                 this._forceUpdate = true;
             }
         }
@@ -84,7 +84,7 @@ export class SceneSongSelect extends SceneBase {
             else this._panels[i].showPanel();
 
             if(this._activePanel && i > this._activePanel.getIndex()) {
-                this._panels[i].setScroll(this._panelScroll + this._activePanel.getSubPanels().length * BeatmapPanel.getPercentPanelHeight());
+                this._panels[i].setScroll(this._panelScroll + this._activePanel.getSubPanels().length * BeatmapPanel.getPercentFullPanelHeight());
             }
             else {
                 this._panels[i].setScroll(this._panelScroll);
@@ -124,7 +124,7 @@ export class SceneSongSelect extends SceneBase {
             this._activePanel.collapse();
 
             if(this._activePanel.getIndex() < panel.getIndex()) {
-                this._panelScroll += this._activePanel._subPanels.length * (BeatmapPanel.getPercentPanelHeight());
+                this._panelScroll += this._activePanel._subPanels.length * (BeatmapPanel.getPercentFullPanelHeight());
             }
         }
 

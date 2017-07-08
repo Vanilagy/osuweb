@@ -29,11 +29,11 @@ export class ProcessedBeatmap {
         this.currentVolume = beatmap.timingPoints[0].volume;
     }
 
-    process() {
-        this.generateDrawableHitObjects();
-        this.calculateZOrder();
+    process(fullCalc = true) {
+        this.generateDrawableHitObjects(fullCalc);
         this.applyStackShift();
-        this.calculateFollowPoints();
+        if(fullCalc) this.calculateZOrder();
+        if(fullCalc) this.calculateFollowPoints();
     }
 
     calculateZOrder() {
@@ -65,7 +65,7 @@ export class ProcessedBeatmap {
         }
     }
 
-    generateDrawableHitObjects() {
+    generateDrawableHitObjects(fullCalc) {
         let hitObjectId = 0;
         let comboCount = 1;
         let nextCombo = 0;
@@ -116,9 +116,9 @@ export class ProcessedBeatmap {
             let newObject = null;
 
             if (obj.constructor.name === "Circle") {
-                newObject = new DrawableCircle(obj);
+                newObject = new DrawableCircle(obj, this);
             } else if (obj.constructor.name === "Slider") {
-                newObject = new DrawableSlider(obj);
+                newObject = new DrawableSlider(obj, this);
 
                 let timingInfo = {
                     msPerBeat: this.currentMsPerBeat,
@@ -127,7 +127,7 @@ export class ProcessedBeatmap {
                 };
                 let sliderTickCompletions = [];
 
-                for (let tickCompletion = 0; tickCompletion < obj.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / GAME_STATE.currentPlay.beatmap.difficulty.TR)) / obj.length) {
+                for (let tickCompletion = 0; tickCompletion < obj.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.difficulty.TR)) / obj.length) {
                     let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
 
                     if (t > 0 && t < 1) {
@@ -139,35 +139,38 @@ export class ProcessedBeatmap {
                 newObject.timingInfo = timingInfo;
                 newObject.sliderTickCompletions = sliderTickCompletions;
             } else if (obj.constructor.name === "Spinner") {
-                newObject = new DrawableSpinner(obj);
+                newObject = new DrawableSpinner(obj, this);
             }
 
             let hitSoundInfo = null;
-            let sliderEndHitSoundInfos = null;
 
-            if (obj.constructor.name === "Circle" || obj.constructor.name === "Spinner") {
-                hitSoundInfo = {
-                    sampleSet: Skin.getSampleSetName((obj.samplings.sampleSet) ? obj.samplings.sampleSet : this.currentSampleSet),
-                    sampleSetAddition: Skin.getSampleSetName((obj.samplings.sampleSetAddition) ? obj.samplings.sampleSetAddition : this.currentSampleSet),
-                    additions: obj.hitSound,
-                    volume: this.currentVolume / 100
-                };
-            } else if (obj.constructor.name === "Slider") {
-                sliderEndHitSoundInfos = [];
+            if(fullCalc) {
+                let sliderEndHitSoundInfos = null;
 
-                for (let i = 0; i < obj.additions.length; i++) {
-                    sliderEndHitSoundInfos.push({
-                        sampleSet: Skin.getSampleSetName((obj.edgeSamplings[i].sampleSet) ? obj.edgeSamplings[i].sampleSet : this.currentSampleSet),
-                        sampleSetAddition: Skin.getSampleSetName((obj.edgeSamplings[i].sampleSetAddition) ? obj.edgeSamplings[i].sampleSetAddition : this.currentSampleSet),
-                        additions: obj.additions[i],
+                if (obj.constructor.name === "Circle" || obj.constructor.name === "Spinner") {
+                    hitSoundInfo = {
+                        sampleSet: Skin.getSampleSetName((obj.samplings.sampleSet) ? obj.samplings.sampleSet : this.currentSampleSet),
+                        sampleSetAddition: Skin.getSampleSetName((obj.samplings.sampleSetAddition) ? obj.samplings.sampleSetAddition : this.currentSampleSet),
+                        additions: obj.hitSound,
                         volume: this.currentVolume / 100
-                    });
-                }
+                    };
+                } else if (obj.constructor.name === "Slider") {
+                    sliderEndHitSoundInfos = [];
 
-                hitSoundInfo = {
-                    sliderEndHitSoundInfos: sliderEndHitSoundInfos,
-                    bodySampleSet: Skin.getSampleSetName((obj.bodySamplings.sampleSet) ? obj.bodySamplings.sampleSet : this.currentSampleSet)
-                };
+                    for (let i = 0; i < obj.additions.length; i++) {
+                        sliderEndHitSoundInfos.push({
+                            sampleSet: Skin.getSampleSetName((obj.edgeSamplings[i].sampleSet) ? obj.edgeSamplings[i].sampleSet : this.currentSampleSet),
+                            sampleSetAddition: Skin.getSampleSetName((obj.edgeSamplings[i].sampleSetAddition) ? obj.edgeSamplings[i].sampleSetAddition : this.currentSampleSet),
+                            additions: obj.additions[i],
+                            volume: this.currentVolume / 100
+                        });
+                    }
+
+                    hitSoundInfo = {
+                        sliderEndHitSoundInfos: sliderEndHitSoundInfos,
+                        bodySampleSet: Skin.getSampleSetName((obj.bodySamplings.sampleSet) ? obj.bodySamplings.sampleSet : this.currentSampleSet)
+                    };
+                }
             }
 
             if (newObject !== null) {

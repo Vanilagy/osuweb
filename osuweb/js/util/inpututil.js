@@ -104,6 +104,9 @@ class InputState {
         this.mouseX = Math.round(document.width / 2);
         this.mouseY = Math.round(document.height / 2);
         this.mouseDelta = {x: 0, y: 0};
+        this.ctrlDown = false;
+        this.altDown = false;
+        this.shiftDown = false;
         this.inputButtonStates = {
             m1: false,
             m2: false,

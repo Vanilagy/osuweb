@@ -15,8 +15,10 @@ export let SLIDER_SETTINGS = {
 };
 
 export class DrawableSlider extends DrawableHitObject {
-    constructor(slider) {
+    constructor(slider, beatmap) {
         super(slider);
+
+        this.beatmap = beatmap;
 
         this.reductionFactor = 0.92;
 

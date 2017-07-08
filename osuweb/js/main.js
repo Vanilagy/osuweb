@@ -68,6 +68,10 @@ document.addEventListener("keydown", function(event) {
         toggleFullScreen();
     }
 
+    if(event.keyCode === 27) {
+        // TODO back functionality
+    }
+
     for(let key in SETTINGS.data.keyCodeBindings) {
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, true);
@@ -93,6 +97,11 @@ document.addEventListener("keyup", function(event) {
     }
 });
 window.onload = function() {
+    document.getElementsByTagName("body")[0].removeChild(document.getElementById("f1"));
+    document.getElementsByTagName("body")[0].removeChild(document.getElementById("f2"));
+    document.getElementsByTagName("body")[0].removeChild(document.getElementById("f3"));
+    document.getElementsByTagName("body")[0].removeChild(document.getElementById("f4"));
+
     window.onresize();
 
     // No initialization because loading is the base
