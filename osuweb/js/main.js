@@ -68,6 +68,8 @@ document.addEventListener("keydown", function(event) {
         toggleFullScreen();
     }
 
+    SCENE_MANAGER.onKeyDown(event);
+
     if(event.keyCode === 16) INPUT_STATE.shiftDown = true;
     if(event.keyCode === 17) INPUT_STATE.ctrlDown = true;
     if(event.keyCode === 18) INPUT_STATE.altDown = true;

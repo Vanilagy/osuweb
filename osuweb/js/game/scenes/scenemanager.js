@@ -28,6 +28,10 @@ export class SceneManager {
         });
     }
 
+    onKeyDown(event) {
+        if(this._currentScene.onKeyDown) this._currentScene.onKeyDown(event);
+    }
+
     /**
      * Only to be called from Scene classes. Use switchScene instead to transition between
      * scenes.

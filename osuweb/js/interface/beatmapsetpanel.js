@@ -27,7 +27,7 @@ export class BeatmapSetPanel {
         this._ctx = null;
         this._textElement = null;
 
-        this._index = index;
+        this.index = index;
         this._scroll = 0;
         this._expansion = 100;
         this._subPanels = [];
@@ -82,10 +82,10 @@ export class BeatmapSetPanel {
     updateElement() {
         this.renderBackground();
 
-        this._expansion = Math.pow(Math.abs((this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this._index + BeatmapPanel.getPercentFullPanelHeight()) - 40) / 100), 1.05) * SCROLL_EXPANSION_FACTOR + STATIC_EXPANSION_FACTOR;
+        this._expansion = Math.pow(Math.abs((this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this.index + BeatmapPanel.getPercentFullPanelHeight()) - 40) / 100), 1.05) * SCROLL_EXPANSION_FACTOR + STATIC_EXPANSION_FACTOR;
 
         this._left = this._expansion;
-        this._top = this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this._index);
+        this._top = this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this.index);
         this._x = this._left * GAME_STATE.screen.width / 100;
         this._y = this._top * GAME_STATE.screen.height / 100;
 
@@ -99,7 +99,7 @@ export class BeatmapSetPanel {
 
     renderBackground() {
         if (!this._imageSet && isDrawing === -1) {
-            isDrawing = this._index;
+            isDrawing = this.index;
 
             this._ctx = this._element.getContext("2d");
 
@@ -134,7 +134,7 @@ export class BeatmapSetPanel {
                 });
             }
         }
-        else if (this._imageSet === "loaded" && isDrawing === this._index) {
+        else if (this._imageSet === "loaded" && isDrawing === this.index) {
             if (this._img) this._ctx.drawImage(this._img, this._img.width / 2 - this._width / 2, this._img.height / 2 - this._height / 2, this._width, this._height, 0, 0, this._width, this._height);
 
             let grd = this._ctx.createLinearGradient(0, 0, this._width, this._height);
@@ -170,11 +170,11 @@ export class BeatmapSetPanel {
     }
 
     getCenterY() {
-        return this._scroll * GAME_STATE.screen.height / 100 + BeatmapSetPanel.getPanelHeight() * this._index + BeatmapSetPanel.getPanelHeight() / 2;
+        return this._scroll * GAME_STATE.screen.height / 100 + BeatmapSetPanel.getPanelHeight() * this.index + BeatmapSetPanel.getPanelHeight() / 2;
     }
 
     getIndex() {
-        return this._index;
+        return this.index;
     }
 
     getScroll() {
@@ -237,7 +237,7 @@ export class BeatmapSetPanel {
             });
 
             for(let i = 0; i < this._subPanels.length; i++) {
-                this._subPanels[i]._index = i;
+                this._subPanels[i].index = i;
                 this._subPanels[i].showPanel();
             }
         }

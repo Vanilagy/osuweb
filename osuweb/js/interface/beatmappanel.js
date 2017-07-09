@@ -12,7 +12,7 @@ export class BeatmapPanel {
     constructor(parent, beatmap) {
         this._parent = parent;
         this._beatmap = beatmap;
-        this._index = -1;
+        this.index = -1;
         this._expansion = 0;
         this._visible = false;
         this._animationTime = null;
@@ -55,7 +55,7 @@ export class BeatmapPanel {
 
         this._ctx.fillStyle = "white";
         this._ctx.font = Math.round(GAME_STATE.screen.height / 1080 * 24)+"px Exo2LightItalic";
-        this._ctx.fillText(this._beatmap.version, this._width * 0.04, this._height * 0.4);
+        this._ctx.fillText(this._beatmap.version, this._width * 0.04, this._height * 0.35);
 
         this._ctx.strokeStyle = "white";
         this._ctx.lineWidth = 2;
@@ -87,7 +87,7 @@ export class BeatmapPanel {
 
         this._relTop = this._visible ? (this.getPercentRelativePosition() * animationDiff) : this.getPercentRelativePosition() - (this.getPercentRelativePosition() * animationDiff);
 
-        this._expansion = Math.pow(Math.abs((this._parent.getScroll() + (BeatmapSetPanel.getPercentFullPanelHeight() * (this._parent.getIndex() + 1) + BeatmapPanel.getPercentFullPanelHeight()) - 40 + (BeatmapPanel.getPercentFullPanelHeight() * this._index)) / 100), 1.05) * SCROLL_EXPANSION_FACTOR + STATIC_EXPANSION_FACTOR;
+        this._expansion = Math.pow(Math.abs((this._parent.getScroll() + (BeatmapSetPanel.getPercentFullPanelHeight() * (this._parent.getIndex() + 1) + BeatmapPanel.getPercentFullPanelHeight()) - 40 + (BeatmapPanel.getPercentFullPanelHeight() * this.index)) / 100), 1.05) * SCROLL_EXPANSION_FACTOR + STATIC_EXPANSION_FACTOR;
 
         this._element.style.top = this._parent._top+this._relTop+"%";
         this._element.style.right = "-"+(this._expansion)+"%";
@@ -128,7 +128,7 @@ export class BeatmapPanel {
     }
 
     getPercentRelativePosition() {
-        return BeatmapSetPanel.getPercentFullPanelHeight() - BeatmapPanel.getPercentPanelMargin() * 2 + this._index * BeatmapPanel.getPercentFullPanelHeight();
+        return BeatmapSetPanel.getPercentFullPanelHeight() - BeatmapPanel.getPercentPanelMargin() * 2 + this.index * BeatmapPanel.getPercentFullPanelHeight();
     }
 
     static getPanelHeight() {

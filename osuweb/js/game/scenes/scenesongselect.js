@@ -54,6 +54,7 @@ export class SceneSongSelect extends SceneBase {
     }
 
     render(frameModifier) {
+        // Handling the list with mouse
         if(INPUT_STATE.inputButtonStates.m1 && !this._disableDragging) {
             this.stopTargeting();
 
@@ -67,18 +68,14 @@ export class SceneSongSelect extends SceneBase {
             this._lastDragSpeed = 0;
         }
 
+        // If a panel should be scrolled to right now do that
         if(this._targetPanel) {
-            let scrollDiff = this._panelScroll + BeatmapSetPanel.getPercentFullPanelHeight() * this._targetPanel._index - 50 + 2 * BeatmapSetPanel.getPercentFullPanelHeight();
+            // Difference of the current scroll position of the panel and the target.
+            let scrollDiff = this._panelScroll + BeatmapSetPanel.getPercentFullPanelHeight() * this._targetPanel.index - 50 + 2 * BeatmapSetPanel.getPercentFullPanelHeight();
 
-            if(Math.abs(scrollDiff) > 30) {
-                if(scrollDiff > 0) this._panelScroll -= 3 * frameModifier;
-                if(scrollDiff < 0) this._panelScroll += 3 * frameModifier;
-            }
-            else {
-                this._panelScroll -= Math.max(-3, Math.min(3, 0.1 * scrollDiff)) * frameModifier;
+            this._panelScroll -= Math.max(-10, Math.min(10, 0.1 * scrollDiff)) * frameModifier;
 
-                if(Math.abs(scrollDiff * 0.9) < 0.5) this.stopTargeting();
-            }
+            if(Math.abs(scrollDiff * 0.9) < 0.5) this.stopTargeting();
         }
         else {
             this._panelScroll += this._panelScrollSpeed * frameModifier;
@@ -89,16 +86,19 @@ export class SceneSongSelect extends SceneBase {
                 this._panelScroll -= (this._panelScroll - (50 - BeatmapSetPanel.getPercentFullPanelHeight() / 2)) * 0.25 * frameModifier;
                 this._forceUpdate = true;
             }
-            if (this._panelScroll < -((this._panels.length - 1) * BeatmapSetPanel.getPercentFullPanelHeight() + (this._activePanel ? this._activePanel.getSubPanels().length * BeatmapPanel.getPercentFullPanelHeight() : 0) - 50 + BeatmapSetPanel.getPercentFullPanelHeight() / 2)) {
+            if (this._panelScroll < -((this._panels.length - 1) * BeatmapSetPanel.getPercentFullPanelHeight() - 50 + BeatmapSetPanel.getPercentFullPanelHeight() / 2)) {
                 this._panelScroll -= (this._panelScroll + ((this._panels.length - 1) * BeatmapSetPanel.getPercentFullPanelHeight() + (this._activePanel ? this._activePanel.getSubPanels().length * BeatmapPanel.getPercentFullPanelHeight() : 0) - 50 + BeatmapSetPanel.getPercentFullPanelHeight() / 2)) * 0.25 * frameModifier;
                 this._forceUpdate = true;
             }
         }
 
+        // Find the most centered panel
         let centerPanelIndex = this.getCenterPanelIndex();
 
+        // The scroll value that will be added ontop of the scroll if song panels are expanded
         let extraHeightPercent = 0;
 
+        // Update the panels near the centered one
         for (let i = Math.max(centerPanelIndex - 15, 0); i < Math.min(centerPanelIndex + 15, this._panels.length); i++) {
             if(Math.abs(centerPanelIndex - i) > 10) {
                 if(this._activePanel === this._panels[i] && this._panels[i]._visible === true) {
@@ -137,6 +137,15 @@ export class SceneSongSelect extends SceneBase {
         }
     }
 
+    onKeyDown(event) {
+        if(event.keyCode === 37 && this._activePanel) {
+            if(this._panels[this._activePanel.index - 1]) this.setActivePanel(this._panels[this._activePanel.index - 1]);
+        }
+        else if(event.keyCode === 39 && this._activePanel) {
+            if(this._panels[this._activePanel.index + 1]) this.setActivePanel(this._panels[this._activePanel.index + 1]);
+        }
+    }
+
     scroll(value) {
         this.stopTargeting();
 
@@ -162,10 +171,6 @@ export class SceneSongSelect extends SceneBase {
 
         if(this._activePanel) {
             this._activePanel.collapse();
-
-            if(this._activePanel.getIndex() < panel.getIndex()) {
-                this._panelScroll += this._activePanel._subPanels.length * (BeatmapPanel.getPercentFullPanelHeight());
-            }
         }
 
         this._activePanel = panel;
