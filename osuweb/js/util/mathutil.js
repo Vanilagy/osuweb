@@ -123,7 +123,7 @@ export class MathUtil {
         callback(from);
 
         interpolationStorage[id] = setInterval(function() {
-            num = from + difference * getInterpolatedValue(count / iterationsNeeded);
+            num = from + difference * MathUtil.ease(type, count / iterationsNeeded);
             callback(num);
             if (count === iterationsNeeded) {
                 clearInterval(interpolationStorage[id]);
@@ -131,18 +131,6 @@ export class MathUtil {
             }
             count++;
         }, 1000 / fps);
-
-        function getInterpolatedValue(completion) {
-            if (type === "linear") {
-                return completion;
-            } else if (type === "easeOut") {
-                return -(completion * completion) + 2 * completion;
-            } else if (type === "easeIn") {
-                return completion * completion;
-            } else if (type === "easeInOut") {
-                return Math.cos(Math.PI * completion) * -0.5 + 0.5;
-            }
-        }
     }
     static getNormalizedAngleDelta(alpha, beta) {
         let difference = alpha - beta;
@@ -167,6 +155,20 @@ export class MathUtil {
 	        return max;
         }
         return val;
+    }
+    static ease(type, val) {
+	    switch (type) {
+            case "linear":
+                return val; break;
+            case "easeOut":
+                return -(val * val) + 2 * val; break;
+            case "easeIn":
+                return val * val; break;
+            case "easeInOut":
+                return Math.cos(Math.PI * val) * -0.5 + 0.5; break;
+            default:
+                return val;
+        }
     }
 }
 

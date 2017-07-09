@@ -69,8 +69,8 @@ export class DrawableSpinner extends DrawableHitObject {
             let now = window.performance.now();
             let timeDifference = this.lastTimeSampled === null ? 0 : now - this.lastTimeSampled;
 
-            if (this.lastPoint !== undefined && INPUT_STATE.isHolding || GAME_STATE.currentPlay.mods.AT) {
-                if (GAME_STATE.currentPlay.mods.AT) {
+            if ((this.lastPoint !== undefined && INPUT_STATE.isHolding) || (GAME_STATE.currentPlay.mods.AT || GAME_STATE.currentPlay.mods.SO)) {
+                if (GAME_STATE.currentPlay.mods.AT || GAME_STATE.currentPlay.mods.SO) {
                     angleDifference = 10000; // something large (like my dick - A)
                 } else {
                     let angleFromLastPoint = Math.atan2(InputUtil.getCursorPlayfieldCoords().y - this.lastPoint.y, InputUtil.getCursorPlayfieldCoords().x - this.lastPoint.x);
@@ -83,8 +83,7 @@ export class DrawableSpinner extends DrawableHitObject {
                     angleDifference *= circularCorrectness;
                 }
 
-                angleDifference = Math.min(Math.abs(angleDifference), 0.05 * timeDifference /* peppy only allows 0.05 radians per millisecond, hence creating the LEGENDARY 477 limit */) * Math.sign(angleDifference);
-
+                angleDifference = Math.min(Math.abs(angleDifference), 0.05 * timeDifference /* peppy only allows 0.05 radians per millisecond, hence creating the LEGENDARY 477 limit */ * ((GAME_STATE.currentPlay.mods.SO) ? 1 : 1)) * Math.sign(angleDifference); // TODO: Spin out??
 
                 this.absoluteDegreesRotated += Math.abs(angleDifference);
                 this.totalDegreesRotated += angleDifference;

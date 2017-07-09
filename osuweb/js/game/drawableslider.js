@@ -250,7 +250,7 @@ export class DrawableSlider extends DrawableHitObject {
             // No slider snaking - pre-render
             thisCompletion = 1;
         } else {
-            thisCompletion = Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime - GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime())) / GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime() * 2.5);
+            thisCompletion = Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime - GAME_STATE.currentPlay.ARMs)) / GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime() * 2.5);
         }
 
         if(this.complete) return;

@@ -4,10 +4,10 @@ import {MathUtil} from "../util/mathutil";
 import {GraphicUtil} from "../util/graphicutil";
 import {Console} from "../console";
 
-const IMPLEMENTED_MODS = ["AT"];
+const IMPLEMENTED_MODS = ["AT", "HR", "EZ", "SO"];
 
 export const DEFAULT_SPIN_RADIUS = 45;
-export const RADIUS_LERP_DURATION = 400;
+export const RADIUS_LERP_DURATION = 480;
 
 class Waypoint {
     constructor(type, time, pos, elem) {
@@ -57,6 +57,36 @@ export class ModHelper {
 
         Console.verbose("Modcode parsed.");
         return obj;
+    }
+    static applyHR(beatmap) {
+        beatmap.difficulty.CS = Math.min(7, beatmap.difficulty.CS * 1.3); // cap at 7
+        beatmap.difficulty.AR = Math.min(10, beatmap.difficulty.AR * 1.4); // cap at 10
+        beatmap.difficulty.OD = Math.min(10, beatmap.difficulty.OD * 1.4); // cap at 10
+        beatmap.difficulty.HP = Math.min(10, beatmap.difficulty.HP * 1.4); // cap at 10
+
+        // Flips along the x axis
+        for (let i = 0; i < beatmap.sourceBeatmap.hitObjects.length; i++) {
+            let hitObject = beatmap.sourceBeatmap.hitObjects[i];
+
+            if (hitObject.constructor.name === "Circle") {
+                hitObject.y = 384 - hitObject.y;
+            } else if (hitObject.constructor.name === "Slider") {
+                hitObject.y = 384 - hitObject.y;
+
+                for (let j = 0; j < hitObject.sections.length; j++) {
+                    for (let k = 0; k < hitObject.sections[j].values.length; k++) {
+                        hitObject.sections[j].values[k].y = 384 - hitObject.sections[j].values[k].y;
+                    }
+                }
+            }
+        }
+    }
+    static applyEZ(beatmap) {
+        // TODO: Is this correct?
+        beatmap.difficulty.CS /= 2; // half
+        beatmap.difficulty.AR /= 2; // half
+        beatmap.difficulty.OD /= 2; // half
+        beatmap.difficulty.HP /= 2; // half
     }
     static generateAutoPlaythroughInstructions(play) {
         Console.debug("Generating auto playthrough instructions...");
@@ -194,10 +224,10 @@ export class ModHelper {
                     while (instructions[i + 1].type === "spin") {
                         instructions[i].endTime = Math.max(instructions[i].endTime, instructions[i + 1].endTime);
                         instructions.splice(i + 1, 1);
-                    }
 
-                    if (!instructions[i + 1]) {
-                        break;
+                        if (!instructions[i + 1]) {
+                            break;
+                        }
                     }
                 }
             }
@@ -259,8 +289,7 @@ export class ModHelper {
         return instructions;
     }
     static getSpinPositionFromInstruction(instruction, time) {
-        // TODO: Add ease-out here, change duration to 500
-        let radiusLerpCompletion = MathUtil.clamp((time - instruction.time) / RADIUS_LERP_DURATION, 0, 1);
+        let radiusLerpCompletion = MathUtil.ease("easeInOut", MathUtil.clamp((time - instruction.time) / RADIUS_LERP_DURATION, 0, 1));
         let spinRadius = Math.hypot(instruction.startPos.x - 256, instruction.startPos.y - 192) * (1 - radiusLerpCompletion) + DEFAULT_SPIN_RADIUS * radiusLerpCompletion;
         let angle = Math.atan2(instruction.startPos.y - 192, instruction.startPos.x - 256) + 0.05 * (time - instruction.time);
 

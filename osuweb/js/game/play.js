@@ -27,9 +27,15 @@ export class Play {
 
         this.audio = audio;
         this.beatmap = new ProcessedBeatmap(beatmap);
+
+        if(this.mods.HR) ModHelper.applyHR(this.beatmap);
+        if(this.mods.EZ) ModHelper.applyEZ(this.beatmap);
+
         this.beatmap.process();
 
         GAME_STATE.currentBeatmap = this.beatmap;
+
+
 
         // doesn't do shit yet LUL
         //ingameContainer.style.width = window.innerWidth + "px";
@@ -366,10 +372,10 @@ export class Play {
 
         // Makes HitObjects show up on-screen
         if (this.currentHitObject < this.beatmap.hitObjects.length) {
-            while (this.beatmap.hitObjects[this.currentHitObject].startTime - ((this.beatmap.hitObjects[this.currentHitObject].constructor !== "DrawableSpinner") ? this.beatmap.difficulty.getApproachTime() : BeatmapDifficulty.getApproachTime(5)) <= currentTime) {
+            while (this.beatmap.hitObjects[this.currentHitObject].startTime - ((this.beatmap.hitObjects[this.currentHitObject].constructor !== "DrawableSpinner") ? this.ARMs : 300) <= currentTime) {
                 let hitObject = this.beatmap.hitObjects[this.currentHitObject];
 
-                hitObject.show(currentTime - (this.beatmap.hitObjects[this.currentHitObject].startTime - this.beatmap.difficulty.getApproachTime()));
+                hitObject.show(currentTime - (hitObject.startTime - this.ARMs));
                 this.onScreenHitObjects[hitObject.id] = hitObject;
 
                 if (hitObject.constructor.name === "DrawableSpinner") {
@@ -424,18 +430,20 @@ export class Play {
     }
 
     registerClick() {
-        let userPlayfieldCoords = InputUtil.getCursorPlayfieldCoords();
+        if (!this.mods.AT) {
+            let userPlayfieldCoords = InputUtil.getCursorPlayfieldCoords();
 
-        for (let id in this.onScreenHitObjects) {
-            let hitObject = this.onScreenHitObjects[id];
+            for (let id in this.onScreenHitObjects) {
+                let hitObject = this.onScreenHitObjects[id];
 
-            if (hitObject.hittable) {
-                let dist = Math.hypot(userPlayfieldCoords.x - hitObject.x, userPlayfieldCoords.y - hitObject.y);
+                if (hitObject.hittable) {
+                    let dist = Math.hypot(userPlayfieldCoords.x - hitObject.x, userPlayfieldCoords.y - hitObject.y);
 
-                if (dist <= this.csOsuPixel / 2) {
-                    hitObject.hit(AUDIO_MANAGER.getCurrentSongTime() - hitObject.startTime);
+                    if (dist <= this.csOsuPixel / 2) {
+                        hitObject.hit(AUDIO_MANAGER.getCurrentSongTime() - hitObject.startTime);
+                    }
+                    break;
                 }
-                break;
             }
         }
     }
