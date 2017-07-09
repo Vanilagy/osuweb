@@ -26,7 +26,7 @@ grunt.initConfig({
     },
     watch: {
         ej6: {
-            files: ['js/**/*.js', 'index.html', './lib/**/*', './assets/**/*', './audio/**/*', './img/**/*'],
+            files: ['js/**/*.js', 'index.html', 'lib/**/*', 'assets/**/*', 'audio/**/*', 'img/**/*'],
             tasks: ['default']
         }
     },
@@ -34,13 +34,13 @@ grunt.initConfig({
         options: {},
         files: {
             expand: true,
-            src: ['index.html', './lib/**/*', './assets/**/*', './audio/**/*', './img/**/*'],
+            src: ['index.html', 'lib/**/*', 'assets/**/*', 'audio/**/*', 'img/**/*'],
             dest: "dist/"
         }
     }
 });
 
-grunt.loadNpmTasks('grunt-copy');
+grunt.loadNpmTasks('grunt-contrib-copy');
 grunt.loadNpmTasks('grunt-contrib-watch');
 grunt.loadNpmTasks('grunt-newer');
 grunt.loadNpmTasks('grunt-browserify');
