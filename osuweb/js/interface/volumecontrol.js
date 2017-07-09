@@ -5,8 +5,11 @@ import {GAME_STATE, SETTINGS, SCENE_MANAGER} from "../main";
 export class VolumeControl {
     constructor() {
         // The canvas and context to draw on
-        this.canvas = SCENE_MANAGER.getCanvas();
+        this.canvas = document.getElementById("volume");
         this.ctx = this.canvas.getContext("2d");
+
+        this.ctx.width = 250;
+        this.ctx.height = 250;
 
         // The radius of the master control
         this.radius = 0;
@@ -111,7 +114,7 @@ export class VolumeControl {
         let text = Math.round(SETTINGS.data.master * 100) + "%";
         let textSize = this.ctx.measureText(text);
 
-        this.ctx.fillText(text, this.canvas.width - 125 - textSize.width / 2, this.canvas.height - 125 + 8);
+        this.ctx.fillText(text, 125 - textSize.width / 2, 125 + 8);
         this.ctx.restore();
     };
 
@@ -121,15 +124,15 @@ export class VolumeControl {
         this.ctx.globalAlpha = this.alpha;
         if (SETTINGS.data.master >= 0.9999999) {
             // Render glowing ring at 100%
-            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
+            this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
         }
         else if (SETTINGS.data.master <= 0.0000001) {
             // Render full empty circle at 0%
-            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
+            this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
         }
         else {
             // Render the unfilled part of the gauge
-            this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI, -0.5 * Math.PI);
+            this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI, -0.5 * Math.PI);
         }
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "rgba(60,80,91,0.95)";
@@ -137,7 +140,7 @@ export class VolumeControl {
         this.ctx.shadowBlur = 20;
         this.ctx.stroke();
         this.ctx.beginPath();
-        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, Math.round((this.radius / 80.0) * 61), -0.5 * Math.PI, 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI);
+        this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), -0.5 * Math.PI, 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI);
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "white";
         this.ctx.shadowColor = "#35b5ff";
@@ -150,7 +153,7 @@ export class VolumeControl {
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.globalAlpha = this.alpha;
-        this.ctx.arc(this.canvas.width - 125, this.canvas.height - 125, this.radius, 0, 2 * Math.PI);
+        this.ctx.arc(125, 125, this.radius, 0, 2 * Math.PI);
         this.ctx.fill();
         this.ctx.restore();
     };

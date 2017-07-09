@@ -10,28 +10,24 @@ const SCROLL_EXPANSION_FACTOR = 10;
 const STATIC_EXPANSION_FACTOR = 8;
 
 export class BeatmapPanel {
-    constructor(index, parent, beatmap) {
+    constructor(parent, beatmap) {
         this._parent = parent;
         this._beatmap = beatmap;
-        this._index = index;
+        this._index = -1;
         this._expansion = 0;
         this._visible = false;
         this._hideTime = -999999999999999;
 
-        //this._stars = new DifficultyCalculator(this._beatmap).calculate(null);
-
-        Console.debug(this._stars);
+        this._stars = new DifficultyCalculator(this._beatmap).calculate(null).toFixed(2);
 
         this._width = GAME_STATE.screen.width * 0.45;
         this._height = (BeatmapPanel.getPercentFullPanelHeight() - BeatmapPanel.getPercentPanelMargin() * 2) * GAME_STATE.screen.height / 100;
-
         this._element = null;
         this._overlayElement = null;
 
         this._beatmap.getBackgroundImageName();
 
         this.createElement();
-        this.showPanel();
     }
 
     createElement() {
@@ -42,6 +38,7 @@ export class BeatmapPanel {
         this._element.onclick = this.onClick.bind(this);
 
         this._element.style.height = (BeatmapPanel.getPercentFullPanelHeight() - BeatmapPanel.getPercentPanelMargin() * 2)+"%";
+        this._element.style.backgroundColor = "hsl(" + Math.max(-50, 200 - 32 * this._stars) + ", 100%," + Math.max(0, Math.min(50, 200 - 20 * this._stars)) + "%)";
 
         this._element.style.transition = "transform 0.2s ease-out";
         this._element.style.transform = "translate(0, 0)";
@@ -61,7 +58,22 @@ export class BeatmapPanel {
 
         this._ctx.fillStyle = "white";
         this._ctx.font = "24px Exo2LightItalic";
-        this._ctx.fillText(this._beatmap.version, this._width * 0.04, this._height * 0.45);
+        this._ctx.fillText(this._beatmap.version, this._width * 0.04, this._height * 0.4);
+
+        this._ctx.strokeStyle = "white";
+        this._ctx.lineWidth = 2;
+        for(let i = 0; i < Math.max(Math.ceil(this._stars), 10); i++) {
+            this._ctx.beginPath();
+            this._ctx.arc(this._width * (0.055 + 0.04 * i), this._height * 0.7, this._width * 0.015, 0, Math.PI*2);
+            this._ctx.stroke();
+        }
+
+        this._ctx.fillStyle = "white";
+        for(let i = 0; i < Math.ceil(this._stars); i++) {
+            this._ctx.beginPath();
+            this._ctx.arc(this._width * (0.055 + 0.04 * i), this._height * 0.7, (i + 1 === Math.ceil(this._stars) ? this._stars % 1 : 1) * this._width * 0.012, 0, Math.PI*2);
+            this._ctx.fill();
+        }
 
         this.updateElement();
 

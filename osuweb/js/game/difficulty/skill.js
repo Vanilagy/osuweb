@@ -13,7 +13,7 @@ export class Skill {
 
     process(current) {
         this.currentStrain *= this.strainDecay(current.deltaTime);
-        if (!(current.baseObject.constructor.name === "DrawableSpinner"))
+        if (current.baseObject.constructor.name !== "DrawableSpinner")
             this.currentStrain += this.strainValueOf(current) * this.getSkillMultiplier();
 
         this.currentSectionPeak = Math.max(this.currentStrain, this.currentSectionPeak);
@@ -45,9 +45,7 @@ export class Skill {
         // Difficulty is the weighted sum of the highest strains from every section.
         for(let i = 0; i < this.strainPeaks.length; i++)
         {
-            let strain = this.strainPeaks[i];
-
-            difficulty += strain * weight;
+            difficulty += this.strainPeaks[i] * weight;
             weight *= 0.9;
         }
 
@@ -65,7 +63,7 @@ export class Aim extends Skill {
     getSkillMultiplier() {return 26.25;}
     getStrainDecayBase() {return 0.15;}
 
-    strainValueOf(current) { return Math.pow(current.distance, 0.99)}
+    strainValueOf(current) { return Math.pow(current.distance, 0.99) / current.deltaTime; }
 }
 
 const SINGLE_SPACING_THRESHOLD = 125;

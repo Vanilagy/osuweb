@@ -16,11 +16,13 @@ export class DifficultyHitObject {
     }
 
     setDistances() {
+        let radius = this.baseObject.beatmap.difficulty.getCirclePixelSize() / 2;
+
         // We will scale distances by this factor, so we can assume a uniform CircleSize among beatmaps.
-        let scalingFactor = NORMALIZED_RADIUS / this.baseObject.beatmap.difficulty.getCirclePixelSize() / 2;
-        if (this.baseObject.beatmap.difficulty.getCirclePixelSize() / 2 < 30)
+        let scalingFactor = NORMALIZED_RADIUS / radius;
+        if (radius < 30)
         {
-            let smallCircleBonus = Math.min(30 - this.baseObject.beatmap.difficulty.getCirclePixelSize() / 2, 5) / 50;
+            let smallCircleBonus = Math.min(30 - radius, 5) / 50;
             scalingFactor *= 1 + smallCircleBonus;
         }
 

@@ -214,7 +214,17 @@ export class BeatmapSetPanel {
             let index = 0;
 
             for(let key in this._entry.beatmaps) {
-                this._subPanels[index] = new BeatmapPanel(index++, this, this._entry.beatmaps[key]);
+                this._subPanels[index++] = new BeatmapPanel(this, this._entry.beatmaps[key]);
+            }
+
+            this._subPanels.sort((a, b) => {
+                if(a._stars === b._stars) return 0;
+                return a._stars > b._stars ? 1 : 0;
+            })
+
+            for(let i = 0; i < this._subPanels.length; i++) {
+                this._subPanels[i]._index = i;
+                this._subPanels[i].showPanel();
             }
         }
         else {

@@ -52,7 +52,7 @@ export class DifficultyBeatmap
 
         // The final component of the first triangle will be the second OsuHitOject of the map, which forms the first jump.
         // If the map has less than two OsuHitObjects, the enumerator will not return anything.
-        for (let i = 1; i < objects.length; ++i ) {
+        for (let i = 1; i < objects.length; ++i) {
             triangle[2] = triangle[1];
             triangle[1] = triangle[0];
             triangle[0] = objects[i];

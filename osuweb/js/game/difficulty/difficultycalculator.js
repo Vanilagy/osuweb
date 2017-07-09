@@ -26,12 +26,9 @@ export class DifficultyCalculator {
 
         let diffObject;
 
-        while((diffObject = beatmap.getNext()) !== null)
-        {
-            while (diffObject.baseObject.startTime > sectionEnd)
-            {
-                for(let i = 0; i < this.skills.length; i++)
-                {
+        while((diffObject = beatmap.getNext()) !== null) {
+            while (diffObject.baseObject.startTime > sectionEnd) {
+                for(let i = 0; i < this.skills.length; i++) {
                     this.skills[i].saveCurrentPeak();
                     this.skills[i].startNewSectionFrom(sectionEnd);
                 }
@@ -39,8 +36,9 @@ export class DifficultyCalculator {
                 sectionEnd += SECTION_LENGTH;
             }
 
-            for(let i = 0; i < this.skills.length; i++)
+            for(let i = 0; i < this.skills.length; i++) {
                 this.skills[i].process(diffObject);
+            }
         }
 
         let aimRating = Math.sqrt(this.skills[0].getDifficultyValue()) * DIFFICULTY_MULTIPLIER;

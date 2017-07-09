@@ -11,7 +11,6 @@ export class DrawableSpinner extends DrawableHitObject {
         super(spinner);
 
         this.beatmap = beatmap;
-
         this.endTime = spinner.endTime;
 
         this.duration = this.endTime - this.startTime;

@@ -64,9 +64,13 @@ document.addEventListener("contextmenu", function(e) {
     e.preventDefault();
 });
 document.addEventListener("keydown", function(event) {
-    if (event.keyCode == 13) {
+    if (event.keyCode === 13) {
         toggleFullScreen();
     }
+
+    if(event.keyCode === 16) INPUT_STATE.shiftDown = true;
+    if(event.keyCode === 17) INPUT_STATE.ctrlDown = true;
+    if(event.keyCode === 18) INPUT_STATE.altDown = true;
 
     if(event.keyCode === 27) {
         // TODO back functionality
@@ -89,6 +93,10 @@ function toggleFullScreen() {
     }
 }
 document.addEventListener("keyup", function(event) {
+    if(event.keyCode === 16) INPUT_STATE.shiftDown = false;
+    if(event.keyCode === 17) INPUT_STATE.ctrlDown = false;
+    if(event.keyCode === 18) INPUT_STATE.altDown = false;
+
     for(let key in SETTINGS.data.keyCodeBindings) {
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, false);
@@ -155,7 +163,7 @@ document.getElementById("osu").onclick = () => {
 };
 
 document.getElementById("container").addEventListener("wheel", function(e) {
-    if(SCENE_MANAGER.getScene().constructor.name === "SceneSongSelect") {
+    if(SCENE_MANAGER.getScene().constructor.name === "SceneSongSelect" && !INPUT_STATE.altDown) {
         SCENE_MANAGER.getScene().scroll(Math.round(e.deltaY / 100.0));
     }
     else {
