@@ -80,7 +80,25 @@ export class BeatmapSetPanel {
     }
 
     updateElement() {
-        if(!this._imageSet && isDrawing === -1) {
+        this.renderBackground();
+
+        this._expansion = Math.pow(Math.abs((this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this._index + BeatmapPanel.getPercentFullPanelHeight()) - 40) / 100), 1.05) * SCROLL_EXPANSION_FACTOR + STATIC_EXPANSION_FACTOR;
+
+        this._left = this._expansion;
+        this._top = this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this._index);
+        this._x = this._left * GAME_STATE.screen.width / 100;
+        this._y = this._top * GAME_STATE.screen.height / 100;
+
+        this._underlayElement.style.top = this._top+"%";
+        this._underlayElement.style.right = "-"+(this._left)+"%";
+        this._element.style.top = this._top+"%";
+        this._element.style.right = "-"+this._left+"%";
+
+        for(let i = 0; i < this._subPanels.length; i++) this._subPanels[i].updateElement();
+    }
+
+    renderBackground() {
+        if (!this._imageSet && isDrawing === -1) {
             isDrawing = this._index;
 
             this._ctx = this._element.getContext("2d");
@@ -92,13 +110,13 @@ export class BeatmapSetPanel {
 
             let imageName = this._entry.getMainImageName();
 
-            if(!imageName || imageName === "") {
+            if (!imageName || imageName === "") {
                 this._imageSet = "loaded";
                 SCENE_MANAGER.getScene()._forceUpdate = true;
             }
             else {
                 this._entry.getImageFileByName(imageName, (file) => {
-                    if(file === null) {
+                    if (file === null) {
                         this._imageSet = "loaded";
                         SCENE_MANAGER.getScene()._forceUpdate = true;
                         return;
@@ -116,8 +134,8 @@ export class BeatmapSetPanel {
                 });
             }
         }
-        else if(this._imageSet === "loaded" && isDrawing === this._index) {
-            if(this._img) this._ctx.drawImage(this._img, this._img.width / 2 - this._width / 2, this._img.height / 2 - this._height / 2, this._width, this._height, 0, 0, this._width, this._height);
+        else if (this._imageSet === "loaded" && isDrawing === this._index) {
+            if (this._img) this._ctx.drawImage(this._img, this._img.width / 2 - this._width / 2, this._img.height / 2 - this._height / 2, this._width, this._height, 0, 0, this._width, this._height);
 
             let grd = this._ctx.createLinearGradient(0, 0, this._width, this._height);
             grd.addColorStop(0, "rgba(0,0,0,0.5)");
@@ -130,29 +148,15 @@ export class BeatmapSetPanel {
 
             this._ctx.beginPath();
             this._ctx.fillStyle = "white";
-            this._ctx.font = "30px Exo2MediumItalic";
+            this._ctx.font = Math.round(GAME_STATE.screen.height / 1080 * 30)+"px Exo2MediumItalic";
             this._ctx.fillText(beatmap.title === "" ? beatmap.titleUnicode : beatmap.title, Math.round(this._width * 0.06), Math.round(this._height * 0.35));
-            this._ctx.font = "18px Exo2LightItalic";
+            this._ctx.font = Math.round(GAME_STATE.screen.height / 1080 * 18)+"px Exo2LightItalic";
             this._ctx.fillText((beatmap.artist === "" ? beatmap.artistUnicode : beatmap.artist) + " | " + beatmap.creator, Math.round(this._width * 0.06), Math.round(this._height * 0.55));
 
             delete this._img;
             this._imageSet = "done";
             isDrawing = -1;
         }
-
-        this._expansion = Math.pow(Math.abs((this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this._index + BeatmapPanel.getPercentFullPanelHeight()) - 40) / 100), 1.05) * SCROLL_EXPANSION_FACTOR + STATIC_EXPANSION_FACTOR;
-
-        this._left = this._expansion;
-        this._top = this._scroll + (BeatmapSetPanel.getPercentFullPanelHeight() * this._index);
-        this._x = this._left * GAME_STATE.screen.width / 100;
-        this._y = this._top * GAME_STATE.screen.height / 100;
-
-        this._underlayElement.style.top = this._top+"%";
-        this._underlayElement.style.right = "-"+(this._left)+"%";
-        this._element.style.top = this._top+"%";
-        this._element.style.right = "-"+this._left+"%";
-
-        for(let i = 0; i < this._subPanels.length; i++) this._subPanels[i].updateElement();
     }
 
     destroyElement() {
@@ -197,6 +201,14 @@ export class BeatmapSetPanel {
         }
     }
 
+    getPercentExtraHeight() {
+        if(this._subPanels.length === 0) return 0;
+
+        let top = this._subPanels[this._subPanels.length - 1]._relTop;
+
+        return Math.max(0, top + BeatmapPanel.getPercentFullPanelHeight() - BeatmapSetPanel.getPercentFullPanelHeight() + BeatmapSetPanel.getPercentPanelMargin());
+    }
+
     static getPanelHeight() {
         return BeatmapSetPanel.getPercentFullPanelHeight() * GAME_STATE.screen.height / 100;
     }
@@ -210,6 +222,8 @@ export class BeatmapSetPanel {
     }
 
     expand() {
+        this._element.style.transform = "translate(-8%, 0)";
+
         if(this._subPanels.length === 0) {
             let index = 0;
 
@@ -218,9 +232,9 @@ export class BeatmapSetPanel {
             }
 
             this._subPanels.sort((a, b) => {
-                if(a._stars === b._stars) return 0;
-                return a._stars > b._stars ? 1 : 0;
-            })
+                if(a._beatmap.stars === b._beatmap.stars) return 0;
+                return a._beatmap.stars > b._beatmap.stars ? 1 : 0;
+            });
 
             for(let i = 0; i < this._subPanels.length; i++) {
                 this._subPanels[i]._index = i;
@@ -249,6 +263,8 @@ export class BeatmapSetPanel {
     }
 
     collapse() {
+        this._element.style.transform = "";
+
         for(let i = 0; i < this._subPanels.length; i++) this._subPanels[i].hidePanel();
     }
 

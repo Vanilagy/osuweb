@@ -13,6 +13,7 @@ export class SceneSongSelect extends SceneBase {
         this._acceleration = 3;
 
         this._activePanel = null;
+        this._targetPanel = null;
 
         this._panels = [];
         this._panelScroll = 0;
@@ -54,17 +55,34 @@ export class SceneSongSelect extends SceneBase {
 
     render(frameModifier) {
         if(INPUT_STATE.inputButtonStates.m1 && !this._disableDragging) {
+            this.stopTargeting();
+
             this._lastDragSpeed = INPUT_STATE.mouseDelta.y;
             this._panelScroll += INPUT_STATE.mouseDelta.y / GAME_STATE.screen.height * 100;
             this._lastDragDistance += Math.abs(INPUT_STATE.mouseDelta.y / GAME_STATE.screen.height * 100);
             this._forceUpdate = true;
         }
         else if(this._lastDragSpeed !== 0) {
-            this._panelScrollSpeed = Math.max(-7, Math.min(7, this._lastDragSpeed / 3));
+            this._panelScrollSpeed = Math.max(-16, Math.min(16, this._lastDragSpeed / 1.5));
             this._lastDragSpeed = 0;
         }
 
-        this._panelScroll += this._panelScrollSpeed;
+        if(this._targetPanel) {
+            let scrollDiff = this._panelScroll + BeatmapSetPanel.getPercentFullPanelHeight() * this._targetPanel._index - 50 + 2 * BeatmapSetPanel.getPercentFullPanelHeight();
+
+            if(Math.abs(scrollDiff) > 30) {
+                if(scrollDiff > 0) this._panelScroll -= 3 * frameModifier;
+                if(scrollDiff < 0) this._panelScroll += 3 * frameModifier;
+            }
+            else {
+                this._panelScroll -= Math.max(-3, Math.min(3, 0.1 * scrollDiff)) * frameModifier;
+
+                if(Math.abs(scrollDiff * 0.9) < 0.5) this.stopTargeting();
+            }
+        }
+        else {
+            this._panelScroll += this._panelScrollSpeed * frameModifier;
+        }
 
         if(!INPUT_STATE.inputButtonStates.m1) {
             if (this._panelScroll > 50 - BeatmapSetPanel.getPercentFullPanelHeight() / 2) {
@@ -79,16 +97,26 @@ export class SceneSongSelect extends SceneBase {
 
         let centerPanelIndex = this.getCenterPanelIndex();
 
-        for (let i = Math.max(centerPanelIndex - 15, 0); i < Math.min(centerPanelIndex + 15, this._panels.length); i++) {
-            if(Math.abs(centerPanelIndex - i) > 10) this._panels[i].hidePanel();
-            else this._panels[i].showPanel();
+        let extraHeightPercent = 0;
 
-            if(this._activePanel && i > this._activePanel.getIndex()) {
-                this._panels[i].setScroll(this._panelScroll + this._activePanel.getSubPanels().length * BeatmapPanel.getPercentFullPanelHeight());
+        for (let i = Math.max(centerPanelIndex - 15, 0); i < Math.min(centerPanelIndex + 15, this._panels.length); i++) {
+            if(Math.abs(centerPanelIndex - i) > 10) {
+                if(this._activePanel === this._panels[i]) {
+                    this._panelScroll += this._panels[i].getPercentExtraHeight();
+                }
+                this._panels[i].hidePanel();
             }
             else {
-                this._panels[i].setScroll(this._panelScroll);
+                if(this._activePanel === this._panels[i]) {
+                    this._panelScroll -= this._panels[i].getPercentExtraHeight();
+                }
+                this._panels[i].showPanel();
             }
+
+            this._panels[i].setScroll(this._panelScroll + extraHeightPercent);
+
+            extraHeightPercent += this._panels[i].getPercentExtraHeight();
+
             if(this._panelScrollSpeed !== 0 || this._forceUpdate || this._panels[i].needsUpdate) this._panels[i].updateElement();
         }
 
@@ -110,6 +138,8 @@ export class SceneSongSelect extends SceneBase {
     }
 
     scroll(value) {
+        this.stopTargeting();
+
         this._panelScrollSpeed -= value * this._acceleration;
     }
 
@@ -119,7 +149,17 @@ export class SceneSongSelect extends SceneBase {
         }
     }
 
+    setTargetPanel(panel) {
+        this._targetPanel = panel;
+    }
+
+    stopTargeting() {
+        this._targetPanel = null;
+    }
+
     setActivePanel(panel) {
+        this.setTargetPanel(panel);
+
         if(this._activePanel) {
             this._activePanel.collapse();
 
@@ -155,8 +195,6 @@ export class SceneSongSelect extends SceneBase {
     }
 
     preClose(newScene, callback) {
-        let centerPanelIndex = this.getCenterPanelIndex();
-
         this.elements["songpanelsDiv"].style.display = "none";
 
         this.elements["backgroundDiv"].style.filter = "blur(0px)";

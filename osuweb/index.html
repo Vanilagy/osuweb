@@ -408,7 +408,7 @@
         div.songpanelbackground {
             position: absolute;
             right: 0;
-            z-index: 0;
+            z-index: 10;
             -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
             clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
             background-color: black;
@@ -417,34 +417,18 @@
         canvas.songpanel {
             position: absolute;
             right: 0;
-            z-index: 1;
+            z-index: 11;
             background-color: white;
             -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
             clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
             transform: translate(0, 0);
-            -webkit-transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
-            -moz-transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
-            -o-transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
-            transition: transform 0.5s cubic-bezier(.32,1.1,.95,.94);
+            -webkit-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+            -moz-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+            -o-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+            transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
         }
         canvas.songpanel:hover {
-            transform: translate(-5%, 0);
-        }
-        div.songpaneloverlay {
-            position: absolute;
-            height: 100%;
-            width: 100%;
-            height: 14vh;
-            margin-top: 1vh;
-            margin-bottom: 1vh;
-            right: 0;
-            z-index: 2;
-            background: -webkit-linear-gradient(left,rgba(0,0,0,0.35),rgba(0,0,0,0));
-            background: -o-linear-gradient(right,rgba(0,0,0,0.35),rgba(0,0,0,0));
-            background: -moz-linear-gradient(right,rgba(0,0,0,0.35),rgba(0,0,0,0));
-            background: linear-gradient(to right,rgba(0,0,0,0.35),rgba(0,0,0,0));
-            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+            transform: translate(-8%, 0);
         }
         div.diffpanelbackground {
             position: absolute;
@@ -470,19 +454,17 @@
             z-index: 1;
             -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
             clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+            transform: translate(0, 0);
             -webkit-box-shadow: 0 0 20px black;
             -moz-box-shadow: 0 0 20px black;
             box-shadow: 0 0 20px black;
+            -webkit-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+            -moz-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+            -o-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+            transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
         }
-        div.diffpaneloverlay {
-            height: 100%;
-            width: 100%;
-            background: -webkit-linear-gradient(bottom,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
-            background: -o-linear-gradient(top,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
-            background: -moz-linear-gradient(top,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
-            background: linear-gradient(to top,rgba(0,0,0,0.35),rgba(0,0,0,0.05));
-            -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 2.6% 100%);
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 2.6% 100%);
+        canvas.diffpanel:hover {
+            transform: translate(-8%, 0);
         }
         #songpanelswrapper {
             position: relative;
