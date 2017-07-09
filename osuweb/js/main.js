@@ -112,6 +112,8 @@ window.onload = function() {
     document.getElementsByTagName("body")[0].removeChild(document.getElementById("f2"));
     document.getElementsByTagName("body")[0].removeChild(document.getElementById("f3"));
     document.getElementsByTagName("body")[0].removeChild(document.getElementById("f4"));
+    document.getElementsByTagName("body")[0].removeChild(document.getElementById("f5"));
+    document.getElementsByTagName("body")[0].removeChild(document.getElementById("f6"));
 
     window.onresize();
 
