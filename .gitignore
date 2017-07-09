@@ -3,6 +3,7 @@ osuweb/bundle.js
 osuweb/.idea/libraries/Generated_files.xml
 osuweb/.idea/watcherTasks.xml
 osuweb/dist/
+osuweb/babel/
 osuweb/playground/
 osuweb/node_modules/
 osuweb/bundle.min.js

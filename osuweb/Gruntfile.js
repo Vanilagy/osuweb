@@ -13,42 +13,40 @@ grunt.initConfig({
                 expand: true,
                 cwd: 'js/',
                 src: ['**/*.js'],
-                dest: 'dist/',
+                dest: 'babel/',
                 ext: '.js'
             }]
         }
     },
     browserify: {
         bundle: {
-            src: ['dist/main.js'],
-            dest: 'bundle.js'
+            src: ['babel/main.js'],
+            dest: 'dist/bundle.js'
         }
     },
     watch: {
         ej6: {
-            files: "js/**/*.js",
-            tasks: ['newer:babel', 'browserify']
+            files: ['js/**/*.js', 'index.html', './lib/**/*', './assets/**/*', './audio/**/*', './img/**/*'],
+            tasks: ['default']
         }
     },
-    "node-minify": {
-        uglify: {
-            compressor: 'uglifyjs',
-            options: {
-                warnings: true,
-                mangle: true,
-                compress: true
-            },
-            files: {
-                'bundle.min.js':  ['bundle.js']
-            }
+    copy: {
+        options: {},
+        files: {
+            expand: true,
+            src: ['index.html', './lib/**/*', './assets/**/*', './audio/**/*', './img/**/*'],
+            dest: "dist/"
         }
     }
 });
 
+grunt.loadNpmTasks('grunt-copy');
 grunt.loadNpmTasks('grunt-contrib-watch');
 grunt.loadNpmTasks('grunt-newer');
 grunt.loadNpmTasks('grunt-browserify');
 grunt.loadNpmTasks('grunt-node-minify');
 
-grunt.registerTask('default', ['watch']);
-grunt.registerTask('release', ['newer:babel', 'browserify', 'node-minify:uglify']);
+grunt.registerTask('watch-default', ['watch']);
+grunt.registerTask('default', ['newer:babel', 'browserify', 'newer:copy']);
+grunt.registerTask('force', ['babel', 'browserify', 'copy']);
+grunt.registerTask('release', ['newer:babel', 'newer:copy', 'browserify', 'node-minify:uglify']);
