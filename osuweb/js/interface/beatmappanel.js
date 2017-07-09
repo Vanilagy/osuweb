@@ -18,7 +18,7 @@ export class BeatmapPanel {
         this._visible = false;
         this._hideTime = -999999999999999;
 
-        this._stars = new DifficultyCalculator(this._beatmap).calculate(null).toFixed(2);
+        this._stars = new DifficultyCalculator(this._beatmap).calculate(null);
 
         this._width = GAME_STATE.screen.width * 0.45;
         this._height = (BeatmapPanel.getPercentFullPanelHeight() - BeatmapPanel.getPercentPanelMargin() * 2) * GAME_STATE.screen.height / 100;
