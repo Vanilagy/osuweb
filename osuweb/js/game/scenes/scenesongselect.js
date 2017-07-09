@@ -101,21 +101,21 @@ export class SceneSongSelect extends SceneBase {
 
         for (let i = Math.max(centerPanelIndex - 15, 0); i < Math.min(centerPanelIndex + 15, this._panels.length); i++) {
             if(Math.abs(centerPanelIndex - i) > 10) {
-                if(this._activePanel === this._panels[i]) {
+                if(this._activePanel === this._panels[i] && this._panels[i]._visible === true) {
                     this._panelScroll += this._panels[i].getPercentExtraHeight();
                 }
                 this._panels[i].hidePanel();
             }
             else {
-                if(this._activePanel === this._panels[i]) {
+                if(this._activePanel === this._panels[i] && this._panels[i]._visible === false) {
                     this._panelScroll -= this._panels[i].getPercentExtraHeight();
                 }
                 this._panels[i].showPanel();
+
+                this._panels[i].setScroll(this._panelScroll + extraHeightPercent);
+
+                extraHeightPercent += this._panels[i].getPercentExtraHeight();
             }
-
-            this._panels[i].setScroll(this._panelScroll + extraHeightPercent);
-
-            extraHeightPercent += this._panels[i].getPercentExtraHeight();
 
             if(this._panelScrollSpeed !== 0 || this._forceUpdate || this._panels[i].needsUpdate) this._panels[i].updateElement();
         }
