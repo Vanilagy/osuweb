@@ -6,6 +6,7 @@ import {Slider} from "./slider";
 import {Circle} from "./circle";
 import {Console} from "../console";
 import {BeatmapDifficulty} from "./beatmapdifficulty";
+import {DifficultyCalculator} from "../game/difficulty/difficultycalculator";
 
 export class Beatmap {
     constructor(file, callback, loadFlat = false) {
@@ -202,6 +203,8 @@ export class Beatmap {
 
         Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
         Console.verbose("--- BEATMAP LOADING FINISHED ---");
+
+        this.stars = new DifficultyCalculator(this).calculate(null);
 
         if(this.callback) this.callback(this);
     }

@@ -5,6 +5,7 @@ import {INPUT_STATE} from "../../util/inpututil";
 import {SceneBase} from "./scenebase";
 import {BeatmapSetPanel} from "../../interface/beatmapsetpanel";
 import {BeatmapPanel} from "../../interface/beatmappanel";
+import {SceneManager as SCENE_MANAGER} from "./scenemanager";
 
 export class SceneSongSelect extends SceneBase {
     constructor() {
@@ -12,11 +13,15 @@ export class SceneSongSelect extends SceneBase {
 
         this._acceleration = 3;
 
+        this._prevAnimationTime = null;
+        this._prevAnimationStep = null;
+        this._prevPanel = null;
         this._activePanel = null;
         this._targetPanel = null;
 
         this._panels = [];
         this._panelScroll = 0;
+        this._startScroll = 0;
         this._panelScrollSpeed = 0;
         this._lastDragSpeed = 0;
         this._forceUpdate = true;
@@ -68,14 +73,42 @@ export class SceneSongSelect extends SceneBase {
             this._lastDragSpeed = 0;
         }
 
-        // If a panel should be scrolled to right now do that
-        if(this._targetPanel) {
+        if(this._prevPanel && this._prevPanel.parent.index !== this._targetPanel.parent.index) {
+            let animationDiff = Math.min(1, (window.performance.now() - this._prevAnimationTime) / 150);
+
+            // diff algorithm
+            let songPanelDiff = this._targetPanel.parent.index - this._prevPanel.parent.index;
+
+            let songPanelOffset = (BeatmapSetPanel.getPercentFullPanelHeight() - 1 * BeatmapSetPanel.getPercentPanelMargin() + BeatmapPanel.getPercentPanelMargin() * 2) * songPanelDiff;
+
+            let diffPanelDiff = this._targetPanel.index - this._prevPanel.index;
+
+            let diffPanelOffset = diffPanelDiff * BeatmapPanel.getPercentFullPanelHeight();
+
+            let scrollDiff = songPanelOffset + diffPanelOffset;
+
+            this._panelScroll -= scrollDiff * (animationDiff - this._prevAnimationStep);
+
+            this._prevAnimationStep = animationDiff;
+
+            if(animationDiff === 1) {
+                this._prevPanel = null;
+                this._prevAnimationTime = null;
+                this._prevAnimationStep = null;
+                this.stopTargeting();
+            }
+        }
+        else if(this._targetPanel) {
+            let scrollTarget = this._targetPanel.parent.index * BeatmapSetPanel.getPercentFullPanelHeight() + this._targetPanel.index * BeatmapPanel.getPercentFullPanelHeight();
             // Difference of the current scroll position of the panel and the target.
-            let scrollDiff = this._panelScroll + BeatmapSetPanel.getPercentFullPanelHeight() * this._targetPanel.index - 50 + 2 * BeatmapSetPanel.getPercentFullPanelHeight();
+            let scrollDiff = scrollTarget + this._panelScroll - 50 + 2 * BeatmapSetPanel.getPercentFullPanelHeight();
 
-            this._panelScroll -= Math.max(-10, Math.min(10, 0.1 * scrollDiff)) * frameModifier;
+            this._panelScroll -= Math.max(-10 * frameModifier, Math.min(10 * frameModifier, 0.1 * scrollDiff));
 
-            if(Math.abs(scrollDiff * 0.9) < 0.5) this.stopTargeting();
+            if(Math.abs(scrollDiff * 0.9) < 0.1) {
+                this._panelScroll -= scrollDiff * 0.9;
+                this.stopTargeting();
+            }
         }
         else {
             this._panelScroll += this._panelScrollSpeed * frameModifier;
@@ -139,10 +172,47 @@ export class SceneSongSelect extends SceneBase {
 
     onKeyDown(event) {
         if(event.keyCode === 37 && this._activePanel) {
-            if(this._panels[this._activePanel.index - 1]) this.setActivePanel(this._panels[this._activePanel.index - 1]);
+            this.previousPanel();
         }
         else if(event.keyCode === 39 && this._activePanel) {
-            if(this._panels[this._activePanel.index + 1]) this.setActivePanel(this._panels[this._activePanel.index + 1]);
+            this.nextPanel();
+        }
+        else if(event.keyCode === 38 && this._activePanel) {
+            if(this._activePanel._activeSubPanel.index === 0) {
+                this.previousPanel("last");
+            }
+            else {
+                this._activePanel.setActiveSubPanel(this._activePanel._subPanels[this._activePanel._activeSubPanel.index - 1])
+            }
+        }
+        else if(event.keyCode === 40 && this._activePanel) {
+            if(this._activePanel._activeSubPanel.index + 1 >= this._activePanel._subPanels.length) {
+                this.nextPanel();
+            }
+            else {
+                this._activePanel.setActiveSubPanel(this._activePanel._subPanels[this._activePanel._activeSubPanel.index + 1])
+            }
+        }
+        else if(event.keyCode === 13 && this._activePanel) {
+            this._activePanel._activeSubPanel.onClick(null);
+        }
+    }
+
+    nextPanel(subPanel = "first") {
+        if (this._activePanel.index + 1 < this._panels.length) {
+            this.setActivePanel(this._panels[this._activePanel.index + 1], subPanel);
+        }
+        else {
+            this.setActivePanel(this._panels[0], subPanel);
+        }
+    }
+
+    previousPanel(subPanel = "first") {
+        if (this._activePanel.index - 1 >= 0) {
+            this.setActivePanel(this._panels[this._activePanel.index - 1], subPanel);
+        }
+        else {
+            this.setActivePanel(this._panels[this._panels.length - 1], subPanel);
         }
     }
 
@@ -166,16 +236,18 @@ export class SceneSongSelect extends SceneBase {
         this._targetPanel = null;
     }
 
-    setActivePanel(panel) {
-        this.setTargetPanel(panel);
-
+    setActivePanel(panel, subPanel = "first") {
         if(this._activePanel) {
+            this._prevPanel = this._activePanel._activeSubPanel;
+            this._prevAnimationTime = window.performance.now();
+            this._startScroll = this._panelScroll;
+
             this._activePanel.collapse();
         }
 
         this._activePanel = panel;
 
-        this._activePanel.expand();
+        this._activePanel.expand(subPanel);
 
         this._forceUpdate = true;
     }

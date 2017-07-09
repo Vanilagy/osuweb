@@ -31,6 +31,7 @@ export class BeatmapSetPanel {
         this._scroll = 0;
         this._expansion = 100;
         this._subPanels = [];
+        this._activeSubPanel = null;
 
         this._imageSet = false;
         this._audioSet = false;
@@ -135,6 +136,8 @@ export class BeatmapSetPanel {
             }
         }
         else if (this._imageSet === "loaded" && isDrawing === this.index) {
+            let time = window.performance.now();
+
             if (this._img) this._ctx.drawImage(this._img, this._img.width / 2 - this._width / 2, this._img.height / 2 - this._height / 2, this._width, this._height, 0, 0, this._width, this._height);
 
             let grd = this._ctx.createLinearGradient(0, 0, this._width, this._height);
@@ -156,6 +159,8 @@ export class BeatmapSetPanel {
             delete this._img;
             this._imageSet = "done";
             isDrawing = -1;
+
+            console.log("Drawing panel took: "+(window.performance.now() - time));
         }
     }
 
@@ -206,7 +211,7 @@ export class BeatmapSetPanel {
 
         let top = this._subPanels[this._subPanels.length - 1]._relTop;
 
-        return Math.max(0, top + BeatmapPanel.getPercentFullPanelHeight() - BeatmapSetPanel.getPercentFullPanelHeight() + BeatmapSetPanel.getPercentPanelMargin());
+        return Math.max(0, top + BeatmapPanel.getPercentFullPanelHeight() - BeatmapSetPanel.getPercentFullPanelHeight());
     }
 
     static getPanelHeight() {
@@ -221,7 +226,7 @@ export class BeatmapSetPanel {
         return 10/1080 * 100;
     }
 
-    expand() {
+    expand(subPanel = "first") {
         this._element.style.transform = "translate(-8%, 0)";
 
         if(this._subPanels.length === 0) {
@@ -232,8 +237,8 @@ export class BeatmapSetPanel {
             }
 
             this._subPanels.sort((a, b) => {
-                if(a._beatmap.stars === b._beatmap.stars) return 0;
-                return a._beatmap.stars > b._beatmap.stars ? 1 : 0;
+                if(a.beatmap.stars === b.beatmap.stars) return 0;
+                return a.beatmap.stars > b.beatmap.stars ? 1 : 0;
             });
 
             for(let i = 0; i < this._subPanels.length; i++) {
@@ -243,6 +248,16 @@ export class BeatmapSetPanel {
         }
         else {
             for(let i = 0; i < this._subPanels.length; i++) this._subPanels[i].showPanel();
+        }
+
+        if(subPanel === "first") {
+            this.setActiveSubPanel(this._subPanels[0]);
+        }
+        else if(subPanel === "last") {
+            this.setActiveSubPanel(this._subPanels[this._subPanels.length - 1]);
+        }
+        else {
+            this.setActiveSubPanel(this._subPanels[subPanel]);
         }
 
         SCENE_MANAGER.getScene().elements["backgroundDiv"].style.backgroundImage = "url("+this._dataUrl+")";
@@ -280,5 +295,11 @@ export class BeatmapSetPanel {
 
     onMouseDown(evt) {
         SCENE_MANAGER.getScene().onPanelMouseDown(this);
+    }
+
+    setActiveSubPanel(panel) {
+        if(this._activeSubPanel) this._activeSubPanel.setActive(false);
+        this._activeSubPanel = panel;
+        this._activeSubPanel.setActive(true);
     }
 }

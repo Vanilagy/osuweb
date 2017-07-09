@@ -65,7 +65,7 @@ document.addEventListener("contextmenu", function(e) {
 });
 document.addEventListener("keydown", function(event) {
     if (event.keyCode === 13) {
-        toggleFullScreen();
+        //toggleFullScreen();
     }
 
     SCENE_MANAGER.onKeyDown(event);

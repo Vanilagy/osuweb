@@ -9,7 +9,7 @@ export class SceneGameOsu extends SceneGame {
     constructor(beatmap, beatmapset) {
         super();
 
-        this._beatmap = beatmap || GAME_STATE.currentBeatmap;
+        this.beatmap = beatmap || GAME_STATE.currentBeatmap;
         this._beatmapset = beatmapset || GAME_STATE.currentBeatmapSet;
 
         GAME_STATE.currentBeatmap = beatmap;
@@ -58,15 +58,15 @@ export class SceneGameOsu extends SceneGame {
             "accarrowImg", "accmeterDiv", "accstrip50Div", "accstrip100Div", "accstrip300Div", "acctickXDiv",
             "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv"]);
 
-        this._beatmapset.getAudioFileByName(this._beatmap.audioFilename, (audioFile) => {
+        this._beatmapset.getAudioFileByName(this.beatmap.audioFilename, (audioFile) => {
             if(audioFile.key !== undefined) {
-                new Play(this._beatmap, audioFile.key);
+                new Play(this.beatmap, audioFile.key);
 
                 GAME_STATE.currentPlay.updatePlayareaSize(() => GAME_STATE.currentPlay.start());
             }
             else if(audioFile !== null) {
-                GAME_STATE.currentBeatmapSet.loadSongFileByName(this._beatmap.audioFilename, (key) => {
-                    new Play(this._beatmap, key);
+                GAME_STATE.currentBeatmapSet.loadSongFileByName(this.beatmap.audioFilename, (key) => {
+                    new Play(this.beatmap, key);
 
                     GAME_STATE.currentPlay.updatePlayareaSize(() => GAME_STATE.currentPlay.start());
                 });

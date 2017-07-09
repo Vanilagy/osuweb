@@ -9,16 +9,18 @@ const DIFFICULTY_MULTIPLIER = 0.0675;
 
 export class DifficultyCalculator {
     constructor(beatmap) {
-        this._beatmap = beatmap;
+        this.beatmap = beatmap;
     }
 
     calculate(categoryDifficulty) {
-        if(this._beatmap.constructor.name === "Beatmap") {
-            this._beatmap = new ProcessedBeatmap(this._beatmap);
-            this._beatmap.process(false);
+        if(this.beatmap.constructor.name === "Beatmap") {
+            this.beatmap = new ProcessedBeatmap(this.beatmap);
+            this.beatmap.process(false);
         }
 
-        let beatmap = new DifficultyBeatmap(this._beatmap.hitObjects);
+        let beatmap = new DifficultyBeatmap(this.beatmap.hitObjects);
+
+        delete this.beatmap;
 
         this.skills = [new Aim(), new Speed()];
 
