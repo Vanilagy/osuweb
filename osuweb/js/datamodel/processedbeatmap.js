@@ -7,6 +7,7 @@ import {Skin} from "./skin";
 import {DrawableSpinner} from "../game/drawablespinner";
 import {MathUtil} from "../util/mathutil";
 import {GAME_STATE} from "../main";
+import {Console} from "../console";
 
 export class ProcessedBeatmap {
     constructor(beatmap) {
@@ -30,10 +31,14 @@ export class ProcessedBeatmap {
     }
 
     process(fullCalc = true) {
+        let processStartTime = window.performance.now();
+
         this.generateDrawableHitObjects(fullCalc);
         this.applyStackShift();
         if(fullCalc) this.calculateZOrder();
         if(fullCalc) this.calculateFollowPoints();
+
+        Console.info("Beatmap process time: " + ((window.performance.now() - processStartTime) / 1000).toFixed(3) + "s");
     }
 
     calculateZOrder() {

@@ -77,8 +77,9 @@ document.addEventListener("keydown", function(event) {
     if(event.keyCode === 27) {
         // TODO back functionality
     }
-
+    
     for(let key in SETTINGS.data.keyCodeBindings) {
+
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, true);
             if(key === "k2") InputUtil.changeKeyButtonState(event.keyCode, true);
@@ -156,9 +157,10 @@ document.getElementById("snaking").addEventListener("change", () => {
     SLIDER_SETTINGS.snaking = document.getElementById("snaking").checked;
 });
 
-document.getElementById("auto").addEventListener("change", () => {
+// TODO: Remove this? Auto is now activated through modcode
+/*document.getElementById("auto").addEventListener("change", () => {
     if(GAME_STATE.currentPlay) GAME_STATE.currentPlay.autoplay = document.getElementById("auto").checked;
-});
+});*/
 
 document.getElementById("osu").onclick = () => {
     SCENE_MANAGER.switchScene(new SceneSongSelect());
@@ -291,7 +293,7 @@ function loadBeatmapFromFile(files) {
 let lastFrame = window.performance.now();
 // Global render loop
 function render() {
-    InputUtil.updateCursor();
+    if(!INPUT_STATE.suppressManualCursorControl) InputUtil.updateCursor(INPUT_STATE.mouseX, INPUT_STATE.mouseY);
     InputUtil.updateMouseDelta();
 
     // Calculate frame modifier for frame-independant animation

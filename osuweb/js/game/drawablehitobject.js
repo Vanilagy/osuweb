@@ -52,6 +52,10 @@ export class DrawableHitObject {
         this.y += this.stackHeight * -4;
     }
 
+    getType() {
+        return this.constructor.name;
+    }
+
     static playHitSound(data) {
         let skin = GAME_STATE.currentSkin || GAME_STATE.defaultSkin;
 

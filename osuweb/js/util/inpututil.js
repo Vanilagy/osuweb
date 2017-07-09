@@ -43,6 +43,11 @@ export class InputUtil {
         };
     }
 
+    static moveCursorToPlayfieldPos(x, y) {
+        InputUtil.updateCursor(playfieldBounds.x + (GAME_STATE.currentPlay.marginWidth + x) * GRAPHIC_UTIL.getPixelRatio(), playfieldBounds.y + (GAME_STATE.currentPlay.marginHeight + y) * GRAPHIC_UTIL.getPixelRatio());
+
+    }
+
     static updateMouseDelta() {
         // Get mouseDelta for lastFrame
         if(lastFrameMousePos) {
@@ -52,8 +57,8 @@ export class InputUtil {
         lastFrameMousePos = {x: INPUT_STATE.mouseX, y: INPUT_STATE.mouseY};
     }
 
-    static updateCursor() {
-        cursorElement.style.transform = "translate3d(calc(" + INPUT_STATE.mouseX + "px - 50%), calc(" + INPUT_STATE.mouseY + "px - 50%), 0)";
+    static updateCursor(x, y) {
+        cursorElement.style.transform = "translate3d(calc(" + x + "px - 50%), calc(" + y + "px - 50%), 0)";
     }
 
     static press() {
@@ -115,6 +120,7 @@ class InputState {
         };
         this.isHolding = false;
         this.lastMousePosUpdateTime = window.performance.now();
+        this.suppressManualCursorControl = false;
     }
 }
 

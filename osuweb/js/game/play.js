@@ -15,12 +15,15 @@ import {Console} from "../console";
 import {DrawableHitObject} from "./drawablehitobject";
 import {ProcessedBeatmap} from "../datamodel/processedbeatmap";
 import {BeatmapDifficulty} from "../datamodel/beatmapdifficulty";
+import {ModHelper, DEFAULT_SPIN_RADIUS, RADIUS_LERP_DURATION} from "./modhelper";
 
 export class Play {
     constructor(beatmap, audio) {
         GAME_STATE.currentPlay = this;
 
-        this.autoplay = document.getElementById("auto").checked;
+        this.mods = ModHelper.parseModCodeToObject(prompt("Enter modcode:"));
+
+        let generationStartTime = window.performance.now();
 
         this.audio = audio;
         this.beatmap = new ProcessedBeatmap(beatmap);
@@ -42,9 +45,17 @@ export class Play {
 
         this.ARMs = this.beatmap.difficulty.getApproachTime();
 
+        if (this.mods.AT) {
+            INPUT_STATE.suppressManualCursorControl = true;
+            this.playthroughInstructions = ModHelper.generateAutoPlaythroughInstructions(this);
+            this.currentPlaythroughInstruction = 0;
+        }
+
         for (let z = 0; z < this.beatmap.hitObjects.length; z++) {
             this.beatmap.hitObjects[z].draw();
         }
+
+        Console.info("Beatmap generation time: " + ((window.performance.now() - generationStartTime) / 1000).toFixed(3) + "s");
 
         this.accmeter = new AccMeter();
         this.progressbar = new ProgressBar();
@@ -74,6 +85,8 @@ export class Play {
     }
 
     render() {
+        let currentTime = AUDIO_MANAGER.getCurrentSongTime();
+
         if(this.progressbar) this.progressbar.render.bind(this.progressbar)();
         if(this.accmeter) this.accmeter.render.bind(this.accmeter)();
 
@@ -84,6 +97,8 @@ export class Play {
         for(let key in this.onScreenFollowPoints) {
             this.onScreenFollowPoints[key].render.bind(this.onScreenFollowPoints[key])();
         }
+
+        if(this.playthroughInstructions && this.audioStarted) this.handlePlaythroughInstructions(currentTime);
 
         this.score.updateDisplay();
     }
@@ -131,6 +146,60 @@ export class Play {
         }
     }
 
+    handlePlaythroughInstructions(currentTime) {
+        if (!this.playthroughInstructions[this.currentPlaythroughInstruction]) {
+            return;
+        }
+
+        let pixelRatio = GraphicUtil.getPixelRatio();
+
+        if (this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
+            while (this.playthroughInstructions[this.currentPlaythroughInstruction + 1].time <= currentTime) {
+                this.currentPlaythroughInstruction++;
+
+                if (!this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
+                    break;
+                }
+            }
+        }
+
+        let currentInstruction = this.playthroughInstructions[this.currentPlaythroughInstruction];
+        if (currentInstruction.time <= currentTime) {
+            if (currentInstruction.type === "blink") {
+                InputUtil.moveCursorToPlayfieldPos(currentInstruction.to.x, currentInstruction.to.y);
+                this.currentPlaythroughInstruction++;
+            } else if (currentInstruction.type === "move") {
+                // TODO: Implement different easing types to mimic human cursor movement
+
+                let completion = Math.min(1, Math.max(0, (currentTime - currentInstruction.time) / (currentInstruction.endTime - currentInstruction.time)));
+                let pos = {
+                    x: currentInstruction.startPos.x * (1 - completion) + currentInstruction.endPos.x * completion,
+                    y: currentInstruction.startPos.y * (1 - completion) + currentInstruction.endPos.y * completion,
+                };
+
+                InputUtil.moveCursorToPlayfieldPos(pos.x, pos.y);
+            } else if (currentInstruction.type === "follow") {
+                let completion = (currentInstruction.elem.timingInfo.sliderVelocity * (currentTime - currentInstruction.elem.startTime)) / currentInstruction.elem.hitObject.length;
+                let pos = GraphicUtil.getCoordFromCoordArray(currentInstruction.elem.curve.equalDistancePoints, MathUtil.reflect(Math.min(currentInstruction.elem.hitObject.repeat, completion)));
+                pos.x /= pixelRatio, pos.y /= pixelRatio;
+
+                InputUtil.moveCursorToPlayfieldPos(pos.x, pos.y);
+
+                if (currentTime > currentInstruction.elem.endTime) {
+                    this.currentPlaythroughInstruction++;
+                }
+            } else if (currentInstruction.type === "spin") {
+                let spinPos = ModHelper.getSpinPositionFromInstruction(currentInstruction, Math.min(currentInstruction.endTime, currentTime));
+
+                InputUtil.moveCursorToPlayfieldPos(spinPos.x, spinPos.y);
+
+                if (currentTime > currentInstruction.endTime) {
+                    this.currentPlaythroughInstruction++;
+                }
+            }
+        }
+    }
+
     doDebugOutput() {
         let timeDif = window.performance.now() - this.lastTickClockTime;
 
@@ -158,7 +227,7 @@ export class Play {
             if (hitObject.constructor.name === "DrawableCircle") {
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
-                    if (this.autoplay) hitObject.hit(currentTime - hitObject.startTime); // AUTO hitting
+                    if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime); // AUTO hitting
                     hitObject.approachCircleCanvas.style.visibility = "hidden";
                 }
                 // Fade out object when it has not been hit
@@ -194,7 +263,7 @@ export class Play {
 
                         let dist = Math.hypot(tickPosition.x / GraphicUtil.getPixelRatio() - userPlayfieldCoords.x, tickPosition.y / GraphicUtil.getPixelRatio() - userPlayfieldCoords.y);
 
-                        if (dist <= this.csOsuPixel && INPUT_STATE.isHolding || this.autoplay) {
+                        if (dist <= this.csOsuPixel && INPUT_STATE.isHolding || this.mods.AT) {
                             if (completionsToEval[i] === hitObject.hitObject.repeat) {
                                 hitObject.scoring.end = true;
                             } else {
@@ -219,7 +288,7 @@ export class Play {
                 }
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
-                    if (this.autoplay) hitObject.hit(currentTime - hitObject.startTime);
+                    if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime);
                     hitObject.approachCircleCanvas.style.display = "none";
                 }
                 // Fade out slider head when it has not been hit
@@ -242,11 +311,6 @@ export class Play {
                 }
             } else if (hitObject.constructor.name === "DrawableSpinner") {
                 if (currentTime >= hitObject.startTime) {
-                    // Activate spinner
-                    if (!hitObject.active) {
-                        hitObject.active = true;
-                        hitObject.lastTimeSampled = window.performance.now();
-                    }
                     // Spinner clear
                     if (hitObject.absoluteDegreesRotated / (Math.PI * 2) >= hitObject.requiredSpins) {
                         hitObject.clear();
@@ -264,6 +328,11 @@ export class Play {
                         if (!hitObject.cleared) {
                             GAME_STATE.currentPlay.score.addScore(100, true, true);
                         }
+                    }
+                    // Activate spinner
+                    if (!hitObject.active) {
+                        hitObject.active = true;
+                        hitObject.lastTimeSampled = window.performance.now();
                     }
                 }
 

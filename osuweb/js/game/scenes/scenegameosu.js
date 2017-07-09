@@ -56,7 +56,7 @@ export class SceneGameOsu extends SceneGame {
         this.showElements([
             "playareaDiv", "objectContainerDiv", "progressCanvas", "spinnerContainerContainer", "ingameContainerSection",
             "accarrowImg", "accmeterDiv", "accstrip50Div", "accstrip100Div", "accstrip300Div", "acctickXDiv",
-            "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv", "autoDiv"]);
+            "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv"]);
 
         this._beatmapset.getAudioFileByName(this._beatmap.audioFilename, (audioFile) => {
             if(audioFile.key !== undefined) {

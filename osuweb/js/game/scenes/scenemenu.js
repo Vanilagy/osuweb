@@ -10,9 +10,7 @@ export class SceneMenu extends SceneBase {
         this.addElement("osuInput", "osu");
         this.addElement("beatmapInput", "beatmap");
         this.addElement("snakingInput", "snaking");
-        this.addElement("autoInput", "auto");
         this.addElement("snakingDiv", "snakingOption");
-        this.addElement("autoDiv", "autoOption");
     }
 
     preOpen(oldScene, callback) {
@@ -28,7 +26,7 @@ export class SceneMenu extends SceneBase {
     }
     
     preClose(newScene, callback) {
-        this.hideElements(["beatmapInput", "osuInput", "snakingDiv", "autoDiv"]);
+        this.hideElements(["beatmapInput", "osuInput", "snakingDiv"]);
 
         callback(true);
     }

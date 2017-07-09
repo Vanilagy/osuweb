@@ -160,6 +160,14 @@ export class MathUtil {
         }
         return total / len;
     }
+    static clamp(val, min, max) {
+	    if (val < min) {
+	        return min;
+        } else if (val > max) {
+	        return max;
+        }
+        return val;
+    }
 }
 
 let interpolationStorage = {};
