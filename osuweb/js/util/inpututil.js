@@ -19,6 +19,16 @@ export class InputUtil {
         return mouseY - element.getBoundingClientRect().top;
     }
 
+    static normalizeWheelEvent(event) {
+        // 120 should be one tick of scrollin' BOOOOOIIISSSSS IUHAI DHSIDF GSIZgpiu goczghdihgsofh fuck browsers
+
+        if (event.wheelDelta) {
+            return -event.wheelDelta;
+        } else { // FUCKERFOX
+            return event.deltaY * 120;
+        }
+    }
+
     static updatePlayfieldBounds() {
         playfieldBounds = {
             x: playareaElement.getBoundingClientRect().left,
