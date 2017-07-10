@@ -37,6 +37,7 @@ export class SliderCurvePassthrough extends SliderCurve {
         if(!isFinite(centerPos.x) || !isFinite(centerPos.y)) {
             // Remove middle point
             this.sections[0].values.splice(1,1);
+            this.sections[0].type = "linear";
 
             let curve = new SliderCurveBezier(this.slider);
 
