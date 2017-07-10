@@ -60,6 +60,7 @@ export class DrawableSlider extends DrawableHitObject {
 
     hit(timeDelta) {
         Console.verbose(DEBUG_PREFIX+" Slider head hit (error: "+(timeDelta)+")");
+
         let score = GAME_STATE.currentPlay.beatmap.difficulty.getRatingForHitDelta(Math.abs(timeDelta));
         this.scoring.head = score !== 0;
         this.hittable = false;

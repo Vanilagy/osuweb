@@ -14,8 +14,9 @@ import {MathUtil} from "../util/mathutil";
 import {Console} from "../console";
 import {DrawableHitObject} from "./drawablehitobject";
 import {ProcessedBeatmap} from "../datamodel/processedbeatmap";
-import {BeatmapDifficulty} from "../datamodel/beatmapdifficulty";
-import {ModHelper, DEFAULT_SPIN_RADIUS, RADIUS_LERP_DURATION} from "./modhelper";
+import {ModHelper} from "./modhelper";
+
+const EXPECTED_AVERAGE_CLOCK_SPEED = 5; // Used to offset timeDelta for AT
 
 export class Play {
     constructor(beatmap, audio) {
@@ -177,7 +178,17 @@ export class Play {
             } else if (currentInstruction.type === "move") {
                 // TODO: Implement different easing types to mimic human cursor movement
 
+                let osuPxPerMs = Math.hypot(currentInstruction.startPos.x - currentInstruction.endPos.x, currentInstruction.startPos.y - currentInstruction.endPos.y) / (currentInstruction.endTime - currentInstruction.time);
+                let easingType = undefined;
+                if (osuPxPerMs < 0.75) {
+                    easingType = "linear";
+                } else {
+                    easingType = "easeOutQuad";
+                }
+                easingType = "easeOutQuad"; // TODO: Figure this out
+
                 let completion = Math.min(1, Math.max(0, (currentTime - currentInstruction.time) / (currentInstruction.endTime - currentInstruction.time)));
+                completion = MathUtil.ease(easingType, completion);
                 let pos = {
                     x: currentInstruction.startPos.x * (1 - completion) + currentInstruction.endPos.x * completion,
                     y: currentInstruction.startPos.y * (1 - completion) + currentInstruction.endPos.y * completion,
@@ -233,7 +244,7 @@ export class Play {
             if (hitObject.constructor.name === "DrawableCircle") {
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
-                    if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime); // AUTO hitting
+                    if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime - EXPECTED_AVERAGE_CLOCK_SPEED / 2); // AUTO hitting
                     hitObject.approachCircleCanvas.style.visibility = "hidden";
                 }
                 // Fade out object when it has not been hit
@@ -294,7 +305,7 @@ export class Play {
                 }
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
-                    if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime);
+                    if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime - EXPECTED_AVERAGE_CLOCK_SPEED / 2);
                     hitObject.approachCircleCanvas.style.display = "none";
                 }
                 // Fade out slider head when it has not been hit

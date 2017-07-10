@@ -58,6 +58,14 @@ export class SceneGameOsu extends SceneGame {
             "accarrowImg", "accmeterDiv", "accstrip50Div", "accstrip100Div", "accstrip300Div", "acctickXDiv",
             "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv"]);
 
+
+        this.elements["scoreDisplayP"].interpolationData = {
+            startTime: -10e6,
+            duration: 0,
+            startValue: 0,
+            endValue: 0
+        };
+
         this._beatmapset.getAudioFileByName(this.beatmap.audioFilename, (audioFile) => {
             if(audioFile.key !== undefined) {
                 new Play(this.beatmap, audioFile.key);

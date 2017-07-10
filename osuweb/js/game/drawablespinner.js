@@ -124,6 +124,7 @@ export class DrawableSpinner extends DrawableHitObject {
         this.completedBonusSpins = newCompletedBonusSpins;
         this.bonusSpinsCounter.innerHTML = newCompletedBonusSpins * 1000;
         this.bonusSpinsCounter.style.animation = "none";
+        this.bonusSpinsCounter.offsetWidth; // Redraw to reset animation
         this.bonusSpinsCounter.style.animation = "0.15s increaseSpinnerBonus ease-out forwards";
 
         let skin = GAME_STATE.currentSkin || GAME_STATE.defaultSkin;

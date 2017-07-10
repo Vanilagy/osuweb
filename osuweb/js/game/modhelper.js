@@ -4,10 +4,11 @@ import {MathUtil} from "../util/mathutil";
 import {GraphicUtil} from "../util/graphicutil";
 import {Console} from "../console";
 
+const DEBUG_PREFIX = "[AUTO] ";
 const IMPLEMENTED_MODS = ["AT", "HR", "EZ", "SO"];
-
-export const DEFAULT_SPIN_RADIUS = 45;
-export const RADIUS_LERP_DURATION = 480;
+const DEFAULT_SPIN_RADIUS = 45;
+const RADIUS_LERP_DURATION = 480;
+const SPINNER_END_REDUCTION = 1; // For edge cases where objects might start immediately after spinner. Done so movement will be correct.
 
 class Waypoint {
     constructor(type, time, pos, elem) {
@@ -89,7 +90,8 @@ export class ModHelper {
         beatmap.difficulty.HP /= 2; // half
     }
     static generateAutoPlaythroughInstructions(play) {
-        Console.debug("Generating auto playthrough instructions...");
+        Console.debug(DEBUG_PREFIX+"Generating auto playthrough instructions...");
+        let startTime = window.performance.now();
 
         /* Generates waypoints from start and end positions aswell as slider ticks and spinners.
            Will be used to construct movement instructions.
@@ -120,14 +122,15 @@ export class ModHelper {
                 }
             } else if (hitObject.getType() === "DrawableSpinner") {
                 waypoints.push(new Waypoint("spinnerStart", hitObject.startTime, null, hitObject));
-                waypoints.push(new Waypoint("spinnerEnd", hitObject.endTime, null, hitObject)); // Used to decrement active spinner count
+                waypoints.push(new Waypoint("spinnerEnd", hitObject.endTime - SPINNER_END_REDUCTION, null, hitObject)); // Used to decrement active spinner count
             }
 
-            Console.verbose("Added waypoint: " + waypoints[waypoints.length - 1]);
+            Console.verbose(DEBUG_PREFIX+"Added waypoint: " + waypoints[waypoints.length - 1]);
         }
         waypoints.sort(function(a, b) {return a.time - b.time});
-        Console.debug("Generated waypoints: " + waypoints);
+        Console.debug(DEBUG_PREFIX+"Generated waypoints in " + (window.performance.now() - startTime).toFixed(3) + "ms");
 
+        let instructionsStartTime = window.performance.now();
         let instructions = [];
         let activeSpinnerCount = 0; // All objects are ignored when spinning
 
@@ -190,14 +193,14 @@ export class ModHelper {
                     type: "spin",
                     time: waypoint.time,
                     startPos: getLastInstructionPosition(waypoint.time),
-                    endTime: waypoint.elem.endTime
+                    endTime: waypoint.elem.endTime - SPINNER_END_REDUCTION
                 });
             } else if (waypoint.type === "spinnerEnd") {
                 activeSpinnerCount--;
             }
 
             if (waypoints.type !== "spinnerEnd") {
-                Console.verbose("Added instruction: " + instructions[instructions.length - 1]);
+                Console.verbose(DEBUG_PREFIX+"Added instruction: " + instructions[instructions.length - 1]);
             }
         }
 
@@ -215,7 +218,7 @@ export class ModHelper {
                 }
             }
         }
-        Console.debug("Removed repeated followSlider instructions");
+        Console.debug(DEBUG_PREFIX+"Removed repeated followSlider instructions");
 
         // Merge simulatenous spinners into one instruction
         for (let i = 0; i < instructions.length; i++) {
@@ -232,7 +235,7 @@ export class ModHelper {
                 }
             }
         }
-        Console.debug("Merged simultaneous spinners");
+        Console.debug(DEBUG_PREFIX+"Merged simultaneous spinners");
 
         // Remove unnecessary instructions with same starting time
         for (let i = 0; i < instructions.length; i++) {
@@ -246,7 +249,7 @@ export class ModHelper {
                 }
             }
         }
-        Console.debug("Removed unnecessary instructions");
+        Console.debug(DEBUG_PREFIX+"Removed unnecessary instructions");
 
         function getLastInstructionPosition(time) {
             let pixelRatio = GraphicUtil.getPixelRatio();
@@ -285,7 +288,8 @@ export class ModHelper {
             }
         }
 
-        Console.debug("Generated instructions: " + instructions);
+        Console.debug(DEBUG_PREFIX+"Generated instructions in " + (window.performance.now() - instructionsStartTime).toFixed(3) + "ms");
+        Console.debug(DEBUG_PREFIX+"Algorithm completed in " + (window.performance.now() - startTime).toFixed(3) + "ms");
         return instructions;
     }
     static getSpinPositionFromInstruction(instruction, time) {

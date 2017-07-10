@@ -69,6 +69,7 @@ export class AccMeter {
     }
 
     addRating(timeDelta) {
+        return // Temporarily disabled. TODO: recode using canvas
         let tickDiv = document.createElement("div");
 
         tickDiv.className = "acctick";

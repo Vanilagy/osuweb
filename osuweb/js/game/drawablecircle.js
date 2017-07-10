@@ -3,6 +3,9 @@
 import {DrawableHitObject} from "./drawablehitobject";
 import {GAME_STATE} from "../main";
 import {GraphicUtil} from "../util/graphicutil";
+import {Console} from "../console";
+
+const DEBUG_PREFIX = "[CIRCLE]";
 
 export class DrawableCircle extends DrawableHitObject {
     constructor(circle, beatmap) {
@@ -13,6 +16,8 @@ export class DrawableCircle extends DrawableHitObject {
     }
 
     hit(timeDelta) {
+        Console.verbose(DEBUG_PREFIX+" Hit Circle hit (error: "+(timeDelta)+")");
+
         let score = GAME_STATE.currentPlay.beatmap.difficulty.getRatingForHitDelta(Math.abs(timeDelta));
         this.hittable = false;
 

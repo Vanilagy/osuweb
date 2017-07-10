@@ -1,29 +1,29 @@
 @font-face {
     font-family: Exo2LightItalic;
-    src: url(assets/Exo2-LightItalic.otf);
+    src: url(../assets/Exo2-LightItalic.otf);
     font-style: italic;
 }
 @font-face {
     font-family: Exo2SemiBoldItalic;
-    src: url(assets/Exo2-SemiBoldItalic.otf);
+    src: url(../assets/Exo2-SemiBoldItalic.otf);
     font-style: italic;
 }
 @font-face {
     font-family: Exo2MediumItalic;
-    src: url(assets/Exo2-MediumItalic.otf);
+    src: url(../assets/Exo2-MediumItalic.otf);
     font-style: italic;
 }
 @font-face {
     font-family: Exo2Medium;
-    src: url(assets/Exo2-Medium.otf);
+    src: url(../assets/Exo2-Medium.otf);
 }
 @font-face {
     font-family: Exo;
-    src: url(assets/Exo/Exo-Regular.ttf);
+    src: url(../assets/Exo/Exo-Regular.ttf);
 }
 @font-face {
     font-family: Venera;
-    src: url(assets/Venera.otf);
+    src: url(../assets/Venera.otf);
 }
 html,body {
     min-width: 100%;
@@ -63,7 +63,7 @@ body {
     top:0px;
     pointer-events: none;
     z-index: -300;
-    background-image: url("./img/background.png");
+    background-image: url("../img/background.png");
     background-size: cover;
     transition: background-image 0.2s linear, filter 0.2s linear;
 }

@@ -52,6 +52,15 @@ export class Score {
             this.breakCombo();
         } else {
             this.score += Math.round(amount + ((comboIndependent) ? 0 : amount) * (Math.max(0, this.combo - 1) * this.difficultyMultiplier * this.modMultiplier) / 25);
+
+            let interpolationData = SCENE_MANAGER.getScene().elements["scoreDisplayP"].interpolationData;
+            let timePassed = window.performance.now() - interpolationData.startTime;
+            let completion = MathUtil.clamp(timePassed / interpolationData.duration, 0, 1);
+            completion = MathUtil.ease("easeOutQuart", completion);
+            interpolationData.duration = Math.max(60, Math.max(interpolationData.duration - timePassed, amount * 2.2));
+            interpolationData.startTime = window.performance.now();
+            interpolationData.startValue = interpolationData.startValue * (1 - completion) + interpolationData.endValue * completion;
+            interpolationData.endValue = this.score;
         }
 
         if (!suppressComboIncrease) {
@@ -141,10 +150,14 @@ export class Score {
     }
 
     updateDisplay() {
+        let interpolationData = SCENE_MANAGER.getScene().elements["scoreDisplayP"].interpolationData;
+        let completion = MathUtil.clamp((window.performance.now() - interpolationData.startTime) / interpolationData.duration, 0, 1);
+        completion = MathUtil.ease("easeOutQuad", completion);
+        let value = interpolationData.startValue * (1 - completion) + interpolationData.endValue * completion;
+        SCENE_MANAGER.getScene().elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(value)).slice(Math.min(-8, -Math.floor(value).toString().length));
+
         if (this.score !== this.prevScore) {
-            MathUtil.interpolate(this.prevScore, this.score, 150, "easeOutQuad", function (x) {
-                SCENE_MANAGER.getScene().elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(Math.min(-8, -Math.floor(x).toString().length));
-            }, "scoreIncreaseAnimation");
+
         }
         if (this.accuracy !== this.prevAccuracy) {
             MathUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOutQuad", function (x) {
@@ -154,6 +167,7 @@ export class Score {
         if (this.combo !== this.prevCombo) {
             SCENE_MANAGER.getScene().elements["comboDisplayP"].innerHTML = this.combo + "x";
             SCENE_MANAGER.getScene().elements["comboDisplayP"].style.animation = "none";
+            SCENE_MANAGER.getScene().elements["comboDisplayP"].offsetWidth; // Redraw to reset animation
             SCENE_MANAGER.getScene().elements["comboDisplayP"].style.animation = "0.5s pulseCombo ease-out forwards";
         }
 
