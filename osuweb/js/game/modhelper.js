@@ -289,7 +289,7 @@ export class ModHelper {
         return instructions;
     }
     static getSpinPositionFromInstruction(instruction, time) {
-        let radiusLerpCompletion = MathUtil.ease("easeInOut", MathUtil.clamp((time - instruction.time) / RADIUS_LERP_DURATION, 0, 1));
+        let radiusLerpCompletion = MathUtil.ease("easeInOutQuad", MathUtil.clamp((time - instruction.time) / RADIUS_LERP_DURATION, 0, 1));
         let spinRadius = Math.hypot(instruction.startPos.x - 256, instruction.startPos.y - 192) * (1 - radiusLerpCompletion) + DEFAULT_SPIN_RADIUS * radiusLerpCompletion;
         let angle = Math.atan2(instruction.startPos.y - 192, instruction.startPos.x - 256) + 0.05 * (time - instruction.time);
 

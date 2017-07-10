@@ -157,15 +157,63 @@ export class MathUtil {
         return val;
     }
     static ease(type, val) {
+        let p = 0.3; // Some shit used for elastic bounce
+
 	    switch (type) {
-            case "linear":
+	        /**
+                Only considering the value for the range [0, 1] => [0, 1].
+	            The higher the power used (Quad, Cubic, Quart), the more sudden the animation will be.
+	         */
+
+            case "linear": // no easing, no acceleration
                 return val; break;
-            case "easeOut":
-                return -(val * val) + 2 * val; break;
-            case "easeIn":
+            case "easeInQuad": // accelerating from zero velocity
                 return val * val; break;
-            case "easeInOut":
+            case "easeOutQuad": // decelerating to zero velocity
+                return val * (2 - val); break;
+            case "easeInOutQuad": // acceleration until halfway, then deceleration
+                return val < 0.5 ? 2 * val * val : -1 + (4 - 2 * val) * val; break;
+            case "easeInCubic": // accelerating from zero velocity
+                return val * val * val; break;
+            case "easeOutCubic": // decelerating to zero velocity
+                return (--val) * val * val + 1; break;
+            case "easeInOutCubic": // acceleration until halfway, then deceleration
+                return val < 0.5 ? 4 * val * val * val : (val - 1) * (2 * val - 2) * (2 * val - 2) + 1; break;
+            case "easeInQuart": // accelerating from zero velocity
+                return val * val * val * val; break;
+            case "easeOutQuart": // decelerating to zero velocity
+                return 1-(--val) * val * val * val; break;
+            case "easeInOutQuart": // acceleration until halfway, then deceleration
+                return val < 0.5 ? 8 * val * val * val * val : 1 - 8 * (--val) * val * val * val; break;
+            case "easeInQuint": // accelerating from zero velocity
+                return val * val * val * val * val; break;
+            case "easeOutQuint": // decelerating to zero velocity
+                return 1+(--val) * val * val * val * val; break;
+            case "easeInOutQuint": // acceleration until halfway, then deceleration
+                return val < 0.5 ? 16 * val * val * val * val * val : 1 + 16*(--val) * val * val * val * val; break;
+            case "easeOutElastic": // Cartoon-like elastic effect
+                return Math.pow(2,-10*val) * Math.sin((val-p/4)*(2*Math.PI)/p) + 1; break;
+            case "easeInSine": // accelerating from zero velocity, using trig.
+                return -1 * Math.cos(val * (Math.PI / 2)) + 1; break;
+            case "easeOutSine": // decelerating to zero velocity, using trig.
+                return Math.sin(val * (Math.PI / 2)); break;
+            case "easeInOutSine": // acceleration until halfway, then deceleration, using trig.
                 return Math.cos(Math.PI * val) * -0.5 + 0.5; break;
+            case "easeInExpo": // Accelerate exponentially until finish
+                return val === 0 ? 0 : Math.pow(2, 10 * (val - 1)); break;
+            case "easeOutExpo": // Initial exponential acceleration slowing to stop
+                return val === 1 ? 1 : (-Math.pow(2, -10 * val) + 1);
+            case "easeInOutExpo": // Exponential acceleration and deceleration
+                if (val === 0 || val === 1) return val;
+
+                const scaledTime = val * 2;
+                const scaledTime1 = scaledTime - 1;
+
+                if(scaledTime < 1) {
+                    return 0.5 * Math.pow(2, 10 * (scaledTime1));
+                }
+
+                return 0.5 * (-Math.pow(2, -10 * scaledTime1) + 2);
             default:
                 return val;
         }

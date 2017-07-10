@@ -58,7 +58,7 @@ export class AccMeter {
                     SCENE_MANAGER.getScene().elements.accarrowImg.style.left = newValue;
                 }
                 else {
-                    MathUtil.interpolate(oldValue, newValue, 500, "easeOut", function (val) {
+                    MathUtil.interpolate(oldValue, newValue, 500, "easeOutQuad", function (val) {
                         SCENE_MANAGER.getScene().elements.accarrowImg.style.left = val;
                     }, "accarrow", 60);
                 }

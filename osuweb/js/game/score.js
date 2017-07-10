@@ -142,12 +142,12 @@ export class Score {
 
     updateDisplay() {
         if (this.score !== this.prevScore) {
-            MathUtil.interpolate(this.prevScore, this.score, 150, "easeOut", function (x) {
+            MathUtil.interpolate(this.prevScore, this.score, 150, "easeOutQuad", function (x) {
                 SCENE_MANAGER.getScene().elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(x)).slice(Math.min(-8, -Math.floor(x).toString().length));
             }, "scoreIncreaseAnimation");
         }
         if (this.accuracy !== this.prevAccuracy) {
-            MathUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOut", function (x) {
+            MathUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOutQuad", function (x) {
                 SCENE_MANAGER.getScene().elements["accuracyDisplayP"].innerHTML = (Math.floor(x * 10000) / 100).toFixed(2) + "%";
             }, "accuracyChangeAnimation");
         }
