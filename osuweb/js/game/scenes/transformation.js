@@ -7,7 +7,9 @@ export class TransformationManager {
         this._transformations = [];
     }
 
-    addTransformation(transformation) {
+    addTransformation(transformation, keepStartTime = false) {
+        if(!keepStartTime) transformation.startTime = window.performance.now();
+
         this._transformations.push(transformation);
     }
 
