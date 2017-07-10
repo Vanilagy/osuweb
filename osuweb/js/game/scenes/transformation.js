@@ -60,11 +60,11 @@ export class Transformation {
     }
 
     /**
-     * Sets the delay of this transformation. The first execution of this transformation will only start
+     * Adds a delay of this transformation. The first execution of this transformation will only start
      * @param delay - The time this tranformation will wait before it starts to get executed.
      * @returns {Transformation}
      */
-    setDelay(delay) {
+    addDelay(delay) {
         this.startTime += delay;
         return this;
     }
