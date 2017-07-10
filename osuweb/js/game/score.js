@@ -84,7 +84,6 @@ export class Score {
         this.accuracy = (this.totalNumberOfHits) ? this.totalValueOfHits / (this.totalNumberOfHits * 300) : 1;
 
         // Set up animation for accuracy
-        let delta = Math.abs(this.accuracy - this.prevAccuracy);
         let interpolationData = SCENE_MANAGER.getScene().elements["accuracyDisplayP"].interpolationData;
         let timePassed = window.performance.now() - interpolationData.startTime;
         let completion = MathUtil.clamp(timePassed / interpolationData.duration, 0, 1);

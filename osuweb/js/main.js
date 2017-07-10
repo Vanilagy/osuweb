@@ -1,3 +1,5 @@
+const BOIS = "BOIS";
+
 "use strict";
 
 import {Settings} from "./settings";

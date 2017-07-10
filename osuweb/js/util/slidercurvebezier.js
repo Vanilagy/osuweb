@@ -11,14 +11,25 @@ export class SliderCurveBezier extends SliderCurve {
         super(drawableSlider);
 
         this.tracePoints = [];
-        this.calculateTracePoints();
 
+        this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * GraphicUtil.getPixelRatio();
+        this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * GraphicUtil.getPixelRatio();
+
+        if (this.sections.length === 1 && this.sections[0].values.length === 2) { // If it's only one linear sections b-o-i-s
+            this.pushEqualDistancePoint(this.sections[0].values[0]);
+            this.pushEqualDistancePoint(this.sections[0].values[1]);
+
+            console.log(this.equalDistancePoints);
+
+            return;
+        }
+
+        this.calculateTracePoints();
         this.calculateEqualDistancePoints();
     }
 
     calculateTracePoints() {
-        this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * GraphicUtil.getPixelRatio();
-        this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * GraphicUtil.getPixelRatio();
+
 
         for (let i = 0; i < this.sections.length; i++) {
             let points = this.sections[i].values;

@@ -12,7 +12,8 @@ import {SliderCurveEmpty} from "../util/slidercurveempty";
 const DEBUG_PREFIX = "[SLIDER]";
 
 export let SLIDER_SETTINGS = {
-    snaking: false
+    snaking: false,
+    debugDrawing: false // Draws the traced points as dots
 };
 
 export class DrawableSlider extends DrawableHitObject {
@@ -259,7 +260,8 @@ export class DrawableSlider extends DrawableHitObject {
         let time = window.performance.now();
         Console.verbose(DEBUG_PREFIX+" Drawing slider base (body)");
 
-        let targetIndex = Math.floor(thisCompletion * (this.curve.equalDistancePoints.length - 1));
+        let actualIndex = thisCompletion * (this.curve.equalDistancePoints.length - 1);
+        let targetIndex = Math.floor(actualIndex);
 
         Console.verbose(DEBUG_PREFIX+" Clearing canvas (time passed: "+(window.performance.now()-time).toFixed(3)+")");
         this.baseCtx.clearRect(0, 0, Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel), Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
@@ -267,8 +269,20 @@ export class DrawableSlider extends DrawableHitObject {
         Console.verbose(DEBUG_PREFIX+" Drawing slider border (time passed: "+(window.performance.now()-time).toFixed(3)+")");
         this.baseCtx.beginPath();
         this.baseCtx.moveTo(this.curve.equalDistancePoints[0].x - this.minX + GAME_STATE.currentPlay.halfCsPixel, this.curve.equalDistancePoints[0].y - this.minY + GAME_STATE.currentPlay.halfCsPixel);
-        for (let i = 0; i < targetIndex + 1; i++) {
+        for (let i = 1; i < targetIndex + 1; i++) {
             this.baseCtx.lineTo(this.curve.equalDistancePoints[i].x - this.minX + GAME_STATE.currentPlay.halfCsPixel, this.curve.equalDistancePoints[i].y - this.minY + GAME_STATE.currentPlay.halfCsPixel);
+
+            if (SLIDER_SETTINGS.debugDrawing) {
+                this.baseCtx.beginPath();
+                this.baseCtx.arc(this.curve.equalDistancePoints[i].x - this.minX + GAME_STATE.currentPlay.halfCsPixel, this.curve.equalDistancePoints[i].y - this.minY + GAME_STATE.currentPlay.halfCsPixel, 1, 0, Math.PI * 2);
+                this.baseCtx.fillStyle = "white";
+                this.baseCtx.fill();
+            }
+        }
+
+        if (thisCompletion !== 1) {
+            let snakingEndPoint = GraphicUtil.getCoordFromCoordArray(this.curve.equalDistancePoints, thisCompletion);
+            this.baseCtx.lineTo(snakingEndPoint.x - this.minX + GAME_STATE.currentPlay.halfCsPixel, snakingEndPoint.y - this.minY + GAME_STATE.currentPlay.halfCsPixel);
         }
 
         this.baseCtx.lineWidth = GAME_STATE.currentPlay.csPixel * this.reductionFactor;
@@ -276,19 +290,19 @@ export class DrawableSlider extends DrawableHitObject {
         this.baseCtx.lineCap = "round";
         this.baseCtx.lineJoin = "round";
         this.baseCtx.globalCompositeOperation = "source-over";
-        this.baseCtx.stroke();
+        if(!SLIDER_SETTINGS.debugDrawing) this.baseCtx.stroke();
 
         Console.verbose(DEBUG_PREFIX+" Drawing slider path (time passed: "+(window.performance.now()-time).toFixed(3)+")");
         for (let i = this.sliderBodyRadius; i > 1; i -= 2) {
             this.baseCtx.lineWidth = i * 2;
             let completionRgb = Math.floor((1 - (i / this.sliderBodyRadius)) * 130);
             this.baseCtx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", " + completionRgb + ")";
-            this.baseCtx.stroke();
+            if(!SLIDER_SETTINGS.debugDrawing) this.baseCtx.stroke();
         }
         this.baseCtx.lineWidth = this.sliderBodyRadius * 2;
         this.baseCtx.strokeStyle = "rgba(255, 255, 255, 0.5)";
         this.baseCtx.globalCompositeOperation = "destination-out"; // Transparency
-        this.baseCtx.stroke();
+        if(!SLIDER_SETTINGS.debugDrawing) this.baseCtx.stroke();
 
         this.complete = thisCompletion === 1;
     }
