@@ -51,8 +51,9 @@ export class Score {
         if (amount === 0) {
             this.breakCombo();
         } else {
-            this.score += Math.round(amount + ((comboIndependent) ? 0 : amount) * (Math.max(0, this.combo - 1) * this.difficultyMultiplier * this.modMultiplier) / 25);
+            this.score += Math.floor(amount + ((comboIndependent) ? 0 : amount) * (Math.max(0, this.combo - 1) * this.difficultyMultiplier * this.modMultiplier) / 25);
 
+            // Set up animation for score
             let interpolationData = SCENE_MANAGER.getScene().elements["scoreDisplayP"].interpolationData;
             let timePassed = window.performance.now() - interpolationData.startTime;
             let completion = MathUtil.clamp(timePassed / interpolationData.duration, 0, 1);
@@ -69,6 +70,10 @@ export class Score {
                 this.maxCombo = this.combo;
             }
         }
+        if (this.combo !== this.prevCombo) {
+            // Set up animation for combo
+            SCENE_MANAGER.getScene().elements["comboDisplayP"].interpolationData.startTime = window.performance.now();
+        }
 
         if (!comboIndependent) {
             this.totalNumberOfHits++;
@@ -77,6 +82,17 @@ export class Score {
         }
 
         this.accuracy = (this.totalNumberOfHits) ? this.totalValueOfHits / (this.totalNumberOfHits * 300) : 1;
+
+        // Set up animation for accuracy
+        let delta = Math.abs(this.accuracy - this.prevAccuracy);
+        let interpolationData = SCENE_MANAGER.getScene().elements["accuracyDisplayP"].interpolationData;
+        let timePassed = window.performance.now() - interpolationData.startTime;
+        let completion = MathUtil.clamp(timePassed / interpolationData.duration, 0, 1);
+        completion = MathUtil.ease("easeOutCubic", completion);
+        interpolationData.startTime = window.performance.now();
+        interpolationData.startValue = interpolationData.startValue * (1 - completion) + interpolationData.endValue * completion;
+        interpolationData.endValue = this.accuracy;
+        this.prevAccuracy = this.accuracy;
 
         if (hitObject) {
             let comboNum = hitObject.comboInfo.comboNum;
@@ -150,29 +166,28 @@ export class Score {
     }
 
     updateDisplay() {
-        let interpolationData = SCENE_MANAGER.getScene().elements["scoreDisplayP"].interpolationData;
-        let completion = MathUtil.clamp((window.performance.now() - interpolationData.startTime) / interpolationData.duration, 0, 1);
-        completion = MathUtil.ease("easeOutQuad", completion);
-        let value = interpolationData.startValue * (1 - completion) + interpolationData.endValue * completion;
-        SCENE_MANAGER.getScene().elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(value)).slice(Math.min(-8, -Math.floor(value).toString().length));
+        // Score
+        let scoreInterpolationData = SCENE_MANAGER.getScene().elements["scoreDisplayP"].interpolationData;
+        let scoreCompletion = MathUtil.clamp((window.performance.now() - scoreInterpolationData.startTime) / scoreInterpolationData.duration, 0, 1);
+        scoreCompletion = MathUtil.ease("easeOutQuad", scoreCompletion);
+        let score = scoreInterpolationData.startValue * (1 - scoreCompletion) + scoreInterpolationData.endValue * scoreCompletion;
+        SCENE_MANAGER.getScene().elements["scoreDisplayP"].innerHTML = ("00000000" + Math.floor(score)).slice(Math.min(-8, -Math.floor(score).toString().length));
 
-        if (this.score !== this.prevScore) {
+        // Accuracy
+        let accuracyInterpolationData = SCENE_MANAGER.getScene().elements["accuracyDisplayP"].interpolationData;
+        let accuracyCompletion = MathUtil.clamp((window.performance.now() - accuracyInterpolationData.startTime) / accuracyInterpolationData.duration, 0, 1);
+        accuracyCompletion = MathUtil.ease("easeOutCubic", accuracyCompletion);
+        let accuracy = accuracyInterpolationData.startValue * (1 - accuracyCompletion) + accuracyInterpolationData.endValue * accuracyCompletion;
+        SCENE_MANAGER.getScene().elements["accuracyDisplayP"].innerHTML = (Math.floor(accuracy * 10000) / 100).toFixed(2) + "%";
 
-        }
-        if (this.accuracy !== this.prevAccuracy) {
-            MathUtil.interpolate(this.prevAccuracy, this.accuracy, 150, "easeOutQuad", function (x) {
-                SCENE_MANAGER.getScene().elements["accuracyDisplayP"].innerHTML = (Math.floor(x * 10000) / 100).toFixed(2) + "%";
-            }, "accuracyChangeAnimation");
-        }
-        if (this.combo !== this.prevCombo) {
-            SCENE_MANAGER.getScene().elements["comboDisplayP"].innerHTML = this.combo + "x";
-            SCENE_MANAGER.getScene().elements["comboDisplayP"].style.animation = "none";
-            SCENE_MANAGER.getScene().elements["comboDisplayP"].offsetWidth; // Redraw to reset animation
-            SCENE_MANAGER.getScene().elements["comboDisplayP"].style.animation = "0.5s pulseCombo ease-out forwards";
-        }
+        // Combo
+        let comboDisplayP = SCENE_MANAGER.getScene().elements["comboDisplayP"];
+        comboDisplayP.innerHTML = this.combo + "x";
 
-        this.prevScore = this.score;
-        this.prevAccuracy = this.accuracy;
-        this.prevCombo = this.combo;
+        let comboInterpolationData = comboDisplayP.interpolationData;
+        let pulseCompletion = MathUtil.clamp((window.performance.now() - comboInterpolationData.startTime) / comboInterpolationData.duration, 0, 1);
+        pulseCompletion = MathUtil.ease("easeOutQuad", pulseCompletion);
+        let pulse = comboInterpolationData.startValue * (1 - pulseCompletion) + comboInterpolationData.endValue * pulseCompletion;
+        SCENE_MANAGER.getScene().elements["comboDisplayP"].style.transform = "scale(" + pulse + ")";
     }
 }

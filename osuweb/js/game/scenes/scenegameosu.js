@@ -65,6 +65,18 @@ export class SceneGameOsu extends SceneGame {
             startValue: 0,
             endValue: 0
         };
+        this.elements["accuracyDisplayP"].interpolationData = {
+            startTime: -10e6,
+            duration: 220,
+            startValue: 1,
+            endValue: 1
+        };
+        this.elements["comboDisplayP"].interpolationData = {
+            startTime: -10e6,
+            duration: 500,
+            startValue: 1.42,
+            endValue: 1
+        };
 
         this._beatmapset.getAudioFileByName(this.beatmap.audioFilename, (audioFile) => {
             if(audioFile.key !== undefined) {
