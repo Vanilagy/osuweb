@@ -1,0 +1,49 @@
+div.songpanelbackground {
+    position: absolute;
+    right: 0;
+    z-index: 10;
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+    background-color: black;
+    filter: blur(20px);
+}
+canvas.songpanel {
+    position: absolute;
+    right: 0;
+    z-index: 11;
+    background-color: white;
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%);
+    transform: translate(0, 0);
+    -webkit-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+    -moz-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+    -o-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+    transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+}
+canvas.songpanel:hover {
+    transform: translate(-8%, 0);
+}
+div.diffpanelbackground {
+    position: absolute;
+    z-index: 0;
+    filter: blur(20px);
+}
+canvas.diffpanel {
+    position: absolute;
+    z-index: 1;
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 3.125% 100%);
+    transform: translate(0, 0);
+    -webkit-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+    -moz-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+    -o-transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+    transition: transform 0.25s cubic-bezier(.32,1.1,.95,.94);
+}
+canvas.diffpanel:hover {
+    transform: translate(-8%, 0);
+}
+#songpanelswrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}

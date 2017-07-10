@@ -1,0 +1,268 @@
+#playarea {
+    width: 512px;
+    height: 392px;
+    /*border: 1px solid gray;*/
+    margin: auto;
+    position: absolute;
+    bottom: 1%;
+    left: 0;
+    right: 0;
+    display: none;
+    z-index: 100;
+}
+#objectContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+.hitCircleContainer {
+    position: absolute;
+}
+.hitCircleContainer canvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+.sliderContainer {
+    position: absolute;
+}
+.sliderContainer > canvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+@keyframes closeApproachCircle {
+    from {transform: scale(4);}
+    to {transform: scale(1);}
+}
+@keyframes destroyHitCircle {
+    from {transform: scale(1); opacity: 1;}
+    to {transform: scale(1.4); opacity: 0;}
+}
+@keyframes fadeOut {
+    from {opacity: 1;}
+    to {opacity: 0;}
+}
+@keyframes pulseCombo {
+    from {transform: scale(1.45);}
+    to {transform: scale(1);}
+}
+.followPoint {
+    position: absolute;
+    opacity: 0.9;
+}
+#scoreDisplay {
+    position: absolute;
+    top: 1vh;
+    right: 1vh;
+    height: 6vh;
+    text-align: right;
+    color: white;
+    text-shadow: 2px 2px 5px black;
+    font-family: monospace;
+    font-size: 50px;
+    margin: 0;
+    display: none;
+}
+#accuracyDisplay {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translate(0%, -50%);
+    text-align: right;
+    color: white;
+    text-shadow: 2px 2px 5px black;
+    font-family: monospace;
+    font-size: 30px;
+    margin: 0;
+    display: none;
+}
+#progress {
+    position: absolute;
+    width: 5vh;
+    height: 100%;
+    margin: 0;
+    display: none;
+}
+#accContainer {
+    position: absolute;
+    top: 8vh;
+    right: 1vh;
+    height: 5vh;
+    margin: 0;
+    display: none;
+}
+#accWrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+#comboDisplay {
+    position: absolute;
+    bottom: 1vh;
+    left: 1vh;
+    text-align: left;
+    color: white;
+    text-shadow: 2px 2px 5px black;
+    font-family: monospace;
+    font-size: 50px;
+    margin: 0;
+    transform-origin: 0% 100%;
+    display: none;
+}
+#ingameContainer {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    position: absolute;
+    display: none;
+}
+#accmeter {
+    position:absolute;
+    bottom: 0;
+    left: 50%;
+    height: 4%;
+    background-color: black;
+
+    transform: translate(-50%, 0%);
+    -webkit-transform: translate(-50%, 0%);
+    -moz-transform: translate(-50%, 0%);
+    -ms-transform: translate(-50%, 0%);
+    -o-transform: translate(-50%, 0%);
+
+    transition: opacity 0.25s;
+}
+.accstrip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    height: 20%;
+    width: 100%;
+
+    transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%);
+    -moz-transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+    -o-transform: translate(-50%, -50%);
+}
+#accstrip-50 {
+    background-color: orange;
+    z-index: 1;
+}
+#accstrip-100 {
+    background-color: greenyellow;
+    z-index: 2;
+}
+#accstrip-300 {
+    background-color: deepskyblue;
+    z-index: 3;
+}
+#acctick-X {
+    background-color: white;
+    position: absolute;
+    left: 50%;
+    height: 100%;
+    z-index: 5;
+
+    transform: translate(-50%, 0%);
+    -webkit-transform: translate(-50%, 0%);
+    -moz-transform: translate(-50%, 0%);
+    -ms-transform: translate(-50%, 0%);
+    -o-transform: translate(-50%, 0%);
+}
+#accarrow {
+    position: absolute;
+    top: 0;
+    height: 40%;
+    z-index: 6;
+    display: none;
+}
+@keyframes fadeOut {
+    from {opacity: 1;}
+    to {opacity: 0;}
+}
+.acctick {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    z-index: 4;
+    animation: fadeOut 10s linear forwards;
+    opacity: 1;
+
+    transform: translate(-50%, 0%);
+    -webkit-transform: translate(-50%, 0%);
+    -moz-transform: translate(-50%, 0%);
+    -ms-transform: translate(-50%, 0%);
+    -o-transform: translate(-50%, 0%);
+}
+.scorePopup {
+    transform: translate(-50%, -50%);
+    z-index: 1500000;
+    position: absolute;
+    color: white;
+    font-size: 25px;
+    font-family: "Arial", sans-serif;
+}
+@keyframes scorePopup {
+    0% {transform: translate(-50%, -50%) scale(0);}
+    5% {transform: translate(-50%, -50%) scale(1.2);}
+    10% {transform: translate(-50%, -50%) scale(1); opacity: 1;}
+    100% {opacity: 0;}
+}
+#spinnerContainerContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.spinnerContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.spinnerContainer h1 {
+    text-align: center;
+    color: white;
+    font-family: "Arial", sans-serif;
+    position: absolute;
+    width: 100%;
+}
+
+@keyframes increaseSpinnerBonus {
+    from {transform: scale(1.3);}
+    to {transform: scale(1);}
+}
+.spmContainer {
+    position: absolute;
+    transform: translate(-50%, 58px);
+    background: rgba(0, 0, 0, 0.5);
+    border: 3px solid white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    left: 50%;
+    bottom: 0;
+    height: 55px;
+    width: 160px;
+    border-bottom: none;
+    transition: transform 0.5s ease-out;
+}
+.spmContainer p {
+    color: white;
+    font-size: 30px;
+    text-align: center;
+    font-weight: 100;
+    margin: 0;
+    margin-top: 12px;
+}
+#songpanels {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 45%;
+    display: none;
+}

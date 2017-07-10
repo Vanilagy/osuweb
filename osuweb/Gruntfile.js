@@ -26,7 +26,7 @@ grunt.initConfig({
     },
     watch: {
         ej6: {
-            files: ['js/**/*.js', 'index.html', 'lib/**/*', 'assets/**/*', 'audio/**/*', 'img/**/*'],
+            files: ['js/**/*.js', 'index.html', 'lib/**/*', 'assets/**/*', 'audio/**/*', 'img/**/*', 'css/**/*'],
             tasks: ['default']
         }
     },
@@ -34,7 +34,7 @@ grunt.initConfig({
         options: {},
         files: {
             expand: true,
-            src: ['index.html', 'lib/**/*', 'assets/**/*', 'audio/**/*', 'img/**/*'],
+            src: ['index.html', 'lib/**/*', 'assets/**/*', 'audio/**/*', 'img/**/*', 'css/**/*'],
             dest: "dist/"
         }
     }

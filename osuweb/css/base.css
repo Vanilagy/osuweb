@@ -1,0 +1,146 @@
+@font-face {
+    font-family: Exo2LightItalic;
+    src: url(assets/Exo2-LightItalic.otf);
+    font-style: italic;
+}
+@font-face {
+    font-family: Exo2SemiBoldItalic;
+    src: url(assets/Exo2-SemiBoldItalic.otf);
+    font-style: italic;
+}
+@font-face {
+    font-family: Exo2MediumItalic;
+    src: url(assets/Exo2-MediumItalic.otf);
+    font-style: italic;
+}
+@font-face {
+    font-family: Exo2Medium;
+    src: url(assets/Exo2-Medium.otf);
+}
+@font-face {
+    font-family: Exo;
+    src: url(assets/Exo/Exo-Regular.ttf);
+}
+@font-face {
+    font-family: Venera;
+    src: url(assets/Venera.otf);
+}
+html,body {
+    min-width: 100%;
+    width: 100%;
+    min-height: 100%;
+    height: 100%;
+    margin: 0;
+}
+body {
+    background: black;
+    overflow: /*fucking*/ hidden;
+    cursor: none;
+    font-family: "Arial", monospace;
+    -webkit-user-select: none;
+    -moz-user-select: -moz-none;
+    -ms-user-select: none;
+    user-select: none;
+    color: white;
+}
+.center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+#cursor {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 2000000;
+    pointer-events: none;
+}
+#background {
+    width: 100%;
+    height: 100%;
+    position:absolute;
+    left:0px;
+    top:0px;
+    pointer-events: none;
+    z-index: -300;
+    background-image: url("./img/background.png");
+    background-size: cover;
+    transition: background-image 0.2s linear, filter 0.2s linear;
+}
+#foreground {
+    width: 100%;
+    height: 100%;
+    position:absolute;
+    left:0px;
+    top:0px;
+    z-index: 10000000;
+    background-color: black;
+    transition: opacity 1s linear;
+}
+#loading {
+    position:absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 10000001;
+
+    color: white;
+    text-shadow: #5CF 0 0 25px;
+    font-family: "Exo2Medium", "Calibri";
+    font-size: 5vmax;
+    letter-spacing: 15px;
+
+    transform: translate(-50%, -50%) scale(1, 0);
+    -webkit-transform: translate(-50%, -50%) scale(1, 0);
+    -moz-transform: translate(-50%, -50%) scale(1, 0);
+    -ms-transform: translate(-50%, -50%) scale(1, 0);
+    -o-transform: translate(-50%, -50%) scale(1, 0);
+
+    transition: transform 0.4s ease-out, letter-spacing 10s ease-out, opacity 1s linear;
+}
+#osu {
+    position:absolute;
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%);
+    -moz-transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+    -o-transform: translate(-50%, -50%);
+}
+#background-dim {
+    width: 100%;
+    height: 100%;
+    position:absolute;
+    left:0px;
+    top:0px;
+    z-index: -200;
+    opacity: 0;
+    transition: opacity 1s;
+    background-color: black;
+    pointer-events: none;
+}
+#osuweb {
+    width: 100%;
+    height: 100%;
+    position:absolute;
+    left:0px;
+    top:0px;
+    pointer-events: none;
+    z-index: -100;
+}
+#container {
+    width: 100%;
+    height: 100%;
+    position:absolute;
+    left:0px;
+    top:0px;
+}
+#volume {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 250px;
+    height: 250px;
+    z-index: 9999999999;
+}
