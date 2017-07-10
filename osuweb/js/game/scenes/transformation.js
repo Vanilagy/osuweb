@@ -2,18 +2,22 @@
 
 import {MathUtil} from "../../util/mathutil";
 
-export class TransformationManager {
+class TransformationManager {
     constructor() {
+        /**
+         * @type {Transformation[]}
+         * @private
+         */
         this._transformations = [];
     }
 
     /**
      * Adds a {Transformation} to start executing it.
-     * @param transformation - The {Transformation} to execute
-     * @param keepStartTime - Whether to keep the {Transformation.startTime} that is currently set. false by default.
+     * @param {Transformation} transformation - The {Transformation} to execute
+     * @param {boolean} keepStartTime - Whether to keep the {Transformation.startTime} that is currently set. false by default.
      */
     addTransformation(transformation, keepStartTime = false) {
-        if(!keepStartTime) transformation.startTime = window.performance.now();
+        if(!keepStartTime) transformation._startTime = window.performance.now();
 
         this._transformations.push(transformation);
     }
@@ -28,53 +32,114 @@ export class TransformationManager {
     }
 }
 
+/**
+ * @type {TransformationManager}
+ */
 export let TRANSFORMATION_MANAGER = new TransformationManager();
 
+/**
+ * @abstract
+ */
 export class Transformation {
+    /**
+     * @param {HTMLElement|object} element
+     * @param {number} start
+     * @param {number} destination
+     * @param {number} duration
+     * @param {string} [easingType]
+     * @public
+     */
     constructor(element, start, destination, duration, easingType = "linear") {
-        this.startTime = window.performance.now();
-        this.duration = duration;
-        this.start = start;
-        this.destination = destination;
-        this.element = element;
-        this.easingType = easingType;
+        /**
+         * @type {number}
+         * @protected
+         */
+        this._startTime = window.performance.now();
+        /**
+         * @type {number}
+         * @protected
+         */
+        this._duration = duration;
+        /**
+         * @type {number}
+         * @protected
+         */
+        this._start = start;
+        /**
+         * @type {number}
+         * @protected
+         */
+        this._destination = destination;
+        /**
+         * @type {*}
+         * @protected
+         */
+        this._element = element;
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._easingType = easingType;
 
-        this.unit = "";
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._unit = "";
 
-        this.loop = false;
-        this.infinite = false;
+        /**
+         * @type {boolean}
+         * @protected
+         */
+        this._loop = false;
+        /**
+         * @type {boolean}
+         * @protected
+         */
+        this._infinite = false;
 
-        this.cancelled = false;
+        /**
+         * @type {boolean}
+         * @protected
+         */
+        this._cancelled = false;
 
-        // Variable used to determine when to call the callback when looping is enabled
-        this.loopsFinished = 0;
+        /**
+         * Variable used to determine when to call the callback when looping is enabled
+         * @type {number}
+         * @protected
+         */
+        this._loopsFinished = 0;
     }
 
     /**
-     * @param callback - The callback to execute. It receives one parameter indicating if the Transformation was cancelled or not (false if cancelled)
+     * @param {?function} callback - The callback to execute. It receives one parameter indicating if the Transformation was cancelled or not (false if cancelled)
      * @returns {Transformation}
+     * @public
      */
     setCallback(callback) {
-        this.callback = callback;
+        this._callback = callback;
         return this;
     }
 
     /**
      * Adds a delay of this transformation. The first execution of this transformation will only start
-     * @param delay - The time this tranformation will wait before it starts to get executed.
+     * @param {!number} delay - The time this tranformation will wait before it starts to get executed.
      * @returns {Transformation}
+     * @public
      */
     addDelay(delay) {
-        this.startTime += delay;
+        this._startTime += delay;
         return this;
     }
 
     /**
-     * @param unit - A string representing an unit value which will be appended to the end of the return value. Note: If this is set all return types turn to strings!
+     * @param {!string} unit - A string representing an unit value which will be appended to the end of the return value. Note: If this is set all return types turn to strings!
      * @returns {Transformation}
+     * @public
      */
     setUnit(unit) {
-        this.unit = unit;
+        this._unit = unit;
         return this;
     }
 
@@ -82,25 +147,28 @@ export class Transformation {
      * Enables looping for this transformation. {Transformation.duration} will become the interval and this transformation will be infinite. See {Transformation.setInfinite()}
      * The callback will trigger after each loop if this is enabled. To remove this transformation call {Transformation.cancel}.
      * @returns {Transformation}
+     * @public
      */
     setLooping() {
-        this.loop = true;
-        this.infinite = true;
+        this._loop = true;
+        this._infinite = true;
         return this;
     }
 
     /**
      * Marks this transformation as infinite. Execution will proceed as normal, but this {Transformation} won't be cleaned up until {Transformation.cancel()} is called.
      * @returns {Transformation}
+     * @public
      */
     setInfinite() {
-        this.infinite = true;
+        this._infinite = true;
         return this;
     }
 
     /**
      * Adds this {Transformation} to the {TransformationManager} instance. This call does not reset {Transformation.startTime}
      * @returns {Transformation}
+     * @public
      */
     submit() {
         TRANSFORMATION_MANAGER.addTransformation(this, true);
@@ -108,25 +176,28 @@ export class Transformation {
     }
 
     /**
-     *  Resets the transformation, making the time and value jump back to the start.
-     *  Call this before the transformation ends, or make this transformation infinite.
-     *  @param delay - Add an extra delay before this animation is executed again
+     * Resets the transformation, making the time and value jump back to the start.
+     * Call this before the transformation ends, or make this transformation infinite.
+     * @param {!number} [delay] - Add an extra delay before this animation is executed again
+     * @public
      */
     reset(delay = 0) {
-        this.startTime = window.performance.now() + delay;
+        this._startTime = window.performance.now() + delay;
     }
 
     /**
      * Cancels this transformation, instantly stopping and removing it on the next update
      * of the {TransformationManager}
+     * @public
      */
     cancel() {
-        this.cancelled = true;
+        this._cancelled = true;
     }
 
     /**
      * Updates the value of the element associated with this transformation
      * @returns {boolean} Whether the transformation is finished and should be removed.
+     * @public
      */
     update() {
         let completion = this.getCompletion();
@@ -138,6 +209,10 @@ export class Transformation {
         return this.isFinished(completion === 1);
     }
 
+    /**
+     * @param {!number} completion
+     * @protected
+     */
     doUpdate(completion) {
         throw new Error("No update procedure defined!");
     }
@@ -145,85 +220,156 @@ export class Transformation {
     /**
      * Returns the completion from 0-1
      * @returns {number}
+     * @protected
      */
     getCompletion() {
-        let timePassed = (window.performance.now() - this.startTime);
+        let timePassed = (window.performance.now() - this._startTime);
 
-        if(this.loop) {
+        if(this._loop) {
             // Call callback for each finished loop
-            if(this.callback) {
-                let loopsFinished = Math.floor(timePassed / this.duration);
+            if(this._callback) {
+                let loopsFinished = Math.floor(timePassed / this._duration);
 
-                let difference = loopsFinished - this.loopsFinished;
+                let difference = loopsFinished - this._loopsFinished;
 
-                for (let i = 0; i < difference; i++) this.callback(true);
+                for (let i = 0; i < difference; i++) this._callback(true);
 
-                this.loopsFinished = loopsFinished;
+                this._loopsFinished = loopsFinished;
             }
 
-            timePassed %= this.duration;
+            timePassed %= this._duration;
         }
 
         // clamp the returned value
-        return Math.min(1, Math.max(0, timePassed / this.duration));
+        return Math.min(1, Math.max(0, timePassed / this._duration));
     }
 
     /**
      * Whether this Transformation is ready to be cleaned up on the next update.
      * @returns {boolean}
+     * @protected
      */
     isFinished(complete) {
-        return (complete && !this.infinite) || this.cancelled;
+        return (complete && !this._infinite) || this._cancelled;
     }
 
     /**
      * Whether {Transformation.update()} should be called right now.
+     * @returns {boolean}
+     * @protected
      */
     shouldUpdate() {
-        return !this.cancelled && (window.performance.now() >= this.startTime && (window.performance.now() <= this.startTime + this.duration || this.loop));
+        return !this._cancelled && (window.performance.now() >= this._startTime && (window.performance.now() <= this._startTime + this._duration || this._loop));
     }
 }
 
 /**
  * A transformation class to modify the style of DOM elements. This adds a unit to the end of the expression ('%' by default).
+ * @public
  */
 export class TransformationElementStyle extends Transformation {
+    /**
+     * @param {!HTMLElement} element
+     * @param {!string} propertyName
+     * @param {?number} start
+     * @param {!number} destination
+     * @param {!number} duration
+     * @param {!string} [easingType]
+     * @public
+     */
     constructor(element, propertyName, start, destination, duration, easingType = "linear") {
         super(element, start, destination, duration, easingType);
 
-        this.unit = "%";
-        this.start = start ? start : element.style[propertyName].substr(0, element.style[propertyName].length - unit.length);
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._unit = "%";
+        /**
+         * @type {number}
+         * @protected
+         */
+        this._start = start ? start : parseFloat(element.style[propertyName].substr(0, element.style[propertyName].length - this._unit.length));
 
-        this.propertyName = propertyName;
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._propertyName = propertyName;
     }
 
+    /**
+     * @inheritDoc
+     */
     doUpdate(completion) {
-        this.element.style[this.propertyName] = this.start + (this.destination - this.start) * MathUtil.ease(this.easingType, completion)+this.unit;
+        this._element.style[this._propertyName] = this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+this._unit;
     }
 }
 
+/**
+ * @public
+ */
 export class TransformationObjectField extends Transformation {
+    /**
+     * @param {!object} element
+     * @param {!string} propertyName
+     * @param {?number} start
+     * @param {!number} destination
+     * @param {!number} duration
+     * @param {!string} [easingType]
+     * @public
+     */
     constructor(element, propertyName, start, destination, duration, easingType = "linear") {
         super(element, start, destination, duration, easingType);
 
-        this.start = start ? start : element[propertyName];
+        /**
+         * @type {number}
+         * @protected
+         */
+        this._start = start ? start : element[propertyName];
 
-        this.propertyName = propertyName;
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._propertyName = propertyName;
     }
 
+    /**
+     * @inheritDoc
+     */
     doUpdate(completion) {
-        this.element[this.propertyName] = this.start + (this.destination - this.start) * MathUtil.ease(this.easingType, this.getCompletion())+(this.unit.length > 0 ? this.unit : 0);
+        this._element[this._propertyName] = this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+(this._unit.length > 0 ? this._unit : 0);
     }
 }
 
+/**
+ * @public
+ */
 export class TransformationObjectMethod extends Transformation {
+    /**
+     * @param {!object} element
+     * @param {!string} propertyName
+     * @param {?number} start
+     * @param {!number} destination
+     * @param {!number} duration
+     * @param {!string} [easingType]
+     * @public
+     */
     constructor(element, propertyName, start, destination, duration, easingType = "linear") {
         super(element, start, destination, duration, easingType);
 
-        this.propertyName = propertyName;
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._propertyName = propertyName;
     }
 
+    /**
+     * @inheritDoc
+     */
     doUpdate(completion) {
-        this.element[this.propertyName](this.start + (this.destination - this.start) * MathUtil.ease(this.easingType, this.getCompletion())+(this.unit.length > 0 ? this.unit : 0));
+        this._element[this._propertyName](this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+(this._unit.length > 0 ? this._unit : 0));
     }
 }
