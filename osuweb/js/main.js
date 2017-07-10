@@ -12,6 +12,7 @@ import {SceneLoading} from "./game/scenes/sceneloading";
 import {Database} from "./datamodel/database";
 import {SceneManager} from "./game/scenes/scenemanager";
 import {SLIDER_SETTINGS} from "./game/drawableslider";
+import {TRANSFORMATION_MANAGER} from "./game/scenes/transformation";
 
 export let GAME_STATE = {
     currentBeatmapSet: null,
@@ -302,6 +303,8 @@ function render() {
     let frameModifier = (window.performance.now() - lastFrame) / (1000 / 60.0);
 
     lastFrame = window.performance.now();
+
+    TRANSFORMATION_MANAGER.update();
 
     SCENE_MANAGER.getScene().render(frameModifier);
 
