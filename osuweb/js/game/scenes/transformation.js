@@ -92,7 +92,7 @@ export class TransformationObjectField extends Transformation {
 
         let completion = this.getCompletion();
 
-        this.element[this.propertyName] = this.start + (this.destination - this.start) * MathUtil.ease(this.easingType, this.getCompletion())+this.unit;
+        this.element[this.propertyName] = this.start + (this.destination - this.start) * MathUtil.ease(this.easingType, this.getCompletion())+(this.unit.length > 0 ? this.unit : 0);
 
         return completion === 1;
     }
@@ -110,7 +110,7 @@ export class TransformationObjectMethod extends Transformation {
 
         let completion = this.getCompletion();
 
-        this.element[this.propertyName](this.start + (this.destination - this.start) * MathUtil.ease(this.easingType, this.getCompletion())+this.unit);
+        this.element[this.propertyName](this.start + (this.destination - this.start) * MathUtil.ease(this.easingType, this.getCompletion())+(this.unit.length > 0 ? this.unit : 0));
 
         return completion === 1;
     }
