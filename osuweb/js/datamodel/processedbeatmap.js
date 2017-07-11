@@ -100,7 +100,7 @@ export class ProcessedBeatmap {
                     let timingPoint = this.sourceBeatmap.timingPoints[this.currentTimingPoint];
 
                     if (timingPoint.inherited) {
-                        // TODO is there a a lower limit?
+                        // TODO: is there a a lower limit?
                         this.currentMsPerBeatMultiplier = Math.min(1000, -timingPoint.msPerBeat);
                     } else {
                         this.currentMsPerBeatMultiplier = 100;
