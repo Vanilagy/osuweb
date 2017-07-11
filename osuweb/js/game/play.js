@@ -357,7 +357,7 @@ export class Play {
                 if (currentTime >= hitObject.endTime && !hitObject.completed) {
                     hitObject.score();
                     hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards"
-                    SCENE_MANAGER.getScene().elements["accmeterDiv"].style.opacity = 1;
+                    SCENE_MANAGER.getScene().elements["accmeterCanvas"].style.opacity = 1;
                     hitObject.active = false;
                     hitObject.completed = true;
                 }
@@ -390,7 +390,7 @@ export class Play {
                 this.onScreenHitObjects[hitObject.id] = hitObject;
 
                 if (hitObject.constructor.name === "DrawableSpinner") {
-                    SCENE_MANAGER.getScene().elements["accmeterDiv"].style.opacity = 0;
+                    SCENE_MANAGER.getScene().elements["accmeterCanvas"].style.opacity = 0;
                 }
 
                 this.currentHitObject++;

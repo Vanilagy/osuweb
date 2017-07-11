@@ -41,8 +41,6 @@ export class SliderCurvePassthrough extends SliderCurve {
 
             let curve = new SliderCurveBezier(this.slider);
 
-            curve.calculateEqualDistancePoints();
-
             this.equalDistancePoints = curve.equalDistancePoints;
 
             return;
