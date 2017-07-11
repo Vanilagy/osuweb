@@ -176,16 +176,16 @@ export class Play {
                 InputUtil.moveCursorToPlayfieldPos(currentInstruction.to.x, currentInstruction.to.y);
                 this.currentPlaythroughInstruction++;
             } else if (currentInstruction.type === "move") {
-                // TODO: Implement different easing types to mimic human cursor movement
-
-                let osuPxPerMs = Math.hypot(currentInstruction.startPos.x - currentInstruction.endPos.x, currentInstruction.startPos.y - currentInstruction.endPos.y) / (currentInstruction.endTime - currentInstruction.time);
+                // Desides on the easing type
+                let timeDifference = (currentInstruction.endTime - currentInstruction.time);
                 let easingType = undefined;
-                if (osuPxPerMs < 0.75) {
+                const STREAM_BEAT_THRESHHOLD = 160;
+
+                if (timeDifference <= 60000 / STREAM_BEAT_THRESHHOLD / 4) { // Length of 1/4 beats at set BPM
                     easingType = "linear";
                 } else {
                     easingType = "easeOutQuad";
                 }
-                easingType = "easeOutQuad"; // TODO: Figure this out
 
                 let completion = Math.min(1, Math.max(0, (currentTime - currentInstruction.time) / (currentInstruction.endTime - currentInstruction.time)));
                 completion = MathUtil.ease(easingType, completion);
