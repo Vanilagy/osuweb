@@ -108,8 +108,7 @@ export class ModHelper {
 
                 for (let j = 0; j < hitObject.sliderTickCompletions.length; j++) {
                     let tickMs = hitObject.startTime + hitObject.sliderTickCompletions[j] * hitObject.hitObject.length / hitObject.timingInfo.sliderVelocity;
-                    let tickPosition = GraphicUtil.getCoordFromCoordArray(hitObject.curve.equalDistancePoints, MathUtil.reflect(hitObject.sliderTickCompletions[j]));
-                    tickPosition.x /= pixelRatio, tickPosition.y /= pixelRatio;
+                    let tickPosition = hitObject.getPosFromPercentage(MathUtil.reflect(hitObject.sliderTickCompletions[j]));
 
                     waypoints.push(new Waypoint("sliderTick", tickMs, tickPosition, hitObject));
                 }
@@ -261,9 +260,7 @@ export class ModHelper {
                 return lastInstruction.endPos;
             } else if (lastInstruction.type === "follow") {
                 let completion = MathUtil.clamp((lastInstruction.elem.timingInfo.sliderVelocity * (time - lastInstruction.elem.startTime)) / lastInstruction.elem.hitObject.length, 0, lastInstruction.elem.hitObject.repeat);
-                let pos = GraphicUtil.getCoordFromCoordArray(lastInstruction.elem.curve.equalDistancePoints, MathUtil.reflect(completion));
-
-                pos.x /= pixelRatio, pos.y /= pixelRatio;
+                let pos = lastInstruction.elem.getPosFromPercentage(MathUtil.reflect(completion));
 
                 return pos;
             } else if (lastInstruction.type === "spin") {

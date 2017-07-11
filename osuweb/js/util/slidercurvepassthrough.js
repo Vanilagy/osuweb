@@ -4,6 +4,7 @@ import {SliderCurve} from "./slidercurve";
 import {GraphicUtil} from "./graphicutil";
 import {MathUtil} from "./mathutil";
 import {SliderCurveBezier} from "./slidercurvebezier";
+import {GAME_STATE} from "../main";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
@@ -11,10 +12,25 @@ export class SliderCurvePassthrough extends SliderCurve {
     constructor(drawableSlider) {
         super(drawableSlider);
 
-        this.calculateEqualDistancePoints();
+        this.calculateValues();
     }
 
-    calculateEqualDistancePoints() {
+    applyStackPosition() {
+        this.centerPos.x -= this.slider.stackHeight * 4;
+        this.centerPos.y -= this.slider.stackHeight * 4;
+    }
+
+    render(completion) {
+        let pixelRatio = GraphicUtil.getPixelRatio();
+        let angleDifference = this.angleDifference * completion;
+
+        this.slider.baseCtx.beginPath();
+        this.slider.baseCtx.arc(this.centerPos.x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, this.centerPos.y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel, this.radius * pixelRatio, this.startingAngle, this.startingAngle + angleDifference, angleDifference < 0);
+
+        this.draw();
+    }
+
+    calculateValues() {
         let points = this.sections[0].values;
 
         // Monstrata plz
@@ -22,38 +38,33 @@ export class SliderCurvePassthrough extends SliderCurve {
             this.sections[0] = {type: "linear", values: [points[0], points[1]]};
             this.sections[1] = {type: "linear", values: [points[1], points[2]]};
 
-            let curve = new SliderCurveBezier(this.slider);
-
-            curve.calculateEqualDistancePoints();
-
-            this.equalDistancePoints = curve.equalDistancePoints;
-
+            this.slider.curve = new SliderCurveBezier(this.slider);
             return;
         }
 
-        let centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
+        this.centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
 
         // Slider seems to have all points on one line. Parsing it as linear slider instead
-        if(!isFinite(centerPos.x) || !isFinite(centerPos.y)) {
+        if(!isFinite(this.centerPos.x) || !isFinite(this.centerPos.y)) {
             // Remove middle point
             this.sections[0].values.splice(1,1);
             this.sections[0].type = "linear";
 
-            let curve = new SliderCurveBezier(this.slider);
-
-            this.equalDistancePoints = curve.equalDistancePoints;
-
+            this.slider.curve = new SliderCurveBezier(this.slider);
             return;
         }
 
-        let radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
-        let a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
-            a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
-            a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
+        this.radius = Math.hypot(this.centerPos.x - points[0].x, this.centerPos.y - points[0].y);
+        let a1 = Math.atan2(points[0].y - this.centerPos.y, points[0].x - this.centerPos.x), // angle to start
+            a2 = Math.atan2(points[1].y - this.centerPos.y, points[1].x - this.centerPos.x), // angle to control point
+            a3 = Math.atan2(points[2].y - this.centerPos.y, points[2].x - this.centerPos.x); // angle to end
 
+        // TODO: Make this all more efficient
         let segmentCount = Math.floor(this.slider.hitObject.length / MAXIMUM_TRACE_POINT_DISTANCE + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
         let segmentLength = this.slider.hitObject.length / segmentCount;
-        let incre = segmentLength / radius;
+        let incre = segmentLength / this.radius;
+
+        this.startingAngle = a1;
 
         if (a1 < a2 && a2 < a3) { // Point order
 
@@ -67,15 +78,18 @@ export class SliderCurvePassthrough extends SliderCurve {
             incre *= -1;
         }
 
-        this.slider.minX = this.slider.maxX = (centerPos.x + radius * Math.cos(a1)) * GraphicUtil.getPixelRatio();
-        this.slider.minY = this.slider.maxY = (centerPos.y + radius * Math.sin(a1)) * GraphicUtil.getPixelRatio();
+        this.angleDifference = incre * segmentCount;
+
+        let pixelRatio = GraphicUtil.getPixelRatio();
+        this.slider.minX = this.slider.maxX = (this.centerPos.x + this.radius * Math.cos(a1)) * pixelRatio;
+        this.slider.minY = this.slider.maxY = (this.centerPos.y + this.radius * Math.sin(a1)) * pixelRatio;
 
         let angle = a1;
         for (let i = 0; i <= segmentCount; i++) {
-            this.pushEqualDistancePoint({
-                x: centerPos.x + radius * Math.cos(angle),
-                y: centerPos.y + radius * Math.sin(angle)
-            });
+            this.slider.minX = Math.min(this.slider.minX, (this.centerPos.x + this.radius * Math.cos(angle)) * pixelRatio);
+            this.slider.maxX = Math.max(this.slider.maxX, (this.centerPos.x + this.radius * Math.cos(angle)) * pixelRatio);
+            this.slider.minY = Math.min(this.slider.minY, (this.centerPos.y + this.radius * Math.sin(angle)) * pixelRatio);
+            this.slider.maxY = Math.max(this.slider.maxY, (this.centerPos.y + this.radius * Math.sin(angle)) * pixelRatio);
 
             angle += incre;
         }

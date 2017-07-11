@@ -1,25 +1,37 @@
 "use strict";
 
 import {GraphicUtil} from "./graphicutil";
+import {GAME_STATE} from "../main";
 import {SliderCurve} from "./slidercurve";
 import {MathUtil} from "./mathutil";
+import {SLIDER_SETTINGS} from "../game/drawableslider";
+import {Console} from "../console";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
+const DEBUG_PREFIX = "[BEZIER]";
 
 export class SliderCurveBezier extends SliderCurve {
     constructor(drawableSlider) {
         super(drawableSlider);
+        this.equalDistancePoints = [];
 
         this.tracePoints = [];
 
         this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * GraphicUtil.getPixelRatio();
         this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * GraphicUtil.getPixelRatio();
 
-        if (this.sections.length === 1 && this.sections[0].values.length === 2) { // If it's only one linear sections b-o-i-s
-            this.pushEqualDistancePoint(this.sections[0].values[0]);
-            this.pushEqualDistancePoint(this.sections[0].values[1]);
+        if (this.sections.length === 1 && this.sections[0].values.length === 2) { // If it's only one linear section
+            let points = this.sections[0].values;
 
-            console.log(this.equalDistancePoints);
+            let angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
+            let distance = Math.min(this.slider.hitObject.length, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y));
+            let pointTwo = {
+                x: points[0].x + Math.cos(angle) * distance,
+                y: points[0].y + Math.sin(angle) * distance
+            };
+
+            this.pushEqualDistancePoint(points[0]);
+            this.pushEqualDistancePoint(pointTwo);
 
             return;
         }
@@ -28,9 +40,41 @@ export class SliderCurveBezier extends SliderCurve {
         this.calculateEqualDistancePoints();
     }
 
+    applyStackPosition() {
+        for (let i = 0; i < this.equalDistancePoints; i++) {
+            this.equalDistancePoints[i].x -= this.slider.stackHeight * 4;
+            this.equalDistancePoints[i].y -= this.slider.stackHeight * 4;
+        }
+    }
+
+    render(completion) {
+        let pixelRatio = GraphicUtil.getPixelRatio();
+        let actualIndex = completion * (this.equalDistancePoints.length - 1);
+        let targetIndex = Math.floor(actualIndex);
+
+        // Path generation
+        this.slider.baseCtx.beginPath();
+        this.slider.baseCtx.moveTo(this.equalDistancePoints[0].x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, this.equalDistancePoints[0].y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel);
+        for (let i = 1; i < targetIndex + 1; i++) {
+            this.slider.baseCtx.lineTo(this.equalDistancePoints[i].x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, this.equalDistancePoints[i].y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel);
+
+            if (SLIDER_SETTINGS.debugDrawing) {
+                this.slider.baseCtx.beginPath();
+                this.slider.baseCtx.arc(this.equalDistancePoints[i].x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, this.equalDistancePoints[i].y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel, 1, 0, Math.PI * 2);
+                this.slider.baseCtx.fillStyle = "white";
+                this.slider.baseCtx.fill();
+            }
+        }
+
+        if (completion !== 1) {
+            let snakingEndPoint = this.slider.getPosFromPercentage(completion);
+            this.slider.baseCtx.lineTo(snakingEndPoint.x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, snakingEndPoint.y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel);
+        }
+
+        this.draw();
+    }
+
     calculateTracePoints() {
-
-
         for (let i = 0; i < this.sections.length; i++) {
             let points = this.sections[i].values;
 

@@ -197,8 +197,7 @@ export class Play {
                 InputUtil.moveCursorToPlayfieldPos(pos.x, pos.y);
             } else if (currentInstruction.type === "follow") {
                 let completion = (currentInstruction.elem.timingInfo.sliderVelocity * (currentTime - currentInstruction.elem.startTime)) / currentInstruction.elem.hitObject.length;
-                let pos = GraphicUtil.getCoordFromCoordArray(currentInstruction.elem.curve.equalDistancePoints, MathUtil.reflect(Math.min(currentInstruction.elem.hitObject.repeat, completion)));
-                pos.x /= pixelRatio, pos.y /= pixelRatio;
+                let pos = currentInstruction.elem.getPosFromPercentage(MathUtil.reflect(Math.min(currentInstruction.elem.hitObject.repeat, completion)));
 
                 InputUtil.moveCursorToPlayfieldPos(pos.x, pos.y);
 
@@ -276,9 +275,9 @@ export class Play {
                     completionsToEval.sort();
 
                     for (let i = 0; i < completionsToEval.length; i++) {
-                        let tickPosition = GraphicUtil.getCoordFromCoordArray(hitObject.curve.equalDistancePoints, MathUtil.reflect(completionsToEval[i]));
+                        let tickPosition = hitObject.getPosFromPercentage(MathUtil.reflect(completionsToEval[i]));
 
-                        let dist = Math.hypot(tickPosition.x / GraphicUtil.getPixelRatio() - userPlayfieldCoords.x, tickPosition.y / GraphicUtil.getPixelRatio() - userPlayfieldCoords.y);
+                        let dist = Math.hypot(tickPosition.x - userPlayfieldCoords.x, tickPosition.y - userPlayfieldCoords.y);
 
                         if (dist <= this.csOsuPixel && INPUT_STATE.isHolding || this.mods.AT) {
                             if (completionsToEval[i] === hitObject.hitObject.repeat) {

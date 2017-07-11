@@ -26,6 +26,9 @@ export class DrawableSlider extends DrawableHitObject {
 
         this.curve = null;
         this.init();
+        if (this.curve.constructor.name === "SliderCurveBezier" && this.curve.equalDistancePoints.length >= 1000) {
+            this.suppressSnaking = true;
+        }
 
         this.scoring = { // Holds scoring information about slider
             head: false,
@@ -43,10 +46,7 @@ export class DrawableSlider extends DrawableHitObject {
             this.endPoint = this.startPoint;
         }
         else {
-            this.endPoint = {
-                x: this.curve.equalDistancePoints[this.curve.equalDistancePoints.length - 1].x / GraphicUtil.getPixelRatio(),
-                y: this.curve.equalDistancePoints[this.curve.equalDistancePoints.length - 1].y / GraphicUtil.getPixelRatio()
-            };
+            this.endPoint = this.getPosFromPercentage(1);
         }
     }
 
@@ -54,8 +54,23 @@ export class DrawableSlider extends DrawableHitObject {
         super.show(offset);
         this.renderOverlay();
 
-        if (SLIDER_SETTINGS.snaking) {
+        if (SLIDER_SETTINGS.snaking && !this.suppressSnaking) {
             this.renderBase.bind(this)(false);
+        }
+    }
+
+    getPosFromPercentage(percent) {
+        if (this.curve.constructor.name === "SliderCurveBezier") {
+            return GraphicUtil.getCoordFromCoordArray(this.curve.equalDistancePoints, percent);
+        } else if (this.curve.constructor.name === "SliderCurvePassthrough") {
+            let angle = this.curve.startingAngle + this.curve.angleDifference * percent;
+
+            return {
+                x: this.curve.centerPos.x + this.curve.radius * Math.cos(angle),
+                y: this.curve.centerPos.y + this.curve.radius * Math.sin(angle)
+            };
+        } else {
+            Console.warn("Tried to access position from empty slider. Empty. Slider. What's that?");
         }
     }
 
@@ -113,10 +128,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.maxX += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
         this.maxY += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
 
-        for (let i = 0; i < this.curve.equalDistancePoints.length; i++) {
-            this.curve.equalDistancePoints[i].x += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
-            this.curve.equalDistancePoints[i].y += this.stackHeight * -4 * GraphicUtil.getPixelRatio()
-        }
+        this.curve.applyStackPosition();
     }
 
     init() { // Calculates slider path
@@ -172,7 +184,7 @@ export class DrawableSlider extends DrawableHitObject {
 
         this.baseCtx = this.baseCanvas.getContext("2d");
 
-        if (!SLIDER_SETTINGS.snaking || this.curve.equalDistancePoints.length > 1000) {
+        if (!SLIDER_SETTINGS.snaking || this.suppressSnaking) {
             Console.verbose(DEBUG_PREFIX+" Pre-rendering slider body since snaking is disabled.");
             this.renderBase.bind(this)(true);
         }
@@ -196,8 +208,8 @@ export class DrawableSlider extends DrawableHitObject {
         this.sliderHeadContainer.className = "hitCircleContainer";
         this.sliderHeadContainer.style.width = GAME_STATE.currentPlay.csPixel + "px";
         this.sliderHeadContainer.style.height = GAME_STATE.currentPlay.csPixel + "px";
-        this.sliderHeadContainer.style.left = this.curve.equalDistancePoints[0].x - this.minX + "px";
-        this.sliderHeadContainer.style.top = this.curve.equalDistancePoints[0].y - this.minY + "px";
+        this.sliderHeadContainer.style.left = this.startPoint.x * GraphicUtil.getPixelRatio() - this.minX + "px";
+        this.sliderHeadContainer.style.top = this.startPoint.y * GraphicUtil.getPixelRatio() - this.minY + "px";
 
         Console.verbose(DEBUG_PREFIX+" Creating sliderhead base canvas...");
         let sliderHeadBaseCanvas = document.createElement("canvas"); // Create local object canvas
@@ -245,6 +257,8 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     renderBase(initialRender) {
+        if(this.complete) return;
+
         // How much % of the slider should be drawn
         let thisCompletion = 0;
 
@@ -255,54 +269,7 @@ export class DrawableSlider extends DrawableHitObject {
             thisCompletion = Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime - GAME_STATE.currentPlay.ARMs)) / GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime() * 3);
         }
 
-        if(this.complete) return;
-
-        let time = window.performance.now();
-        Console.verbose(DEBUG_PREFIX+" Drawing slider base (body)");
-
-        let actualIndex = thisCompletion * (this.curve.equalDistancePoints.length - 1);
-        let targetIndex = Math.floor(actualIndex);
-
-        Console.verbose(DEBUG_PREFIX+" Clearing canvas (time passed: "+(window.performance.now()-time).toFixed(3)+")");
-        this.baseCtx.clearRect(0, 0, Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel), Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
-
-        Console.verbose(DEBUG_PREFIX+" Drawing slider border (time passed: "+(window.performance.now()-time).toFixed(3)+")");
-        this.baseCtx.beginPath();
-        this.baseCtx.moveTo(this.curve.equalDistancePoints[0].x - this.minX + GAME_STATE.currentPlay.halfCsPixel, this.curve.equalDistancePoints[0].y - this.minY + GAME_STATE.currentPlay.halfCsPixel);
-        for (let i = 1; i < targetIndex + 1; i++) {
-            this.baseCtx.lineTo(this.curve.equalDistancePoints[i].x - this.minX + GAME_STATE.currentPlay.halfCsPixel, this.curve.equalDistancePoints[i].y - this.minY + GAME_STATE.currentPlay.halfCsPixel);
-
-            if (SLIDER_SETTINGS.debugDrawing) {
-                this.baseCtx.beginPath();
-                this.baseCtx.arc(this.curve.equalDistancePoints[i].x - this.minX + GAME_STATE.currentPlay.halfCsPixel, this.curve.equalDistancePoints[i].y - this.minY + GAME_STATE.currentPlay.halfCsPixel, 1, 0, Math.PI * 2);
-                this.baseCtx.fillStyle = "white";
-                this.baseCtx.fill();
-            }
-        }
-
-        if (thisCompletion !== 1) {
-            let snakingEndPoint = GraphicUtil.getCoordFromCoordArray(this.curve.equalDistancePoints, thisCompletion);
-            this.baseCtx.lineTo(snakingEndPoint.x - this.minX + GAME_STATE.currentPlay.halfCsPixel, snakingEndPoint.y - this.minY + GAME_STATE.currentPlay.halfCsPixel);
-        }
-
-        this.baseCtx.lineWidth = GAME_STATE.currentPlay.csPixel * this.reductionFactor;
-        this.baseCtx.strokeStyle = "white";
-        this.baseCtx.lineCap = "round";
-        this.baseCtx.lineJoin = "round";
-        this.baseCtx.globalCompositeOperation = "source-over";
-        if(!SLIDER_SETTINGS.debugDrawing) this.baseCtx.stroke();
-
-        Console.verbose(DEBUG_PREFIX+" Drawing slider path (time passed: "+(window.performance.now()-time).toFixed(3)+")");
-        for (let i = this.sliderBodyRadius; i > 1; i -= 2) {
-            this.baseCtx.lineWidth = i * 2;
-            let completionRgb = Math.floor((1 - (i / this.sliderBodyRadius)) * 130);
-            this.baseCtx.strokeStyle = "rgb(" + completionRgb + ", " + completionRgb + ", " + completionRgb + ")";
-            if(!SLIDER_SETTINGS.debugDrawing) this.baseCtx.stroke();
-        }
-        this.baseCtx.lineWidth = this.sliderBodyRadius * 2;
-        this.baseCtx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-        this.baseCtx.globalCompositeOperation = "destination-out"; // Transparency
-        if(!SLIDER_SETTINGS.debugDrawing) this.baseCtx.stroke();
+        this.curve.render(thisCompletion);
 
         this.complete = thisCompletion === 1;
     }
@@ -331,9 +298,9 @@ export class DrawableSlider extends DrawableHitObject {
             let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
             for (let i = 0; this.sliderTickCompletions[i] < Math.floor(completion + 1) && this.sliderTickCompletions[i] < lowestTickCompletionFromCurrentRepeat + (completionForSliderTicks % 1) * 2; i++) {
                 if (this.sliderTickCompletions[i] >= completion) {
-                    let sliderTickPos = GraphicUtil.getCoordFromCoordArray(this.curve.equalDistancePoints, MathUtil.reflect(this.sliderTickCompletions[i]));
-                    let x = sliderTickPos.x - this.minX + GAME_STATE.currentPlay.halfCsPixel,
-                        y = sliderTickPos.y - this.minY + GAME_STATE.currentPlay.halfCsPixel;
+                    let sliderTickPos = this.getPosFromPercentage(MathUtil.reflect(this.sliderTickCompletions[i]));
+                    let x = sliderTickPos.x * GraphicUtil.getPixelRatio() - this.minX + GAME_STATE.currentPlay.halfCsPixel,
+                        y = sliderTickPos.y * GraphicUtil.getPixelRatio() - this.minY + GAME_STATE.currentPlay.halfCsPixel;
                     let tickMs =
                         /* ms of current repeat */ Math.floor(completion) * this.hitObject.length / this.timingInfo.sliderVelocity
                         + /* ms of tick showing up */ ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.hitObject.length / this.timingInfo.sliderVelocity) / 2;
@@ -351,17 +318,18 @@ export class DrawableSlider extends DrawableHitObject {
         if (this.hitObject.repeat - completion > 1 && this.complete) {
             let reverseArrowPos = null;
             let p2 = null;
+            const INFINITESIMAL = 0.00001; // Okay, not really infinitely small. But mathematically it should be.
 
             if (Math.floor(completion) % 2 === 0) {
-                reverseArrowPos = this.curve.equalDistancePoints[this.curve.equalDistancePoints.length - 1];
-                p2 = this.curve.equalDistancePoints[this.curve.equalDistancePoints.length - 2];
+                reverseArrowPos = this.getPosFromPercentage(1);
+                p2 = this.getPosFromPercentage(1 - INFINITESIMAL);
             } else {
-                reverseArrowPos = this.curve.equalDistancePoints[0];
-                p2 = this.curve.equalDistancePoints[1];
+                reverseArrowPos = this.getPosFromPercentage(0);
+                p2 = this.getPosFromPercentage(0 + INFINITESIMAL);
             }
             let angle = Math.atan2(p2.y - reverseArrowPos.y, p2.x - reverseArrowPos.x);
-            let x = reverseArrowPos.x - this.minX;
-            let y = reverseArrowPos.y - this.minY;
+            let x = reverseArrowPos.x * GraphicUtil.getPixelRatio() - this.minX;
+            let y = reverseArrowPos.y * GraphicUtil.getPixelRatio() - this.minY;
 
             // Create second off-screen canvas used for rotating the text
             let reverseArrowCanvas = document.createElement("canvas");
@@ -383,9 +351,9 @@ export class DrawableSlider extends DrawableHitObject {
 
         // Draws slider ball and follow circle to additional canvas
         if (isMoving) {
-            let sliderBallPos = GraphicUtil.getCoordFromCoordArray(this.curve.equalDistancePoints, MathUtil.reflect(completion));
+            let sliderBallPos = this.getPosFromPercentage(MathUtil.reflect(completion));
             let fadeOutCompletion = Math.min(1, Math.max(0, (AUDIO_MANAGER.getCurrentSongTime() - this.letGoTime) / 120));
-            this.followCircleCanvas.style.transform = "translate(" + (sliderBallPos.x - this.minX + GAME_STATE.currentPlay.halfCsPixel - this.maxFollowCircleRadius) + "px," + (sliderBallPos.y - this.minY + GAME_STATE.currentPlay.halfCsPixel - this.maxFollowCircleRadius) + "px) scale(" + ((this.letGoTime === null) ? 1 : 1 + fadeOutCompletion * 0.5) + ")"; // transform is gazillions of times faster than absolute positioning
+            this.followCircleCanvas.style.transform = "translate(" + (sliderBallPos.x * GraphicUtil.getPixelRatio() - this.minX + GAME_STATE.currentPlay.halfCsPixel - this.maxFollowCircleRadius) + "px," + (sliderBallPos.y * GraphicUtil.getPixelRatio() - this.minY + GAME_STATE.currentPlay.halfCsPixel - this.maxFollowCircleRadius) + "px) scale(" + ((this.letGoTime === null) ? 1 : 1 + fadeOutCompletion * 0.5) + ")"; // transform is gazillions of times faster than absolute positioning
             this.followCircleCanvas.style.opacity = (this.letGoTime === null) ? 1 : (1 - fadeOutCompletion);
             this.followCircleCanvas.style.webkitTransform = "transformZ(0)";
             this.followCircleCanvas.style.backfaceVisibility = "hidden";
@@ -393,8 +361,9 @@ export class DrawableSlider extends DrawableHitObject {
             let colour = GAME_STATE.currentBeatmap.colours[this.comboInfo.comboNum % GAME_STATE.currentBeatmap.colours.length];
             let colourString = "rgb(" + colour.r + "," + colour.g + "," + colour.b + ")";
 
+            // Draw slider ball
             this.overlayCtx.beginPath();
-            this.overlayCtx.arc(sliderBallPos.x - this.minX + GAME_STATE.currentPlay.halfCsPixel, sliderBallPos.y - this.minY + GAME_STATE.currentPlay.halfCsPixel, this.sliderBodyRadius, 0, PI2);
+            this.overlayCtx.arc(sliderBallPos.x * GraphicUtil.getPixelRatio() - this.minX + GAME_STATE.currentPlay.halfCsPixel, sliderBallPos.y * GraphicUtil.getPixelRatio() - this.minY + GAME_STATE.currentPlay.halfCsPixel, this.sliderBodyRadius, 0, PI2);
             this.overlayCtx.fillStyle = colourString;
             this.overlayCtx.fill();
 
@@ -408,6 +377,7 @@ export class DrawableSlider extends DrawableHitObject {
                 );
             let lineWidth = followCircleRadius * 0.1;
 
+            // Draw the follow circle I guess (why not scale() here?)
             this.sliderBallCtx.clearRect(0, 0, this.maxFollowCircleRadius * 2, this.maxFollowCircleRadius * 2);
             this.sliderBallCtx.beginPath();
             this.sliderBallCtx.arc(this.maxFollowCircleRadius, this.maxFollowCircleRadius, followCircleRadius - lineWidth / 2, 0, PI2);
