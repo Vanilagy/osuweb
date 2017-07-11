@@ -25,7 +25,7 @@ class TransformationManager {
     update() {
         for(let key in this._transformations) {
             if(this._transformations[key].update()) {
-                if(this._transformations[key].callback) this._transformations[key].callback(!this._transformations[key].cancelled);
+                if(this._transformations[key]._endListener) this._transformations[key]._endListener(!this._transformations[key]._cancelled);
                 delete this._transformations[key];
             }
         }
@@ -97,13 +97,28 @@ export class Transformation {
          * @protected
          */
         this._infinite = false;
-
         /**
          * @type {boolean}
          * @protected
          */
         this._cancelled = false;
 
+        /**
+         * @type {function}
+         * @protected
+         */
+        this._updateListener = null;
+        /**
+         * @type {function}
+         * @protected
+         */
+        this._endListener = null;
+
+        /**
+         * @type {number}
+         * @private
+         */
+        this._lastCompletion = 0;
         /**
          * Variable used to determine when to call the callback when looping is enabled
          * @type {number}
@@ -117,8 +132,17 @@ export class Transformation {
      * @returns {Transformation}
      * @public
      */
-    setCallback(callback) {
-        this._callback = callback;
+    setEndListener(callback) {
+        this._endListener = callback;
+        return this;
+    }
+
+    /**
+     * @param callback
+     * @returns {Transformation}
+     */
+    setUpdateListener(callback) {
+        this._endListener = callback;
         return this;
     }
 
@@ -202,9 +226,11 @@ export class Transformation {
     update() {
         let completion = this.getCompletion();
 
-        if(!this.shouldUpdate()) return this.isFinished(completion === 1);
+        if(!this.shouldUpdate()) return this.isFinished(this._lastCompletion === 1);
 
         this.doUpdate(completion);
+
+        this._lastCompletion = completion;
 
         return this.isFinished(completion === 1);
     }
@@ -227,12 +253,12 @@ export class Transformation {
 
         if(this._loop) {
             // Call callback for each finished loop
-            if(this._callback) {
+            if(this._endListener) {
                 let loopsFinished = Math.floor(timePassed / this._duration);
 
                 let difference = loopsFinished - this._loopsFinished;
 
-                for (let i = 0; i < difference; i++) this._callback(true);
+                for (let i = 0; i < difference; i++) this._endListener(true);
 
                 this._loopsFinished = loopsFinished;
             }
@@ -259,7 +285,7 @@ export class Transformation {
      * @protected
      */
     shouldUpdate() {
-        return !this._cancelled && (window.performance.now() >= this._startTime && (window.performance.now() <= this._startTime + this._duration || this._loop));
+        return !this._cancelled && (this._lastCompletion < 1 || this._loop);
     }
 }
 
@@ -303,6 +329,8 @@ export class TransformationElementStyle extends Transformation {
      */
     doUpdate(completion) {
         this._element.style[this._propertyName] = this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+this._unit;
+
+        if(this._updateListener) this._updateListener();
     }
 }
 
@@ -340,6 +368,52 @@ export class TransformationObjectField extends Transformation {
      */
     doUpdate(completion) {
         this._element[this._propertyName] = this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+(this._unit.length > 0 ? this._unit : 0);
+
+        if(this._updateListener) this._updateListener();
+    }
+}
+
+/**
+ * @public
+ */
+export class TransformationObjectFieldRelative extends Transformation {
+    /**
+     * @param {!object} element
+     * @param {!string} propertyName
+     * @param {!number} destination
+     * @param {!number} duration
+     * @param {!string} [easingType]
+     * @public
+     */
+    constructor(element, propertyName, destination, duration, easingType = "linear") {
+        super(element, null, destination, duration, easingType);
+
+        /**
+         * @type {number}
+         * @private
+         */
+        this._lastCompletion = 0;
+
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._propertyName = propertyName;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    doUpdate(completion) {
+        let delta =
+            (this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+(this._unit.length > 0 ? this._unit : 0)) -
+            (this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, this._lastCompletion)+(this._unit.length > 0 ? this._unit : 0))
+
+        this._element[this._propertyName] += delta;
+
+        if(this._updateListener) this._updateListener(delta);
+
+        this._lastCompletion = completion;
     }
 }
 
@@ -371,5 +445,78 @@ export class TransformationObjectMethod extends Transformation {
      */
     doUpdate(completion) {
         this._element[this._propertyName](this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+(this._unit.length > 0 ? this._unit : 0));
+    }
+}
+
+/**
+ * @public
+ */
+export class TransformationObjectMethodRelative extends Transformation {
+    /**
+     * @param {!object} element
+     * @param {!string} propertyName
+     * @param {!number} destination
+     * @param {!number} duration
+     * @param {!string} [easingType]
+     * @public
+     */
+    constructor(element, propertyName, destination, duration, easingType = "linear") {
+        super(element, null, destination, duration, easingType);
+
+        /**
+         * @type {number}
+         * @private
+         */
+        this._lastCompletion = 0;
+
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._propertyName = propertyName;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    doUpdate(completion) {
+        let delta =
+            (this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, completion)+(this._unit.length > 0 ? this._unit : 0)) -
+            (this._start + (this._destination - this._start) * MathUtil.ease(this._easingType, this._lastCompletion)+(this._unit.length > 0 ? this._unit : 0))
+
+        this._element[this._propertyName](delta);
+
+        if(this._updateListener) this._updateListener(delta);
+
+        this._lastCompletion = completion;
+    }
+}
+
+/**
+ * @public
+ */
+export class TransformationObjectFieldTimeout extends Transformation {
+    /**
+     * @param {!object} element
+     * @param {!string} propertyName
+     * @param {!*} destination
+     * @param {!number} duration
+     * @public
+     */
+    constructor(element, propertyName, destination, duration) {
+        super(element, null, destination, duration, "linear");
+
+        /**
+         * @type {string}
+         * @protected
+         */
+        this._propertyName = propertyName;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    doUpdate(completion) {
+        if(completion === 1) this._element[this._propertyName] = this._destination;
     }
 }

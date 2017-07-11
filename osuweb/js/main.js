@@ -6,15 +6,15 @@ import {Settings} from "./settings";
 import {AudioManager} from "./audio/audiomanager";
 import {InputUtil, INPUT_STATE} from "./util/inpututil";
 import {Skin} from "./datamodel/skin";
-import {SceneMenu} from "./game/scenes/scenemenu";
-import {SceneSongSelect} from "./game/scenes/scenesongselect";
-import {SceneGameOsu} from "./game/scenes/scenegameosu";
+import {SceneMenu} from "./ui/scenes/scenemenu";
+import {SceneSongSelect} from "./ui/scenes/scenesongselect";
+import {SceneGameOsu} from "./ui/scenes/scenegameosu";
 import {BeatmapSet} from "./datamodel/beatmapset";
-import {SceneLoading} from "./game/scenes/sceneloading";
+import {SceneLoading} from "./ui/scenes/sceneloading";
 import {Database} from "./datamodel/database";
-import {SceneManager} from "./game/scenes/scenemanager";
+import {SceneManager} from "./ui/scenes/scenemanager";
 import {SLIDER_SETTINGS} from "./game/drawableslider";
-import {TRANSFORMATION_MANAGER} from "./game/scenes/transformation";
+import {TRANSFORMATION_MANAGER} from "./ui/scenes/transformation";
 
 export let GAME_STATE = {
     currentBeatmapSet: null,

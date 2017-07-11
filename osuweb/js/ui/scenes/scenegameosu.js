@@ -1,7 +1,7 @@
 "use strict";
 
 import {SceneGame} from "./scenegame";
-import {Play} from "../play";
+import {Play} from "../../game/play";
 import {GAME_STATE} from "../../main";
 import {Console} from "../../console";
 

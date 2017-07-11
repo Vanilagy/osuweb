@@ -5,15 +5,47 @@ import {FileUtil} from "../util/fileutil";
 import {AUDIO_MANAGER} from "../main";
 
 export class BeatmapSetEntry {
-    constructor(fileEntrys, callback, difficulty = undefined) {
+    /**
+     * @param {File[]} fileEntrys
+     * @param {function} callback
+     */
+    constructor(fileEntrys, callback) {
         this._fileEntrys = fileEntrys;
+        /**
+         * @type {File[]}
+         * @private
+         */
         this._audioFiles = [];
+        /**
+         * @type {File[]}
+         * @private
+         */
         this._imageFiles = [];
-        this.beatmaps = {};
-        this.loadingMaps = 0;
-        this.beatmapSetID = -1;
+        /**
+         * @type {Object.<string, Beatmap>}
+         * @private
+         */
+        this._beatmaps = {};
+        /**
+         * @type {number}
+         * @private
+         */
+        this._loadingMaps = 0;
+        /**
+         * @type {number}
+         * @private
+         */
+        this._beatmapSetID = -1;
 
+        /**
+         * @type {boolean}
+         * @private
+         */
         this._readingFilesDone = false;
+        /**
+         * @type {boolean}
+         * @private
+         */
         this._readingMapsDone = false;
 
         for (let key in this._fileEntrys) {
@@ -22,19 +54,19 @@ export class BeatmapSetEntry {
             let name = fileEntry.name.toLowerCase();
 
             if (name.endsWith(".osu")) {
-                this.loadingMaps++;
+                this._loadingMaps++;
                 fileEntry.file((file) => {
                     FileUtil.loadFileAsString(file, (content) => {
                         let beatmap = new Beatmap(content.target.result);
 
-                        if (this.beatmapSetID === -1 && beatmap.beatmapSetID !== undefined) {
-                            this.beatmapSetID = beatmap.beatmapSetID;
+                        if (this._beatmapSetID === -1 && beatmap._beatmapSetID !== undefined) {
+                            this._beatmapSetID = beatmap._beatmapSetID;
                         }
 
-                        this.beatmaps[beatmap.version] = beatmap;
+                        this._beatmaps[beatmap.version] = beatmap;
 
-                        this.loadingMaps--;
-                        if (this.loadingMaps === 0) callback();
+                        this._loadingMaps--;
+                        if (this._loadingMaps === 0) callback();
                     });
                 });
             }
@@ -50,8 +82,8 @@ export class BeatmapSetEntry {
     getMainImageName() {
         let counts = {};
 
-        for(let key in this.beatmaps) {
-            let imageName = this.beatmaps[key].getBackgroundImageName();
+        for(let key in this._beatmaps) {
+            let imageName = this._beatmaps[key].getBackgroundImageName();
 
             if(counts[imageName] === undefined) {
                 counts[imageName] = 1;
@@ -118,5 +150,9 @@ export class BeatmapSetEntry {
                 return;
             }
         }
+    }
+
+    get beatmaps() {
+        return this._beatmaps;
     }
 }

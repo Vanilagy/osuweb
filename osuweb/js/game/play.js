@@ -1,8 +1,8 @@
 "use strict";
 
 import {GraphicUtil} from "../util/graphicutil";
-import {AccMeter} from "../interface/accmeter";
-import {ProgressBar} from "../interface/progressbar";
+import {AccMeter} from "../ui/interface/accmeter";
+import {ProgressBar} from "../ui/interface/progressbar";
 import {DrawableCircle} from "../game/drawablecircle";
 import {DrawableSlider} from "../game/drawableslider";
 import {DrawableSpinner} from "../game/drawablespinner";

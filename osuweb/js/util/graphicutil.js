@@ -22,6 +22,12 @@ export class GraphicUtil {
             height: 480
         };
     }
+    static getGameScalingFactor() {
+        return GAME_STATE.screen.height / 480;
+    }
+    static getUIScalingFactor() {
+        return GAME_STATE.screen.height / 1080;
+    }
     static getPlayAreaDimensions() {
         let playAreaHeight = Math.floor(window.innerHeight * 0.95 / 4) * 4;
         let playAreaWidth = playAreaHeight / GraphicUtil.getAspectRatio();

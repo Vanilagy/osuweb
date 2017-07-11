@@ -1,12 +1,12 @@
 "use strict";
 
-import {GAME_STATE, SETTINGS, SCENE_MANAGER} from "../main";
+import {GAME_STATE, SETTINGS, SCENE_MANAGER} from "../../main";
 
 export class VolumeControl {
     constructor() {
         // The canvas and context to draw on
-        this.canvas = document.getElementById("volume");
-        this.ctx = this.canvas.getContext("2d");
+        this._canvas = document.getElementById("volume");
+        this.ctx = this._canvas.getContext("2d");
 
         this.ctx.width = 250;
         this.ctx.height = 250;
@@ -67,7 +67,7 @@ export class VolumeControl {
             }
         }
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
 
         // Calculate time since last user input
         let lastChangeDiff = window.performance.now() - this.lastChange;

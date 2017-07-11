@@ -30,6 +30,12 @@ export class Beatmap {
         this.bpmMin = 120;
         this.bpmMax = 120;
 
+        /**
+         * @type {number}
+         * @private
+         */
+        this._stars = 0;
+
         this._ARFound = false;
 
         if (typeof file === "string" && file.startsWith("osu file format v")) {
@@ -67,14 +73,14 @@ export class Beatmap {
             if (line.startsWith("osu file format v")) {
                 this.version = line.substr(line.length - 2, 2);
 
-                Console.debug("Beatmap version: "+this.version);
+                Console.verbose("Beatmap version: "+this.version);
 
                 if(!line.endsWith("14")) Console.warn("The beatmap version seems to be older than supported. We could run into issue here!");
             }
             else if(line.startsWith("[") && line.endsWith("]")) {
                 section = line.substr(1,line.length-2).toLowerCase();
 
-                Console.debug("Reading new section: "+line);
+                Console.verbose("Reading new section: "+line);
             }
             else if (section === "colours") {
                 let col = line.split(':')[1].trim().split(',');
@@ -181,7 +187,7 @@ export class Beatmap {
                 if (line.startsWith("Source")) this.source = line.split(':')[1].trim();
                 if (line.startsWith("Tags")) this.tags = line.split(':')[1].trim();
                 if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim(), 10);
-                if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("BeatmapSetID")) this._beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
 
                 if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(line.split(':')[1].trim());
@@ -204,7 +210,7 @@ export class Beatmap {
         Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
         Console.verbose("--- BEATMAP LOADING FINISHED ---");
 
-        this.stars = new DifficultyCalculator(this).calculate(null);
+        this._stars = new DifficultyCalculator(this).calculate(null);
 
         if(this.callback) this.callback(this);
     }
@@ -227,5 +233,9 @@ export class Beatmap {
         }
 
         return null;
+    }
+
+    get stars() {
+        return this._stars;
     }
 }

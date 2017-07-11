@@ -1,6 +1,6 @@
 "use strict";
 
-import {VolumeControl} from "./interface/volumecontrol";
+import {VolumeControl} from "./ui/interface/volumecontrol";
 import {AUDIO_MANAGER, GAME_STATE} from "./main";
 
 export class Settings {

@@ -1,9 +1,9 @@
 "use strict";
 
-import {GAME_STATE, SCENE_MANAGER} from "../main";
-import {MathUtil} from "../util/mathutil";
-import {BeatmapDifficulty} from "../datamodel/beatmapdifficulty";
-import {TransformationObjectField} from "../game/scenes/transformation";
+import {GAME_STATE, SCENE_MANAGER} from "../../main";
+import {MathUtil} from "../../util/mathutil";
+import {BeatmapDifficulty} from "../../datamodel/beatmapdifficulty";
+import {TransformationObjectField} from "../scenes/transformation";
 
 export class AccMeter {
     constructor() {
