@@ -137,6 +137,8 @@ export class DrawableSlider extends DrawableHitObject {
         }
         else if (this.hitObject.sections[0].type === "circle") {
             this.curve = new SliderCurvePassthrough(this);
+
+            this.curve.calculateValues();
         }
         else {
             this.curve = new SliderCurveBezier(this);
