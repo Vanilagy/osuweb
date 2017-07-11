@@ -74,6 +74,7 @@ export class Score {
             // Set up animation for combo
             SCENE_MANAGER.getScene().elements["comboDisplayP"].interpolationData.startTime = window.performance.now();
         }
+        this.prevCombo = this.combo;
 
         if (!comboIndependent) {
             this.totalNumberOfHits++;

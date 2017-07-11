@@ -11,8 +11,6 @@ const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 export class SliderCurvePassthrough extends SliderCurve {
     constructor(drawableSlider) {
         super(drawableSlider);
-
-        this.calculateValues();
     }
 
     applyStackPosition() {
@@ -59,39 +57,32 @@ export class SliderCurvePassthrough extends SliderCurve {
             a2 = Math.atan2(points[1].y - this.centerPos.y, points[1].x - this.centerPos.x), // angle to control point
             a3 = Math.atan2(points[2].y - this.centerPos.y, points[2].x - this.centerPos.x); // angle to end
 
-        // TODO: Make this all more efficient
-        let segmentCount = Math.floor(this.slider.hitObject.length / MAXIMUM_TRACE_POINT_DISTANCE + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
-        let segmentLength = this.slider.hitObject.length / segmentCount;
-        let incre = segmentLength / this.radius;
-
         this.startingAngle = a1;
-
-        if (a1 < a2 && a2 < a3) { // Point order
-
-        } else if ((a2 < a3 && a3 < a1) || (a3 < a1 && a1 < a2)) {
-
-        } else if (a3 < a1 && a1 < a2) {
-
-        } else if (a3 < a2 && a2 < a1) {
-            incre *= -1;
-        } else {
-            incre *= -1;
+        this.angleDifference = this.slider.hitObject.length / this.radius;
+        if ((a3 < a2 && a2 < a1) || (a1 < a3 && a3 < a2) || (a2 < a1 && a1 < a3)) { // Point order
+            this.angleDifference *= -1;
         }
 
-        this.angleDifference = incre * segmentCount;
+        let endAngle = this.startingAngle + this.angleDifference;
 
         let pixelRatio = GraphicUtil.getPixelRatio();
-        this.slider.minX = this.slider.maxX = (this.centerPos.x + this.radius * Math.cos(a1)) * pixelRatio;
-        this.slider.minY = this.slider.maxY = (this.centerPos.y + this.radius * Math.sin(a1)) * pixelRatio;
-
-        let angle = a1;
-        for (let i = 0; i <= segmentCount; i++) {
+        let updateBoundaries = (angle) => {
             this.slider.minX = Math.min(this.slider.minX, (this.centerPos.x + this.radius * Math.cos(angle)) * pixelRatio);
             this.slider.maxX = Math.max(this.slider.maxX, (this.centerPos.x + this.radius * Math.cos(angle)) * pixelRatio);
             this.slider.minY = Math.min(this.slider.minY, (this.centerPos.y + this.radius * Math.sin(angle)) * pixelRatio);
             this.slider.maxY = Math.max(this.slider.maxY, (this.centerPos.y + this.radius * Math.sin(angle)) * pixelRatio);
+        };
 
-            angle += incre;
+        this.slider.minX = this.slider.maxX = (this.centerPos.x + this.radius * Math.cos(a1)) * pixelRatio;
+        this.slider.minY = this.slider.maxY = (this.centerPos.y + this.radius * Math.sin(a1)) * pixelRatio;
+
+        updateBoundaries(endAngle);
+
+        for (let revs = -1.5; revs <= 1.5; revs += 0.25) { // Rotates around in 90° segments
+            let angle = revs * Math.PI * 2;
+            if ((this.angleDifference > 0) ? (angle > this.startingAngle && angle < endAngle) : (angle > endAngle && angle < this.startingAngle)) {
+                updateBoundaries(angle);
+            }
         }
     }
 }
