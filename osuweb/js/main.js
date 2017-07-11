@@ -233,10 +233,10 @@ document.getElementById("osu").onclick = () => {
 
 addWheelListener(document.getElementById("container"), function(e) {
     if(SCENE_MANAGER.getScene().constructor.name === "SceneSongSelect" && !INPUT_STATE.altDown) {
-        SCENE_MANAGER.getScene().scroll(Math.round(e.deltaY / (e.deltaY % 3 === 0 ? 3 : 100)));
+        SCENE_MANAGER.getScene().scroll(Math.round(InputUtil.normalizeWheelEvent(e) / 120));
     }
     else {
-        SETTINGS.changeMaster(0.05 * -Math.round(e.deltaY / (e.deltaY % 3 === 0 ? 3 : 100)));
+        SETTINGS.changeMaster(0.05 * -Math.round(InputUtil.normalizeWheelEvent(e) / 120));
     }
 });
 
