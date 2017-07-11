@@ -160,7 +160,7 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     draw() {
-        Console.debug(DEBUG_PREFIX+" Creating slider DOM elements...");
+        Console.verbose(DEBUG_PREFIX+" Creating slider DOM elements...");
         let time = window.performance.now();
 
         this.sliderWidth = this.maxX - this.minX;
@@ -241,7 +241,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.containerDiv.appendChild(this.sliderHeadContainer);
         this.containerDiv.appendChild(this.followCircleCanvas);
 
-        Console.debug(DEBUG_PREFIX+" Creating DOM objects complete! ("+(window.performance.now()-time).toFixed(3)+"ms)");
+        Console.verbose(DEBUG_PREFIX+" Creating DOM objects complete! ("+(window.performance.now()-time).toFixed(3)+"ms)");
     }
 
     getLowestTickCompletionFromCurrentRepeat(completion) {

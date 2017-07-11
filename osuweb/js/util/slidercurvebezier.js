@@ -8,6 +8,7 @@ import {SLIDER_SETTINGS} from "../game/drawableslider";
 import {Console} from "../console";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
+const TOLERANCE = 0.25;
 const DEBUG_PREFIX = "[BEZIER]";
 
 export class SliderCurveBezier extends SliderCurve {
@@ -56,7 +57,16 @@ export class SliderCurveBezier extends SliderCurve {
         this.slider.baseCtx.beginPath();
         this.slider.baseCtx.moveTo(this.equalDistancePoints[0].x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, this.equalDistancePoints[0].y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel);
         for (let i = 1; i < targetIndex + 1; i++) {
-            this.slider.baseCtx.lineTo(this.equalDistancePoints[i].x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, this.equalDistancePoints[i].y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel);
+            let point = this.equalDistancePoints[i];
+
+            // This part skips points that belong to the same linear segment, in order to draw them in one stroke
+            if (point.linearSegmentId !== undefined) {
+                if (this.equalDistancePoints[i + 1] && this.equalDistancePoints[i + 1].linearSegmentId === point.linearSegmentId) {
+                    continue;
+                }
+            }
+
+            this.slider.baseCtx.lineTo(point.x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, point.y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel);
 
             if (SLIDER_SETTINGS.debugDrawing) {
                 this.slider.baseCtx.beginPath();
@@ -78,9 +88,9 @@ export class SliderCurveBezier extends SliderCurve {
         for (let i = 0; i < this.sections.length; i++) {
             let points = this.sections[i].values;
 
-            if (points.length === 2) { // if linear
+            if (points.length === 2) { // if segment is linear
                 this.pushTracePoint(points[0]);
-                this.pushTracePoint(points[1]);
+                this.pushTracePoint(points[1], true);
             } else {
                 let leftT = 0, rightT = 0.01;
                 let p1 = MathUtil.coordsOnBezier(points, leftT);
@@ -108,7 +118,7 @@ export class SliderCurveBezier extends SliderCurve {
                                 p3 = MathUtil.coordsOnBezier(points, midT);
                                 dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
 
-                                if (Math.abs(MAXIMUM_TRACE_POINT_DISTANCE - dist) < 0.25) {
+                                if (Math.abs(MAXIMUM_TRACE_POINT_DISTANCE - dist) <= TOLERANCE) {
                                     break;
                                 }
 
@@ -156,6 +166,7 @@ export class SliderCurveBezier extends SliderCurve {
     calculateEqualDistancePoints() {
         let segmentCount = Math.floor(this.curveLength / MAXIMUM_TRACE_POINT_DISTANCE + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
         let segmentLength = this.curveLength / segmentCount;
+        let linearSegmentId = 0; // Keeping track of linear segments in order to optimize drawing later on
 
         /* Using the initially traced points, generate a slider path point array in which
          all points are equally distant from one another. This is done to guarantee constant
@@ -173,11 +184,16 @@ export class SliderCurveBezier extends SliderCurve {
                     lastPoint = this.tracePoints[currentIndex];
                     remainingLength -= dist;
                     currentIndex++;
+
+                    if (this.tracePoints[currentIndex].isLinearEndPoint) {
+                        linearSegmentId++;
+                    }
                 } else {
                     let percentReached = remainingLength / dist;
                     let newPoint = {
                         x: lastPoint.x * (1 - percentReached) + this.tracePoints[currentIndex].x * percentReached,
-                        y: lastPoint.y * (1 - percentReached) + this.tracePoints[currentIndex].y * percentReached
+                        y: lastPoint.y * (1 - percentReached) + this.tracePoints[currentIndex].y * percentReached,
+                        linearSegmentId: (this.tracePoints[currentIndex].isLinearEndPoint) ? linearSegmentId : undefined
                     };
 
                     this.pushEqualDistancePoint(newPoint);
@@ -188,10 +204,14 @@ export class SliderCurveBezier extends SliderCurve {
         }
     }
 
-    pushTracePoint(pos) { // Adding points and keeping track of the distance passed
+    pushTracePoint(pos, isLinearEndPoint) { // Adding points and keeping track of the distance passed
         if (this.tracePoints[this.tracePoints.length - 1]) {
             let thatPoint = this.tracePoints[this.tracePoints.length - 1];
             this.curveLength += Math.hypot(thatPoint.x - pos.x, thatPoint.y - pos.y);
+        }
+
+        if (isLinearEndPoint) {
+            pos.isLinearEndPoint = true;
         }
 
         this.tracePoints.push(pos);

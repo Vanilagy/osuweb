@@ -44,14 +44,9 @@ export class SliderCurve {
     }
 
     pushEqualDistancePoint(pos) { // Pushes endpoint to array
-        let pixelRatio = GraphicUtil.getPixelRatio();
-
-        pos = {
-            x: pos.x,
-            y: pos.y
-        };
-
         this.equalDistancePoints.push(pos);
+
+        let pixelRatio = GraphicUtil.getPixelRatio();
 
         this.slider.minX = Math.min(this.slider.minX, pos.x * pixelRatio);
         this.slider.minY = Math.min(this.slider.minY, pos.y * pixelRatio);
