@@ -5,6 +5,7 @@ import {GraphicUtil} from "./graphicutil";
 import {MathUtil} from "./mathutil";
 import {SliderCurveBezier} from "./slidercurvebezier";
 import {GAME_STATE} from "../main";
+import {Console} from "../console";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
@@ -41,23 +42,25 @@ export class SliderCurvePassthrough extends SliderCurve {
         let points = this.sections[0].values;
 
         // Monstrata plz
-        if(JSON.stringify(points[0]) === JSON.stringify(points[2])) {
+        if(JSON.stringify(points[0]) === JSON.stringify(points[2])) { // case one
+            Console.warn("Converted P to L-slider due to case one.");
             this.sections[0] = {type: "linear", values: [points[0], points[1]]};
             this.sections[1] = {type: "linear", values: [points[1], points[2]]};
 
-            this.slider.curve = new SliderCurveBezier(this.slider);
+            this.slider.curve = new SliderCurveBezier(this.slider, speedCalc);
             return;
         }
 
         this.centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
 
         // Slider seems to have all points on one line. Parsing it as linear slider instead
-        if(!isFinite(this.centerPos.x) || !isFinite(this.centerPos.y)) {
+        if(!isFinite(this.centerPos.x) || !isFinite(this.centerPos.y)) { // case two
+            Console.warn("Converted P to L-slider due to case two.");
             // Remove middle point
             this.sections[0].values.splice(1,1);
             this.sections[0].type = "linear";
 
-            this.slider.curve = new SliderCurveBezier(this.slider);
+            this.slider.curve = new SliderCurveBezier(this.slider, speedCalc);
             return;
         }
 
