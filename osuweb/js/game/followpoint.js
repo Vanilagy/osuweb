@@ -54,7 +54,7 @@ export class FollowPoint {
         let renderEnd = (relTime + PRE_EMPT) / duration;
 
         if(renderStart >= 1) {
-            SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this._canvas);
+            SCENE_MANAGER.getScene().elements["objectContainerDiv"].removeChild(this.canvas);
             delete GAME_STATE.currentPlay.onScreenFollowPoints[this.startTime];
             return;
         }
