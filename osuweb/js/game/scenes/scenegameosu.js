@@ -22,12 +22,7 @@ export class SceneGameOsu extends SceneGame {
         this.addElement("ingameContainerSection", "ingameContainer");
 
         // Accmeter (bottom-middle)
-        this.addElement("accarrowImg", "accarrow");
-        this.addElement("accmeterDiv", "accmeter");
-        this.addElement("accstrip50Div", "accstrip-50");
-        this.addElement("accstrip100Div", "accstrip-100");
-        this.addElement("accstrip300Div", "accstrip-300");
-        this.addElement("acctickXDiv", "acctick-X");
+        this.addElement("accmeterCanvas", "accmeter");
 
         // Score display (top-right)
         this.addElement("scoreDisplayP", "scoreDisplay");
@@ -55,7 +50,6 @@ export class SceneGameOsu extends SceneGame {
 
         this.showElements([
             "playareaDiv", "objectContainerDiv", "progressCanvas", "spinnerContainerContainer", "ingameContainerSection",
-            "accarrowImg", "accmeterDiv", "accstrip50Div", "accstrip100Div", "accstrip300Div", "acctickXDiv",
             "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv"]);
 
 

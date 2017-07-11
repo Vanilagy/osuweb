@@ -149,9 +149,6 @@ window.onresize = function() {
 
     GAME_STATE.screen.width = window.innerWidth;
     GAME_STATE.screen.height = window.innerHeight;
-
-    ctx.canvas.width  = window.innerWidth;
-    ctx.canvas.height = window.innerHeight;
 };
 
 function finishLoading() {
