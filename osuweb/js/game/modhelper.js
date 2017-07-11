@@ -39,6 +39,7 @@ export class ModHelper {
             AT: false
         };
 
+        if (modCode === null || modCode === undefined) modCode = "";
         modCode = modCode.toUpperCase();
 
         // Looks at pairs of two characters each
