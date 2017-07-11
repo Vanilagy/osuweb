@@ -34,11 +34,12 @@ export class ProcessedBeatmap {
         let processStartTime = window.performance.now();
 
         this.generateDrawableHitObjects(fullCalc);
-        this.applyStackShift();
+        this.applyStackShift(fullCalc);
+        Console.info("Beatmap process time: " + ((window.performance.now() - processStartTime) / 1000).toFixed(3) + "s");
         if(fullCalc) this.calculateZOrder();
         if(fullCalc) this.calculateFollowPoints();
 
-        Console.info("Beatmap process time: " + ((window.performance.now() - processStartTime) / 1000).toFixed(3) + "s");
+
     }
 
     calculateZOrder() {
@@ -80,20 +81,22 @@ export class ProcessedBeatmap {
         for (let o = 0; o < this.sourceBeatmap.hitObjects.length; o++) {
             let obj = this.sourceBeatmap.hitObjects[o];
 
-            if (obj.newCombo !== null) {
-                if (obj.newCombo === -1) {
-                    nextCombo++;
+            if (fullCalc) {
+                if (obj.newCombo !== null) {
+                    if (obj.newCombo === -1) {
+                        nextCombo++;
+                    }
+                    else {
+                        nextCombo += obj.newCombo + 1;
+                    }
+                    comboCount = 1;
                 }
-                else {
-                    nextCombo += obj.newCombo + 1;
-                }
-                comboCount = 1;
+                var comboInfo = {
+                    comboNum: nextCombo,
+                    n: comboCount++,
+                    isLast: (this.sourceBeatmap.hitObjects[o + 1]) ? this.sourceBeatmap.hitObjects[o + 1].newCombo !== null : true
+                };
             }
-            let comboInfo = {
-                comboNum: nextCombo,
-                n: comboCount++,
-                isLast: (this.sourceBeatmap.hitObjects[o + 1]) ? this.sourceBeatmap.hitObjects[o + 1].newCombo !== null : true
-            };
 
             if (this.currentTimingPoint < this.sourceBeatmap.timingPoints.length) {
                 while (this.sourceBeatmap.timingPoints[this.currentTimingPoint].offset <= obj.time) {
@@ -123,28 +126,30 @@ export class ProcessedBeatmap {
             if (obj.constructor.name === "Circle") {
                 newObject = new DrawableCircle(obj, this);
             } else if (obj.constructor.name === "Slider") {
-                newObject = new DrawableSlider(obj, this);
+                newObject = new DrawableSlider(obj, this, fullCalc);
 
                 let timingInfo = {
                     msPerBeat: this.currentMsPerBeat,
                     msPerBeatMultiplier: this.currentMsPerBeatMultiplier,
                     sliderVelocity: 100 * this.difficulty.SV * (100 / this.currentMsPerBeatMultiplier) / (this.currentMsPerBeat)
                 };
-                let sliderTickCompletions = [];
-
-                for (let tickCompletion = 0; tickCompletion < obj.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.difficulty.TR)) / obj.length) {
-                    let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
-
-                    if (t > 0 && t < 1) {
-                        sliderTickCompletions.push(tickCompletion);
-                    }
-                }
 
                 newObject.endTime = obj.time + obj.repeat * obj.length / timingInfo.sliderVelocity;
                 newObject.timingInfo = timingInfo;
-                newObject.sliderTickCompletions = sliderTickCompletions;
+
+                if (fullCalc) {
+                    let sliderTickCompletions = [];
+                    for (let tickCompletion = 0; tickCompletion < obj.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.difficulty.TR)) / obj.length) {
+                        let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
+
+                        if (t > 0 && t < 1) {
+                            sliderTickCompletions.push(tickCompletion);
+                        }
+                    }
+                    newObject.sliderTickCompletions = sliderTickCompletions;
+                }
             } else if (obj.constructor.name === "Spinner") {
-                newObject = new DrawableSpinner(obj, this);
+                newObject = new DrawableSpinner(obj, this, fullCalc);
             }
 
             let hitSoundInfo = null;
@@ -180,8 +185,10 @@ export class ProcessedBeatmap {
 
             if (newObject !== null) {
                 newObject.id = hitObjectId;
-                newObject.comboInfo = comboInfo;
-                newObject.hitSoundInfo = hitSoundInfo;
+                if (fullCalc) {
+                    newObject.comboInfo = comboInfo;
+                    newObject.hitSoundInfo = hitSoundInfo;
+                }
                 this.hitObjects.push(newObject);
             }
 
@@ -190,7 +197,7 @@ export class ProcessedBeatmap {
         return mapGenerationStartTime;
     }
 
-    applyStackShift() {
+    applyStackShift(fullCalc) {
         let lastStackEnd = 0;
         let stackThreshold = this.difficulty.getApproachTime() * this.difficulty.SL;
         let stackSnapDistance = 3;
@@ -282,7 +289,7 @@ export class ProcessedBeatmap {
         }
 
         for (let z = 0; z < this.hitObjects.length; z++) {
-            this.hitObjects[z].applyStackPosition();
+            this.hitObjects[z].applyStackPosition(fullCalc);
         }
     }
 }

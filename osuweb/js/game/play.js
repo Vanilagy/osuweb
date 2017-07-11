@@ -380,7 +380,7 @@ export class Play {
 
         // Makes HitObjects show up on-screen
         if (this.currentHitObject < this.beatmap.hitObjects.length) {
-            while (this.beatmap.hitObjects[this.currentHitObject].startTime - ((this.beatmap.hitObjects[this.currentHitObject].constructor !== "DrawableSpinner") ? this.ARMs : 300) <= currentTime) {
+            while (this.beatmap.hitObjects[this.currentHitObject].startTime - ((this.beatmap.hitObjects[this.currentHitObject].constructor !== "DrawableSpinner") ? this.ARMs : 175) <= currentTime) {
                 let hitObject = this.beatmap.hitObjects[this.currentHitObject];
 
                 hitObject.show(currentTime - (hitObject.startTime - this.ARMs));

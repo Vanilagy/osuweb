@@ -3,6 +3,7 @@
 import {ProcessedBeatmap} from "../../datamodel/processedbeatmap";
 import {Aim, Speed} from "./skill";
 import {DifficultyBeatmap} from "./difficultybeatmap";
+import {Console} from "../../console";
 
 const SECTION_LENGTH = 400;
 const DIFFICULTY_MULTIPLIER = 0.0675;
@@ -13,6 +14,7 @@ export class DifficultyCalculator {
     }
 
     calculate(categoryDifficulty) {
+        let startTime = window.performance.now();
         if(this.beatmap.constructor.name === "Beatmap") {
             this.beatmap = new ProcessedBeatmap(this.beatmap);
             this.beatmap.process(false);
@@ -54,6 +56,7 @@ export class DifficultyCalculator {
             categoryDifficulty["Speed"] = speedRating.toFixed(2);
         }
 
+        Console.debug("Calculated star rating in: " + (window.performance.now() - startTime).toFixed(3) + "ms");
         return starRating;
     }
 }

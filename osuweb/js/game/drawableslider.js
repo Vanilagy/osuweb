@@ -17,36 +17,42 @@ export let SLIDER_SETTINGS = {
 };
 
 export class DrawableSlider extends DrawableHitObject {
-    constructor(slider, beatmap) {
+    constructor(slider, beatmap, fullCalc) {
         super(slider);
 
         this.beatmap = beatmap;
 
-        this.reductionFactor = 0.92;
+        if (fullCalc) {
+            this.curve = null;
+            this.init();
+            if (this.curve.constructor.name === "SliderCurveBezier" && this.curve.equalDistancePoints.length >= 1000) {
+                this.suppressSnaking = true;
+            }
 
-        this.curve = null;
-        this.init();
-        if (this.curve.constructor.name === "SliderCurveBezier" && this.curve.equalDistancePoints.length >= 1000) {
-            this.suppressSnaking = true;
-        }
+            this.scoring = { // Holds scoring information about slider
+                head: false,
+                ticks: 0,
+                end: false
+            };
+            this.reductionFactor = 0.92;
+            this.currentSliderTick = 0;
+            this.currentRepeat = 0;
+            this.lastPulseTime = -10e6;
+            this.hittable = true;
+            this.fadingOut = false;
+            this.letGoTime = null;
 
-        this.scoring = { // Holds scoring information about slider
-            head: false,
-            ticks: 0,
-            end: false
-        };
-        this.currentSliderTick = 0;
-        this.currentRepeat = 0;
-        this.lastPulseTime = -10e6;
-        this.hittable = true;
-        this.fadingOut = false;
-        this.letGoTime = null;
-
-        if(this.hitObject.repeat % 2 === 0) {
-            this.endPoint = this.startPoint;
-        }
-        else {
-            this.endPoint = this.getPosFromPercentage(1);
+            if (this.hitObject.repeat % 2 === 0) {
+                this.endPoint = this.startPoint;
+            } else {
+                this.endPoint = this.getPosFromPercentage(1);
+            }
+        } else {
+            if (this.hitObject.repeat % 2 === 0) {
+                this.endPoint = this.startPoint;
+            } else {
+                this.calculateEndPoint();
+            }
         }
     }
 
@@ -119,31 +125,46 @@ export class DrawableSlider extends DrawableHitObject {
         AUDIO_MANAGER.playSound(audioObj, this.hitSoundInfo.sliderEndHitSoundInfos[0].volume);
     }
 
-    applyStackPosition() {
+    applyStackPosition(fullCalc) {
         this.x += this.stackHeight * -4;
         this.y += this.stackHeight * -4;
 
-        this.minX += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
-        this.minY += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
-        this.maxX += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
-        this.maxY += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
+        if (fullCalc) {
+            this.minX += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
+            this.minY += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
+            this.maxX += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
+            this.maxY += this.stackHeight * -4 * GraphicUtil.getPixelRatio();
 
-        this.curve.applyStackPosition();
+            this.curve.applyStackPosition();
+        }
     }
 
     init() { // Calculates slider path
-        if(this.hitObject.sections.length === 0) {
+        if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
-        }
-        else if (this.hitObject.sections[0].type === "circle") {
+        } else if (this.hitObject.sections[0].type === "circle") {
             this.curve = new SliderCurvePassthrough(this);
 
             this.curve.calculateValues();
-        }
-        else {
+        } else {
             this.curve = new SliderCurveBezier(this);
         }
     };
+
+    calculateEndPoint() { // Method to get to the endPoint as fast as possible
+        if (this.hitObject.sections.length === 0) {
+            this.endPoint = this.startPoint;
+        } else {
+            if (this.hitObject.sections[0].type === "circle") {
+                this.curve = new SliderCurvePassthrough(this);
+                this.curve.calculateValues(true);
+            } else {
+                this.curve = new SliderCurveBezier(this, true);
+            }
+
+            this.endPoint = this.curve.getEndPoint();
+        }
+    }
 
     destroy() {
         this.remove();

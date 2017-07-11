@@ -12,33 +12,35 @@ const TOLERANCE = 0.25;
 const DEBUG_PREFIX = "[BEZIER]";
 
 export class SliderCurveBezier extends SliderCurve {
-    constructor(drawableSlider) {
+    constructor(drawableSlider, speedCalc) {
         super(drawableSlider);
         this.equalDistancePoints = [];
 
         this.tracePoints = [];
 
-        this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * GraphicUtil.getPixelRatio();
-        this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * GraphicUtil.getPixelRatio();
+        if (!speedCalc) {
+            this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * GraphicUtil.getPixelRatio();
+            this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * GraphicUtil.getPixelRatio();
 
-        if (this.sections.length === 1 && this.sections[0].values.length === 2) { // If it's only one linear section
-            let points = this.sections[0].values;
+            if (this.sections.length === 1 && this.sections[0].values.length === 2) { // If it's only one linear section
+                let points = this.sections[0].values;
 
-            let angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
-            let distance = Math.min(this.slider.hitObject.length, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y));
-            let pointTwo = {
-                x: points[0].x + Math.cos(angle) * distance,
-                y: points[0].y + Math.sin(angle) * distance
-            };
+                let angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
+                let distance = Math.min(this.slider.hitObject.length, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y));
+                let pointTwo = {
+                    x: points[0].x + Math.cos(angle) * distance,
+                    y: points[0].y + Math.sin(angle) * distance
+                };
 
-            this.pushEqualDistancePoint(points[0]);
-            this.pushEqualDistancePoint(pointTwo);
+                this.pushEqualDistancePoint(points[0]);
+                this.pushEqualDistancePoint(pointTwo);
 
-            return;
+                return;
+            }
         }
 
-        this.calculateTracePoints();
-        this.calculateEqualDistancePoints();
+        this.calculateTracePoints(speedCalc);
+        if(!speedCalc) this.calculateEqualDistancePoints();
     }
 
     applyStackPosition() {
@@ -84,7 +86,37 @@ export class SliderCurveBezier extends SliderCurve {
         this.draw();
     }
 
-    calculateTracePoints() {
+    getEndPoint() {
+        if (this.curveLength <= this.slider.hitObject.length) {
+            return this.tracePoints[this.tracePoints.length - 1]; // Just get the last point
+        } else { // If it's longer, backtrack from ze end
+            let lengthDifference = this.curveLength - this.slider.hitObject.length;
+            let distanceTraveled = 0;
+            let lastPoint = this.tracePoints[this.tracePoints.length - 1];
+
+            for (let i = this.tracePoints.length - 2; i >= 0; i--) {
+                let currentPoint = this.tracePoints[i];
+                let dist = Math.hypot(currentPoint.x - lastPoint.x, currentPoint.y - lastPoint.y);
+
+                if (lengthDifference - distanceTraveled <= dist) {
+                    let percentReached = (lengthDifference - distanceTraveled) / dist;
+
+                    return {
+                        x: lastPoint.x * (1 - percentReached) + currentPoint.x * percentReached,
+                        y: lastPoint.y * (1 - percentReached) + currentPoint.y * percentReached
+                    };
+                } else {
+                    distanceTraveled += dist;
+                    lastPoint = currentPoint;
+                }
+            }
+        }
+    }
+
+    calculateTracePoints(speedCalc) {
+        let traceDistance = (speedCalc) ? 8 : MAXIMUM_TRACE_POINT_DISTANCE;
+        let tolerance = (speedCalc) ? 1 : TOLERANCE;
+
         for (let i = 0; i < this.sections.length; i++) {
             let points = this.sections[i].values;
 
@@ -101,7 +133,7 @@ export class SliderCurveBezier extends SliderCurve {
                     while (true) {
                         let dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
 
-                        if (dist < MAXIMUM_TRACE_POINT_DISTANCE) {
+                        if (dist < traceDistance) {
                             leftT += 0.01;
                             rightT += 0.01;
 
@@ -118,11 +150,11 @@ export class SliderCurveBezier extends SliderCurve {
                                 p3 = MathUtil.coordsOnBezier(points, midT);
                                 dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
 
-                                if (Math.abs(MAXIMUM_TRACE_POINT_DISTANCE - dist) <= TOLERANCE) {
+                                if (Math.abs(traceDistance - dist) <= tolerance) {
                                     break;
                                 }
 
-                                if (dist < MAXIMUM_TRACE_POINT_DISTANCE) {
+                                if (dist < traceDistance) {
                                     leftT = midT;
                                 } else {
                                     rightT = midT;
@@ -147,19 +179,21 @@ export class SliderCurveBezier extends SliderCurve {
             this.pushTracePoint(points[points.length - 1]);
         }
 
-        if (this.curveLength > this.slider.hitObject.length) { // If traced length bigger than pixelLength
-            this.curveLength = this.slider.hitObject.length;
-        }
+        if (!speedCalc) {
+            if (this.curveLength > this.slider.hitObject.length) { // If traced length bigger than pixelLength
+                this.curveLength = this.slider.hitObject.length;
+            }
 
-        // Extra point is added because floats
-        let lastPoint = this.tracePoints[this.tracePoints.length - 1];
-        let secondLastPoint = this.tracePoints[this.tracePoints.length - 2];
-        if (lastPoint && secondLastPoint) {
-            let angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
-            this.tracePoints.push({
-                x: lastPoint.x + 500 * Math.cos(angle),
-                y: lastPoint.y + 500 * Math.sin(angle)
-            });
+            // Extra point is added because floats
+            let lastPoint = this.tracePoints[this.tracePoints.length - 1];
+            let secondLastPoint = this.tracePoints[this.tracePoints.length - 2];
+            if (lastPoint && secondLastPoint) {
+                let angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
+                this.tracePoints.push({
+                    x: lastPoint.x + 500 * Math.cos(angle),
+                    y: lastPoint.y + 500 * Math.sin(angle)
+                });
+            }
         }
     }
 

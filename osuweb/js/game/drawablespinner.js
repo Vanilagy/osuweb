@@ -7,26 +7,27 @@ import {DrawableHitObject} from "./drawablehitobject";
 import {MathUtil} from "../util/mathutil";
 
 export class DrawableSpinner extends DrawableHitObject {
-    constructor(spinner, beatmap) {
+    constructor(spinner, beatmap, fullCalc) {
         super(spinner);
 
         this.beatmap = beatmap;
         this.endTime = spinner.endTime;
-
         this.duration = this.endTime - this.startTime;
-        this.requiredSpins = (100 + beatmap.difficulty.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
-        this.active = false;
-        this.cleared = false;
-        this.completed = false;
-        this.absoluteDegreesRotated = 0;
-        this.totalDegreesRotated = 0;
-        this.completedSpins = 0;
-        this.completedBonusSpins = 0;
-        this.SPMSamples = [0];
-        this.lastTimeSampled = null;
-        this.readyForSound = false;
 
-        this.centerRadius = 5;
+        if (fullCalc) {
+            this.requiredSpins = (100 + beatmap.difficulty.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
+            this.active = false;
+            this.cleared = false;
+            this.completed = false;
+            this.absoluteDegreesRotated = 0;
+            this.totalDegreesRotated = 0;
+            this.completedSpins = 0;
+            this.completedBonusSpins = 0;
+            this.SPMSamples = [0];
+            this.lastTimeSampled = null;
+            this.readyForSound = false;
+            this.centerRadius = 5;
+        }
     }
 
     destroy() {
