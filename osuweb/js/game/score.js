@@ -114,10 +114,11 @@ export class Score {
     createScorePopup(hitObject, score) {
         if (score === 300) return;
 
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
         let popupElement = document.createElement("div");
         popupElement.className = "scorePopup";
-        popupElement.style.left = (hitObject.endPoint.x - hitObject.stackHeight * 4 + GAME_STATE.currentPlay.marginWidth) * GraphicUtil.getPixelRatio() + "px";
-        popupElement.style.top = (hitObject.endPoint.y - hitObject.stackHeight * 4 + GAME_STATE.currentPlay.marginHeight) * GraphicUtil.getPixelRatio() + "px";
+        popupElement.style.left = (hitObject.endPoint.x - hitObject.stackHeight * 4 + GAME_STATE.currentPlay.marginWidth) * pixelRatio + "px";
+        popupElement.style.top = (hitObject.endPoint.y - hitObject.stackHeight * 4 + GAME_STATE.currentPlay.marginHeight) * pixelRatio + "px";
         popupElement.style.fontSize = GAME_STATE.currentPlay.csPixel * 0.32 + "px";
         popupElement.style.animation = "1s scorePopup linear forwards";
         popupElement.style.webkitTransform = "transformZ(0)";

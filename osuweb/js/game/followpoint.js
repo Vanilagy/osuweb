@@ -8,6 +8,8 @@ export const PRE_EMPT = 450;
 
 export class FollowPoint {
     constructor(hitObjectStart, hitObjectEnd) {
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
+
         this.startTime = hitObjectStart.endTime;
         this.endTime = hitObjectEnd.startTime;
         this.startPos = {
@@ -19,8 +21,8 @@ export class FollowPoint {
             y: hitObjectEnd.startPoint.y - hitObjectEnd.stackHeight * 4
         };
 
-        this.length = Math.hypot(this.startPos.x - this.endPos.x, this.startPos.y - this.endPos.y) * GraphicUtil.getPixelRatio();
-        this.height = 2 * GraphicUtil.getPixelRatio();
+        this.length = Math.hypot(this.startPos.x - this.endPos.x, this.startPos.y - this.endPos.y) * pixelRatio;
+        this.height = 2 * pixelRatio;
         this.angle = Math.atan2(this.endPos.y - this.startPos.y, this.endPos.x - this.startPos.x);
         this.centerPoint = {
             x: (this.startPos.x + this.endPos.x) / 2,
@@ -30,13 +32,15 @@ export class FollowPoint {
     }
 
     spawn() {
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
+
         this.canvas = document.createElement("canvas");
         this.canvas.className = "followPoint";
         this.canvas.setAttribute("height", this.height);
         this.canvas.setAttribute("width", this.length);
         this.canvas.style.zIndex = 0;
-        this.canvas.style.left = (this.centerPoint.x + GAME_STATE.currentPlay.marginWidth) * GraphicUtil.getPixelRatio() + "px";
-        this.canvas.style.top = (this.centerPoint.y + GAME_STATE.currentPlay.marginHeight) * GraphicUtil.getPixelRatio() + "px";
+        this.canvas.style.left = (this.centerPoint.x + GAME_STATE.currentPlay.marginWidth) * pixelRatio + "px";
+        this.canvas.style.top = (this.centerPoint.y + GAME_STATE.currentPlay.marginHeight) * pixelRatio + "px";
         this.canvas.style.transform = "translate3d(-50%, -50%, 0) rotate(" + this.angle + "rad)";
         this.canvas.style.backfaceVisibility = "hidden";
 
@@ -70,7 +74,7 @@ export class FollowPoint {
             this.ctx.globalCompositeOperation = "source-over";
             this.ctx.fill();
             this.ctx.globalCompositeOperation = "destination-out";
-            let fadeInLength = this.length * 0.2 * GraphicUtil.getPixelRatio();
+            let fadeInLength = this.length * 0.2 * GAME_STATE.currentPlay.pixelRatio;
 
             if (isNaN(renderStartX)) {
                 return;

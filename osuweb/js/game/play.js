@@ -28,6 +28,7 @@ export class Play {
 
         this.audio = audio;
         this.beatmap = new ProcessedBeatmap(beatmap);
+        this.pixelRatio = GraphicUtil.getPixelRatio();
 
         if(this.mods.HR) ModHelper.applyHR(this.beatmap);
         if(this.mods.EZ) ModHelper.applyEZ(this.beatmap);
@@ -45,7 +46,7 @@ export class Play {
 
         // The diameter of a circle on the screen (relative to playfield area)
         this.csOsuPixel = this.beatmap.difficulty.getCirclePixelSize();
-        this.csPixel = Math.round(this.csOsuPixel * GraphicUtil.getPixelRatio());
+        this.csPixel = Math.round(this.csOsuPixel * this.pixelRatio);
         this.halfCsPixel = this.csPixel / 2;
 
         this.ARMs = this.beatmap.difficulty.getApproachTime();
@@ -156,7 +157,7 @@ export class Play {
             return;
         }
 
-        let pixelRatio = GraphicUtil.getPixelRatio();
+        let pixelRatio = this.pixelRatio;
 
         if (this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
             while (this.playthroughInstructions[this.currentPlaythroughInstruction + 1].time <= currentTime) {

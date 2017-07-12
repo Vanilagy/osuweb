@@ -47,14 +47,15 @@ export class InputUtil {
 
         if(playfieldBounds === null) return {x: 0, y: 0};
 
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
         return {
-            x: (INPUT_STATE.mouseX - playfieldBounds.x) / GRAPHIC_UTIL.getPixelRatio() - GAME_STATE.currentPlay.marginWidth,
-            y: (INPUT_STATE.mouseY - playfieldBounds.y) / GRAPHIC_UTIL.getPixelRatio() - GAME_STATE.currentPlay.marginHeight
+            x: (INPUT_STATE.mouseX - playfieldBounds.x) / pixelRatio - GAME_STATE.currentPlay.marginWidth,
+            y: (INPUT_STATE.mouseY - playfieldBounds.y) / pixelRatio - GAME_STATE.currentPlay.marginHeight
         };
     }
 
     static moveCursorToPlayfieldPos(x, y) {
-        InputUtil.updateCursor(playfieldBounds.x + (GAME_STATE.currentPlay.marginWidth + x) * GRAPHIC_UTIL.getPixelRatio(), playfieldBounds.y + (GAME_STATE.currentPlay.marginHeight + y) * GRAPHIC_UTIL.getPixelRatio());
+        InputUtil.updateCursor(playfieldBounds.x + (GAME_STATE.currentPlay.marginWidth + x) * GAME_STATE.currentPlay.pixelRatio, playfieldBounds.y + (GAME_STATE.currentPlay.marginHeight + y) * GAME_STATE.currentPlay.pixelRatio);
 
     }
 

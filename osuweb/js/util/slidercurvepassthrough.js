@@ -20,11 +20,12 @@ export class SliderCurvePassthrough extends SliderCurve {
     }
 
     render(completion) {
-        let pixelRatio = GraphicUtil.getPixelRatio();
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
+        let centerPos = this.slider.toCtxCoord(this.centerPos);
         let angleDifference = this.angleDifference * completion;
 
         this.slider.baseCtx.beginPath();
-        this.slider.baseCtx.arc(this.centerPos.x * pixelRatio - this.slider.minX + GAME_STATE.currentPlay.halfCsPixel, this.centerPos.y * pixelRatio - this.slider.minY + GAME_STATE.currentPlay.halfCsPixel, this.radius * pixelRatio, this.startingAngle, this.startingAngle + angleDifference, angleDifference < 0);
+        this.slider.baseCtx.arc(centerPos.x, centerPos.y, this.radius * pixelRatio, this.startingAngle, this.startingAngle + angleDifference, angleDifference < 0);
 
         this.draw();
     }
@@ -78,7 +79,7 @@ export class SliderCurvePassthrough extends SliderCurve {
         let endAngle = this.startingAngle + this.angleDifference;
 
         if (!speedCalc) { // Figures out boundaries of the slider
-            var pixelRatio = GraphicUtil.getPixelRatio();
+            var pixelRatio = GAME_STATE.currentPlay.pixelRatio;
             var updateBoundaries = (angle) => {
                 this.slider.minX = Math.min(this.slider.minX, (this.centerPos.x + this.radius * Math.cos(angle)) * pixelRatio);
                 this.slider.maxX = Math.max(this.slider.maxX, (this.centerPos.x + this.radius * Math.cos(angle)) * pixelRatio);

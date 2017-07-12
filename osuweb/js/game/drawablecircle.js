@@ -43,7 +43,7 @@ export class DrawableCircle extends DrawableHitObject {
     }
 
     draw() {
-        let pixelRatio = GraphicUtil.getPixelRatio();
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
 
         this.containerDiv = document.createElement("div");
         this.containerDiv.className = "hitCircleContainer";

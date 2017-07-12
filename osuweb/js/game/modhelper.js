@@ -1,7 +1,6 @@
 "use strict";
 
 import {MathUtil} from "../util/mathutil";
-import {GraphicUtil} from "../util/graphicutil";
 import {Console} from "../console";
 
 const DEBUG_PREFIX = "[AUTO] ";
@@ -97,7 +96,6 @@ export class ModHelper {
         /* Generates waypoints from start and end positions aswell as slider ticks and spinners.
            Will be used to construct movement instructions.
          */
-        let pixelRatio = GraphicUtil.getPixelRatio();
         let waypoints = [];
         for (let i = 0; i < play.beatmap.hitObjects.length; i++) {
             let hitObject = play.beatmap.hitObjects[i];
@@ -252,7 +250,6 @@ export class ModHelper {
         Console.debug(DEBUG_PREFIX+"Removed unnecessary instructions");
 
         function getLastInstructionPosition(time) {
-            let pixelRatio = GraphicUtil.getPixelRatio();
             let lastInstruction = instructions[instructions.length - 1];
 
             if (lastInstruction.type === "blink") {

@@ -155,7 +155,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     draw() {
-        let pixelRatio = GraphicUtil.getPixelRatio();
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
 
         this.containerDiv = document.createElement("div");
         this.containerDiv.className = "spinnerContainer";
@@ -224,7 +224,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
     updateApproachCircle(scalar)
     {
-        let pixelRatio = GraphicUtil.getPixelRatio();
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
 
         this.approachCircleCtx.clearRect(0, 0, 400 * pixelRatio, 400 * pixelRatio);
         this.approachCircleCtx.beginPath();
