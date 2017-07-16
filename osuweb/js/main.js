@@ -77,12 +77,15 @@ document.addEventListener("keydown", function(event) {
     if(event.keyCode === 17) INPUT_STATE.ctrlDown = true;
     if(event.keyCode === 18) INPUT_STATE.altDown = true;
 
-    if(event.keyCode === 27) {
+    if(event.keyCode === 27) { // ESC
         // TODO back functionality
+
+        if (GAME_STATE.currentPlay) {
+            GAME_STATE.currentPlay.togglePause();
+        }
     }
     
     for(let key in SETTINGS.data.keyCodeBindings) {
-
         if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, true);
             if(key === "k2") InputUtil.changeKeyButtonState(event.keyCode, true);

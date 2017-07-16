@@ -33,6 +33,8 @@ export class SceneGameOsu extends SceneGame {
         this.addElement("autoInput", "auto");
         this.addElement("snakingDiv", "snakingOption");
         this.addElement("autoDiv", "autoOption");
+
+        this.addElement("pauseStateP", "pauseStateDisplay");
     }
 
     render() {

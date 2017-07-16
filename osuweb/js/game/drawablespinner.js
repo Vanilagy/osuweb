@@ -51,20 +51,20 @@ export class DrawableSpinner extends DrawableHitObject {
 
     show() {
         this.containerDiv.style.visibility = "visible";
-        this.containerDiv.style.transition = "opacity 0.4s linear";
+        this.containerDiv.style.transition = "opacity 0.25s linear";
         this.containerDiv.style.opacity = 1;
         this.spmContainer.style.transform = "translate(-50%, 0)";
 
         this.render();
     }
 
-    render() {
-        let accurateCurrentTime = AUDIO_MANAGER.getCurrentSongTime();
+    render(currentTime) {
+        let accurateCurrentTime = currentTime;
         let completion = (accurateCurrentTime - this.startTime) / this.duration;
 
         if (completion >= 1) return;
 
-        if (accurateCurrentTime >= this.startTime && accurateCurrentTime < this.endTime) {
+        if (accurateCurrentTime >= this.startTime && accurateCurrentTime < this.endTime && !AUDIO_MANAGER._paused) {
             let currentAngle = Math.atan2(InputUtil.getCursorPlayfieldCoords().y - 192, InputUtil.getCursorPlayfieldCoords().x - 256);
             let angleDifference = 0;
             let now = window.performance.now();

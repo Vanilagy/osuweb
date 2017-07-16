@@ -1,3 +1,11 @@
+#songpanels {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 45%;
+    display: none;
+}
 div.songpanelbackground {
     position: absolute;
     right: 0;

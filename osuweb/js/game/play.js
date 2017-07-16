@@ -135,17 +135,17 @@ export class Play {
     }
 
     render() {
-        let currentTime = AUDIO_MANAGER.getCurrentSongTime();
+        let currentTime = (AUDIO_MANAGER._paused) ? AUDIO_MANAGER._pauseTime * 1000 : AUDIO_MANAGER.getCurrentSongTime();
 
-        if(this.progressbar) this.progressbar.render.bind(this.progressbar)();
+        if(this.progressbar) this.progressbar.render.bind(this.progressbar)(currentTime);
         if(this.accmeter) this.accmeter.render.bind(this.accmeter)();
 
         for(let key in this.onScreenHitObjects) {
-            this.onScreenHitObjects[key].render.bind(this.onScreenHitObjects[key])();
+            this.onScreenHitObjects[key].render.bind(this.onScreenHitObjects[key])(currentTime);
         }
 
         for(let key in this.onScreenFollowPoints) {
-            this.onScreenFollowPoints[key].render.bind(this.onScreenFollowPoints[key])();
+            this.onScreenFollowPoints[key].render.bind(this.onScreenFollowPoints[key])(currentTime);
         }
 
         if(this.playthroughInstructions && this.audioStarted) this.handlePlaythroughInstructions(currentTime);
@@ -179,7 +179,7 @@ export class Play {
         // Makes follow points show up on-screen
         this.handleFollowPoints(currentTime);
 
-        setTimeout(this.gameLoop.bind(this), 0);
+        this.gameLoopTimeout = setTimeout(this.gameLoop.bind(this), 0);
     }
 
     handleFollowPoints(currentTime) {
@@ -445,7 +445,7 @@ export class Play {
 
         // Makes HitObjects show up on-screen
         if (this.currentHitObject < this.beatmap.hitObjects.length) {
-            while (this.beatmap.hitObjects[this.currentHitObject].startTime - ((this.beatmap.hitObjects[this.currentHitObject].constructor !== "DrawableSpinner") ? this.ARMs : 175) <= currentTime) {
+            while (this.beatmap.hitObjects[this.currentHitObject].startTime - ((this.beatmap.hitObjects[this.currentHitObject].constructor.name !== "DrawableSpinner") ? this.ARMs : 250) <= currentTime) {
                 let hitObject = this.beatmap.hitObjects[this.currentHitObject];
 
                 hitObject.show(currentTime - (hitObject.startTime - this.ARMs));
@@ -534,5 +534,64 @@ export class Play {
         }
 
         this.gameLoop();
+    }
+
+    togglePause() {
+        if (!AUDIO_MANAGER._paused) {
+            AUDIO_MANAGER.pauseSong();
+
+            let pauseCurrentTime = AUDIO_MANAGER.getCurrentSongTime();
+            clearTimeout(this.gameLoopTimeout);
+
+            for (let id in this.onScreenHitObjects) {
+                let hitObject = this.onScreenHitObjects[id];
+
+                if (hitObject.constructor.name === "DrawableCircle" || hitObject.constructor.name === "DrawableSlider") {
+                    let headContainer = (hitObject.constructor.name === "DrawableCircle") ? hitObject.containerDiv : hitObject.sliderHeadContainer;
+
+                    if (hitObject.approachCircleCanvas) {
+                        hitObject.approachCircleCanvas.style.transition = "none";
+                        hitObject.approachCircleCanvas.style.transform = "scale(" + (1 + 3 - MathUtil.clamp((pauseCurrentTime - (hitObject.startTime - this.ARMs)) / this.ARMs, 0, 1) * 3) + ")";
+                    }
+                    hitObject.containerDiv.style.transition = "none";
+                    hitObject.containerDiv.style.opacity = MathUtil.clamp((pauseCurrentTime - (hitObject.startTime - this.ARMs)) / (this.ARMs / 2), 0, 1);
+                    if (this.mods.HD && pauseCurrentTime >= hitObject.startTime - this.ARMs / 2) {
+                        console.log(headContainer);
+                        headContainer.style.transition = "none";
+                        headContainer.style.opacity = MathUtil.clamp(1 - ((pauseCurrentTime - (hitObject.startTime - this.ARMs / 2)) / (this.ARMs / 4)), 0, 1);
+                    }
+                }
+            }
+
+            SCENE_MANAGER.getScene().elements["pauseStateP"].style.display = "block";
+        } else {
+            let unpauseCurrentTime = AUDIO_MANAGER._pauseTime * 1000;
+
+            for (let id in this.onScreenHitObjects) {
+                let hitObject = this.onScreenHitObjects[id];
+
+                if (hitObject.constructor.name === "DrawableCircle" || hitObject.constructor.name === "DrawableSlider") {
+                    let headContainer = hitObject.constructor.name === "DrawableCircle" ? hitObject.containerDiv : hitObject.sliderHeadContainer;
+
+                    if (hitObject.approachCircleCanvas) {
+                        hitObject.approachCircleCanvas.style.transition = "transform " + MathUtil.clamp(-(unpauseCurrentTime - hitObject.startTime), 0, this.ARMs) / 1000 + "s linear";
+                        hitObject.approachCircleCanvas.style.transform = "scale(1)";
+                    }
+                    if (unpauseCurrentTime - hitObject.startTime < -this.ARMs / 2) {
+                        hitObject.containerDiv.style.transition = "opacity " + MathUtil.clamp(-(unpauseCurrentTime - (hitObject.startTime - this.ARMs / 2)), 0, this.ARMs / 2) / 1000 + "s linear";
+                        hitObject.containerDiv.style.opacity = 1;
+                    } else if (this.mods.HD) {
+                        headContainer.style.transition = "opacity " + MathUtil.clamp(-(unpauseCurrentTime - (hitObject.startTime - this.ARMs / 4)), 0, this.ARMs / 4) / 1000 + "s linear";
+                        headContainer.style.opacity = 0;
+                    }
+                } else if (hitObject.constructor.name === "DrawableSpinner") {
+                    hitObject.lastTimeSampled += AUDIO_MANAGER.getCurrentSongTime() - unpauseCurrentTime; // Prevents bonus spins from exploding
+                }
+            }
+
+            AUDIO_MANAGER.unpauseSong();
+            this.gameLoop();
+            SCENE_MANAGER.getScene().elements["pauseStateP"].style.display = "none";
+        }
     }
 }

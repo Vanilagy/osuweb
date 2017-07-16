@@ -14,7 +14,7 @@ export class ProgressBar {
         this.sizeSet = false;
     }
 
-    render() {
+    render(currentTime) {
         if (!this.sizeSet && this._canvas.clientWidth > 0) {
             this._canvas.width = this._canvas.clientWidth;
             this._canvas.height = this._canvas.clientHeight;
@@ -26,14 +26,14 @@ export class ProgressBar {
 
         this.ctx.beginPath();
         this.ctx.lineWidth = this._canvas.height / 2.0 + 1;
-        if (GAME_STATE.currentPlay.audioStarted && AUDIO_MANAGER.getCurrentSongTime() < this.mapStartTime) {
-            let preludeProgress = (AUDIO_MANAGER.getCurrentSongTime() + this.prelude) / (this.mapStartTime + this.prelude);
+        if (GAME_STATE.currentPlay.audioStarted && currentTime < this.mapStartTime) {
+            let preludeProgress = (currentTime + this.prelude) / (this.mapStartTime + this.prelude);
 
             this.ctx.strokeStyle = "rgba(0,255,0,0.5)";
             this.ctx.arc(this._canvas.width / 2.0, this._canvas.height / 2.0, this._canvas.height / 4.0 - 3, Math.PI * 2 * preludeProgress + Math.PI * 1.5, Math.PI * 1.5);
         }
         else if (GAME_STATE.currentPlay.audioStarted) {
-            let songProgress = (AUDIO_MANAGER.getCurrentSongTime() - this.mapStartTime) / (this.mapEndTime - this.mapStartTime);
+            let songProgress = (currentTime - this.mapStartTime) / (this.mapEndTime - this.mapStartTime);
 
             if (songProgress > 1) songProgress = 1;
 

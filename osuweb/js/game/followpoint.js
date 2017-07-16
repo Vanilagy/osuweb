@@ -50,9 +50,9 @@ export class FollowPoint {
         GAME_STATE.currentPlay.onScreenFollowPoints[this.startTime] = this;
     }
 
-    render() {
+    render(currentTime) {
         let duration = this.endTime - this.startTime;
-        let relTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
+        let relTime = currentTime - this.startTime;
 
         let renderStart = relTime / duration;
         let renderEnd = (relTime + PRE_EMPT) / duration;

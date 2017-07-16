@@ -285,9 +285,9 @@ export class DrawableSlider extends DrawableHitObject {
         }
     }
 
-    render() {
-        if(SLIDER_SETTINGS.snaking) this.renderBase(false);
-        this.renderOverlay();
+    render(currentTime) {
+        if(SLIDER_SETTINGS.snaking) this.renderBase(false, currentTime);
+        this.renderOverlay(currentTime);
     }
 
     toCtxCoord(pos) {
@@ -297,7 +297,7 @@ export class DrawableSlider extends DrawableHitObject {
         };
     }
 
-    renderBase(initialRender) {
+    renderBase(initialRender, currentTime) {
         if(this.complete) return;
 
         // How much % of the slider should be drawn
@@ -307,7 +307,7 @@ export class DrawableSlider extends DrawableHitObject {
             // No slider snaking - pre-render
             thisCompletion = 1;
         } else {
-            thisCompletion = Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - (this.startTime - GAME_STATE.currentPlay.ARMs)) / GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime() * 3);
+            thisCompletion = Math.min(1, (currentTime - (this.startTime - GAME_STATE.currentPlay.ARMs)) / GAME_STATE.currentPlay.beatmap.difficulty.getApproachTime() * 3);
         }
 
         this.curve.render(thisCompletion);
@@ -315,10 +315,10 @@ export class DrawableSlider extends DrawableHitObject {
         this.complete = thisCompletion === 1;
     }
 
-    renderOverlay() {
+    renderOverlay(currentTime) {
         let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
         let completion = 0;
-        let currentSliderTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
+        let currentSliderTime = currentTime - this.startTime;
         let isMoving = currentSliderTime >= 0;
 
         if (GAME_STATE.currentPlay.mods.HD) { // Slowly fade out slider body
@@ -406,7 +406,7 @@ export class DrawableSlider extends DrawableHitObject {
         // Draws slider ball and follow circle to additional canvas
         if (isMoving) {
             let sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
-            let fadeOutCompletion = Math.min(1, Math.max(0, (AUDIO_MANAGER.getCurrentSongTime() - this.letGoTime) / 120));
+            let fadeOutCompletion = Math.min(1, Math.max(0, (currentTime - this.letGoTime) / 120));
 
             this.followCircleCanvas.style.transform = "translate(" + (sliderBallPos.x - this.maxFollowCircleRadius) + "px," + (sliderBallPos.y - this.maxFollowCircleRadius) + "px) scale(" + ((this.letGoTime === null) ? 1 : 1 + fadeOutCompletion * 0.5) + ")"; // transform is gazillions of times faster than absolute positioning
             this.followCircleCanvas.style.opacity = (this.letGoTime === null) ? 1 : (1 - fadeOutCompletion);
@@ -429,10 +429,10 @@ export class DrawableSlider extends DrawableHitObject {
 
             let followCircleRadius = GAME_STATE.currentPlay.halfCsPixel * (
                     /* base */ 1
-                    + /* enlarge on start */ Math.max(0, Math.min(1, (AUDIO_MANAGER.getCurrentSongTime() - this.startTime) / 100))
+                    + /* enlarge on start */ Math.max(0, Math.min(1, (currentTime - this.startTime) / 100))
                     + ((this.letGoTime === null) ?
                             /* pulse */ Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.20))
-                            + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (AUDIO_MANAGER.getCurrentSongTime() - this.endTime) / 175))), 2) * 0.5 : 0
+                            + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (currentTime - this.endTime) / 175))), 2) * 0.5 : 0
                     )
                 );
 
