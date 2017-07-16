@@ -296,9 +296,14 @@ export class Play {
                     hitObject.hittable = false;
                 }
                 // HD-fade-out
-                if (this.mods.HD && currentTime >= hitObject.startTime - this.ARMs / 2) {
+                if (this.mods.HD && currentTime >= hitObject.startTime - this.ARMs / 2 && !hitObject.HDFadeOutActive) {
                     hitObject.containerDiv.style.transition = "opacity " + (((GAME_STATE.currentPlay.ARMs / 4) - (currentTime - (hitObject.startTime - this.ARMs / 2))) / 1000) + "s linear";
                     hitObject.containerDiv.style.opacity = 0;
+                    hitObject.HDFadeOutActive = true;
+                }
+                // RX hitting
+                if (this.mods.RX && Math.hypot(hitObject.x - userPlayfieldCoords.x, hitObject.y - userPlayfieldCoords.y) <= this.csOsuPixel / 2 && currentTime >= hitObject.startTime && hitObject.hittable) {
+                    hitObject.hit(currentTime - hitObject.startTime);
                 }
                 // Remove object completely
                 if (currentTime >= hitObject.startTime + 400) {
@@ -327,7 +332,7 @@ export class Play {
 
                         let dist = Math.hypot(tickPosition.x - userPlayfieldCoords.x, tickPosition.y - userPlayfieldCoords.y);
 
-                        if (dist <= this.csOsuPixel && INPUT_STATE.isHolding || this.mods.AT) {
+                        if ((dist <= this.csOsuPixel && (INPUT_STATE.isHolding || this.mods.RX)) || this.mods.AT) {
                             if (completionsToEval[i] === hitObject.hitObject.repeat) {
                                 hitObject.scoring.end = true;
                             } else {
@@ -363,9 +368,14 @@ export class Play {
                     hitObject.hittable = false;
                 }
                 // HD-fade-out
-                if (this.mods.HD && currentTime >= hitObject.startTime - this.ARMs / 2) {
+                if (this.mods.HD && currentTime >= hitObject.startTime - this.ARMs / 2 && !hitObject.HDFadeOutActive) {
                     hitObject.sliderHeadContainer.style.transition = "opacity " + (((GAME_STATE.currentPlay.ARMs / 4) - (currentTime - (hitObject.startTime - this.ARMs / 2))) / 1000) + "s linear";
                     hitObject.sliderHeadContainer.style.opacity = 0;
+                    hitObject.HDFadeOutActive = true;
+                }
+                // RX hitting
+                if (this.mods.RX && Math.hypot(hitObject.x - userPlayfieldCoords.x, hitObject.y - userPlayfieldCoords.y) <= this.csOsuPixel / 2 && currentTime >= hitObject.startTime && hitObject.hittable) {
+                    hitObject.hit(currentTime - hitObject.startTime);
                 }
                 // On slider end
                 if (currentTime >= hitObject.endTime && !hitObject.fadingOut) {
@@ -428,7 +438,6 @@ export class Play {
             let nextTime = this.beatmap.hitObjects[this.lastAppendedHitObject].startTime;
 
             while (this.beatmap.hitObjects.length > this.lastAppendedHitObject && this.beatmap.hitObjects[this.lastAppendedHitObject].startTime <= nextTime) {
-                //this.beatmap.hitObjects[this.lastAppendedHitObject].draw();
                 this.beatmap.hitObjects[this.lastAppendedHitObject].append();
                 this.lastAppendedHitObject++;
             }

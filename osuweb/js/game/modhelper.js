@@ -4,7 +4,7 @@ import {MathUtil} from "../util/mathutil";
 import {Console} from "../console";
 
 const DEBUG_PREFIX = "[AUTO] ";
-const IMPLEMENTED_MODS = ["AT", "HR", "EZ", "SO"];
+const IMPLEMENTED_MODS = ["AT", "HR", "EZ", "SO", "HD", "RX"];
 const DEFAULT_SPIN_RADIUS = 45;
 const RADIUS_LERP_DURATION = 480;
 const SPINNER_END_REDUCTION = 1; // For edge cases where objects might start immediately after spinner. Done so movement will be correct.

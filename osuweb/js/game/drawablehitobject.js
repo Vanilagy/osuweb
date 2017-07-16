@@ -20,6 +20,7 @@ export class DrawableHitObject {
 
         this.containerDiv = null;
         this.approachCircleCanvas = null;
+        this.HDFadeOutActive = false;
     }
 
     show(offset) {

@@ -70,7 +70,7 @@ export class DrawableSpinner extends DrawableHitObject {
             let now = window.performance.now();
             let timeDifference = this.lastTimeSampled === null ? 0 : now - this.lastTimeSampled;
 
-            if ((this.lastPoint !== undefined && INPUT_STATE.isHolding) || (GAME_STATE.currentPlay.mods.AT || GAME_STATE.currentPlay.mods.SO)) {
+            if ((this.lastPoint !== undefined && (INPUT_STATE.isHolding || GAME_STATE.currentPlay.mods.RX)) || (GAME_STATE.currentPlay.mods.AT || GAME_STATE.currentPlay.mods.SO)) {
                 if (GAME_STATE.currentPlay.mods.AT || GAME_STATE.currentPlay.mods.SO) {
                     angleDifference = 10000; // something large (like my dick - A)
                 } else {
