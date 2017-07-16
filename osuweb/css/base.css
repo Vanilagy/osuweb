@@ -25,6 +25,10 @@
     font-family: Venera;
     src: url(../assets/Venera.otf);
 }
+@font-face {
+    font-family: Space_Mono;
+    src: url("../assets/Space_Mono/SpaceMono-Regular.ttf");
+}
 html,body {
     min-width: 100%;
     width: 100%;

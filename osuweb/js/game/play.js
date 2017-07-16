@@ -12,7 +12,7 @@ import {PRE_EMPT} from "./followpoint";
 import {Score} from "./score";
 import {MathUtil} from "../util/mathutil";
 import {Console} from "../console";
-import {DrawableHitObject} from "./drawablehitobject";
+import {DrawableHitObject, DRAWING_MODE} from "./drawablehitobject";
 import {ProcessedBeatmap} from "../datamodel/processedbeatmap";
 import {ModHelper} from "./modhelper";
 
@@ -57,9 +57,7 @@ export class Play {
             this.currentPlaythroughInstruction = 0;
         }
 
-        for (let z = 0; z < this.beatmap.hitObjects.length; z++) {
-            this.beatmap.hitObjects[z].draw();
-        }
+        this.draw();
 
         Console.info("Beatmap generation time: " + ((window.performance.now() - generationStartTime) / 1000).toFixed(3) + "s");
 
@@ -88,6 +86,52 @@ export class Play {
         this.lastTickClockTime = window.performance.now();
         this.recordedTickSpeeds = [];
         this.stupidClock = window.performance.now();
+    }
+
+    draw() {
+        if (DRAWING_MODE === 1) {
+            let skin = GAME_STATE.currentSkin || GAME_STATE.defaultSkin;
+
+            this.drawElements = {
+                hitCircle: skin.skinElements["hitcircle@2x"] || skin.skinElements["hitcircle"],
+                hitCircleOverlay: skin.skinElements["hitcircleoverlay@2x"] || skin.skinElements["hitcircleoverlay"],
+                sliderBall: skin.skinElements["sliderb0@2x"] || skin.skinElements["sliderb0"],
+                followCircle: skin.skinElements["sliderfollowcircle@2x"] || skin.skinElements["sliderfollowcircle"],
+                sliderTick: skin.skinElements["sliderscorepoint"],
+                coloredHitcircles: [],
+                numbers: []
+            };
+
+            for (let i = 0; i < this.beatmap.colours.length; i++) {
+                let colour = this.beatmap.colours[i];
+                let canvas = document.createElement("canvas");
+                canvas.setAttribute("width", this.csPixel);
+                canvas.setAttribute("height", this.csPixel);
+                let ctx = canvas.getContext("2d");
+
+                ctx.drawImage(this.drawElements.hitCircle, 0, 0, GAME_STATE.currentPlay.csPixel, GAME_STATE.currentPlay.csPixel);
+
+                let imageData = ctx.getImageData(0, 0, this.csPixel, this.csPixel);
+                for (let i = 0; i < imageData.data.length; i += 4) { // Multiplies color values while maintaining alpha channel
+                    imageData.data[i] = Math.floor((imageData.data[i] / 255) * (colour.r / 255) * 255);
+                    imageData.data[i + 1] = Math.floor((imageData.data[i + 1] / 255) * (colour.g / 255) * 255);
+                    imageData.data[i + 2] = Math.floor((imageData.data[i + 2] / 255) * (colour.b / 255) * 255);
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                ctx.drawImage(this.drawElements.hitCircleOverlay, 0, 0, GAME_STATE.currentPlay.csPixel, GAME_STATE.currentPlay.csPixel);
+
+                this.drawElements.coloredHitcircles[i] = canvas;
+            }
+
+            for (let i = 0; i <= 9; i++) {
+                this.drawElements.numbers[i] = skin.skinElements["default-" + i + "@2x"] || skin.skinElements["default-" + i];
+            }
+        }
+
+        for (let z = 0; z < this.beatmap.hitObjects.length; z++) {
+            this.beatmap.hitObjects[z].draw();
+        }
     }
 
     render() {
@@ -178,7 +222,7 @@ export class Play {
                 // Desides on the easing type
                 let timeDifference = (currentInstruction.endTime - currentInstruction.time);
                 let easingType = undefined;
-                const STREAM_BEAT_THRESHHOLD = 160;
+                const STREAM_BEAT_THRESHHOLD = 155;
 
                 if (timeDifference <= 60000 / STREAM_BEAT_THRESHHOLD / 4) { // Length of 1/4 beats at set BPM
                     easingType = "linear";
@@ -305,6 +349,7 @@ export class Play {
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
                     if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime - EXPECTED_AVERAGE_CLOCK_SPEED / 2);
                     hitObject.approachCircleCanvas.style.display = "none";
+                    hitObject.baseCanvas.style.webkitMaskImage = "none";
                 }
                 // Fade out slider head when it has not been hit
                 if (currentTime >= hitObject.startTime + this.beatmap.difficulty.getHitDeltaForRating(50) && hitObject.hittable) {
@@ -402,7 +447,7 @@ export class Play {
 
     handleBreaks(currentTime) {
         if (currentTime > this.beatmap.hitObjects[0].startTime - 1500 && this.startBreak) {
-            document.getElementById("background-dim").style.opacity = "0.90";
+            document.getElementById("background-dim").style.opacity = "0.88"; // :smirk: :flag_de:
             this.inBreak = false;
             this.startBreak = false;
         }

@@ -4,12 +4,13 @@ import {CIRCLE_BORDER_WIDTH, GraphicUtil, PI2} from "../util/graphicutil";
 import {GAME_STATE, AUDIO_MANAGER} from "../main";
 import {SliderCurveBezier} from "../util/slidercurvebezier";
 import {SliderCurvePassthrough} from "../util/slidercurvepassthrough";
-import {DrawableHitObject} from "./drawablehitobject";
+import {DrawableHitObject, DRAWING_MODE} from "./drawablehitobject";
 import {MathUtil} from "../util/mathutil";
 import {Console} from "../console";
 import {SliderCurveEmpty} from "../util/slidercurveempty";
 
 const DEBUG_PREFIX = "[SLIDER]";
+const SLIDER_BALL_CS_RATIO = 1.328125;
 
 export let SLIDER_SETTINGS = {
     snaking: false,
@@ -208,6 +209,8 @@ export class DrawableSlider extends DrawableHitObject {
         this.baseCanvas.setAttribute("width", Math.ceil(this.sliderWidth + GAME_STATE.currentPlay.csPixel));
         this.baseCanvas.setAttribute("height", Math.ceil(this.sliderHeight + GAME_STATE.currentPlay.csPixel));
 
+        this.baseCanvas.style.webkitMask = "radial-gradient(" + (GAME_STATE.currentPlay.halfCsPixel * (this.reductionFactor - CIRCLE_BORDER_WIDTH / 2)) + "px at " + (this.startPoint.x * pixelRatio - this.minX + GAME_STATE.currentPlay.halfCsPixel) + "px " + (this.startPoint.y * pixelRatio - this.minY + GAME_STATE.currentPlay.halfCsPixel) + "px, transparent 99%, rgba(0, 0, 0, 1) 100%)";
+
         this.baseCtx = this.baseCanvas.getContext("2d");
 
         if (!SLIDER_SETTINGS.snaking || this.suppressSnaking) {
@@ -337,10 +340,16 @@ export class DrawableSlider extends DrawableHitObject {
                         + /* ms of tick showing up */ ((this.sliderTickCompletions[i] - lowestTickCompletionFromCurrentRepeat) * this.hitObject.length / this.timingInfo.sliderVelocity) / 2;
                     let animationCompletion = Math.min(1, (currentSliderTime - tickMs + ((completion < 1) ? animationDuration : 0)) / animationDuration);
 
-                    this.overlayCtx.beginPath();
-                    this.overlayCtx.arc(sliderTickPos.x, sliderTickPos.y, GAME_STATE.currentPlay.csPixel * 0.038 * (/* parabola */ -2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, PI2);
-                    this.overlayCtx.fillStyle = "white";
-                    this.overlayCtx.fill();
+                    if (DRAWING_MODE === 0) {
+                        this.overlayCtx.beginPath();
+                        this.overlayCtx.arc(sliderTickPos.x, sliderTickPos.y, GAME_STATE.currentPlay.csPixel * 0.038 * (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion), 0, PI2);
+                        this.overlayCtx.fillStyle = "white";
+                        this.overlayCtx.fill();
+                    } else if (DRAWING_MODE === 1) {
+                        let diameter = GAME_STATE.currentPlay.csPixel / SLIDER_BALL_CS_RATIO / 4 * (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion);
+
+                        this.overlayCtx.drawImage(GAME_STATE.currentPlay.drawElements.sliderTick, sliderTickPos.x - diameter / 2, sliderTickPos.y - diameter / 2, diameter, diameter);
+                    }
                 }
             }
         }
@@ -391,13 +400,18 @@ export class DrawableSlider extends DrawableHitObject {
             this.followCircleCanvas.style.backfaceVisibility = "hidden";
 
             let colour = GAME_STATE.currentBeatmap.colours[this.comboInfo.comboNum % GAME_STATE.currentBeatmap.colours.length];
-            let colourString = "rgb(" + colour.r + "," + colour.g + "," + colour.b + ")";
 
             // Draw slider ball
-            this.overlayCtx.beginPath();
-            this.overlayCtx.arc(sliderBallPos.x, sliderBallPos.y, this.sliderBodyRadius, 0, PI2);
-            this.overlayCtx.fillStyle = colourString;
-            this.overlayCtx.fill();
+            if (DRAWING_MODE === 0) {
+                let colourString = "rgb(" + colour.r + "," + colour.g + "," + colour.b + ")";
+
+                this.overlayCtx.beginPath();
+                this.overlayCtx.arc(sliderBallPos.x, sliderBallPos.y, this.sliderBodyRadius, 0, Math.PI * 2);
+                this.overlayCtx.fillStyle = colourString;
+                this.overlayCtx.fill();
+            } else if (DRAWING_MODE === 1) {
+                this.overlayCtx.drawImage(GAME_STATE.currentPlay.drawElements.sliderBall, sliderBallPos.x - GAME_STATE.currentPlay.halfCsPixel * SLIDER_BALL_CS_RATIO, sliderBallPos.y - GAME_STATE.currentPlay.halfCsPixel * SLIDER_BALL_CS_RATIO, GAME_STATE.currentPlay.csPixel * SLIDER_BALL_CS_RATIO, GAME_STATE.currentPlay.csPixel * SLIDER_BALL_CS_RATIO);
+            }
 
             let followCircleRadius = GAME_STATE.currentPlay.halfCsPixel * (
                     /* base */ 1
@@ -407,15 +421,20 @@ export class DrawableSlider extends DrawableHitObject {
                             + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (AUDIO_MANAGER.getCurrentSongTime() - this.endTime) / 175))), 2) * 0.5 : 0
                     )
                 );
-            let lineWidth = followCircleRadius * 0.09;
 
             // Draw the follow circle I guess (why not .scale() here?)
             this.sliderBallCtx.clearRect(0, 0, this.maxFollowCircleRadius * 2, this.maxFollowCircleRadius * 2);
-            this.sliderBallCtx.beginPath();
-            this.sliderBallCtx.arc(this.maxFollowCircleRadius, this.maxFollowCircleRadius, followCircleRadius - lineWidth / 2, 0, PI2);
-            this.sliderBallCtx.strokeStyle = "white";
-            this.sliderBallCtx.lineWidth = lineWidth;
-            this.sliderBallCtx.stroke();
+            if (DRAWING_MODE === 0) {
+                let lineWidth = followCircleRadius * 0.09;
+
+                this.sliderBallCtx.beginPath();
+                this.sliderBallCtx.arc(this.maxFollowCircleRadius, this.maxFollowCircleRadius, followCircleRadius - lineWidth / 2, 0, PI2);
+                this.sliderBallCtx.strokeStyle = "white";
+                this.sliderBallCtx.lineWidth = lineWidth;
+                this.sliderBallCtx.stroke();
+            } else if (DRAWING_MODE === 1) {
+                this.sliderBallCtx.drawImage(GAME_STATE.currentPlay.drawElements.followCircle, this.maxFollowCircleRadius - followCircleRadius, this.maxFollowCircleRadius - followCircleRadius, followCircleRadius * 2, followCircleRadius * 2);
+            }
         }
     }
 }

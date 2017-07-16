@@ -3,6 +3,8 @@
 import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../main";
 import {Console} from "../console";
 
+export const DRAWING_MODE = 1; // 0 -> Vanilla, 1 -> Skin
+
 export class DrawableHitObject {
     constructor(hitObject) {
         this.hitObject = hitObject;

@@ -34,25 +34,31 @@ export class Skin {
             let output = "string";
             if (key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) output = "arraybuffer";
             if (key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) output = "base64";
-            zip.file(key).async(output).then((result) => {
-                if (output === "arraybuffer") {
-                    try {
-                        if (result.byteLength > 0) {
-                            this.skinElements[rawFileName] = rawFileName+this.name;
+            try {
+                zip.file(key).async(output).then((result) => {
+                    if (output === "arraybuffer") {
+                        try {
+                            if (result.byteLength > 0) {
+                                this.skinElements[rawFileName] = rawFileName+this.name;
 
-                            AUDIO_MANAGER.loadSoundArrayBuffer(result, rawFileName+this.name, 500);
+                                AUDIO_MANAGER.loadSoundArrayBuffer(result, rawFileName+this.name, 500);
+                            }
+                        }
+                        catch (e) {
+                            console.log(e + rawFileName);
                         }
                     }
-                    catch (e) {
-                        console.log(e + rawFileName);
+                    else if (output === "base64") {
+                        this.skinElements[rawFileName] = new Image();
+                        this.skinElements[rawFileName].src = "data:image/png;base64," + result;
                     }
-                }
-                else {
-                    this.skinElements[rawFileName] = result;
-                }
-            }, (fuckme) => {
-                console.log(fuckme);
-            });
+                }, (fuckme) => {
+                    console.log(fuckme);
+                });
+            } catch (fuckyoutoo) {
+                console.error(fuckyoutoo);
+            }
+
         }
         if(this.callback !== null) this.callback(true);
     };

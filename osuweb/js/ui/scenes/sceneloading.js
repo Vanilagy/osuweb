@@ -39,7 +39,7 @@ export class SceneLoading extends SceneBase {
     }
 
     preClose(newScene, callback) {
-        this.elements.cursor.src = "data:image/png;base64,"+GAME_STATE.defaultSkin.skinElements["cursor"];
+        this.elements.cursor.src = GAME_STATE.defaultSkin.skinElements["cursor"].src;
 
         this.elements["loadingDiv"].style.opacity = 0;
 

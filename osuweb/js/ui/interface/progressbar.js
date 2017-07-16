@@ -4,9 +4,6 @@ import {GAME_STATE, AUDIO_MANAGER, SCENE_MANAGER} from "../../main";
 
 export class ProgressBar {
     constructor() {
-        // TODO: insert real max width of accuracy text
-        SCENE_MANAGER.getScene().elements.accContainerDiv.style.width = "calc(5vh + 1vw + 6vw)";
-
         this._canvas = SCENE_MANAGER.getScene().elements.progressCanvas;
         this.ctx = this._canvas.getContext("2d");
 

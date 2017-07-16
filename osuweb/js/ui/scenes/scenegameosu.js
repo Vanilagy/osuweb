@@ -28,8 +28,6 @@ export class SceneGameOsu extends SceneGame {
         this.addElement("scoreDisplayP", "scoreDisplay");
         this.addElement("accuracyDisplayP", "accuracyDisplay");
         this.addElement("comboDisplayP", "comboDisplay");
-        this.addElement("accContainerDiv", "accContainer");
-        this.addElement("accWrapperDiv", "accWrapper");
 
         this.addElement("snakingInput", "snaking");
         this.addElement("autoInput", "auto");
@@ -50,7 +48,7 @@ export class SceneGameOsu extends SceneGame {
 
         this.showElements([
             "playareaDiv", "objectContainerDiv", "progressCanvas", "spinnerContainerContainer", "ingameContainerSection",
-            "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "accContainerDiv", "accWrapperDiv", "snakingDiv"]);
+            "scoreDisplayP", "accuracyDisplayP", "comboDisplayP", "snakingDiv"]);
 
 
         this.elements["scoreDisplayP"].interpolationData = {
