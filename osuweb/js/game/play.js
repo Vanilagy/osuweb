@@ -287,13 +287,18 @@ export class Play {
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
                     if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime - EXPECTED_AVERAGE_CLOCK_SPEED / 2); // AUTO hitting
-                    hitObject.approachCircleCanvas.style.visibility = "hidden";
+                    if (hitObject.approachCircleCanvas) hitObject.approachCircleCanvas.style.visibility = "hidden";
                 }
                 // Fade out object when it has not been hit
                 if (currentTime >= hitObject.startTime + this.beatmap.difficulty.getHitDeltaForRating(50) && hitObject.hittable) {
                     this.score.addScore(0, false, true, hitObject);
                     hitObject.containerDiv.style.animation = "0.15s fadeOut linear forwards";
                     hitObject.hittable = false;
+                }
+                // HD-fade-out
+                if (this.mods.HD && currentTime >= hitObject.startTime - this.ARMs / 2) {
+                    hitObject.containerDiv.style.transition = "opacity " + (((GAME_STATE.currentPlay.ARMs / 4) - (currentTime - (hitObject.startTime - this.ARMs / 2))) / 1000) + "s linear";
+                    hitObject.containerDiv.style.opacity = 0;
                 }
                 // Remove object completely
                 if (currentTime >= hitObject.startTime + 400) {
@@ -348,7 +353,7 @@ export class Play {
                 // Remove approach circle
                 if (currentTime >= hitObject.startTime && hitObject.hittable) {
                     if (this.mods.AT) hitObject.hit(currentTime - hitObject.startTime - EXPECTED_AVERAGE_CLOCK_SPEED / 2);
-                    hitObject.approachCircleCanvas.style.display = "none";
+                    if (hitObject.approachCircleCanvas) hitObject.approachCircleCanvas.style.visibility = "hidden";
                     hitObject.baseCanvas.style.webkitMaskImage = "none";
                 }
                 // Fade out slider head when it has not been hit
@@ -356,6 +361,11 @@ export class Play {
                     this.score.addScore(0, true, true);
                     hitObject.sliderHeadContainer.style.animation = "0.15s fadeOut linear forwards";
                     hitObject.hittable = false;
+                }
+                // HD-fade-out
+                if (this.mods.HD && currentTime >= hitObject.startTime - this.ARMs / 2) {
+                    hitObject.sliderHeadContainer.style.transition = "opacity " + (((GAME_STATE.currentPlay.ARMs / 4) - (currentTime - (hitObject.startTime - this.ARMs / 2))) / 1000) + "s linear";
+                    hitObject.sliderHeadContainer.style.opacity = 0;
                 }
                 // On slider end
                 if (currentTime >= hitObject.endTime && !hitObject.fadingOut) {

@@ -108,7 +108,7 @@ export class DrawableSpinner extends DrawableHitObject {
             this.lastPoint = InputUtil.getCursorPlayfieldCoords();
             this.lastAngle = currentAngle;
 
-            this.updateApproachCircle(Math.max(0, 1 - completion));
+            if (this.approachCircleElement) this.updateApproachCircle(Math.max(0, 1 - completion));
             this.circleElement.style.transform = "translate(-50%, -50%) rotate(" + this.totalDegreesRotated + "rad)";
             this.spmDisplay.innerHTML = "SPM: " + Math.floor(MathUtil.getAvg(this.SPMSamples));
         }
@@ -181,15 +181,17 @@ export class DrawableSpinner extends DrawableHitObject {
 
         this.containerDiv.appendChild(this.circleElement);
 
-        this.approachCircleElement = document.createElement("canvas");
-        this.approachCircleElement.setAttribute("width", 400 * pixelRatio);
-        this.approachCircleElement.setAttribute("height", 400 * pixelRatio);
-        this.approachCircleElement.className = "center";
+        if (!GAME_STATE.currentPlay.mods.HD) {
+            this.approachCircleElement = document.createElement("canvas");
+            this.approachCircleElement.setAttribute("width", 400 * pixelRatio);
+            this.approachCircleElement.setAttribute("height", 400 * pixelRatio);
+            this.approachCircleElement.className = "center";
 
-        this.approachCircleCtx = this.approachCircleElement.getContext("2d");
+            this.approachCircleCtx = this.approachCircleElement.getContext("2d");
 
-        this.updateApproachCircle(1);
-        this.containerDiv.appendChild(this.approachCircleElement);
+            this.updateApproachCircle(1);
+            this.containerDiv.appendChild(this.approachCircleElement);
+        }
 
         let spinnerTitle = document.createElement("h1");
         spinnerTitle.innerHTML = "Spin!";

@@ -29,8 +29,10 @@ export class DrawableCircle extends DrawableHitObject {
             GAME_STATE.currentPlay.score.addScore(0, false, true, this);
         }
 
-        this.containerDiv.style.animation = (score) ? "0.15s destroyHitCircle ease-out forwards" : "0.10s fadeOut linear forwards";
-        this.approachCircleCanvas.style.display = "none";
+        if (!GAME_STATE.currentPlay.mods.HD) {
+            this.containerDiv.style.animation = (score) ? "0.15s destroyHitCircle ease-out forwards" : "0.10s fadeOut linear forwards";
+        }
+        if (this.approachCircleCanvas) this.approachCircleCanvas.style.display = "none";
     }
 
     destroy() {
@@ -66,15 +68,18 @@ export class DrawableCircle extends DrawableHitObject {
         this.baseCtx = this.baseCanvas.getContext("2d");
         GraphicUtil.drawCircle(this.baseCtx, 0, 0, this.comboInfo);
 
-        this.approachCircleCanvas = document.createElement("canvas");
-        this.approachCircleCanvas.setAttribute("width", GAME_STATE.currentPlay.csPixel);
-        this.approachCircleCanvas.setAttribute("height", GAME_STATE.currentPlay.csPixel);
-        this.approachCircleCanvas.style.transform = "scale(4)";
-
-        let approachCtx = this.approachCircleCanvas.getContext("2d");
-        GraphicUtil.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
-
         this.containerDiv.appendChild(this.baseCanvas);
-        this.containerDiv.appendChild(this.approachCircleCanvas);
+
+        if (GAME_STATE.currentPlay.mods.HD ? this.id === 0 : true) {
+            this.approachCircleCanvas = document.createElement("canvas");
+            this.approachCircleCanvas.setAttribute("width", GAME_STATE.currentPlay.csPixel);
+            this.approachCircleCanvas.setAttribute("height", GAME_STATE.currentPlay.csPixel);
+            this.approachCircleCanvas.style.transform = "scale(4)";
+
+            let approachCtx = this.approachCircleCanvas.getContext("2d");
+            GraphicUtil.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
+
+            this.containerDiv.appendChild(this.approachCircleCanvas);
+        }
     }
 }

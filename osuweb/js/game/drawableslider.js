@@ -96,9 +96,10 @@ export class DrawableSlider extends DrawableHitObject {
             GAME_STATE.currentPlay.score.addScore(0, true, true);
         }
 
-        Console.verbose(DEBUG_PREFIX+" Animating hitcircle fade-out...");
-        this.sliderHeadContainer.style.animation = (score) ? "0.10s destroyHitCircle linear forwards" : "0.10s fadeOut linear forwards";
-        this.approachCircleCanvas.style.display = "none";
+        if (!GAME_STATE.currentPlay.mods.HD) {
+            this.sliderHeadContainer.style.animation = (score) ? "0.10s destroyHitCircle linear forwards" : "0.10s fadeOut linear forwards";
+        }
+        if (this.approachCircleCanvas) this.approachCircleCanvas.style.display = "none";
     }
 
     score() {
@@ -249,19 +250,23 @@ export class DrawableSlider extends DrawableHitObject {
         Console.verbose(DEBUG_PREFIX+" Pre-rendering circle to sliderhead canvas...");
         GraphicUtil.drawCircle(sliderHeadBaseCtx, 0, 0, this.comboInfo);
 
-        Console.verbose(DEBUG_PREFIX+" Creating approachcircle canvas...");
-        this.approachCircleCanvas = document.createElement("canvas");
-        this.approachCircleCanvas.setAttribute("width", GAME_STATE.currentPlay.csPixel);
-        this.approachCircleCanvas.setAttribute("height", GAME_STATE.currentPlay.csPixel);
-        this.approachCircleCanvas.style.transform = "scale(4)";
+        this.sliderHeadContainer.appendChild(sliderHeadBaseCanvas);
 
-        let approachCtx = this.approachCircleCanvas.getContext("2d");
-        Console.verbose(DEBUG_PREFIX+" Pre-rendering approachcircle to approachcircle canvas...");
-        GraphicUtil.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
+        Console.verbose(DEBUG_PREFIX+" Creating approachcircle canvas...");
+        if (GAME_STATE.currentPlay.mods.HD ? this.id === 0 : true) {
+            this.approachCircleCanvas = document.createElement("canvas");
+            this.approachCircleCanvas.setAttribute("width", GAME_STATE.currentPlay.csPixel);
+            this.approachCircleCanvas.setAttribute("height", GAME_STATE.currentPlay.csPixel);
+            this.approachCircleCanvas.style.transform = "scale(4)";
+
+            let approachCtx = this.approachCircleCanvas.getContext("2d");
+            Console.verbose(DEBUG_PREFIX+" Pre-rendering approachcircle to approachcircle canvas...");
+            GraphicUtil.drawApproachCircle(approachCtx, 0, 0, this.comboInfo.comboNum);
+
+            this.sliderHeadContainer.appendChild(this.approachCircleCanvas);
+        }
 
         Console.verbose(DEBUG_PREFIX+" Appending elements to DOM");
-        this.sliderHeadContainer.appendChild(sliderHeadBaseCanvas);
-        this.sliderHeadContainer.appendChild(this.approachCircleCanvas);
 
         this.containerDiv.appendChild(this.baseCanvas);
         this.containerDiv.appendChild(this.overlay);
@@ -311,9 +316,18 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     renderOverlay() {
+        let pixelRatio = GAME_STATE.currentPlay.pixelRatio;
         let completion = 0;
         let currentSliderTime = AUDIO_MANAGER.getCurrentSongTime() - this.startTime;
         let isMoving = currentSliderTime >= 0;
+
+        if (GAME_STATE.currentPlay.mods.HD) { // Slowly fade out slider body
+            this.baseCanvas.style.opacity = MathUtil.clamp(1 - ((currentSliderTime + GAME_STATE.currentPlay.ARMs / 2) / (this.endTime - this.startTime + GAME_STATE.currentPlay.ARMs / 2)), 0, 1);
+
+            if (currentSliderTime >= -GAME_STATE.currentPlay.ARMs / 2 && !isMoving) {
+                this.baseCanvas.style.webkitMask = "radial-gradient(" + (GAME_STATE.currentPlay.halfCsPixel * (this.reductionFactor - CIRCLE_BORDER_WIDTH / 2)) + "px at " + (this.startPoint.x * pixelRatio - this.minX + GAME_STATE.currentPlay.halfCsPixel) + "px " + (this.startPoint.y * pixelRatio - this.minY + GAME_STATE.currentPlay.halfCsPixel) + "px, rgba(0, 0, 0, " + MathUtil.clamp((currentSliderTime + GAME_STATE.currentPlay.ARMs / 2) / (GAME_STATE.currentPlay.ARMs / 4), 0, 1) + ") 99%, rgba(0, 0, 0, 1) 100%)";
+            }
+        }
 
         if(currentSliderTime >= this.endTime - this.startTime + 175) return;
 

@@ -26,8 +26,10 @@ export class DrawableHitObject {
         this.containerDiv.style.visibility = "visible";
         this.containerDiv.style.transition = "opacity " + (((GAME_STATE.currentPlay.ARMs / 2) - offset) / 1000) + "s linear";
         this.containerDiv.style.opacity = 1;
-        this.approachCircleCanvas.style.transform = "scale(1.0)";
-        this.approachCircleCanvas.style.transition = "transform " + ((GAME_STATE.currentPlay.ARMs - offset) / 1000) + "s linear";
+        if (this.approachCircleCanvas) {
+            this.approachCircleCanvas.style.transform = "scale(1.0)";
+            this.approachCircleCanvas.style.transition = "transform " + ((GAME_STATE.currentPlay.ARMs - offset) / 1000) + "s linear";
+        }
     }
 
     destroy() {
