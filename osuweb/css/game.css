@@ -259,4 +259,5 @@
     font-family: Exo2Medium;
     display: none;
     transform: translate(0, -50%);
+    z-index: 1000001;
 }
