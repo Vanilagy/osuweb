@@ -59,11 +59,6 @@ export class DrawableSlider extends DrawableHitObject {
 
     show(offset) {
         super.show(offset);
-        this.renderOverlay();
-
-        if (SLIDER_SETTINGS.snaking && !this.suppressSnaking) {
-            this.renderBase.bind(this)(false);
-        }
     }
 
     getPosFromPercentage(percent) {
@@ -286,7 +281,7 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     render(currentTime) {
-        if(SLIDER_SETTINGS.snaking) this.renderBase(false, currentTime);
+        if(SLIDER_SETTINGS.snaking && !this.suppressSnaking) this.renderBase(false, currentTime);
         this.renderOverlay(currentTime);
     }
 

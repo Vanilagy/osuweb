@@ -135,7 +135,7 @@ export class Play {
     }
 
     render() {
-        let currentTime = (AUDIO_MANAGER._paused) ? AUDIO_MANAGER._pauseTime * 1000 : AUDIO_MANAGER.getCurrentSongTime();
+        let currentTime = (AUDIO_MANAGER.paused) ? AUDIO_MANAGER.pauseTime * 1000 : AUDIO_MANAGER.getCurrentSongTime();
 
         if(this.progressbar) this.progressbar.render.bind(this.progressbar)(currentTime);
         if(this.accmeter) this.accmeter.render.bind(this.accmeter)();
@@ -200,8 +200,6 @@ export class Play {
         if (!this.playthroughInstructions[this.currentPlaythroughInstruction]) {
             return;
         }
-
-        let pixelRatio = this.pixelRatio;
 
         if (this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
             while (this.playthroughInstructions[this.currentPlaythroughInstruction + 1].time <= currentTime) {
@@ -537,7 +535,7 @@ export class Play {
     }
 
     togglePause() {
-        if (!AUDIO_MANAGER._paused) {
+        if (!AUDIO_MANAGER.paused) {
             AUDIO_MANAGER.pauseSong();
 
             let pauseCurrentTime = AUDIO_MANAGER.getCurrentSongTime();
@@ -556,7 +554,6 @@ export class Play {
                     hitObject.containerDiv.style.transition = "none";
                     hitObject.containerDiv.style.opacity = MathUtil.clamp((pauseCurrentTime - (hitObject.startTime - this.ARMs)) / (this.ARMs / 2), 0, 1);
                     if (this.mods.HD && pauseCurrentTime >= hitObject.startTime - this.ARMs / 2) {
-                        console.log(headContainer);
                         headContainer.style.transition = "none";
                         headContainer.style.opacity = MathUtil.clamp(1 - ((pauseCurrentTime - (hitObject.startTime - this.ARMs / 2)) / (this.ARMs / 4)), 0, 1);
                     }
@@ -564,8 +561,9 @@ export class Play {
             }
 
             SCENE_MANAGER.getScene().elements["pauseStateP"].style.display = "block";
+            Console.debug("Play paused.");
         } else {
-            let unpauseCurrentTime = AUDIO_MANAGER._pauseTime * 1000;
+            let unpauseCurrentTime = AUDIO_MANAGER.pauseTime * 1000;
 
             for (let id in this.onScreenHitObjects) {
                 let hitObject = this.onScreenHitObjects[id];
@@ -592,6 +590,7 @@ export class Play {
             AUDIO_MANAGER.unpauseSong();
             this.gameLoop();
             SCENE_MANAGER.getScene().elements["pauseStateP"].style.display = "none";
+            Console.debug("Play unpaused.");
         }
     }
 }

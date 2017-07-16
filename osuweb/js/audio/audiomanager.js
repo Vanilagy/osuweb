@@ -143,7 +143,15 @@ export class AudioManager {
         }
 
         this._pauseTime = -1;
-        this.paused = false;
+        this._paused = false;
+    }
+
+    get paused() {
+        return this._paused;
+    }
+
+    get pauseTime() {
+        return this._pauseTime;
     }
 
     setNextSong(name, offset = 0) {

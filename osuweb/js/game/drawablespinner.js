@@ -64,7 +64,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
         if (completion >= 1) return;
 
-        if (accurateCurrentTime >= this.startTime && accurateCurrentTime < this.endTime && !AUDIO_MANAGER._paused) {
+        if (accurateCurrentTime >= this.startTime && accurateCurrentTime < this.endTime && !AUDIO_MANAGER.paused) {
             let currentAngle = Math.atan2(InputUtil.getCursorPlayfieldCoords().y - 192, InputUtil.getCursorPlayfieldCoords().x - 256);
             let angleDifference = 0;
             let now = window.performance.now();
