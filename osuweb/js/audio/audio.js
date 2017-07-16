@@ -38,6 +38,8 @@ export class Audio {
     }
 
     createNode(index) {
+        let time = window.performance.now();
+
         this.sourceNodes[index] = AUDIO_MANAGER.getContext().createBufferSource();
         this.sourceNodes[index].buffer = this.buffer;
 
@@ -49,6 +51,8 @@ export class Audio {
 
             this.creationCallback = null;
         }
+
+        if(this.isMusic) console.log(window.performance.now()-time);
     }
 
     onAudioEnded(index) {
@@ -90,7 +94,7 @@ export class Audio {
 
         if (this.currentSourceNodeIndex >= 0) {
             this.sourceNodes[this.currentSourceNodeIndex].stop(time);
-            this.sourceNodes[this.currentSourceNodeIndex].disconnect();
+            this.onAudioEnded(this.currentSourceNodeIndex);
         }
     }
 
@@ -101,13 +105,13 @@ export class Audio {
     updateVolumeAll(customVolume = 1) {
         this.volume = customVolume;
 
-        for(let key in this.gainNodes) this.gainNodes[key].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * this.volume;
+        for(let key in this.gainNodes) this.gainNodes[key].gain.value = (this.isMusic ? SETTINGS.music : SETTINGS.sound) * SETTINGS.master * this.volume;
     }
 
     updateVolume(customVolume = 1) {
         this.volume = customVolume;
 
-        this.gainNodes[this.currentGainNodeIndex % this.gainNodes.length].gain.value = (this.isMusic ? SETTINGS.data.music : SETTINGS.data.sound) * SETTINGS.data.master * this.volume;
+        this.gainNodes[this.currentGainNodeIndex % this.gainNodes.length].gain.value = (this.isMusic ? SETTINGS.music : SETTINGS.sound) * SETTINGS.master * this.volume;
     }
 
     onError(err) {

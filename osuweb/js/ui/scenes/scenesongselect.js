@@ -142,7 +142,7 @@ export class SceneSongSelect extends SceneBase {
         }
 
         this._carousel = new BeatmapPanelCarousel(this._panels);
-        this._carousel.calculateYPos();
+        this._carousel.selectSet(this._panels[0]);
     }
 
     /**

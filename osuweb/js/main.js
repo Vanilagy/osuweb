@@ -15,6 +15,7 @@ import {Database} from "./datamodel/database";
 import {SceneManager} from "./ui/scenes/scenemanager";
 import {SLIDER_SETTINGS} from "./game/drawableslider";
 import {TRANSFORMATION_MANAGER} from "./ui/scenes/transformation";
+import {GraphicUtil} from "./util/graphicutil";
 
 export let GAME_STATE = {
     currentBeatmapSet: null,
@@ -39,13 +40,34 @@ export let SCENE_MANAGER = new SceneManager();
 
 export let SETTINGS = new Settings();
 
+let pointerLocked = false;
+let resized = true;
 
-document.getElementById("cursor").style.webkitTransform = "transformZ(0)";
+let bodyElement = document.getElementsByTagName("body")[0];
+
+bodyElement.requestPointerLock = bodyElement.requestPointerLock || bodyElement.mozRequestPointerLock;
+document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+
 document.getElementById("cursor").style.backfaceVisibility = "hidden";
 
+document.addEventListener("resize", function() {
+    resized = true;
+});
 document.addEventListener("mousemove", function(event) {
-    INPUT_STATE.mouseX = event.clientX;
-    INPUT_STATE.mouseY = event.clientY;
+    if(pointerLocked) {
+        INPUT_STATE.mouseX += event.movementX * SETTINGS.sensitivity;
+        INPUT_STATE.mouseY += event.movementY * SETTINGS.sensitivity;
+
+        if(INPUT_STATE.mouseX < 0) INPUT_STATE.mouseX = 0;
+        if(INPUT_STATE.mouseY < 0) INPUT_STATE.mouseY = 0;
+        if(INPUT_STATE.mouseX > GraphicUtil.getWindowDimensions().width) INPUT_STATE.mouseX = GraphicUtil.getWindowDimensions().width;
+        if(INPUT_STATE.mouseY > GraphicUtil.getWindowDimensions().height) INPUT_STATE.mouseY = GraphicUtil.getWindowDimensions().height;
+    }
+    else {
+        INPUT_STATE.mouseX = event.clientX;
+        INPUT_STATE.mouseY = event.clientY;
+    }
+
     INPUT_STATE.lastMousePosUpdateTime = window.performance.now();
     if (GAME_STATE.currentPlay) {
         INPUT_STATE.userPlayfieldCoords = InputUtil.getCursorPlayfieldCoords();
@@ -71,6 +93,8 @@ document.addEventListener("keydown", function(event) {
         //toggleFullScreen();
     }
 
+    if(event.keyCode === SETTINGS.keyBindings["pointerLock"]) (pointerLocked = !pointerLocked) ? bodyElement.requestPointerLock() : document.exitPointerLock();
+
     SCENE_MANAGER.onKeyDown(event);
 
     if(event.keyCode === 16) INPUT_STATE.shiftDown = true;
@@ -84,9 +108,9 @@ document.addEventListener("keydown", function(event) {
             GAME_STATE.currentPlay.togglePause();
         }
     }
-    
-    for(let key in SETTINGS.data.keyCodeBindings) {
-        if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
+
+    for(let key in SETTINGS.keyBindings) {
+        if(SETTINGS.keyBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, true);
             if(key === "k2") InputUtil.changeKeyButtonState(event.keyCode, true);
         }
@@ -106,8 +130,8 @@ document.addEventListener("keyup", function(event) {
     if(event.keyCode === 17) INPUT_STATE.ctrlDown = false;
     if(event.keyCode === 18) INPUT_STATE.altDown = false;
 
-    for(let key in SETTINGS.data.keyCodeBindings) {
-        if(SETTINGS.data.keyCodeBindings[key] === event.keyCode) {
+    for(let key in SETTINGS.keyBindings) {
+        if(SETTINGS.keyBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, false);
             if(key === "k2") InputUtil.changeKeyButtonState(event.keyCode, false);
         }
@@ -298,8 +322,14 @@ function loadBeatmapFromFile(files) {
 let lastFrame = window.performance.now();
 // Global render loop
 function render() {
+    // Input updates
     if(!INPUT_STATE.suppressManualCursorControl) InputUtil.updateCursor(INPUT_STATE.mouseX, INPUT_STATE.mouseY);
     InputUtil.updateMouseDelta();
+
+    if(resized) {
+        GraphicUtil.setWindowDimensions(document.innerWidth, document.innerHeight);
+        resized = false;
+    }
 
     // Calculate frame modifier for frame-independant animation
     let frameModifier = (window.performance.now() - lastFrame) / (1000 / 60.0);

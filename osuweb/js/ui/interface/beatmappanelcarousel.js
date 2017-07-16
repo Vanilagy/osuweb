@@ -21,9 +21,6 @@ export class BeatmapPanelCarousel {
 
         this.targetTransformation = null;
         this.targetOffset = 0;
-
-        this._activeBeatmapSetPanel = this.beatmapSetPanelList[0] ? this.beatmapSetPanelList[0] : null;
-        this._activeBeatmapPanel = this.beatmapSetPanelList[0].getBeatmapPanel(0);
     }
 
     update() {
@@ -33,7 +30,7 @@ export class BeatmapPanelCarousel {
     move(value) {
         if(this.targetTransformation) this.targetTransformation.cancel();
         this.targetOffset += value;
-        this.targetTransformation = new TransformationObjectMethodRelative(this, "doMove", this.targetOffset, 500, "easeOutCubic")
+        this.targetTransformation = new TransformationObjectMethodRelative(this, "doMove", this.targetOffset, Math.pow(Math.abs(this.targetOffset) / 50, 0.5) * 500, "easeOutCubic")
             .setEndListener((result) => {
                 if(result) {
                     this.targetOffset = 0;
@@ -65,7 +62,7 @@ export class BeatmapPanelCarousel {
     }
 
     selectSet(beatmapSetPanel, subPanel = 0, animated = true) {
-        this._activeBeatmapSetPanel.collapse();
+        if(this._activeBeatmapSetPanel) this._activeBeatmapSetPanel.collapse();
 
         this._activeBeatmapSetPanel = beatmapSetPanel;
         this._activeBeatmapPanel = beatmapSetPanel.getBeatmapPanel(subPanel);
@@ -117,7 +114,7 @@ export class BeatmapPanelCarousel {
 
         for(let key in this.beatmapSetPanelList) {
             if(animated) {
-                new TransformationObjectFieldRelative(this.beatmapSetPanelList[key], "y", currentY - this.beatmapSetPanelList[key].y, ANIMATION_TIME).submit();
+                new TransformationObjectFieldRelative(this.beatmapSetPanelList[key], "y", currentY - this.beatmapSetPanelList[key].y, ANIMATION_TIME, "easeOutQuint").submit();
             }
             else {
                 this.beatmapSetPanelList[key].y = currentY;

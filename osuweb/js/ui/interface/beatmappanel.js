@@ -145,7 +145,7 @@ export class BeatmapPanel {
             if(this._expansionTransformation) this._expansionTransformation.cancel();
             if(this._hideTransformation) this._hideTransformation.cancel();
 
-            this._expansionTransformation = new TransformationObjectField(this, "_relTop", null, 0, 150).submit();
+            this._expansionTransformation = new TransformationObjectField(this, "_relTop", null, 0, 150, "easeOutQuint").submit();
             this._hideTransformation = new TransformationObjectFieldTimeout(this, "_visible", false, 150)
                 .setEndListener((result) => {
                     if(result) {
@@ -165,7 +165,7 @@ export class BeatmapPanel {
             if(this._expansionTransformation) this._expansionTransformation.cancel();
             if(this._hideTransformation) this._hideTransformation.cancel();
 
-            this._expansionTransformation = new TransformationObjectField(this, "_relTop", null, this.getPercentRelativePosition(), 150).submit();
+            this._expansionTransformation = new TransformationObjectField(this, "_relTop", null, this.getPercentRelativePosition(), 150, "easeOutQuint").submit();
 
             this._element.style.visibility = "visible";
         }

@@ -31,7 +31,7 @@ export class VolumeControl {
         this.lastChange = window.performance.now();
 
         // The value of master to approach to
-        this.targetMaster = SETTINGS.data.master;
+        this.targetMaster = SETTINGS.master;
     }
 
     render() {
@@ -59,11 +59,11 @@ export class VolumeControl {
         }
 
         // Approach the target value
-        if (this.targetMaster !== SETTINGS.data.master) {
-            SETTINGS.setMaster(SETTINGS.data.master + (Math.pow(Math.abs(this.targetMaster - SETTINGS.data.master), 1.5) * (this.targetMaster > SETTINGS.data.master ? 1 : -1)) * frameModifier);
+        if (this.targetMaster !== SETTINGS.master) {
+            SETTINGS.master = SETTINGS.master + (Math.pow(Math.abs(this.targetMaster - SETTINGS.master), 1.5) * (this.targetMaster > SETTINGS.master ? 1 : -1)) * frameModifier;
 
-            if (Math.abs(this.targetMaster - SETTINGS.data.master) < 0.01) {
-                SETTINGS.setMaster(this.targetMaster);
+            if (Math.abs(this.targetMaster - SETTINGS.master) < 0.01) {
+                SETTINGS.master = this.targetMaster;
             }
         }
 
@@ -111,7 +111,7 @@ export class VolumeControl {
         this.ctx.font = Math.round((this.radius / 80.0) * 30) + "px Calibri";
         this.ctx.fillStyle = "white";
 
-        let text = Math.round(SETTINGS.data.master * 100) + "%";
+        let text = Math.round(SETTINGS.master * 100) + "%";
         let textSize = this.ctx.measureText(text);
 
         this.ctx.fillText(text, 125 - textSize.width / 2, 125 + 8);
@@ -122,17 +122,17 @@ export class VolumeControl {
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.globalAlpha = this.alpha;
-        if (SETTINGS.data.master >= 0.9999999) {
+        if (SETTINGS.master >= 0.9999999) {
             // Render glowing ring at 100%
             this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
         }
-        else if (SETTINGS.data.master <= 0.0000001) {
+        else if (SETTINGS.master <= 0.0000001) {
             // Render full empty circle at 0%
             this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), 0, 2 * Math.PI);
         }
         else {
             // Render the unfilled part of the gauge
-            this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI, -0.5 * Math.PI);
+            this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), 2 * Math.PI * SETTINGS.master - 0.5 * Math.PI, -0.5 * Math.PI);
         }
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "rgba(60,80,91,0.95)";
@@ -140,7 +140,7 @@ export class VolumeControl {
         this.ctx.shadowBlur = 20;
         this.ctx.stroke();
         this.ctx.beginPath();
-        this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), -0.5 * Math.PI, 2 * Math.PI * SETTINGS.data.master - 0.5 * Math.PI);
+        this.ctx.arc(125, 125, Math.round((this.radius / 80.0) * 61), -0.5 * Math.PI, 2 * Math.PI * SETTINGS.master - 0.5 * Math.PI);
         this.ctx.lineWidth = 10;
         this.ctx.strokeStyle = "white";
         this.ctx.shadowColor = "#35b5ff";
