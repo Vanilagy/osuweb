@@ -136,7 +136,11 @@ export class AudioManager {
     unpauseSong() {
         if(!this._paused || this.isCurrentSongPlaying()) return;
 
-        this.playSong(0, this._pauseTime, 0, this._currentSongLooping ? 0 : this._currentSong.duration);
+        if (this._pauseTime >= 0) {
+            this.playSong(0, this._pauseTime, 0, this._currentSongLooping ? 0 : this._currentSong.duration);
+        } else {
+            this.playSong(-this._pauseTime, 0, 0, this._currentSongLooping ? 0 : this._currentSong.duration);
+        }
 
         this._pauseTime = -1;
         this.paused = false;
