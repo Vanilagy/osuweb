@@ -15,6 +15,8 @@ export class Settings {
     }
 
     validateSettings() {
+        if(!this._data) this._data = {};
+
         if(!this._data.music) this._data.music = this.music;
         if(!this._data.sound) this._data.sound = this.sound;
         if(!this._data.master) this._data.master = this.master;

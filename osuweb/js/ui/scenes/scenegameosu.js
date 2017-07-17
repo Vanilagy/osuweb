@@ -35,6 +35,7 @@ export class SceneGameOsu extends SceneGame {
         this.addElement("autoDiv", "autoOption");
 
         this.addElement("pauseStateP", "pauseStateDisplay");
+        this.addElement("skipStripP", "skipStrip");
     }
 
     render() {

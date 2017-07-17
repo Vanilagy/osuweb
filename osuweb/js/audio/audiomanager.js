@@ -146,6 +146,11 @@ export class AudioManager {
         this._paused = false;
     }
 
+    skipTo(seconds) {
+        this._currentSong.stop();
+        this.playSong(0, seconds, this._currentSongLooping ? 0 : this._currentSong.duration);
+    }
+
     get paused() {
         return this._paused;
     }

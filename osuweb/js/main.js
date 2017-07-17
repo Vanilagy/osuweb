@@ -109,6 +109,12 @@ document.addEventListener("keydown", function(event) {
         }
     }
 
+    if (event.keyCode === 32) { // Space
+        if (GAME_STATE.currentPlay && GAME_STATE.currentPlay.skipEndTime) {
+            AUDIO_MANAGER.skipTo(GAME_STATE.currentPlay.skipEndTime / 1000);
+        }
+    }
+
     for(let key in SETTINGS.keyBindings) {
         if(SETTINGS.keyBindings[key] === event.keyCode) {
             if(key === "k1") InputUtil.changeKeyButtonState(event.keyCode, true);

@@ -245,19 +245,29 @@
     margin: 0;
     margin-top: 12px;
 }
-#pauseStateDisplay {
+#pauseStateDisplay, #skipStrip {
     margin: 0;
     position: absolute;
-    width: 100%;
-    top: 50%;
-    left: 0;
     text-align: center;
-    font-size: 30px;
+    font-size: 35px;
     color: lavender;
     padding: 10px;
     background: rgba(0, 0, 0, 0.5);
     font-family: Exo2Medium;
     display: none;
-    transform: translate(0, -50%);
     z-index: 1000001;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+}
+#pauseStateDisplay {
+    width: 100%;
+    top: 50%;
+    left: 0;
+    transform: translate(0, -50%);
+}
+#skipStrip {
+    width: 400px;
+    transform: translate(50%, 50%) rotate(-45deg);
+    bottom: 105px;
+    right: 105px;
 }

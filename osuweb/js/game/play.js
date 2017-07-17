@@ -61,14 +61,15 @@ export class Play {
 
         Console.info("Beatmap generation time: " + ((window.performance.now() - generationStartTime) / 1000).toFixed(3) + "s");
 
-        this.accmeter = new AccMeter();
-        this.progressbar = new ProgressBar();
-
-        this.audioInterlude = 2;
+        this.audioInterlude = -Math.min(250, this.beatmap.hitObjects[0].startTime - 2000);
+        Console.debug("Interlude duration: " + this.audioInterlude + "ms");
         this.metronome = null;
         this.nextMetronome = null;
         this.metronomeRunning = false;
         this.audioStarted = false;
+
+        this.accmeter = new AccMeter();
+        this.progressbar = new ProgressBar();
 
         this.currentHitObject = 0;
         this.lastAppendedHitObject = 0;
@@ -79,6 +80,7 @@ export class Play {
         this.inBreak = true;
         this.startBreak = true;
         this.nextBreak = null;
+        this.skipEndTime = null;
 
         this.score = new Score(this.beatmap);
 
@@ -151,6 +153,15 @@ export class Play {
         if(this.playthroughInstructions && this.audioStarted) this.handlePlaythroughInstructions(currentTime);
 
         this.score.updateDisplay();
+
+        // Remove skip thingy
+        if (this.skipEndTime - currentTime < 0) {
+            SCENE_MANAGER.getScene().elements["skipStripP"].style.display = "none";
+            this.skipEndTime = null;
+        }
+        if (this.skipEndTime !== null) {
+            SCENE_MANAGER.getScene().elements["skipStripP"].style.opacity = MathUtil.ease("easeInOutQuad", MathUtil.clamp((this.skipEndTime - currentTime) / 750, 0, 1));
+        }
     }
 
     updatePlayareaSize(callback) {
@@ -496,6 +507,10 @@ export class Play {
             else if (!this.inBreak && this.nextBreak !== null && currentTime > this.nextBreak.start) {
                 document.getElementById("background-dim").style.opacity = "0";
                 this.inBreak = true;
+                if (this.nextBreak.end - this.nextBreak.start >= 3000) {
+                    SCENE_MANAGER.getScene().elements["skipStripP"].style.display = "block";
+                    this.skipEndTime = this.nextBreak.end - 2000;
+                }
             }
         }
     }
@@ -520,15 +535,20 @@ export class Play {
     }
 
     start() {
-        // stop running song
+        // Stop running song
         AUDIO_MANAGER.stopSong();
 
         // Starts the song
         if (!this.audioStarted) {
-            AUDIO_MANAGER.playSongByName(this.audio, this.audioInterlude, 0, false);
+            AUDIO_MANAGER.playSongByName(this.audio, this.audioInterlude / 1000, 0, false);
             console.log("Audio start offset: " + AUDIO_MANAGER.getCurrentSongTime().toFixed(2) + "ms");
 
             this.audioStarted = true;
+
+            if (this.beatmap.hitObjects[0].startTime >= 3000) {
+                SCENE_MANAGER.getScene().elements["skipStripP"].style.display = "block";
+                this.skipEndTime = this.beatmap.hitObjects[0].startTime - 2000;
+            }
         }
 
         this.gameLoop();

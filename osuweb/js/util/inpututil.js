@@ -100,10 +100,10 @@ export class InputUtil {
 
     static changeKeyButtonState(keycode, bool) {
         let newPress = false;
-        if (SETTINGS.data.keyCodeBindings["k1"] === keycode && INPUT_STATE.inputButtonStates["m1"] === false && INPUT_STATE.inputButtonStates["k1"] !== bool) {
+        if (SETTINGS.keyBindings["k1"] === keycode && INPUT_STATE.inputButtonStates["m1"] === false && INPUT_STATE.inputButtonStates["k1"] !== bool) {
             INPUT_STATE.inputButtonStates["k1"] = bool;
             newPress = bool === true ;
-        } else if (SETTINGS.data.keyCodeBindings["k2"] === keycode && INPUT_STATE.inputButtonStates["m2"] === false && INPUT_STATE.inputButtonStates["k2"] !== bool) {
+        } else if (SETTINGS.keyBindings["k2"] === keycode && INPUT_STATE.inputButtonStates["m2"] === false && INPUT_STATE.inputButtonStates["k2"] !== bool) {
             INPUT_STATE.inputButtonStates["k2"] = bool;
             newPress = bool === true;
         }
