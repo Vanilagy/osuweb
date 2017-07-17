@@ -61,7 +61,7 @@ export class Play {
 
         Console.info("Beatmap generation time: " + ((window.performance.now() - generationStartTime) / 1000).toFixed(3) + "s");
 
-        this.audioInterlude = -Math.min(250, this.beatmap.hitObjects[0].startTime - 2000);
+        this.audioInterlude = -Math.min(-250, this.beatmap.hitObjects[0].startTime - 2000);
         Console.debug("Interlude duration: " + this.audioInterlude + "ms");
         this.metronome = null;
         this.nextMetronome = null;
