@@ -141,7 +141,7 @@ export class DrawableSlider extends DrawableHitObject {
     init() { // Calculates slider path
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
-        } else if (this.hitObject.sections[0].type === "circle") {
+        } else if (this.hitObject.sections[0].type === "passthrough") {
             this.curve = new SliderCurvePassthrough(this);
 
             this.curve.calculateValues();
@@ -154,7 +154,7 @@ export class DrawableSlider extends DrawableHitObject {
         if (this.hitObject.sections.length === 0) {
             this.endPoint = this.startPoint;
         } else {
-            if (this.hitObject.sections[0].type === "circle") {
+            if (this.hitObject.sections[0].type === "passthrough") {
                 this.curve = new SliderCurvePassthrough(this);
                 this.curve.calculateValues(true);
             } else {

@@ -128,7 +128,7 @@ export class Slider extends HitObject {
         let sectionType = "unknown";
 
         if (sliderSectionPoints.length === 3 && sliderType === "P") {
-            sectionType = "circle";
+            sectionType = "passthrough";
         }
         else if (sliderSectionPoints.length === 2) {
             sectionType = "linear";
