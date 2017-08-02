@@ -92,7 +92,7 @@ export class DrawableSlider extends DrawableHitObject {
         }
 
         if (!GAME_STATE.currentPlay.mods.HD) {
-            this.sliderHeadContainer.style.animation = (score) ? "0.10s destroyHitCircle linear forwards" : "0.10s fadeOut linear forwards";
+            this.sliderHeadContainer.style.animation = (score) ? "0.2s destroyHitCircle cubic-bezier(.04,.63,.28,.99) forwards" : "0.15s fadeOut linear forwards";
         }
         if (this.approachCircleCanvas) this.approachCircleCanvas.style.display = "none";
     }

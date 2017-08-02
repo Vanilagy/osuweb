@@ -4,7 +4,7 @@
 }
 @keyframes destroyHitCircle {
     from {transform: scale(1); opacity: 1;}
-    to {transform: scale(1.4); opacity: 0;}
+    to {transform: scale(1.35); opacity: 0;}
 }
 @keyframes fadeOut {
     from {opacity: 1;}

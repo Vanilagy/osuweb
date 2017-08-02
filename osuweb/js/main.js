@@ -192,11 +192,6 @@ document.getElementById("snaking").addEventListener("change", () => {
     SLIDER_SETTINGS.snaking = document.getElementById("snaking").checked;
 });
 
-// TODO: Remove this? Auto is now activated through modcode
-/*document.getElementById("auto").addEventListener("change", () => {
-    if(GAME_STATE.currentPlay) GAME_STATE.currentPlay.autoplay = document.getElementById("auto").checked;
-});*/
-
 document.getElementById("osu").onclick = () => {
     SCENE_MANAGER.switchScene(new SceneSongSelect());
 };

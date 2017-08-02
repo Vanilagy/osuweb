@@ -315,7 +315,7 @@ export class Play {
                     hitObject.hit(currentTime - hitObject.startTime);
                 }
                 // Remove object completely
-                if (currentTime >= hitObject.startTime + 400) {
+                if (currentTime >= hitObject.startTime + 500) {
                     hitObject.destroy();
                     delete this.onScreenHitObjects[id];
                     continue;
@@ -393,7 +393,7 @@ export class Play {
                     hitObject.fadingOut = true;
                 }
                 // Remove object completely
-                if (currentTime >= hitObject.endTime + 150) {
+                if (currentTime >= hitObject.endTime + 200) {
                     hitObject.destroy();
                     delete this.onScreenHitObjects[id];
                     continue;

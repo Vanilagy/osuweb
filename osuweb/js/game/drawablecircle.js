@@ -30,7 +30,7 @@ export class DrawableCircle extends DrawableHitObject {
         }
 
         if (!GAME_STATE.currentPlay.mods.HD) {
-            this.containerDiv.style.animation = (score) ? "0.15s destroyHitCircle ease-out forwards" : "0.10s fadeOut linear forwards";
+            this.containerDiv.style.animation = (score) ? "0.2s destroyHitCircle cubic-bezier(.04,.63,.28,.99)  forwards" : "0.15s fadeOut linear forwards";
         }
         if (this.approachCircleCanvas) this.approachCircleCanvas.style.display = "none";
     }
