@@ -15,6 +15,7 @@ export class ProcessedBeatmap {
 
         this.hitObjects = [];
         this.followPoints = [];
+        this.breaks = [];
 
         // Copy parsed info
         this.difficulty = beatmap.difficulty;
@@ -33,13 +34,13 @@ export class ProcessedBeatmap {
     process(fullCalc = true) {
         let processStartTime = window.performance.now();
 
+        if(fullCalc) this.copyBreaks();
+
         this.generateDrawableHitObjects(fullCalc);
         this.applyStackShift(fullCalc);
         Console.info("Beatmap process time: " + ((window.performance.now() - processStartTime) / 1000).toFixed(3) + "s");
         if(fullCalc) this.calculateZOrder();
         if(fullCalc) this.calculateFollowPoints();
-
-
     }
 
     calculateZOrder() {
@@ -76,10 +77,10 @@ export class ProcessedBeatmap {
         let comboCount = 1;
         let nextCombo = 0;
 
-        let mapGenerationStartTime = window.performance.now();
-
         for (let o = 0; o < this.sourceBeatmap.hitObjects.length; o++) {
             let obj = this.sourceBeatmap.hitObjects[o];
+
+            let comboInfo = null;
 
             if (fullCalc) {
                 if (obj.newCombo !== null) {
@@ -91,7 +92,7 @@ export class ProcessedBeatmap {
                     }
                     comboCount = 1;
                 }
-                var comboInfo = {
+                comboInfo = {
                     comboNum: nextCombo,
                     n: comboCount++,
                     isLast: (this.sourceBeatmap.hitObjects[o + 1]) ? this.sourceBeatmap.hitObjects[o + 1].newCombo !== null : true
@@ -193,8 +194,24 @@ export class ProcessedBeatmap {
             }
 
             hitObjectId++;
+
+            // calculate extra breaks
+            if(fullCalc) {
+                if(this.hitObjects.length > 1 && this.hitObjects[this.hitObjects.length - 1].startTime - this.hitObjects[this.hitObjects.length - 2].endTime >= 4000) {
+                    let newBreak = {start: this.hitObjects[this.hitObjects.length - 2].endTime + 500, end: this.hitObjects[this.hitObjects.length - 1].startTime - 500};
+
+                    for(let i = 0; i < this.breaks.length; i++) {
+                        // Check if break is overlapping with an existing one
+                        if ((newBreak.start >= this.breaks[i].start && newBreak.start <= this.breaks[i].end) || (newBreak.end >= this.breaks[i].start && newBreak.end <= this.breaks[i].end)) break;
+
+                        if(this.breaks[i].start > newBreak.end) {
+                            this.breaks.splice(i, 0, newBreak);
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        return mapGenerationStartTime;
     }
 
     applyStackShift(fullCalc) {
@@ -290,6 +307,14 @@ export class ProcessedBeatmap {
 
         for (let z = 0; z < this.hitObjects.length; z++) {
             this.hitObjects[z].applyStackPosition(fullCalc);
+        }
+    }
+
+    copyBreaks() {
+        for (let i = 0; i < this.events.length; i++) {
+            if (this.events[i].type !== "break") continue;
+
+            this.breaks.push({start: this.events[i].start, end: this.events[i].end});
         }
     }
 }

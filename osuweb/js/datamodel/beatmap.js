@@ -59,7 +59,6 @@ export class Beatmap {
 
     parseBeatmap(text) {
         Console.debug("Start beatmap parsing...");
-        let timingPointIndex = 0;
 
         let lines = text.split('\n');
 
@@ -83,89 +82,18 @@ export class Beatmap {
                 Console.verbose("Reading new section: "+line);
             }
             else if (section === "colours") {
-                let col = line.split(':')[1].trim().split(',');
-
-                this.colours.push({
-                    r: parseInt(col[0], 10),
-                    g: parseInt(col[1], 10),
-                    b: parseInt(col[2], 10),
-                });
-
-                Console.verbose("Added color #"+this.colours.length+": "+col);
+                this.parseComboColour(line);
             }
             else if (section === "timingpoints") {
-                let values = line.split(',');
-
-                this.timingPoints.push({
-                    index: timingPointIndex++,
-                    offset: parseInt(values[0], 10),
-                    msPerBeat: parseFloat(values[1]),
-                    BPM: parseFloat(values[1]) > 0 ? 60000 / values[1] : -1,
-                    meter: parseInt(values[2], 10),
-                    sampleType: parseInt(values[3], 10),
-                    sampleSet: parseInt(values[4], 10),
-                    volume: parseInt(values[5], 10),
-                    inherited: parseFloat(values[1]) < 0,
-                    kiai: parseInt(values[7], 10),
-                });
-
-                Console.verbose("Added timing point #"+this.timingPoints.length+": "+JSON.stringify(this.timingPoints[this.timingPoints.length - 1]));
+                this.parseTimingPoint(line);
             }
             else if (section === "events") {
                 if (line.startsWith("//")) continue;
 
-                let values = line.split(',');
-
-                switch (values[0]) {
-                    case "0":
-                        this.events.push({
-                            type: "image",
-                            time: parseInt(values[1], 10),
-                            file: values[2].substring(1, values[2].length - 1),
-                            x: parseInt(values[3], 10),
-                            y: parseInt(values[4], 10)
-                        });
-                        break;
-                    case "2":
-                        this.events.push({
-                            type: "break",
-                            start: parseInt(values[1], 10),
-                            end: parseInt(values[2], 10)
-                        });
-                        break;
-                }
-
-                {let evt = this.events[this.events.length - 1]; if(evt !== null && evt !== undefined) Console.verbose("Added \""+evt.type+"\" event (#"+this.events.length+"): "+evt); }
+                this.parseEvent(line);
             }
             else if (section === "hitobjects") {
-                let values = line.split(',');
-
-                let hitObjectData = parseInt(values[3], 10) % 16;
-
-                if (hitObjectData === 1 || hitObjectData === 5) {
-                    if(!this.loadFlat) {
-                        this.hitObjects.push(new Circle(values));
-                        Console.verbose("Circle added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
-                    }
-                    this.circles++;
-                }
-                else if (hitObjectData === 2 || hitObjectData === 6) {
-                    if(!this.loadFlat) {
-                        this.hitObjects.push(new Slider(values));
-                        Console.verbose("Slider added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
-                    }
-                    this.sliders++;
-                }
-                else if (hitObjectData === 8 || hitObjectData === 12) {
-                    if(!this.loadFlat) {
-                        this.hitObjects.push(new Spinner(values));
-                        Console.verbose("Spinner added: "+JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
-                    }
-                    this.spinners++;
-                }
-                else {
-                    Console.verbose("Unrecognized HitObject-type! (peppy plz)");
-                }
+                this.parseHitObject(line);
             }
             else {
                 if (line.startsWith("AudioFilename")) this.audioFilename = line.split(':')[1].trim();
@@ -213,6 +141,94 @@ export class Beatmap {
         this._stars = new DifficultyCalculator(this).calculate(null);
 
         if(this.callback) this.callback(this);
+    }
+
+    parseComboColour(line) {
+        let col = line.split(':')[1].trim().split(',');
+
+        this.colours.push({
+            r: parseInt(col[0], 10),
+            g: parseInt(col[1], 10),
+            b: parseInt(col[2], 10),
+        });
+
+        Console.verbose("Added color #" + this.colours.length + ": " + col);
+        return col;
+    }
+
+    parseTimingPoint(line) {
+        let values = line.split(',');
+
+        this.timingPoints.push({
+            index: this.timingPoints.length,
+            offset: parseInt(values[0], 10),
+            msPerBeat: parseFloat(values[1]),
+            BPM: parseFloat(values[1]) > 0 ? 60000 / values[1] : -1,
+            meter: parseInt(values[2], 10),
+            sampleType: parseInt(values[3], 10),
+            sampleSet: parseInt(values[4], 10),
+            volume: parseInt(values[5], 10),
+            inherited: parseFloat(values[1]) < 0,
+            kiai: parseInt(values[7], 10),
+        });
+
+        Console.verbose("Added timing point #" + this.timingPoints.length + ": " + JSON.stringify(this.timingPoints[this.timingPoints.length - 1]));
+    }
+
+    parseHitObject(line) {
+        let values = line.split(',');
+
+        let hitObjectData = parseInt(values[3], 10) % 16;
+
+        if (hitObjectData === 1 || hitObjectData === 5) {
+            if (!this.loadFlat) {
+                this.hitObjects.push(new Circle(values));
+                Console.verbose("Circle added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
+            }
+            this.circles++;
+        }
+        else if (hitObjectData === 2 || hitObjectData === 6) {
+            if (!this.loadFlat) {
+                this.hitObjects.push(new Slider(values));
+                Console.verbose("Slider added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
+            }
+            this.sliders++;
+        }
+        else if (hitObjectData === 8 || hitObjectData === 12) {
+            if (!this.loadFlat) {
+                this.hitObjects.push(new Spinner(values));
+                Console.verbose("Spinner added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
+            }
+            this.spinners++;
+        }
+        else {
+            Console.verbose("Unrecognized HitObject-type! (peppy plz)");
+        }
+    }
+
+    parseEvent(line) {
+        let values = line.split(',');
+
+        switch (values[0]) {
+            case "0":
+                this.events.push({
+                    type: "image",
+                    time: parseInt(values[1], 10),
+                    file: values[2].substring(1, values[2].length - 1),
+                    x: parseInt(values[3], 10),
+                    y: parseInt(values[4], 10)
+                });
+                break;
+            case "2":
+                this.events.push({
+                    type: "break",
+                    start: parseInt(values[1], 10),
+                    end: parseInt(values[2], 10)
+                });
+                break;
+        }
+
+        {let evt = this.events[this.events.length - 1]; if(evt !== null && evt !== undefined) Console.verbose("Added \""+evt.type+"\" event (#"+this.events.length+"): "+evt); }
     }
 
     getBackgroundImageName() {

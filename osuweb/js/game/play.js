@@ -485,15 +485,13 @@ export class Play {
         }
         else {
             if (this.nextBreak === null) {
-                for (let ii = 0; ii < this.beatmap.events.length; ii++) {
-                    if (this.beatmap.events[ii].type !== "break") continue;
-
-                    if (this.beatmap.events[ii].start > currentTime) {
-                        if (this.nextBreak !== null && this.nextBreak.start > this.beatmap.events[ii].start) {
-                            this.nextBreak = this.beatmap.events[ii];
+                for (let i = 0; i < this.beatmap.breaks.length; i++) {
+                    if (this.beatmap.breaks[i].start > currentTime) {
+                        if (this.nextBreak !== null && this.nextBreak.start > this.beatmap.breaks[i].start) {
+                            this.nextBreak = this.beatmap.breaks[i];
                         }
                         else {
-                            this.nextBreak = this.beatmap.events[ii];
+                            this.nextBreak = this.beatmap.breaks[i];
                         }
                     }
                 }
