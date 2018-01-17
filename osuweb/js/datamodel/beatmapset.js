@@ -6,7 +6,7 @@ import {Beatmap} from "./beatmap";
 
 export class BeatmapSet {
     constructor(files, callback) {
-        this.files = files[0].name.endsWith(".osz") ? files[0] : files;
+        this.files = files;
         this._audioFiles = [];
         this._imageFiles = [];
         this.difficulties = {};
