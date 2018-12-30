@@ -49,4 +49,4 @@ grunt.loadNpmTasks('grunt-node-minify');
 grunt.registerTask('watch-default', ['watch']);
 grunt.registerTask('default', ['newer:babel', 'browserify', 'newer:copy']);
 grunt.registerTask('force', ['babel', 'browserify', 'copy']);
-grunt.registerTask('release', ['newer:babel', 'newer:copy', 'browserify', 'node-minify:uglify']);
+grunt.registerTask('release', ['newer:babel', 'newer:copy', 'browserify']);

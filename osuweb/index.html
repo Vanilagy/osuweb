@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>osu!web</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/game.css">
+    <link rel="stylesheet" href="css/songselect.css">
+</head>
+<body>
+<div style="font-family: Exo2Medium; position: absolute; z-order: -10000000;" id="f1">.</div>
+<div style="font-family: Exo2MediumItalic; position: absolute; z-order: -10000000;" id="f2">.</div>
+<div style="font-family: Exo2LightItalic; position: absolute; z-order: -10000000;" id="f3">.</div>
+<div style="font-family: Exo2SemiBoldItalic; position: absolute; z-order: -10000000;" id="f4">.</div>
+<div style="font-family: Exo; position: absolute; z-order: -10000000;" id="f5">.</div>
+<div style="font-family: Venera; position: absolute; z-order: -10000000;" id="f6">.</div>
+<img id="cursor">
+
+<div id="background"></div>
+<div id="background-dim"></div>
+<canvas id="osuweb"></canvas>
+<canvas id="volume" width="250px" height="250px"></canvas>
+
+<section id="ingameContainer">
+    <div id="spinnerContainerContainer"></div>
+    <p id="scoreDisplay">00000000</p>
+    <div id="accContainer">
+        <div id="accWrapper">
+            <canvas id="progress"></canvas>
+            <p id="accuracyDisplay">100.00%</p>
+        </div>
+    </div>
+    <p id="comboDisplay">0x</p>
+    <canvas id="accmeter"> </canvas>
+    <div id="playarea">
+        <div id="objectContainer"></div>
+    </div>
+    <p id="pauseStateDisplay">Paused</p>
+    <p id="skipStrip">Skip</p>
+</section>
+
+<section id="songSelectionContainer">
+</section>
+
+<div id="container">
+    <!------------ MENU ------------->
+    <input type="button" id="osu" value="osu!">
+    <!-------- SONG SELECT ---------->
+    <div id="topbar"></div>
+    <div id="bottombar"></div>
+    <div id="scoreboard"></div>
+    <div id="songpanels">
+        <div id="songpanelswrapper"></div>
+    </div>
+    <div id="searchbar"></div>
+
+    <input type="file" id="beatmap" webkitdirectory multiple><br />
+    <div id="snakingOption"><input type="checkbox" id="snaking" /> Slider snaking (can be performance heavy)</div>
+    <div id="debug"></div>
+</div>
+
+<div id="foreground">
+    <div id="loading">LOADING</div>
+</div>
+
+<script src="lib/jszip.min.js"></script>
+<script src="lib/jszip-utils.min.js"></script>
+
+<script src="bundle.js"></script>
+</body>
+</html>
