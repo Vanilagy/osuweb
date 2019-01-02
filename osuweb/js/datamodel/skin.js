@@ -28,12 +28,22 @@ export class Skin {
 
     loadOSK(zip) {
         for (let key in zip.files) {
+            // Skip folders
+            if (key.endsWith("/")) continue;
+
             // Get our keyname from filename
             let rawFileName = key.replace(/\.[^/.]+$/, "");
             // Determine how to read this entry
             let output = "string";
-            if (key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) output = "arraybuffer";
-            if (key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) output = "base64";
+
+            if (key.endsWith(".mp3") || key.endsWith(".ogg") || key.endsWith(".wav")) {
+                output = "arraybuffer";
+            }
+
+            if (key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".gif")) {
+                output = "base64";
+            }
+
             try {
                 zip.file(key).async(output).then((result) => {
                     if (output === "arraybuffer") {
