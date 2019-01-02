@@ -4,5 +4,13 @@
 			"path": "osuweb"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"liveServer.settings.CustomBrowser": "chrome",
+		"files.exclude": {
+			"**/.idea": true,
+			"**/babel": true,
+			"**/dist": true,
+			"**/node_modules": true
+		}
+	}
 }
