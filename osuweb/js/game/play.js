@@ -167,8 +167,8 @@ export class Play {
     updatePlayareaSize(callback) {
         let playAreaDimensions = GraphicUtil.getPlayAreaDimensions();
 
-        SCENE_MANAGER.getScene().elements["playareaDiv"].style.height = playAreaDimensions.height;
-        SCENE_MANAGER.getScene().elements["playareaDiv"].style.width = playAreaDimensions.width;
+        SCENE_MANAGER.getScene().elements.playareaDiv.style.height = playAreaDimensions.height + "px";
+        SCENE_MANAGER.getScene().elements.playareaDiv.style.width = playAreaDimensions.width + "px";
 
         setTimeout(() => {
             InputUtil.updatePlayfieldBounds();
