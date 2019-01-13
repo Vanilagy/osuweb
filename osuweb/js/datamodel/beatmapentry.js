@@ -44,18 +44,18 @@ export class BeatmapEntry {
                 switch (values[0]) {
                     case "0":
                         this.events.push({
-                            type: "image",
-                            time: parseInt(values[1], 10),
-                            file: values[2].substring(1, values[2].length - 1),
-                            x: parseInt(values[3], 10),
-                            y: parseInt(values[4], 10)
+                            "Type": "image",
+                            "Time": parseInt(values[1], 10),
+                            "File": values[2].substring(1, values[2].length - 1),
+                            "X": parseInt(values[3], 10),
+                            "Y": parseInt(values[4], 10)
                         });
                         break;
                     case "2":
                         this.events.push({
-                            type: "break",
-                            start: parseInt(values[1], 10),
-                            end: parseInt(values[2], 10)
+                            "Type": "break",
+                            "Start": parseInt(values[1], 10),
+                            "End": parseInt(values[2], 10)
                         });
                         break;
                 }

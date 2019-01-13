@@ -33,6 +33,20 @@ export let GAME_STATE = {
     }
 };
 
+export let FILE_SYSTEM = null;
+
+navigator.webkitPersistentStorage.requestQuota(1024*1024*1024*2, function(grantedBytes) {
+    window.webkitRequestFileSystem(PERSISTENT, grantedBytes, function(fs) {
+        FILE_SYSTEM = fs;
+    }, function(e) {
+        console.log('Error', e);
+    });
+}, function(e) {
+    console.log('Error', e);
+});
+
+export let DB = new Database();
+
 export let ZIP = new JSZip();
 
 export let AUDIO_MANAGER = new AudioManager();
@@ -284,7 +298,7 @@ document.getElementById("container").ondrop = function(e) {
         if (entry.isFile) {
             entry.file((file) => loadBeatmapFromFile(file));
         } else if (entry.isDirectory) {
-            GAME_STATE.database = new Database(entry);
+            DB.importDirectory(entry);
         }
     }
 };

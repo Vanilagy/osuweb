@@ -5,48 +5,46 @@ import {FileUtil} from "../util/fileutil";
 import {AUDIO_MANAGER} from "../main";
 
 export class BeatmapSetEntry {
-    /**
-     * @param {File[]} fileEntrys
-     * @param {function} callback
-     */
     constructor(fileEntrys, callback) {
-        this._fileEntrys = fileEntrys;
+        
+    }
+
+    static createBase() {
+        let beatmapSetEntry = new BeatmapSetEntry();
+
+        beatmapSetEntry._audioFiles = [];
         /**
          * @type {File[]}
          * @private
          */
-        this._audioFiles = [];
-        /**
-         * @type {File[]}
-         * @private
-         */
-        this._imageFiles = [];
+        beatmapSetEntry._imageFiles = [];
         /**
          * @type {Object.<string, Beatmap>}
          * @private
          */
-        this._beatmaps = {};
+        beatmapSetEntry._beatmaps = {};
         /**
          * @type {number}
          * @private
          */
-        this._loadingMaps = 0;
+        beatmapSetEntry._beatmapSetID = -1;
         /**
-         * @type {number}
+         * @type {Blob}
          * @private
          */
-        this._beatmapSetID = -1;
+        beatmapSetEntry._mainImage = null;
 
-        /**
-         * @type {boolean}
-         * @private
-         */
-        this._readingFilesDone = false;
-        /**
-         * @type {boolean}
-         * @private
-         */
-        this._readingMapsDone = false;
+        return beatmapSetEntry;
+    }
+
+    /**
+     * @param {File[]} fileEntrys
+     * @param {function} callback
+     */
+    static createFromFileEntry(fileEntrys, callback) {
+        let beatmapSetEntry = BeatmapSetEntry.createBase();
+
+        let loadingMaps = 0;
 
         for (let key in this._fileEntrys) {
             let fileEntry = this._fileEntrys[key];
@@ -54,7 +52,7 @@ export class BeatmapSetEntry {
             let name = fileEntry.name.toLowerCase();
 
             if (name.endsWith(".osu")) {
-                this._loadingMaps++;
+                loadingMaps++;
                 fileEntry.file((file) => {
                     FileUtil.loadFileAsString(file, (content) => {
                         let beatmap = new Beatmap(content.target.result);
@@ -65,8 +63,8 @@ export class BeatmapSetEntry {
 
                         this._beatmaps[beatmap.version] = beatmap;
 
-                        this._loadingMaps--;
-                        if (this._loadingMaps === 0) callback();
+                        loadingMaps--;
+                        if (loadingMaps === 0) callback(this);
                     });
                 });
             }
@@ -77,33 +75,20 @@ export class BeatmapSetEntry {
                 this._audioFiles.push(fileEntry);
             }
         }
+
+        return beatmapSetEntry;
     }
 
-    getMainImageName() {
-        let counts = {};
+    static createFromObject(beatmapSetObject) {
+        let beatmapSetEntry = BeatmapSetEntry.createBase();
 
-        for(let key in this._beatmaps) {
-            let imageName = this._beatmaps[key].getBackgroundImageName();
+        this._mainImage
 
-            if(counts[imageName] === undefined) {
-                counts[imageName] = 1;
-            }
-            else {
-                counts[imageName]++;
-            }
-        }
+        return beatmapSetEntry;
+    }
 
-        let biggestName = null;
-        let biggestValue = 0;
-
-        for(let key in counts) {
-            if(counts[key] > biggestValue) {
-                biggestValue = counts[key];
-                biggestName = key;
-            }
-        }
-
-        return biggestName;
+    getMainImage(callback) {
+        
     }
 
     getImageFileByName(fileName, callback) {

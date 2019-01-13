@@ -1,6 +1,6 @@
 "use strict";
 
-import {GAME_STATE} from "../../main";
+import {GAME_STATE, DB} from "../../main";
 import {SceneBase} from "./scenebase";
 import {BeatmapSetPanel} from "../interface/beatmapsetpanel";
 import {BeatmapPanelCarousel} from "../interface/beatmappanelcarousel";
@@ -77,7 +77,7 @@ export class SceneSongSelect extends SceneBase {
      * @param {!number}frameModifier
      */
     render(frameModifier) {
-        this._carousel.update();
+        if (this._carousel !== null) this._carousel.update();
     }
 
     /**
@@ -137,12 +137,22 @@ export class SceneSongSelect extends SceneBase {
     initializePanels() {
         this._panels = [];
 
-        for(let key in GAME_STATE.database.beatmapSetEntrys) {
-            this._panels.push(new BeatmapSetPanel(this._nextIndex++, GAME_STATE.database.beatmapSetEntrys[key]));
-        }
+        let tx = DB._idb.transaction("mapsets");
 
-        this._carousel = new BeatmapPanelCarousel(this._panels);
-        this._carousel.selectSet(this._panels[0]);
+        let request = tx.objectStore("mapsets").getAll();
+
+        request.onsuccess = () => {
+            request.result.forEach(x => {
+                this._panels.push(new BeatmapSetPanel(this._nextIndex++, x));
+            });
+    
+            this._carousel = new BeatmapPanelCarousel(this._panels);
+            this._carousel.selectSet(this._panels[0]);
+        };
+
+        request.onerror = () => {
+            console.error("Failed to read beatmap sets!");
+        };
     }
 
     /**

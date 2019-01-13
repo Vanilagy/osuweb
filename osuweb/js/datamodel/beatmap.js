@@ -212,18 +212,18 @@ export class Beatmap {
         switch (values[0]) {
             case "0":
                 this.events.push({
-                    type: "image",
-                    time: parseInt(values[1], 10),
-                    file: values[2].substring(1, values[2].length - 1),
-                    x: parseInt(values[3], 10),
-                    y: parseInt(values[4], 10)
+                    "Type": "image",
+                    "Time": parseInt(values[1], 10),
+                    "File": values[2].substring(1, values[2].length - 1),
+                    "X": parseInt(values[3], 10),
+                    "Y": parseInt(values[4], 10)
                 });
                 break;
             case "2":
                 this.events.push({
-                    type: "break",
-                    start: parseInt(values[1], 10),
-                    end: parseInt(values[2], 10)
+                    "Type": "break",
+                    "Start": parseInt(values[1], 10),
+                    "End": parseInt(values[2], 10)
                 });
                 break;
         }
@@ -235,7 +235,7 @@ export class Beatmap {
         for(let key in this.events) {
             let evt = this.events[key];
 
-            if(evt.type === "image") {
+            if(evt.type === "Image") {
                 return evt.file;
             }
         }
@@ -249,6 +249,46 @@ export class Beatmap {
         }
 
         return null;
+    }
+
+    toObject() {
+        return {
+            Id: this.beatmapID,
+            SetId: this._beatmapSetID,
+            General: {
+                AudioFilename: this.audioFilename,
+                AudioLeadIn: this.audioLeadIn,
+                PreviewTime: this.previewTime,
+                Countdown: this.countdown,
+                SampleSet: this.sampleSet,
+                Mode: this.mode,
+                LetterboxInBreaks: this.letterBoxInBreaks,
+                WidescreenStoryboard: this.widescreenStoryboard,
+            },
+            Metadata: {
+                Title: this.title,
+                TitleUnicode: this.titleUnicode,
+                Artist: this.artist,
+                ArtistUnicode: this.artistUnicode,
+                Creator: this.creator,
+                Version: this.version,
+                Source: this.source,
+                Tags: this.tags
+            },
+            Difficulty: {
+                HP: this.difficulty.HP,
+                CS: this.difficulty.CS,
+                OD: this.difficulty.OD,
+                AR: this.difficulty.AR,
+                SL: this.difficulty.SL,
+                SV: this.difficulty.SV,
+                TR: this.difficulty.TR
+            },
+            Events: this.events,
+            TimingPoints: this.timingPoints,
+            Colours: this.colours,
+            HitObjects: this.hitObjects
+        };
     }
 
     get stars() {

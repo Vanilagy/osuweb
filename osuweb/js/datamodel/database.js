@@ -1,96 +1,51 @@
 "use strict";
 
-import {BeatmapSetEntry} from "./beatmapsetentry";
-import {SkinEntry} from "./skinentry";
+import { processDirectory } from "./beatmapimport";
 
 export class Database {
-    constructor(directoryEntry) {
-        this.beatmapSetEntrys = {};
-        this.finishedBeatmapSetEntrys = 0;
-        this.processesRunning = 0;
-        this.skinEntrys = [];
+    constructor() {
+        this._idb = null;
 
-        if(directoryEntry) this.loadDirectory(directoryEntry)
+        let dbReq = window.indexedDB.open('osuweb', 1);
+
+        dbReq.onupgradeneeded = function(evt) {
+            let db = this.result;
+
+            db.createObjectStore('mapsets', {keyPath: 'Id'});
+            db.createObjectStore('maps', {keyPath: 'Id'});
+            db.createObjectStore('skins', {keyPath: 'Id'});
+            db.createObjectStore('songs', {keyPath: 'Hash'});
+            db.createObjectStore('images', {keyPath: 'Hash'});
+        };
+
+        dbReq.onsuccess = (function(evt) {
+            this._idb = dbReq.result;
+        }).bind(this); 
     }
 
-    loadDirectory(directoryEntry) {
-        if (directoryEntry !== undefined) {
-            this.startTime = window.performance.now();
-
-            let reader = directoryEntry.createReader();
-            reader.readEntries(this.directoryCallback.bind(this, reader, [], directoryEntry.name));
-
-            console.log(this.beatmapSetEntrys);
-        }
-    }
-
-    directoryCallback(reader, entries, dirName, results) {
-        if (!results.length) {
-            this.processDirectoryEntries(entries, dirName);
-        }
-        else {
-            entries = entries.concat(results);
-            reader.readEntries(this.directoryCallback.bind(this, reader, entries, dirName));
-        }
-    }
-
-    isSkin(fileEntrys) {
+    importOsz() {
 
     }
 
-    isMap(fileEntrys) {
-        let osuFileExists = false;
-        let soundFileExists = false;
+    importDirectory(directoryEntry) {
+        processDirectory(directoryEntry).then(entries => {
+            let tx = this._idb.transaction(['maps', 'mapsets', 'songs', 'images'], 'readwrite'); 
 
-        for (let fileEntry in fileEntrys) {
-            let entry = fileEntrys[fileEntry];
+            tx.oncomplete = () => {
+                console.info("Done importing beatmap set!");
+            };
+    
+            tx.onerror = () => {
+                console.error("Error importing beatmap set!");
+            };
 
-            if (entry.name.endsWith(".osu")) {
-                osuFileExists = true;
-            }
-            else if (entry.name.endsWith(".mp3") || entry.name.endsWith(".wav") || entry.name.endsWith(".ogg")) {
-                soundFileExists = true;
-            }
-
-            if (osuFileExists && soundFileExists) return true;
-        }
-
-        return false;
-    }
-
-    processDirectoryEntries(entries, dirName) {
-        let files = [];
-        let directories = [];
-
-        for (let i = 0; i < entries.length; i++) {
-            let entry = entries[i];
-            if (entry.isDirectory) {
-                directories.push(entry);
-            }
-            else if (entry.isFile) {
-                files.push(entry);
-            }
-        }
-
-        if (this.isMap(files)) {
-            let beatmapSetEntry = new BeatmapSetEntry(files, (function () {
-                this.finishedBeatmapSetEntrys++;
-                console.log(this.finishedBeatmapSetEntrys + " (time passed: " + (window.performance.now() - this.startTime) + ")");
-                this.processesRunning--;
-            }).bind(this));
-
-            if (beatmapSetEntry[dirName] === undefined) this.beatmapSetEntrys[dirName] = beatmapSetEntry;
-        }
-        else if (this.isSkin(files)) {
-            this.skinEntrys.push(new SkinEntry(files));
-            this.processesRunning--;
-        }
-        else {
-            for (let i = 0; i < directories.length; i++) {
-                let dirReader = directories[i].createReader();
-                dirReader.readEntries(this.directoryCallback.bind(this, dirReader, [], directories[i].name));
-            }
-            this.processesRunning--;
-        }
+            entries.flat().forEach(entry => {
+                entry.Beatmaps.forEach(beatmap => tx.objectStore('maps').put(beatmap));
+                entry.Audios.forEach(audio => tx.objectStore('songs').put(audio));
+                entry.Images.forEach(image => tx.objectStore('images').put(image));
+                
+                tx.objectStore('mapsets').put(entry.BeatmapSet);
+            });
+        });
     }
 }
