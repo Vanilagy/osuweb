@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "outDir": "./js",
+        "module": "es2015",
+        "target": "esnext",
+        "strict": true
+    },
+    "include": [
+        "**/index.ts"
+    ]
+}
