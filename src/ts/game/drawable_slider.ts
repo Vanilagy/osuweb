@@ -7,7 +7,7 @@ import { MathUtil } from "../util/math_util";
 import { DrawableHitObject, drawCircle, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 
@@ -23,6 +23,7 @@ export class DrawableSlider extends DrawableHitObject {
     public baseCtx: CanvasRenderingContext2D;
     public overlayContainer: PIXI.Container;
     public sliderBall: PIXI.Graphics;
+    public reverseArrow: PIXI.Sprite;
 
     public complete: boolean;
     public reductionFactor: number;
@@ -124,6 +125,26 @@ export class DrawableSlider extends DrawableHitObject {
         this.sliderBall.visible = false;
 
         this.overlayContainer.addChild(this.sliderBall);
+        this.reverseArrow = new PIXI.Sprite(REVERSE_ARROW_TEXTURE);
+        let yes1 = this.reverseArrow.width; // Keep the original width at the start.
+        let yes2 = this.reverseArrow.height; // Keep the original width at the start.
+
+        let no1, no2, r = yes1/yes2;
+        if (yes1 > yes2) {
+            no1 = circleDiameter;
+            no2 = circleDiameter / r;
+        } else {
+            no1 = circleDiameter / r;
+            no2 = circleDiameter;
+        }
+
+        this.reverseArrow.width = no1;
+        this.reverseArrow.height = no2;
+        this.reverseArrow.pivot.x = yes1 / 2;
+        this.reverseArrow.pivot.y = yes2 / 2;
+        this.reverseArrow.visible = false;
+
+        this.overlayContainer.addChild(this.reverseArrow);
     }
 
     show(currentTime: number) {
@@ -235,7 +256,30 @@ export class DrawableSlider extends DrawableHitObject {
             this.sliderBall.y = sliderBallPos.y;
         }
 
-        return;
+        if (this.hitObject.repeat - completion > 1) {
+            const INFINITESIMAL = 0.00001; // Okay, not really infinitely small. But you get the point.
+            let reverseArrowPos: Point;
+            let p2: Point;
+
+            if (Math.floor(completion) % 2 === 0) {
+                reverseArrowPos = this.getPosFromPercentage(1) as Point;
+                p2 = this.getPosFromPercentage(1 - INFINITESIMAL) as Point;
+            } else {
+                reverseArrowPos = this.getPosFromPercentage(0) as Point;
+                p2 = this.getPosFromPercentage(0 + INFINITESIMAL) as Point;
+            }
+
+            let angle = Math.atan2(p2.y - reverseArrowPos.y, p2.x - reverseArrowPos.x);
+
+            let shit = this.toCtxCoord(reverseArrowPos);
+            this.reverseArrow.x = shit.x;
+            this.reverseArrow.y = shit.y;
+            this.reverseArrow.rotation = angle;
+
+            this.reverseArrow.visible = true;
+        } else {
+            this.reverseArrow.visible = false;
+        }
 
         /*
         if (GAME_STATE.gameState.currentPlay.mods.HD) { // Slowly fade out slider body

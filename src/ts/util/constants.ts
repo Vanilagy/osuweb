@@ -5,6 +5,9 @@ export const PLAYFIELD_DIMENSIONS = {
 
 export const APPROACH_CIRCLE_TEXTURE = PIXI.Texture.from("./assets/img/approach_circle.png");
 
+export const REVERSE_ARROW_TEXTURE = PIXI.Texture.from("./assets/img/reversearrow.png");
+export const SQUARE_TEXTURE = PIXI.Texture.from("./assets/img/square.png");
+
 export const SLIDER_SETTINGS = {
     debugDrawing: false
 };
