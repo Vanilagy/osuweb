@@ -1,8 +1,10 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
-import { audioCtx, playbackRate, audioOffset, files, renderer, stage } from "../main";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider } from "./drawable_slider";
+import { mainMusicSoundEmitter, audioContext } from "../audio/audio";
+import { mainRender } from "../visuals/rendering";
+import { gameState } from "./game_state";
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -37,6 +39,7 @@ export class Play {
         console.time("Beatmap init");
         this.processedBeatmap.init();
         console.timeEnd("Beatmap init");
+
         console.time("Beatmap draw");
         this.processedBeatmap.draw();
         console.timeEnd("Beatmap draw");
@@ -44,32 +47,21 @@ export class Play {
 
     async start() {
         let audioBuffer = await this.getSongAudioBuffer();
-
-        let gainNode = audioCtx.createGain();
-        gainNode.gain.setValueAtTime(0.05, 0);
-        gainNode.connect(audioCtx.destination);
-        
-        let sourceNode = audioCtx.createBufferSource();
-        sourceNode.buffer = audioBuffer;
-        sourceNode.playbackRate.value = playbackRate;
-        sourceNode.connect(gainNode);
-
-        this.audioStartTime = audioCtx.currentTime;
-        this.audioOffset = audioOffset;
-        sourceNode.start(0, audioOffset / 1000);
+        mainMusicSoundEmitter.setBuffer(audioBuffer);
+        mainMusicSoundEmitter.start();
 
         this.render();
     }
 
     getSongAudioBuffer() {
-        let songFile = files!.find((file) => file.name === this.processedBeatmap.beatmap.audioFilename);
+        let songFile = this.processedBeatmap.beatmap.getAudioFile();
 
         return new Promise<AudioBuffer>((resolve) => {
             let reader = new FileReader();
             reader.onload = (result) => {
                 let arrayBuffer = reader.result as ArrayBuffer;
 
-                audioCtx.decodeAudioData(arrayBuffer, (buffer) => {
+                audioContext.decodeAudioData(arrayBuffer, (buffer) => {
                     resolve(buffer);
                 });
             };
@@ -110,7 +102,7 @@ export class Play {
             hitObject = this.processedBeatmap.hitObjects[++this.currentHitObjectId];
         }
     
-        renderer.render(stage);
+        mainRender();
 
         requestAnimationFrame(this.render.bind(this));
 
@@ -118,6 +110,14 @@ export class Play {
     }
 
     getCurrentSongTime() {
-        return (audioCtx.currentTime - this.audioStartTime!) * 1000 * playbackRate + this.audioOffset;
+        return mainMusicSoundEmitter.getCurrentTime() * 1000;
     }
+}
+
+export function startPlay(beatmap: Beatmap) {
+    let newPlay = new Play(beatmap);
+    gameState.currentPlay = newPlay;
+
+    newPlay.init();
+    newPlay.start();
 }

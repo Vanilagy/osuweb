@@ -4,10 +4,11 @@ import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil } from "../util/math_util";
-import { approachCircleTexture, mainHitObjectContainer, approachCircleContainer, playfieldDimensions } from "../main";
 import { DrawableHitObject, drawCircle, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
+import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE } from "../util/constants";
+import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 
 export class DrawableSlider extends DrawableHitObject {
     public reductionFactor: number;
@@ -94,7 +95,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.headSprite.width = gameState.currentPlay!.circleDiameter;
         this.headSprite.height = gameState.currentPlay!.circleDiameter;
 
-        this.approachCircle = new PIXI.Sprite(approachCircleTexture);
+        this.approachCircle = new PIXI.Sprite(APPROACH_CIRCLE_TEXTURE);
         this.approachCircle.width = gameState.currentPlay!.circleDiameter;
         this.approachCircle.height = gameState.currentPlay!.circleDiameter;
 
@@ -131,8 +132,8 @@ export class DrawableSlider extends DrawableHitObject {
         this.container.alpha = fadeInCompletion;
         this.approachCircle.alpha = fadeInCompletion;
 
-        this.container.x = window.innerWidth / 2 + (this.minX - gameState.currentPlay!.circleDiameter! / 2 - playfieldDimensions.width/2 * gameState.currentPlay!.pixelRatio!);
-        this.container.y = window.innerHeight / 2 + (this.minY - gameState.currentPlay!.circleDiameter! / 2 - playfieldDimensions.height/2 * gameState.currentPlay!.pixelRatio!);
+        this.container.x = window.innerWidth / 2 + (this.minX - gameState.currentPlay!.circleDiameter! / 2 - PLAYFIELD_DIMENSIONS.width/2 * gameState.currentPlay!.pixelRatio!);
+        this.container.y = window.innerHeight / 2 + (this.minY - gameState.currentPlay!.circleDiameter! / 2 - PLAYFIELD_DIMENSIONS.height/2 * gameState.currentPlay!.pixelRatio!);
 
         this.headSprite.x = this.hitObject.x * gameState.currentPlay!.pixelRatio! - this.minX;
         this.headSprite.y = this.hitObject.y * gameState.currentPlay!.pixelRatio! - this.minY;
@@ -141,8 +142,8 @@ export class DrawableSlider extends DrawableHitObject {
         let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
         let approachCircleDiameter = gameState.currentPlay!.circleDiameter! * approachCircleFactor;
         this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-        this.approachCircle.x = window.innerWidth / 2 + (this.hitObject.x - playfieldDimensions.width/2) * gameState.currentPlay!.pixelRatio! - approachCircleDiameter / 2;
-        this.approachCircle.y = window.innerHeight / 2 + (this.hitObject.y - playfieldDimensions.height/2) * gameState.currentPlay!.pixelRatio! - approachCircleDiameter / 2;
+        this.approachCircle.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * gameState.currentPlay!.pixelRatio! - approachCircleDiameter / 2;
+        this.approachCircle.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * gameState.currentPlay!.pixelRatio! - approachCircleDiameter / 2;
 
         this.renderOverlay(currentTime);
         this.overlaySprite.texture.update();

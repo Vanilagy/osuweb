@@ -1,6 +1,5 @@
-// Just gets main. Is to get around a rollup issue for now. At some point, "main" shouldn't exist anymore anyway and should be split up into smaller files.
+import './visuals/ui';
+import './visuals/simple_beatmap_selector';
 
 const osu: string | null = 'ORERU!';
 console.log(osu!); // Love the syntax <3
-
-import './main';

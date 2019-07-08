@@ -1,14 +1,12 @@
-//import {ZIP} from "../main";
-//import {Spinner} from "./spinner";
 import { Slider } from "./slider";
 import { Circle } from "./circle";
-//import {Console} from "../console";
 import { BeatmapDifficulty } from "./beatmap_difficulty";
-//import {DifficultyCalculator} from "../game/difficulty/difficultycalculator";
+import { BeatmapSet } from "./beatmap_set";
 
 declare let ZIP: any; // TODO
 
 export class Beatmap {
+    public set: BeatmapSet;
     private callback: Function;
     public difficulty: BeatmapDifficulty;
     private audioKey: null;
@@ -43,8 +41,9 @@ export class Beatmap {
     private beatmapID: number | null = null;
     private _beatmapSetID: number | null = null;
 
-    constructor(file: File | string, callback: (map: Beatmap) => void, loadFlat = false) {
+    constructor(file: File | string, set: BeatmapSet, callback: (map: Beatmap) => void, loadFlat = false) {
         //Console.verbose("--- START BEATMAP LOADING ---");
+        this.set = set;
         this.callback = callback;
 
         this.difficulty = new BeatmapDifficulty();
@@ -91,6 +90,10 @@ export class Beatmap {
                 //Console.error("Fatal error while reading zip entry: "+fuckme);
             });
         }
+    }
+
+    getAudioFile() {
+        return this.set.audioFiles.find((file) => file.name === this.audioFilename);
     }
 
     parseBeatmap(text: string) {
