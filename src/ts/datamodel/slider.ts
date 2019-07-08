@@ -1,7 +1,5 @@
-"use strict";
-
-import {HitObject} from "./hit_object";
-import { Point } from "./math_util";
+import { HitObject } from "./hit_object";
+import { Point } from "../util/math_util";
 
 export class Slider extends HitObject {
     public sections: any[];

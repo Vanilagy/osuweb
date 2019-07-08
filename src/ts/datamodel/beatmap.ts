@@ -1,11 +1,9 @@
-"use strict";
-
 //import {ZIP} from "../main";
 //import {Spinner} from "./spinner";
-import {Slider} from "./slider";
-import {Circle} from "./circle";
+import { Slider } from "./slider";
+import { Circle } from "./circle";
 //import {Console} from "../console";
-import {BeatmapDifficulty} from "./beatmap_difficulty";
+import { BeatmapDifficulty } from "./beatmap_difficulty";
 //import {DifficultyCalculator} from "../game/difficulty/difficultycalculator";
 
 declare let ZIP: any; // TODO

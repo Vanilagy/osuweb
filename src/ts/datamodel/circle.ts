@@ -1,6 +1,4 @@
-"use strict";
-
-import {HitObject} from "./hit_object";
+import { HitObject } from "./hit_object";
 
 export class Circle extends HitObject {
     private hittable: boolean;

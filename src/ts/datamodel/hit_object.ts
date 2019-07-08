@@ -1,5 +1,3 @@
-"use strict";
-
 export class HitObject {
     private newCombo: any;
     public x: number;

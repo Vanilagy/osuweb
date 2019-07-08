@@ -1,12 +1,10 @@
-import { Slider } from "./slider";
+import { Slider } from "../datamodel/slider";
 import { SliderCurve } from "./slider_curve";
 import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
-import { Point, MathUtil } from "./math_util";
-import { gameState, CIRCLE_BORDER_WIDTH, drawCircle, approachCircleTexture, mainHitObjectContainer, approachCircleContainer, getCoordFromCoordArray, playfieldDimensions, DRAWING_MODE } from "./main";
-
-export declare let PIXI: any;
+import { Point, MathUtil } from "../util/math_util";
+import { gameState, CIRCLE_BORDER_WIDTH, drawCircle, approachCircleTexture, mainHitObjectContainer, approachCircleContainer, getCoordFromCoordArray, playfieldDimensions, DRAWING_MODE } from "../main";
 
 export class DrawableSlider {
     public hitObject: Slider;
@@ -86,7 +84,7 @@ export class DrawableSlider {
         this.baseCtx = ctx;
         this.curve.render(1);
 
-        this.baseSprite = new PIXI.Sprite(PIXI.Texture.fromCanvas(canvas));
+        this.baseSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
 
         let headCanvas = document.createElement('canvas');
         headCanvas.setAttribute('width', String(gameState.currentPlay!.circleDiameter));
@@ -94,7 +92,7 @@ export class DrawableSlider {
         let headCtx = headCanvas.getContext('2d');
         drawCircle(headCtx!, 0, 0, this.comboInfo);
 
-        this.headSprite = new PIXI.Sprite(PIXI.Texture.fromCanvas(headCanvas));
+        this.headSprite = new PIXI.Sprite(PIXI.Texture.from(headCanvas));
         this.headSprite.width = gameState.currentPlay!.circleDiameter;
         this.headSprite.height = gameState.currentPlay!.circleDiameter;
 
@@ -108,7 +106,7 @@ export class DrawableSlider {
         let overlayCtx = this.overlayCanvas.getContext('2d');
         this.overlayCtx = overlayCtx;
         this.overlaySprite = new PIXI.Sprite();
-        this.overlaySprite.texture = PIXI.Texture.fromCanvas(this.overlayCanvas);
+        this.overlaySprite.texture = PIXI.Texture.from(this.overlayCanvas);
     }
 
     show(currentTime: number) {

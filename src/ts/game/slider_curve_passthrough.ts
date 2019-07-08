@@ -1,10 +1,8 @@
-"use strict";
-
-import {SliderCurve} from "./slider_curve";
+import { SliderCurve } from "./slider_curve";
 //import {GraphicUtil} from "./graphicutil";
-import {MathUtil, Point} from "./math_util";
-import {SliderCurveBezier} from "./slider_curve_bezier";
-import { gameState } from "./main";
+import { MathUtil, Point } from "../util/math_util";
+import { SliderCurveBezier } from "./slider_curve_bezier";
+import { gameState } from "../main";
 import { DrawableSlider } from "./drawable_slider";
 //import {Console} from "../console";
 

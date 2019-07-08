@@ -1,20 +1,15 @@
 console.log("ORERU!");
 
-export declare let PIXI: any;
-
-import { Beatmap } from "./beatmap";
-import { BeatmapDifficulty } from "./beatmap_difficulty";
-import { Circle } from "./circle";
-import { Slider } from "./slider";
-import { DrawableSlider } from "./drawable_slider";
-import { MathUtil, Point } from "./math_util";
-import { HitObject } from "./hit_object";
-
-
+import { Beatmap } from "./datamodel/beatmap";
+import { Circle } from "./datamodel/circle";
+import { Slider } from "./datamodel/slider";
+import { DrawableSlider } from "./game/drawable_slider";
+import { MathUtil, Point } from "./util/math_util";
+import { HitObject } from "./datamodel/hit_object";
 
 const beatmapFileSelect = document.querySelector('#beatmapSelect') as HTMLInputElement;
 const playButton = document.querySelector('#playButton') as HTMLElement;
-const mainCanvas = document.querySelector('#mainCanvas') as HTMLElement;
+const mainCanvas = document.querySelector('#mainCanvas') as HTMLCanvasElement;
 const cursorElement = document.querySelector('#cursor');
 
 let beatmap: Beatmap | null = null;
@@ -94,7 +89,7 @@ class Play {
 
         this.pixelRatio = null;
         this.circleDiameter = null;
-        this.ARMs = BeatmapDifficulty.getApproachTime(this.processedBeatmap.beatmap.difficulty.AR);
+        this.ARMs = this.processedBeatmap.beatmap.difficulty.getApproachTime();
     }
     
     init() {
@@ -321,11 +316,17 @@ export class ProcessedBeatmap {
     }
 }
 
-let renderer = new PIXI.WebGLRenderer({
+let context = mainCanvas.getContext('webgl2', {
+    stencil: true,
+    alpha: true,
+    powerPreference: 'high-performance',
+    desynchronized: true
+});
+
+let renderer = new PIXI.Renderer({
     width: window.innerWidth,
     height: window.innerHeight,
-    view: mainCanvas,
-    transparent: true
+    context: context
 });
 let stage = new PIXI.Container();
 
@@ -335,8 +336,8 @@ export let approachCircleContainer = new PIXI.Container();
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
 
-let texture = PIXI.Texture.fromImage("./assets/images/circle.png");
-export let approachCircleTexture = PIXI.Texture.fromImage("./assets/images/approach_circle.png");
+let texture = PIXI.Texture.from("./assets/img/circle.png");
+export let approachCircleTexture = PIXI.Texture.from("./assets/img/approach_circle.png");
 
 function onResize() {
     let width = window.innerWidth,
@@ -374,7 +375,7 @@ class DrawableCircle {
         let ctx = canvas.getContext('2d');
         drawCircle(ctx!, 0, 0, this.comboInfo);
 
-        this.sprite = new PIXI.Sprite(PIXI.Texture.fromCanvas(canvas));
+        this.sprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
         this.sprite.width = currentPlay!.circleDiameter;
         this.sprite.height = currentPlay!.circleDiameter;
 

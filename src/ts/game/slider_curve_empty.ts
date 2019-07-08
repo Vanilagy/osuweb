@@ -1,6 +1,4 @@
-"use strict";
-
-import {SliderCurve} from "./slider_curve";
+import { SliderCurve } from "./slider_curve";
 import { DrawableSlider } from "./drawable_slider";
 
 export class SliderCurveEmpty extends SliderCurve {

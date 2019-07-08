@@ -1,12 +1,10 @@
-"use strict";
-
 //import {GraphicUtil} from "./graphicutil";
 
-import {SliderCurve} from "./slider_curve";
-import {MathUtil, Point} from "./math_util";
+import { SliderCurve } from "./slider_curve";
+import { MathUtil, Point } from "../util/math_util";
 //import {SLIDER_SETTINGS} from "../game/drawableslider";
 //import {Console} from "../console";
-import {gameState} from "./main";
+import { gameState } from "../main";
 import { DrawableSlider } from "./drawable_slider";
 
 const SLIDER_SETTINGS = {

@@ -1,5 +1,3 @@
-"use strict";
-
 export class BeatmapDifficulty {
     public SL: number;
     public SV: number;

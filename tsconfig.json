@@ -8,5 +8,9 @@
         "target": "esnext",
         "strict": true,
         "strictNullChecks": false
-    }
+    },
+    "include": [
+        "src/ts/index.ts",
+        "src/ts/declarations/*"
+    ]
 }
