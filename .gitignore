@@ -1,4 +1,5 @@
 **/node_modules
 src/js/bundle.js
 src/assets/test_maps
+src/assets/yugen
 .rpt2_cache

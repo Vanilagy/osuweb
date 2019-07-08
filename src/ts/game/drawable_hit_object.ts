@@ -33,13 +33,13 @@ export abstract class DrawableHitObject {
         this.y = this.hitObject.y;
     }
 
-    draw() {}
+    abstract draw(): any;
 
-    show(currentTime: number) {}
+    abstract show(currentTime: number): any;
 
-    update(currentTime: number) {}
+    abstract update(currentTime: number): any;
 
-    remove() {}
+    abstract remove(): any;
 
     applyStackPosition() {
         this.x += this.stackHeight * -4;
@@ -51,7 +51,7 @@ export const DRAWING_MODE = 0;
 export const CIRCLE_BORDER_WIDTH = 1.75 / 16;
 export function drawCircle(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
     let { circleDiameter, processedBeatmap } = gameState.currentPlay;
-    
+
     let color = comboInfo.color;
 
     //color = {r: 255, g: 20, b: 20};

@@ -120,7 +120,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.sliderBall = new PIXI.Graphics();
         this.sliderBall.beginFill(colorToHexNumber(this.comboInfo.color));
         this.sliderBall.lineStyle(0);
-        this.sliderBall.drawCircle(this.sliderBodyRadius, this.sliderBodyRadius, this.sliderBodyRadius);
+        this.sliderBall.drawCircle(0, 0, this.sliderBodyRadius);
         this.sliderBall.visible = false;
 
         this.overlayContainer.addChild(this.sliderBall);
@@ -231,9 +231,8 @@ export class DrawableSlider extends DrawableHitObject {
             let colorArray = processedBeatmap.beatmap.colors;
             let color = colorArray[this.comboInfo.comboNum % colorArray.length];
 
-            this.sliderBall.x = sliderBallPos.x - this.sliderBodyRadius;
-            this.sliderBall.y = sliderBallPos.y - this.sliderBodyRadius;
-            
+            this.sliderBall.x = sliderBallPos.x;
+            this.sliderBall.y = sliderBallPos.y;
         }
 
         return;
