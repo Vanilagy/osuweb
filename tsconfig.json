@@ -6,6 +6,7 @@
         "module": "es6",
         "moduleResolution": "classic",
         "target": "esnext",
-        "strict": true
+        "strict": true,
+        "strictNullChecks": false
     }
 }
