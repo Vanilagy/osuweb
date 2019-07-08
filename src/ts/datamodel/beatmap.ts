@@ -3,8 +3,6 @@ import { Circle } from "./circle";
 import { BeatmapDifficulty } from "./beatmap_difficulty";
 import { BeatmapSet } from "./beatmap_set";
 
-declare let ZIP: any; // TODO
-
 export class Beatmap {
     public set: BeatmapSet;
     private callback: Function;
@@ -86,9 +84,9 @@ export class Beatmap {
         // Read text from a zip entry
         else if (typeof file === "string") {
             //Console.verbose("Load Beatmap from zip entry: "+file);
-            ZIP.file(file).async("string").then(this.parseBeatmap.bind(this), (fuckme: any) => {
-                //Console.error("Fatal error while reading zip entry: "+fuckme);
-            });
+            //ZIP.file(file).async("string").then(this.parseBeatmap.bind(this), (fuckme: any) => {
+            //    //Console.error("Fatal error while reading zip entry: "+fuckme);
+            //});
         }
     }
 
