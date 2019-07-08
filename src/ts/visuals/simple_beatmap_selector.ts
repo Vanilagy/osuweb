@@ -22,6 +22,8 @@ beatmapFileSelect.addEventListener('change', (e) => {
 
     if (!selectedOsuFile) return;
 
+    beatmapFileSelect.style.display = 'none';
+
     new Beatmap(selectedOsuFile, beatmapSet, (map) => {
         console.log("Beatmap parsed.", map);
         startPlay(map);
