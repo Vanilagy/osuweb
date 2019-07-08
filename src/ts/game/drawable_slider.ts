@@ -9,6 +9,7 @@ import { Point, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
+import { colorToHexNumber } from "../util/graphics_util";
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -20,9 +21,8 @@ export class DrawableSlider extends DrawableHitObject {
     public headSprite: PIXI.Sprite;
     public baseSprite: PIXI.Sprite;
     public baseCtx: CanvasRenderingContext2D;
-    public overlaySprite: PIXI.Sprite;
-    public overlayCanvas: HTMLCanvasElement;
-    public overlayCtx: CanvasRenderingContext2D;
+    public overlayContainer: PIXI.Container;
+    public sliderBall: PIXI.Graphics;
 
     public complete: boolean;
     public reductionFactor: number;
@@ -48,9 +48,9 @@ export class DrawableSlider extends DrawableHitObject {
         this.complete = true;
 
         this.baseSprite = null;
-        this.overlaySprite = null;
         this.headSprite = null;
         this.approachCircle = null;
+        this.overlayContainer = new PIXI.Container();
 
         this.init();
 
@@ -117,20 +117,21 @@ export class DrawableSlider extends DrawableHitObject {
         this.approachCircle.width = circleDiameter;
         this.approachCircle.height = circleDiameter;
 
-        this.overlayCanvas = document.createElement('canvas');
-        this.overlayCanvas.setAttribute('width', String(Math.ceil(this.sliderWidth + circleDiameter)));
-        this.overlayCanvas.setAttribute('height', String(Math.ceil(this.sliderHeight + circleDiameter)));
-        let overlayCtx = this.overlayCanvas.getContext('2d');
-        this.overlayCtx = overlayCtx;
-        this.overlaySprite = new PIXI.Sprite();
-        this.overlaySprite.texture = PIXI.Texture.from(this.overlayCanvas);
+        this.sliderBall = new PIXI.Graphics();
+        this.sliderBall.beginFill(colorToHexNumber(this.comboInfo.color));
+        this.sliderBall.lineStyle(0);
+        this.sliderBall.drawCircle(this.sliderBodyRadius, this.sliderBodyRadius, this.sliderBodyRadius);
+        this.sliderBall.visible = false;
+
+        this.overlayContainer.addChild(this.sliderBall);
     }
 
     show(currentTime: number) {
         if (!this.curve) return;
 
         this.container.addChild(this.baseSprite);
-        this.container.addChild(this.overlaySprite);
+        //this.container.addChild(this.overlaySprite);
+        this.container.addChild(this.overlayContainer);
         this.container.addChild(this.headSprite);
         mainHitObjectContainer.addChildAt(this.container, 0);
         approachCircleContainer.addChild(this.approachCircle);
@@ -164,7 +165,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.approachCircle.y = window.innerHeight / 2 + (this.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - approachCircleDiameter / 2;
 
         this.renderOverlay(currentTime);
-        this.overlaySprite.texture.update();
+        //this.overlaySprite.texture.update();
 
         if (currentTime >= this.hitObject.time) {
             this.container.removeChild(this.headSprite);
@@ -214,6 +215,29 @@ export class DrawableSlider extends DrawableHitObject {
         let currentSliderTime = currentTime - this.hitObject.time;
         let isMoving = currentSliderTime >= 0;
 
+        if (isMoving) {
+            completion = Math.min(this.hitObject.repeat, (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length);
+        }
+
+        let sliderBallPos: Point;
+        if (isMoving) {
+            if (this.sliderBall.visible === false) {
+                this.sliderBall.visible = true;
+            }
+
+            sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)) as Point);
+            let fadeOutCompletion = Math.min(1, Math.max(0, (currentTime - this.letGoTime) / 120));
+
+            let colorArray = processedBeatmap.beatmap.colors;
+            let color = colorArray[this.comboInfo.comboNum % colorArray.length];
+
+            this.sliderBall.x = sliderBallPos.x - this.sliderBodyRadius;
+            this.sliderBall.y = sliderBallPos.y - this.sliderBodyRadius;
+            
+        }
+
+        return;
+
         /*
         if (GAME_STATE.gameState.currentPlay.mods.HD) { // Slowly fade out slider body
             this.baseCanvas.style.opacity = MathUtil.clamp(1 - ((currentSliderTime + GAME_STATE.gameState.currentPlay.ARMs / 2) / (this.endTime - this.startTime + GAME_STATE.gameState.currentPlay.ARMs / 2)), 0, 1);
@@ -221,7 +245,7 @@ export class DrawableSlider extends DrawableHitObject {
             if (currentSliderTime >= -GAME_STATE.gameState.currentPlay.ARMs / 2 && !isMoving) {
                 this.baseCanvas.style.webkitMask = "radial-gradient(" + (GAME_STATE.gameState.currentPlay.halfCsPixel * (this.reductionFactor - CIRCLE_BORDER_WIDTH / 2)) + "px at " + (this.startPoint.x * pixelRatio - this.minX + GAME_STATE.gameState.currentPlay.halfCsPixel) + "px " + (this.startPoint.y * pixelRatio - this.minY + GAME_STATE.gameState.currentPlay.halfCsPixel) + "px, rgba(0, 0, 0, " + MathUtil.clamp((currentSliderTime + GAME_STATE.gameState.currentPlay.ARMs / 2) / (GAME_STATE.gameState.currentPlay.ARMs / 4), 0, 1) + ") 99%, rgba(0, 0, 0, 1) 100%)";
             }
-        }*/
+        }
 
         if(currentSliderTime >= this.endTime - this.hitObject.time + 175) return;
 
@@ -289,5 +313,6 @@ export class DrawableSlider extends DrawableHitObject {
                 }
             }
         }
+        */
     }
 }

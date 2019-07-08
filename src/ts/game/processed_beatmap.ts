@@ -6,11 +6,13 @@ import { Slider } from "../datamodel/slider";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { DrawableSpinner } from "./drawable_spinner";
 import { MathUtil } from "../util/math_util";
+import { Color } from "../util/graphics_util";
 
 export interface ComboInfo {
     comboNum: number,
     n: number,
-    isLast: boolean
+    isLast: boolean,
+    color: Color
 }
 
 export class ProcessedBeatmap {
@@ -30,6 +32,7 @@ export class ProcessedBeatmap {
         let hitObjectId = 0;
         let comboCount = 1;
         let nextCombo = 0;
+        let colorArray = this.beatmap.colors;
 
         let currentTimingPoint = 1;
         let currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
@@ -54,7 +57,8 @@ export class ProcessedBeatmap {
             comboInfo = {
                 comboNum: nextCombo,
                 n: comboCount++,
-                isLast: (this.beatmap.hitObjects[i + 1]) ? this.beatmap.hitObjects[i + 1].newCombo !== null : true
+                isLast: (this.beatmap.hitObjects[i + 1]) ? this.beatmap.hitObjects[i + 1].newCombo !== null : true,
+                color: colorArray[nextCombo % colorArray.length]
             };
 
             if (currentTimingPoint < this.beatmap.timingPoints.length) {
@@ -107,7 +111,9 @@ export class ProcessedBeatmap {
             hitObjectId++;
         }
 
+        console.time('stack shift');
         this.applyStackShift(false);
+        console.timeEnd('stack shift');
     }
 
     applyStackShift(fullCalc: boolean) {

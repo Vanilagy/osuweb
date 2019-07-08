@@ -51,9 +51,8 @@ export const DRAWING_MODE = 0;
 export const CIRCLE_BORDER_WIDTH = 1.75 / 16;
 export function drawCircle(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
     let { circleDiameter, processedBeatmap } = gameState.currentPlay;
-
-    let colorArray = processedBeatmap.beatmap.colors;
-    let color = colorArray[comboInfo.comboNum % colorArray.length];
+    
+    let color = comboInfo.color;
 
     //color = {r: 255, g: 20, b: 20};
 
