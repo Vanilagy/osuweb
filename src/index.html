@@ -4,9 +4,15 @@
         <meta charset="utf-8">
         <title>osu! - Browser Edition</title>
         <link rel="stylesheet" href="./css/main.css">
-        <link rel="shortcut icon" href="./assets/images/19aaee7e-1295-472c-9edd-d55e4a790b0c.jpg">
+        <link rel="shortcut icon" href="./assets/images/1024px-Red_x.svg.png">
     </head>
     <body>
-        <script src="./js/index.js" type="module"></script>
+        <input type="file" id="beatmapSelect" webkitdirectory>
+        <button id="playButton" style="display: none;">Play</button>
+
+        <canvas id="mainCanvas"></canvas>
+
+        <script src="./js/pixi.min.js"></script>
+        <script src="./js/bundle.js"></script>
     </body>
 </html>

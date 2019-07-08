@@ -3,11 +3,9 @@
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "outDir": "./js",
-        "module": "es2015",
+        "module": "es6",
+        "moduleResolution": "classic",
         "target": "esnext",
         "strict": true
-    },
-    "include": [
-        "**/index.ts"
-    ]
+    }
 }
