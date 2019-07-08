@@ -5,16 +5,16 @@ import { DrawableSlider } from "./drawable_slider";
 import { mainMusicSoundEmitter, audioContext } from "../audio/audio";
 import { mainRender } from "../visuals/rendering";
 import { gameState } from "./game_state";
+import { DrawableHitObject } from "./drawable_hit_object";
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
-    public audioStartTime: number | null;
+    public audioStartTime: number;
     public currentHitObjectId: number;
-    public onscreenObjects: { [s: string]: any };
-    public pixelRatio: number | null;
-    public circleDiameter: number | null;
+    public onscreenObjects: { [s: string]: DrawableHitObject };
+    public pixelRatio: number;
+    public circleDiameter: number;
     public ARMs: number;
-    public audioOffset: number = 0;
 
     constructor(beatmap: Beatmap) {
         this.processedBeatmap = new ProcessedBeatmap(beatmap);
@@ -65,7 +65,7 @@ export class Play {
                     resolve(buffer);
                 });
             };
-            reader.readAsArrayBuffer(songFile!);
+            reader.readAsArrayBuffer(songFile);
         });
     }
 
@@ -89,9 +89,7 @@ export class Play {
                     hitObject.remove();
                     delete this.onscreenObjects[id];
                 }
-            }
-    
-            
+            }        
         }
     
         let hitObject = this.processedBeatmap.hitObjects[this.currentHitObjectId];

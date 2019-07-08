@@ -1,16 +1,22 @@
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
-import { DrawableSlider } from "./drawable_slider";
+import { DrawableSlider, SliderTimingInfo } from "./drawable_slider";
 import { Circle } from "../datamodel/circle";
 import { Slider } from "../datamodel/slider";
+import { DrawableHitObject } from "./drawable_hit_object";
+
+export interface ComboInfo {
+    comboNum: number,
+    n: number,
+    isLast: boolean
+}
 
 export class ProcessedBeatmap {
     public beatmap: Beatmap;
-    public hitObjects: any[];
+    public hitObjects: DrawableHitObject[];
 
     constructor(beatmap: Beatmap) {
         this.beatmap = beatmap;
-
         this.hitObjects = [];
     }
 
@@ -32,7 +38,7 @@ export class ProcessedBeatmap {
         for (let i = 0; i < this.beatmap.hitObjects.length; i++) {
             let rawHitObject = this.beatmap.hitObjects[i];
 
-            let comboInfo = null;
+            let comboInfo: ComboInfo = null;
 
             if (rawHitObject.newCombo !== null) {
                 if (rawHitObject.newCombo === -1) {
@@ -79,7 +85,7 @@ export class ProcessedBeatmap {
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
 
-                let timingInfo = {
+                let timingInfo: SliderTimingInfo = {
                     msPerBeat: currentMsPerBeat,
                     msPerBeatMultiplier: currentMsPerBeatMultiplier,
                     sliderVelocity: 100 * this.beatmap.difficulty.SV * (100 / currentMsPerBeatMultiplier) / (currentMsPerBeat)
@@ -92,10 +98,7 @@ export class ProcessedBeatmap {
             if (newObject !== null) {
                 newObject.id = hitObjectId;
                 newObject.comboInfo = comboInfo;
-                //if (fullCalc) {
-                //    newObject.comboInfo = comboInfo;
-                //    newObject.hitSoundInfo = hitSoundInfo;
-                //}
+
                 this.hitObjects.push(newObject);
             }
     

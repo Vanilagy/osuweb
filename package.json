@@ -5,6 +5,7 @@
   "dependencies": {
     "rollup": "^1.16.6",
     "rollup-plugin-typescript": "^1.0.1",
+    "rollup-plugin-typescript2": "^0.21.2",
     "tslib": "^1.10.0",
     "typescript": "^3.5.2"
   },

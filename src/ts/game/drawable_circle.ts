@@ -6,7 +6,7 @@ import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE } from "../util/constants
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 
 export class DrawableCircle extends DrawableHitObject {
-    public sprite: any;
+    public sprite: PIXI.Sprite;
     public hitObject: Circle;
 
     constructor(hitObject: Circle) {
@@ -14,19 +14,21 @@ export class DrawableCircle extends DrawableHitObject {
     }
 
     draw() {
+        let circleDiameter = gameState.currentPlay.circleDiameter;
+
         let canvas = document.createElement('canvas');
-        canvas.setAttribute('width', String(gameState.currentPlay!.circleDiameter));
-        canvas.setAttribute('height', String(gameState.currentPlay!.circleDiameter));
+        canvas.setAttribute('width', String(circleDiameter));
+        canvas.setAttribute('height', String(circleDiameter));
         let ctx = canvas.getContext('2d');
-        drawCircle(ctx!, 0, 0, this.comboInfo);
+        drawCircle(ctx, 0, 0, this.comboInfo);
 
         this.sprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
-        this.sprite.width = gameState.currentPlay!.circleDiameter;
-        this.sprite.height = gameState.currentPlay!.circleDiameter;
+        this.sprite.width = circleDiameter;
+        this.sprite.height = circleDiameter;
 
         this.approachCircle = new PIXI.Sprite(APPROACH_CIRCLE_TEXTURE);
-        this.approachCircle.width = gameState.currentPlay!.circleDiameter;
-        this.approachCircle.height = gameState.currentPlay!.circleDiameter;
+        this.approachCircle.width = circleDiameter;
+        this.approachCircle.height = circleDiameter;
     }
 
     show(currentTime: number) {
@@ -38,25 +40,24 @@ export class DrawableCircle extends DrawableHitObject {
     }
 
     update(currentTime: number) {
-        let yes = (currentTime - (this.hitObject.time - gameState.currentPlay!.ARMs)) / gameState.currentPlay!.ARMs;
-        yes = MathUtil.clamp(yes, 0, 1);
-        yes = MathUtil.ease('easeOutQuad', yes);
+        let { ARMs, pixelRatio, circleDiameter } = gameState.currentPlay;
 
-        //let fadeInCompletion = MathUtil.clamp(1 - ((this.hitObject.time - currentPlay!.ARMs/2) - currentTime) / 300, 0, 1);
-        let fadeInCompletion = yes;
+        let fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
+        fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+        fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
 
         this.container.alpha = fadeInCompletion;
         this.approachCircle.alpha = fadeInCompletion;
 
-        this.container.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * gameState.currentPlay!.pixelRatio! - gameState.currentPlay!.circleDiameter! / 2;
-        this.container.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * gameState.currentPlay!.pixelRatio! - gameState.currentPlay!.circleDiameter! / 2;
+        this.container.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - circleDiameter / 2;
+        this.container.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - circleDiameter / 2;
 
-        let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / gameState.currentPlay!.ARMs, 0, 1);
+        let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
         let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
-        let approachCircleDiameter = gameState.currentPlay!.circleDiameter! * approachCircleFactor;
+        let approachCircleDiameter = circleDiameter * approachCircleFactor;
         this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-        this.approachCircle.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * gameState.currentPlay!.pixelRatio! - approachCircleDiameter / 2;
-        this.approachCircle.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * gameState.currentPlay!.pixelRatio! - approachCircleDiameter / 2;
+        this.approachCircle.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - approachCircleDiameter / 2;
+        this.approachCircle.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - approachCircleDiameter / 2;
     }
 
     remove() {

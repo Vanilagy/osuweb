@@ -2,96 +2,110 @@ import { Slider } from "./slider";
 import { Circle } from "./circle";
 import { BeatmapDifficulty } from "./beatmap_difficulty";
 import { BeatmapSet } from "./beatmap_set";
+import { Color } from "../util/graphics_util";
+import { HitObject } from "./hit_object";
+import { Point } from "../util/point";
+
+class BeatmapCreationOptions {
+    text: string;
+    beatmapSet: BeatmapSet;
+    loadFlat?: boolean = false
+}
+
+interface TimingPoint {
+    index: number,
+    offset: number,
+    msPerBeat: number,
+    BPM: number,
+    meter: number,
+    sampleType: number,
+    sampleSet: number,
+    volume: number,
+    inherited: boolean,
+    kiai: number
+}
+
+interface BeatmapEvent {
+    type: string
+}
+
+interface BeatmapEventImage extends BeatmapEvent {
+    time: number,
+    file: string,
+    position: Point
+}
+
+interface BeatmapEventBreak extends BeatmapEvent {
+    start: number,
+    end: number
+}
 
 export class Beatmap {
-    public set: BeatmapSet;
     private callback: Function;
+    public loadFlat: boolean;
+
+    public events: BeatmapEvent[] = [];
+    public timingPoints: TimingPoint[] = [];
+    public hitObjects: HitObject[] = [];
+    public colors: Color[] = [];
+
+    public beatmapSet: BeatmapSet;
     public difficulty: BeatmapDifficulty;
-    private audioKey: null;
-    private loadFlat: boolean;
-    private events: any[];
-    public timingPoints: any[];
-    public hitObjects: any[];
-    public colours: any[];
-    private circles: number;
-    private sliders: number;
-    private spinners: number;
-    private bpmMin: number;
-    private bpmMax: number;
-    private _stars: number;
-    private _ARFound: boolean;
-    private version: string = '';
-    public audioFilename: string | null = null;
-    private audioLeadIn: number | null = null;
-    private previewTime: number | null = null;
-    private countdown: number | null = null;
-    private sampleSet: number | null = null;
-    private mode: number | null = null;
-    private letterBoxInBreaks: number | null = null;
-    private widescreenStoryboard: number | null = null;
-    private title: string | null = null;
-    private titleUnicode: string | null = null;
-    private artist: string | null = null;
-    private artistUnicode: string | null = null;
-    private creator: string | null = null;
-    private source: string | null = null;
-    private tags: string | null = null;
-    private beatmapID: number | null = null;
-    private _beatmapSetID: number | null = null;
+    public circleCount: number = 0;
+    public sliderCount: number = 0;
+    public spinnerCount: number = 0;
+    public bpmMin: number = 120;
+    public bpmMax: number = 120; 
+    public stars: number = 0;
+    public ARFound: boolean = false;
+    public version: string = '';
+    public audioFilename: string = null;
+    public audioLeadIn: number = null;
+    public previewTime: number = null;
+    public countdown: number = null;
+    public sampleSet: number = null;
+    public mode: number = null;
+    public letterBoxInBreaks: number = null;
+    public widescreenStoryboard: number = null;
+    public title: string = null;
+    public titleUnicode: string = null;
+    public artist: string = null;
+    public artistUnicode: string = null;
+    public creator: string = null;
+    public source: string = null;
+    public tags: string = null;
+    public beatmapID: number = null;
+    public beatmapSetID: number = null;
 
-    constructor(file: File | string, set: BeatmapSet, callback: (map: Beatmap) => void, loadFlat = false) {
+    constructor(options: BeatmapCreationOptions, callback: (beatmap: Beatmap) => void) {
         //Console.verbose("--- START BEATMAP LOADING ---");
-        this.set = set;
+        this.beatmapSet = options.beatmapSet;
         this.callback = callback;
-
         this.difficulty = new BeatmapDifficulty();
+        this.loadFlat = options.loadFlat;
 
-        this.audioKey = null;
-
-        this.loadFlat = loadFlat;
-        this.events = [];
-        this.timingPoints = [];
-        this.hitObjects = [];
-        this.colours = [];
-
-        this.circles = 0;
-        this.sliders = 0;
-        this.spinners = 0;
-
-        this.bpmMin = 120;
-        this.bpmMax = 120;
-
-        /**
-         * @type {number}
-         * @private
-         */
-        this._stars = 0;
-
-        this._ARFound = false;
-
-        if (typeof file === "string" && file.startsWith("osu file format v")) {
-            this.parseBeatmap(file);
-        }
-        // Load text from file
-        else if (file instanceof File) {
-            //Console.verbose("Load Beatmap from file: "+file.name);
-            let reader = new FileReader();
-            reader.onload = (e) => {
-                this.parseBeatmap(reader.result as string);
-            };
-            reader.readAsText(file);
-        }
-        // Read text from a zip entry
-        else if (typeof file === "string") {
-            //Console.verbose("Load Beatmap from zip entry: "+file);
-            //ZIP.file(file).async("string").then(this.parseBeatmap.bind(this), (fuckme: any) => {
-            //    //Console.error("Fatal error while reading zip entry: "+fuckme);
-            //});
-        }
+        this.parseBeatmap(options.text);
     }
 
     getAudioFile() {
-        return this.set.audioFiles.find((file) => file.name === this.audioFilename);
+        return this.beatmapSet.audioFiles.find((file) => file.name === this.audioFilename);
+    }
+
+    getBackgroundImageName() {
+        for (let key in this.events) {
+            let evt = this.events[key];
+
+            if (evt.type === "image") {
+                return (evt as BeatmapEventImage).file;
+            }
+        }
+
+        return null;
+    }
+
+    getBackgroundImageFile() {
+        let fileName = this.getBackgroundImageName();
+        return this.beatmapSet.imgFiles.find((file) => file.name === fileName);
     }
 
     parseBeatmap(text: string) {
@@ -119,7 +133,7 @@ export class Beatmap {
                 //Console.verbose("Reading new section: "+line);
             }
             else if (section === "colours") {
-                this.parseComboColour(line);
+                this.parseComboColor(line);
             }
             else if (section === "timingpoints") {
                 this.parseTimingPoint(line);
@@ -152,12 +166,12 @@ export class Beatmap {
                 if (line.startsWith("Source")) this.source = line.split(':')[1].trim();
                 if (line.startsWith("Tags")) this.tags = line.split(':')[1].trim();
                 if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim(), 10);
-                if (line.startsWith("BeatmapSetID")) this._beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
+                if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
 
                 if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("OverallDifficulty")) this.difficulty.OD = parseFloat(line.split(':')[1].trim());
-                if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(line.split(':')[1].trim()); this._ARFound = true;}
+                if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(line.split(':')[1].trim()); this.ARFound = true;}
                 if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(line.split(':')[1].trim());
                 if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(line.split(':')[1].trim());
 
@@ -165,12 +179,12 @@ export class Beatmap {
             }
         }
 
-        if (this.colours.length === 0) {
-            this.colours = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
-            //Console.info("No combo colours in Beatmap found. Using default ones!");
+        if (this.colors.length === 0) {
+            this.colors = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
+            //Console.info("No combo colors in Beatmap found. Using default ones!");
         }
 
-        if(!this._ARFound) this.difficulty.AR = this.difficulty.OD;
+        if(!this.ARFound) this.difficulty.AR = this.difficulty.OD;
 
         //Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
         //Console.verbose("--- BEATMAP LOADING FINISHED ---");
@@ -180,16 +194,16 @@ export class Beatmap {
         if(this.callback) this.callback(this);
     }
 
-    parseComboColour(line: string) {
+    parseComboColor(line: string) {
         let col = line.split(':')[1].trim().split(',');
 
-        this.colours.push({
+        this.colors.push({
             r: parseInt(col[0], 10),
             g: parseInt(col[1], 10),
             b: parseInt(col[2], 10),
         });
 
-        //Console.verbose("Added color #" + this.colours.length + ": " + col);
+        //Console.verbose("Added color #" + this.colors.length + ": " + col);
         //return col; Why this return?
     }
 
@@ -222,14 +236,14 @@ export class Beatmap {
                 this.hitObjects.push(new Circle(values));
                 //Console.verbose("Circle added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
-            this.circles++;
+            this.circleCount++;
         }
         else if (hitObjectData === 2 || hitObjectData === 6) {
             if (!this.loadFlat) {
                 this.hitObjects.push(new Slider(values));
                 //Console.verbose("Slider added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
-            this.sliders++;
+            this.sliderCount++;
         }
         else if (hitObjectData === 8 || hitObjectData === 12) {
             return;
@@ -237,7 +251,7 @@ export class Beatmap {
                 //this.hitObjects.push(new Spinner(values));
                 //Console.verbose("Spinner added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
-            this.spinners++;
+            this.spinnerCount++;
         }
         else {
             //Console.verbose("Unrecognized HitObject-type! (peppy plz)");
@@ -248,37 +262,31 @@ export class Beatmap {
         let values = line.split(',');
 
         switch (values[0]) {
-            case "0":
-                this.events.push({
+            case "0": {
+                let x = parseInt(values[3], 10),
+                    y = parseInt(values[4], 10);
+
+                let event: BeatmapEventImage = {
                     type: "image",
                     time: parseInt(values[1], 10),
                     file: values[2].substring(1, values[2].length - 1),
-                    x: parseInt(values[3], 10),
-                    y: parseInt(values[4], 10)
-                });
-                break;
-            case "2":
-                this.events.push({
+                    position: {x, y}
+                };
+
+                this.events.push(event);
+            }; break;
+            case "2": {
+                let event: BeatmapEventBreak = {
                     type: "break",
                     start: parseInt(values[1], 10),
                     end: parseInt(values[2], 10)
-                });
-                break;
+                };
+
+                this.events.push(event);
+            }; break;
         }
 
         //{let evt = this.events[this.events.length - 1]; if(evt !== null && evt !== undefined) Console.verbose("Added \""+evt.type+"\" event (#"+this.events.length+"): "+evt); }
-    }
-
-    getBackgroundImageName() {
-        for(let key in this.events) {
-            let evt = this.events[key];
-
-            if(evt.type === "image") {
-                return evt.file;
-            }
-        }
-
-        return "";
     }
 
     getNextNonInheritedTimingPoint(num: number) {
@@ -287,9 +295,5 @@ export class Beatmap {
         }
 
         return null;
-    }
-
-    get stars() {
-        return this._stars;
     }
 }

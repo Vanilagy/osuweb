@@ -7,10 +7,7 @@ import { MathUtil } from "../util/math_util";
 import { DrawableSlider } from "./drawable_slider";
 import { Point } from "../util/point";
 import { gameState } from "./game_state";
-
-const SLIDER_SETTINGS = {
-    debugDrawing: false
-};
+import { SLIDER_SETTINGS } from "../util/constants";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 const TOLERANCE = 0.25;
@@ -18,23 +15,25 @@ const DEBUG_PREFIX = "[BEZIER]";
 
 export class SliderCurveBezier extends SliderCurve {
     public tracePoints: Point[];
+    public equalDistancePoints: Point[];
 
     constructor(drawableSlider: DrawableSlider, speedCalc: boolean) {
         super(drawableSlider);
         this.equalDistancePoints = [];
-
         this.tracePoints = [];
 
+        let { pixelRatio } = gameState.currentPlay;
+
         if (!speedCalc) {
-            this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * gameState.currentPlay!.pixelRatio!;
-            this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * gameState.currentPlay!.pixelRatio!;
+            this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * pixelRatio;
+            this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * pixelRatio;
 
             if (this.sections.length === 1 && this.sections[0].values.length === 2) { // If it's only one linear section
                 let points = this.sections[0].values;
 
                 let angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
                 let distance = Math.min(this.slider.hitObject.length, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y));
-                let pointTwo = {
+                let pointTwo: Point = {
                     x: points[0].x + Math.cos(angle) * distance,
                     y: points[0].y + Math.sin(angle) * distance
                 };
@@ -58,15 +57,15 @@ export class SliderCurveBezier extends SliderCurve {
     }
 
     render(completion: number) {
-        let pixelRatio = gameState.currentPlay!.pixelRatio!;
+        let { pixelRatio } = gameState.currentPlay;
         let actualIndex = completion * (this.equalDistancePoints.length - 1);
         let targetIndex = Math.floor(actualIndex);
 
         // Path generation
-        this.slider.baseCtx!.beginPath();
+        this.slider.baseCtx.beginPath();
 
         let startPoint = this.slider.toCtxCoord(this.equalDistancePoints[0]);
-        this.slider.baseCtx!.moveTo(startPoint.x, startPoint.y);
+        this.slider.baseCtx.moveTo(startPoint.x, startPoint.y);
         for (let i = 1; i < targetIndex + 1; i++) {
             let point = this.equalDistancePoints[i];
 
@@ -79,25 +78,25 @@ export class SliderCurveBezier extends SliderCurve {
             //}
 
             point = this.slider.toCtxCoord(point);
-            this.slider.baseCtx!.lineTo(point.x, point.y);
+            this.slider.baseCtx.lineTo(point.x, point.y);
 
             if (SLIDER_SETTINGS.debugDrawing) {
-                this.slider.baseCtx!.beginPath();
-                this.slider.baseCtx!.arc(point.x, point.y, 1, 0, Math.PI * 2);
-                this.slider.baseCtx!.fillStyle = "white";
-                this.slider.baseCtx!.fill();
+                this.slider.baseCtx.beginPath();
+                this.slider.baseCtx.arc(point.x, point.y, 1, 0, Math.PI * 2);
+                this.slider.baseCtx.fillStyle = "white";
+                this.slider.baseCtx.fill();
             }
         }
 
         if (completion !== 1) {
             let snakingEndPoint = this.slider.toCtxCoord(this.slider.getPosFromPercentage(completion) as Point);
-            this.slider.baseCtx!.lineTo(snakingEndPoint.x, snakingEndPoint.y);
+            this.slider.baseCtx.lineTo(snakingEndPoint.x, snakingEndPoint.y);
         }
 
         this.draw();
     }
 
-    getEndPoint() {
+    getEndPoint(): Point {
         if (this.curveLength <= this.slider.hitObject.length) {
             return this.tracePoints[this.tracePoints.length - 1]; // Just get the last point
         } else { // If it's longer, backtrack from ze end
@@ -211,7 +210,6 @@ export class SliderCurveBezier extends SliderCurve {
     calculateEqualDistancePoints() {
         let segmentCount = Math.floor(this.curveLength / MAXIMUM_TRACE_POINT_DISTANCE + 1); // Math.floor + 1 is basically like .ceil, but we can't get 0 here
         let segmentLength = this.curveLength / segmentCount;
-        let linearSegmentId = 0; // Keeping track of linear segments in order to optimize drawing later on
 
         /* Using the initially traced points, generate a slider path point array in which
          all points are equally distant from one another. This is done to guarantee constant
@@ -229,16 +227,11 @@ export class SliderCurveBezier extends SliderCurve {
                     lastPoint = this.tracePoints[currentIndex];
                     remainingLength -= dist;
                     currentIndex++;
-
-                    //if (this.tracePoints[currentIndex].isLinearEndPoint) {
-                    //    linearSegmentId++;
-                    //}
                 } else {
                     let percentReached = remainingLength / dist;
-                    let newPoint = {
+                    let newPoint: Point = {
                         x: lastPoint.x * (1 - percentReached) + this.tracePoints[currentIndex].x * percentReached,
-                        y: lastPoint.y * (1 - percentReached) + this.tracePoints[currentIndex].y * percentReached,
-                        //linearSegmentId: (this.tracePoints[currentIndex].isLinearEndPoint) ? linearSegmentId : undefined
+                        y: lastPoint.y * (1 - percentReached) + this.tracePoints[currentIndex].y * percentReached
                     };
 
                     this.pushEqualDistancePoint(newPoint);
@@ -260,5 +253,16 @@ export class SliderCurveBezier extends SliderCurve {
         //}
 
         this.tracePoints.push(pos);
+    }
+
+    pushEqualDistancePoint(pos: Point) { // Pushes endpoint to array
+        this.equalDistancePoints.push(pos);
+
+        let { pixelRatio } = gameState.currentPlay;
+
+        this.slider.minX = Math.min(this.slider.minX, pos.x * pixelRatio);
+        this.slider.minY = Math.min(this.slider.minY, pos.y * pixelRatio);
+        this.slider.maxX = Math.max(this.slider.maxX, pos.x * pixelRatio);
+        this.slider.maxY = Math.max(this.slider.maxY, pos.y * pixelRatio);
     }
 }

@@ -4,3 +4,7 @@ export const PLAYFIELD_DIMENSIONS = {
 };
 
 export const APPROACH_CIRCLE_TEXTURE = PIXI.Texture.from("./assets/img/approach_circle.png");
+
+export const SLIDER_SETTINGS = {
+    debugDrawing: false
+};

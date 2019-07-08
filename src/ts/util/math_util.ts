@@ -1,7 +1,7 @@
 import { Point } from "./point";
 
 export class MathUtil {
-	static coordsOnBezier(pointArray: Point[], t: number) {
+	static coordsOnBezier(pointArray: Point[], t: number): Point {
         let bx = 0, by = 0, n = pointArray.length - 1; // degree
 
         if (n === 1) { // if linear
@@ -35,7 +35,7 @@ export class MathUtil {
 
         return r;
 	}
-    static circleCenterPos(p1: Point, p2: Point, p3: Point) {
+    static circleCenterPos(p1: Point, p2: Point, p3: Point): Point {
         let yDelta_a = p2.y - p1.y;
         let xDelta_a = p2.x - p1.x;
         let yDelta_b = p3.y - p2.y;

@@ -1,15 +1,23 @@
-import { HitObject } from "./hit_object";
-import { Point } from "../util/math_util";
+import { HitObject, Samplings } from "./hit_object";
+import { Point } from "../util/point";
+
+// Use enum here?
+type SliderCurveSectionType = 'unknown' | 'passthrough' | 'linear' | 'bezier';
+
+export interface SliderCurveSection {
+    type: SliderCurveSectionType,
+    values: Point[]
+}
 
 export class Slider extends HitObject {
-    public sections: any[];
     public repeat: number;
     public length: number;
-    public additions: any[] = [];
-    public edgeSamplings: any[] = [];
-    public bodySamplings: object = {};
+    public sections: SliderCurveSection[];
+    public additions: number[] = [];
+    public edgeSamplings: Samplings[] = [];
+    public bodySamplings: Samplings;
 
-    constructor(data: any) {
+    constructor(data: string[]) {
         super(data);
 
         this.sections = this.parseSections(data);
@@ -41,7 +49,7 @@ export class Slider extends HitObject {
 
         //region edgeSamplings
         if (data[9] !== null && data[9] !== undefined) {
-            let edgeSamplings = [];
+            let edgeSamplings: Samplings[] = [];
 
             let splitEdgeSampleSetsRaw = data[9].split('|');
 
@@ -56,7 +64,7 @@ export class Slider extends HitObject {
             this.edgeSamplings = edgeSamplings;
         }
         else {
-            let edgeSamplings = [];
+            let edgeSamplings: Samplings[] = [];
 
             let splitEdgeSampleSetsRaw = [];
 
@@ -83,6 +91,7 @@ export class Slider extends HitObject {
                 sliderBodySamplingValues = data[10].split(':');
             }
             else {
+
             }
 
             this.bodySamplings = {
@@ -96,21 +105,27 @@ export class Slider extends HitObject {
         //endregion
     }
 
-    parseSections(data: any[]) {
+    parseSections(data: string[]) {
         let sliderPoints = data[5].split("|");
 
         let sliderType = sliderPoints[0];
 
-        let sliderSections: any[] = [];
+        let sliderSections: SliderCurveSection[] = [];
 
-        let sliderSectionPoints = [{x: parseInt(data[0], 10), y: parseInt(data[1], 10)}];
+        let sliderSectionPoints: Point[] = [{
+            x: parseInt(data[0], 10),
+            y: parseInt(data[1], 10)
+        }];
 
         let lastPoint = null;
 
         for (let j = 1; j < sliderPoints.length; j++) {
             let coords = sliderPoints[j].split(':');
 
-            let nextPoint = {x: parseInt(coords[0], 10), y: parseInt(coords[1], 10)};
+            let nextPoint: Point = {
+                x: parseInt(coords[0], 10),
+                y: parseInt(coords[1], 10)
+            };
 
             // end section if same point appears twice and start a new one if end is not reached
             if (JSON.stringify(lastPoint) === JSON.stringify(nextPoint)) {
@@ -130,8 +145,8 @@ export class Slider extends HitObject {
         return sliderSections;
     }
 
-    finishSection(sliderSectionPoints: Point[], sliderType: string, sliderSections: any[]) {
-        let sectionType = "unknown";
+    finishSection(sliderSectionPoints: Point[], sliderType: string, sliderSections: SliderCurveSection[]) {
+        let sectionType: SliderCurveSectionType = "unknown";
 
         if (sliderSectionPoints.length === 3 && sliderType === "P") {
             sectionType = "passthrough";

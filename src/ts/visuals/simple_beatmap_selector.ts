@@ -1,10 +1,11 @@
 import { Beatmap } from "../datamodel/beatmap";
 import { startPlay } from "../game/play";
 import { BeatmapSet } from "../datamodel/beatmap_set";
+import { readFileAsText } from "../util/file_util";
 
 const beatmapFileSelect = document.querySelector('#beatmapSelect') as HTMLInputElement;
 
-beatmapFileSelect.addEventListener('change', (e) => {
+beatmapFileSelect.addEventListener('change', async (e) => {
     let beatmapSet = new BeatmapSet([...beatmapFileSelect.files]);
 
     let selectedOsuFile: File;
@@ -24,8 +25,10 @@ beatmapFileSelect.addEventListener('change', (e) => {
 
     beatmapFileSelect.style.display = 'none';
 
-    new Beatmap(selectedOsuFile, beatmapSet, (map) => {
-        console.log("Beatmap parsed.", map);
+    new Beatmap({
+        text: await readFileAsText(selectedOsuFile),
+        beatmapSet: beatmapSet
+    }, (map) => {
         startPlay(map);
     });
 });
