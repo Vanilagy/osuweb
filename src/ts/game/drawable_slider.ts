@@ -3,21 +3,21 @@ import { SliderCurve } from "./slider_curve";
 import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
-import { Point, MathUtil } from "../util/math_util";
-import { gameState, CIRCLE_BORDER_WIDTH, drawCircle, approachCircleTexture, mainHitObjectContainer, approachCircleContainer, getCoordFromCoordArray, playfieldDimensions, DRAWING_MODE } from "../main";
+import { MathUtil } from "../util/math_util";
+import { approachCircleTexture, mainHitObjectContainer, approachCircleContainer, playfieldDimensions } from "../main";
+import { DrawableHitObject, drawCircle, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "./drawable_hit_object";
+import { Point, interpolatePointInPointArray } from "../util/point";
+import { gameState } from "./game_state";
 
-export class DrawableSlider {
-    public hitObject: Slider;
+export class DrawableSlider extends DrawableHitObject {
     public reductionFactor: number;
     public curve: SliderCurve | null;
     public complete: boolean;
-    public container: any;
     public baseSprite: any;
     public overlaySprite: any;
     private overlayCanvas: HTMLCanvasElement | null = null;
     private overlayCtx: CanvasRenderingContext2D | null = null;
     public headSprite: any;
-    public approachCircle: any;
     public baseCtx: CanvasRenderingContext2D | null = null
     public sliderWidth: number = 0;
     public sliderHeight: number = 0;
@@ -29,19 +29,17 @@ export class DrawableSlider {
     public maxFollowCircleRadius: number = 0;
     public endTime: number = 0;
     public timingInfo: any = {};
-    public id: number = 0;
-    public comboInfo: any;
     public stackHeight: number = 0;
     public letGoTime: number = 0;
+    public hitObject: Slider;
 
     constructor(hitObject: Slider) {
-        this.hitObject = hitObject;
+        super(hitObject);
 
         this.reductionFactor = 0.92;
         this.curve = null;
         this.complete = true;
 
-        this.container = new PIXI.Container();
         this.baseSprite = null;
         this.overlaySprite = null;
         this.headSprite = null;
@@ -162,7 +160,7 @@ export class DrawableSlider {
 
     getPosFromPercentage(percent: number) : Point | void {
         if (this.curve instanceof SliderCurveBezier) {
-            return getCoordFromCoordArray(this.curve!.equalDistancePoints, percent);
+            return interpolatePointInPointArray(this.curve!.equalDistancePoints, percent);
         } else if (this.curve instanceof SliderCurvePassthrough) {
             let angle = this.curve.startingAngle + this.curve.angleDifference * percent;
 

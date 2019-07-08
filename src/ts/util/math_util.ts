@@ -1,7 +1,4 @@
-export interface Point {
-    x: number,
-    y: number
-}
+import { Point } from "./point";
 
 export class MathUtil {
 	static coordsOnBezier(pointArray: Point[], t: number) {

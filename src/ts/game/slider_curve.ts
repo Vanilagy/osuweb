@@ -1,8 +1,8 @@
 //import {GraphicUtil} from "./graphicutil";
 //import {SLIDER_SETTINGS} from "../game/drawableslider";
-import { Point } from "../util/math_util";
-import { gameState } from "../main";
 import { DrawableSlider } from "./drawable_slider";
+import { gameState } from "./game_state";
+import { Point } from "../util/point";
 
 const SLIDER_SETTINGS = {
     debugDrawing: false

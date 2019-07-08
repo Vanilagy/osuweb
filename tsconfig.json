@@ -10,7 +10,6 @@
         "strictNullChecks": false
     },
     "include": [
-        "src/ts/index.ts",
-        "src/ts/declarations/*"
+        "src/ts/**/*",
     ]
 }

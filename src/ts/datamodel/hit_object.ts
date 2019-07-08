@@ -1,10 +1,10 @@
-export class HitObject {
-    private newCombo: any;
+export abstract class HitObject {
+    public newCombo: any;
     public x: number;
     public y: number;
     public time: number;
-    private hitSound: number;
-    private samplings: any;
+    public hitSound: number;
+    public samplings: any;
 
     constructor(data: any) {
         let comboSkip = HitObject.getComboSkipsFromType(data[3]);
