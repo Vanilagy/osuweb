@@ -19,11 +19,6 @@ export class SliderCurvePassthrough extends SliderCurve {
         super(drawableSlider);
     }
 
-    applyStackPosition() {
-        this.centerPos.x -= this.slider.stackHeight * 4;
-        this.centerPos.y -= this.slider.stackHeight * 4;
-    }
-
     render(completion: number) {
         let pixelRatio = gameState.currentPlay.pixelRatio;
         let centerPos = this.slider.toCtxCoord(this.centerPos);

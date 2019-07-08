@@ -17,6 +17,10 @@ export class SliderCurve {
         this.curveLength = 0;
     }
 
+    applyStackPosition() {
+        console.log("SliderCurve.applyStackPosition was called. A shiver runs down your spine.");
+    } // LOOK INTO THIS. IS THE NECESSARY. ON A CURVE. PLEASE! TODO TODO TODO TELL ME!!!!!!
+
     calculateEqualDistancePoints() { }
 
     render(completion: number) { }

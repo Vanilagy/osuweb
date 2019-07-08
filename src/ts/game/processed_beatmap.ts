@@ -4,6 +4,8 @@ import { DrawableSlider, SliderTimingInfo } from "./drawable_slider";
 import { Circle } from "../datamodel/circle";
 import { Slider } from "../datamodel/slider";
 import { DrawableHitObject } from "./drawable_hit_object";
+import { DrawableSpinner } from "./drawable_spinner";
+import { MathUtil } from "../util/math_util";
 
 export interface ComboInfo {
     comboNum: number,
@@ -103,6 +105,106 @@ export class ProcessedBeatmap {
             }
     
             hitObjectId++;
+        }
+
+        this.applyStackShift(false);
+    }
+
+    applyStackShift(fullCalc: boolean) {
+        let lastStackEnd = 0;
+        let stackThreshold = this.beatmap.difficulty.getApproachTime() * this.beatmap.difficulty.SL;
+        let stackSnapDistance = 3;
+
+        let extendedEndIndex = this.hitObjects.length - 1;
+        for (let i = this.hitObjects.length - 1; i >= 0; i--) {
+            let hitObject = this.hitObjects[i];
+
+            let stackBaseIndex = i;
+            for (let b = i + 1; b < this.hitObjects.length; b++) {
+                let objectB = this.hitObjects[b];
+                let stackBaseObject = hitObject;
+
+                if (stackBaseObject instanceof DrawableSpinner) break;
+                if (objectB instanceof DrawableSpinner) continue;
+
+                let endTime = stackBaseObject.endTime;
+
+                if (objectB.startTime - endTime > stackThreshold) break;
+
+                if (Math.hypot(stackBaseObject.startPoint.x - objectB.startPoint.x, stackBaseObject.startPoint.y - objectB.startPoint.y) < stackSnapDistance ||
+                    stackBaseObject.constructor.name === "DrawableSlider" && MathUtil.distance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
+                    stackBaseIndex = b;
+
+                    objectB.stackHeight = 0;
+                }
+            }
+
+            if (stackBaseIndex > extendedEndIndex) {
+                extendedEndIndex = stackBaseIndex;
+                if (extendedEndIndex === this.hitObjects.length - 1)
+                    break;
+            }
+        }
+
+        let extendedStartIndex = 0;
+        for (let i = extendedEndIndex; i > 0; i--) {
+            let n = i;
+
+            let objectI = this.hitObjects[i];
+            if (objectI.stackHeight !== 0 || objectI instanceof DrawableSpinner) continue;
+            if (objectI instanceof DrawableCircle) {
+                while (--n >= 0) {
+                    let objectN = this.hitObjects[n];
+                    if (objectN instanceof DrawableSpinner) continue;
+
+                    let endTime = objectN.endTime;
+
+                    if (objectI.startTime - endTime > stackThreshold)
+                        break;
+
+                    if (n < extendedStartIndex) {
+                        objectN.stackHeight = 0;
+                        extendedStartIndex = n;
+                    }
+
+                    if (objectN instanceof DrawableSlider && MathUtil.distance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
+                        let offset = objectI.stackHeight - objectN.stackHeight + 1;
+
+                        for (let j = n + 1; j <= i; j++) {
+                            let objectJ = this.hitObjects[j];
+                            if (MathUtil.distance(objectN.endPoint, objectJ.startPoint) < stackSnapDistance)
+                                objectJ.stackHeight -= offset;
+                        }
+                        break;
+                    }
+
+                    if (MathUtil.distance(objectN.startPoint, objectI.startPoint) < stackSnapDistance) {
+                        objectN.stackHeight = objectI.stackHeight + 1;
+                        objectI = objectN;
+                    }
+                }
+            }
+            else if (objectI.constructor.name === "DrawableSlider") {
+                while (--n >= 0) {
+                    let objectN = this.hitObjects[n];
+
+                    if (objectN.constructor.name === "Spinner") continue;
+
+                    if (objectI.startTime - objectN.startTime > stackThreshold)
+                        break;
+
+                    if (MathUtil.distance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
+                        objectN.stackHeight = objectI.stackHeight + 1;
+                        objectI = objectN;
+                    }
+                }
+            }
+        }
+
+        for (let z = 0; z < this.hitObjects.length; z++) {
+            let hitObject = this.hitObjects[z];
+            if (hitObject.stackHeight !== 0)
+                this.hitObjects[z].applyStackPosition();
         }
     }
 

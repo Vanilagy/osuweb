@@ -49,13 +49,6 @@ export class SliderCurveBezier extends SliderCurve {
         if(!speedCalc) this.calculateEqualDistancePoints();
     }
 
-    applyStackPosition() {
-        for (let i = 0; i < this.equalDistancePoints.length; i++) {
-            this.equalDistancePoints[i].x -= this.slider.stackHeight * 4;
-            this.equalDistancePoints[i].y -= this.slider.stackHeight * 4;
-        }
-    }
-
     render(completion: number) {
         let { pixelRatio } = gameState.currentPlay;
         let actualIndex = completion * (this.equalDistancePoints.length - 1);

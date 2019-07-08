@@ -11,6 +11,12 @@ export class DrawableCircle extends DrawableHitObject {
 
     constructor(hitObject: Circle) {
         super(hitObject);
+        
+        this.endPoint = {
+            x: this.hitObject.x,
+            y: this.hitObject.y
+        };
+        this.endTime = this.hitObject.time;
     }
 
     draw() {
@@ -49,15 +55,15 @@ export class DrawableCircle extends DrawableHitObject {
         this.container.alpha = fadeInCompletion;
         this.approachCircle.alpha = fadeInCompletion;
 
-        this.container.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - circleDiameter / 2;
-        this.container.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - circleDiameter / 2;
+        this.container.x = window.innerWidth / 2 + (this.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - circleDiameter / 2;
+        this.container.y = window.innerHeight / 2 + (this.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - circleDiameter / 2;
 
         let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
         let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
         let approachCircleDiameter = circleDiameter * approachCircleFactor;
         this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-        this.approachCircle.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - approachCircleDiameter / 2;
-        this.approachCircle.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - approachCircleDiameter / 2;
+        this.approachCircle.x = window.innerWidth / 2 + (this.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - approachCircleDiameter / 2;
+        this.approachCircle.y = window.innerHeight / 2 + (this.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - approachCircleDiameter / 2;
     }
 
     remove() {

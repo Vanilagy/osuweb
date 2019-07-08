@@ -1,6 +1,7 @@
 import { HitObject } from "../datamodel/hit_object";
 import { gameState } from "./game_state";
 import { ComboInfo } from "./processed_beatmap";
+import { Point } from "../util/point";
 
 export abstract class DrawableHitObject {
     public id: number = 0;
@@ -8,11 +9,28 @@ export abstract class DrawableHitObject {
     public hitObject: HitObject;
     public container: PIXI.Container;
     public approachCircle: PIXI.Sprite;
+    public stackHeight: number = 0;
+
+    public x: number;
+    public y: number;
+    public startPoint: Point;
+    public endPoint: Point;
+    public startTime: number;
+    public endTime: number;
 
     constructor(hitObject: HitObject) {
         this.hitObject = hitObject;
         this.container = new PIXI.Container();
         this.approachCircle;
+
+        this.startPoint = {
+            x: this.hitObject.x,
+            y: this.hitObject.y
+        };
+        this.startTime = this.hitObject.time;
+
+        this.x = this.hitObject.x;
+        this.y = this.hitObject.y;
     }
 
     draw() {}
@@ -22,6 +40,11 @@ export abstract class DrawableHitObject {
     update(currentTime: number) {}
 
     remove() {}
+
+    applyStackPosition() {
+        this.x += this.stackHeight * -4;
+        this.y += this.stackHeight * -4;
+    }
 }
 
 export const DRAWING_MODE = 0;

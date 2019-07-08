@@ -35,7 +35,6 @@ export class DrawableSlider extends DrawableHitObject {
     public maxY: number = 0;
     public sliderBodyRadius: number;
     public maxFollowCircleRadius: number;
-    public endTime: number;
     public timingInfo: SliderTimingInfo;
     public stackHeight: number;
     public letGoTime: number;
@@ -54,6 +53,14 @@ export class DrawableSlider extends DrawableHitObject {
         this.approachCircle = null;
 
         this.init();
+
+        // this.endTime will be defined in Play
+
+        if (this.hitObject.repeat % 2 === 0) {
+            this.endPoint = this.startPoint;
+        } else {
+            this.endPoint = this.getPosFromPercentage(1) as Point;
+        }
     }
 
     init() {
@@ -146,15 +153,15 @@ export class DrawableSlider extends DrawableHitObject {
         this.container.x = window.innerWidth / 2 + (this.minX - circleDiameter / 2 - PLAYFIELD_DIMENSIONS.width/2 * pixelRatio);
         this.container.y = window.innerHeight / 2 + (this.minY - circleDiameter / 2 - PLAYFIELD_DIMENSIONS.height/2 * pixelRatio);
 
-        this.headSprite.x = this.hitObject.x * pixelRatio - this.minX;
-        this.headSprite.y = this.hitObject.y * pixelRatio - this.minY;
+        this.headSprite.x = this.x * pixelRatio - this.minX;
+        this.headSprite.y = this.y * pixelRatio - this.minY;
 
         let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
         let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
         let approachCircleDiameter = circleDiameter * approachCircleFactor;
         this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-        this.approachCircle.x = window.innerWidth / 2 + (this.hitObject.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - approachCircleDiameter / 2;
-        this.approachCircle.y = window.innerHeight / 2 + (this.hitObject.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - approachCircleDiameter / 2;
+        this.approachCircle.x = window.innerWidth / 2 + (this.x - PLAYFIELD_DIMENSIONS.width/2) * pixelRatio - approachCircleDiameter / 2;
+        this.approachCircle.y = window.innerHeight / 2 + (this.y - PLAYFIELD_DIMENSIONS.height/2) * pixelRatio - approachCircleDiameter / 2;
 
         this.renderOverlay(currentTime);
         this.overlaySprite.texture.update();
@@ -182,6 +189,22 @@ export class DrawableSlider extends DrawableHitObject {
             };
         } else {
             console.warn("Tried to access position from empty slider. Empty. Slider. What's that?");
+        }
+    }
+
+    applyStackPosition() {
+        this.x += this.stackHeight * -4;
+        this.y += this.stackHeight * -4;
+
+        if (true /* This was if(fullCalc) before */) {
+            let pixelRatio = gameState.currentPlay.pixelRatio;
+
+            this.minX += this.stackHeight * -4 * pixelRatio;
+            this.minY += this.stackHeight * -4 * pixelRatio;
+            this.maxX += this.stackHeight * -4 * pixelRatio;
+            this.maxY += this.stackHeight * -4 * pixelRatio;
+
+            this.curve.applyStackPosition();
         }
     }
 

@@ -80,7 +80,7 @@ export class Play {
             hitObject.update(currentTime);
 
             if (hitObject instanceof DrawableCircle) {
-                if (currentTime >= hitObject.hitObject.time) {
+                if (currentTime >= hitObject.startTime) {
                     hitObject.remove(); 
                     delete this.onscreenObjects[id];
                 }
@@ -93,7 +93,7 @@ export class Play {
         }
     
         let hitObject = this.processedBeatmap.hitObjects[this.currentHitObjectId];
-        while (hitObject && currentTime >= hitObject.hitObject.time - this.ARMs) {
+        while (hitObject && currentTime >= hitObject.startTime - this.ARMs) {
             this.onscreenObjects[this.currentHitObjectId] = hitObject;
             hitObject.show(currentTime);
     
