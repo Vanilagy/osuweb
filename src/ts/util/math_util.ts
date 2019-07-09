@@ -91,11 +91,9 @@ export class MathUtil {
         return center;
     }
     static reflect(val: number) {
-        if (Math.floor(val) % 2 === 0) {
-            return val - Math.floor(val);
-        } else {
-            return 1 - (val - Math.floor(val));
-        }
+        let mod2 = val % 2;
+        if (mod2 > 1) return 2 - mod2;
+        return mod2;
     }
     static distance(p1: Point, p2: Point) {
 	    return Math.hypot(p1.x - p2.x, p1.y - p2.y);

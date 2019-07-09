@@ -22,7 +22,7 @@ interface TimingPoint {
     sampleSet: number,
     volume: number,
     inherited: boolean,
-    kiai: number
+    kiai: boolean
 }
 
 interface BeatmapEvent {
@@ -220,7 +220,7 @@ export class Beatmap {
             sampleSet: parseInt(values[4], 10),
             volume: parseInt(values[5], 10),
             inherited: parseFloat(values[1]) < 0,
-            kiai: parseInt(values[7], 10),
+            kiai: Boolean(parseInt(values[7], 10)),
         });
 
         //Console.verbose("Added timing point #" + this.timingPoints.length + ": " + JSON.stringify(this.timingPoints[this.timingPoints.length - 1]));

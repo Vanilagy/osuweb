@@ -25,8 +25,8 @@ export class SliderCurveBezier extends SliderCurve {
         let { pixelRatio } = gameState.currentPlay;
 
         if (!speedCalc) {
-            this.slider.minX = this.slider.maxX = this.sections[0].values[0].x * pixelRatio;
-            this.slider.minY = this.slider.maxY = this.sections[0].values[0].y * pixelRatio;
+            this.slider.minX = this.slider.maxX = this.sections[0].values[0].x;
+            this.slider.minY = this.slider.maxY = this.sections[0].values[0].y;
 
             if (this.sections.length === 1 && this.sections[0].values.length === 2) { // If it's only one linear section
                 let points = this.sections[0].values;
@@ -251,11 +251,9 @@ export class SliderCurveBezier extends SliderCurve {
     pushEqualDistancePoint(pos: Point) { // Pushes endpoint to array
         this.equalDistancePoints.push(pos);
 
-        let { pixelRatio } = gameState.currentPlay;
-
-        this.slider.minX = Math.min(this.slider.minX, pos.x * pixelRatio);
-        this.slider.minY = Math.min(this.slider.minY, pos.y * pixelRatio);
-        this.slider.maxX = Math.max(this.slider.maxX, pos.x * pixelRatio);
-        this.slider.maxY = Math.max(this.slider.maxY, pos.y * pixelRatio);
+        this.slider.minX = Math.min(this.slider.minX, pos.x);
+        this.slider.minY = Math.min(this.slider.minY, pos.y);
+        this.slider.maxX = Math.max(this.slider.maxX, pos.x);
+        this.slider.maxY = Math.max(this.slider.maxY, pos.y);
     }
 }

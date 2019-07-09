@@ -6,6 +6,7 @@ import { mainMusicSoundEmitter, audioContext } from "../audio/audio";
 import { mainRender } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
+import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -13,6 +14,7 @@ export class Play {
     public currentHitObjectId: number;
     public onscreenObjects: { [s: string]: DrawableHitObject };
     public pixelRatio: number;
+    public circleDiameterOsuPx: number;
     public circleDiameter: number;
     public ARMs: number;
 
@@ -33,8 +35,8 @@ export class Play {
         let screenWidth = screenHeight * (640 / 480);
         this.pixelRatio = screenHeight / 480;
 
-        let osuCircleDiameter = this.processedBeatmap.beatmap.difficulty.getCirclePixelSize();
-        this.circleDiameter = Math.round(osuCircleDiameter * this.pixelRatio);
+        this.circleDiameterOsuPx = this.processedBeatmap.beatmap.difficulty.getCirclePixelSize();
+        this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
 
         console.time("Beatmap init");
         this.processedBeatmap.init();
@@ -109,6 +111,14 @@ export class Play {
 
     getCurrentSongTime() {
         return mainMusicSoundEmitter.getCurrentTime() * 1000;
+    }
+
+    toScreenCoordinatesX(osuCoordinateX: number) {
+        return window.innerWidth / 2 + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
+    }
+
+    toScreenCoordinatesY(osuCoordinateY: number) {
+        return window.innerHeight / 2 + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio;
     }
 }
 

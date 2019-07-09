@@ -66,8 +66,13 @@ export class ProcessedBeatmap {
                     let timingPoint = this.beatmap.timingPoints[currentTimingPoint];
 
                     if (timingPoint.inherited) {
-                        // TODO: is there a a lower limit?
-                        currentMsPerBeatMultiplier = Math.min(1000, -timingPoint.msPerBeat);
+                        // Implies timingPoint.msPerBeat is negative. An exaplanation pulled from the osu website:
+                        // The milliseconds per beat field (Decimal) defines the duration of one beat. It affect the scrolling speed in osu!taiko or osu!mania, and the slider speed in osu!standard, among other things. When positive, it is faithful to its name. When negative, it is a percentage of previous non-negative milliseconds per beat. For instance, 3 consecutive timing points with 500, -50, -100 will have a resulting beat duration of half a second, a quarter of a second, and half a second, respectively.
+                        
+                        let factor = timingPoint.msPerBeat * -1 / 100;
+                        factor = MathUtil.clamp(factor, 0, 10); // TODO: is there a a lower limit?
+                        
+                        currentMsPerBeatMultiplier = factor;
                     } else {
                         currentMsPerBeatMultiplier = 100;
                         currentMsPerBeat = timingPoint.msPerBeat;
@@ -91,14 +96,27 @@ export class ProcessedBeatmap {
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
 
+                let sliderVelocityInOsuPixelsPerBeat = 100 * this.beatmap.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
+                let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / (currentMsPerBeat * currentMsPerBeatMultiplier);
+
                 let timingInfo: SliderTimingInfo = {
                     msPerBeat: currentMsPerBeat,
                     msPerBeatMultiplier: currentMsPerBeatMultiplier,
-                    sliderVelocity: 100 * this.beatmap.difficulty.SV * (100 / currentMsPerBeatMultiplier) / (currentMsPerBeat)
+                    sliderVelocity: sliderVelocityInOsuPixelsPerMillisecond
                 };
 
                 newObject.endTime = rawHitObject.time + rawHitObject.repeat * rawHitObject.length / timingInfo.sliderVelocity;
                 newObject.timingInfo = timingInfo;
+
+                let sliderTickCompletions = [];
+                for (let tickCompletion = 0; tickCompletion < rawHitObject.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.beatmap.difficulty.TR)) / rawHitObject.length) {
+                    let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
+
+                    if (t > 0 && t < 1) {
+                        sliderTickCompletions.push(tickCompletion);
+                    }
+                }
+                newObject.sliderTickCompletions = sliderTickCompletions;
             }
 
             if (newObject !== null) {
