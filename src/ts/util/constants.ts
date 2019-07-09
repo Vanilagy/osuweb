@@ -4,6 +4,7 @@ export const PLAYFIELD_DIMENSIONS = {
 };
 
 export const SLIDER_TICK_APPEARANCE_ANIMATION_DURATION = 85; // In ms
+export const FOLLOW_CIRCLE_THICKNESS_FACTOR = 0.045; // in circle diameters
 
 export const APPROACH_CIRCLE_TEXTURE = PIXI.Texture.from("./assets/img/approach_circle.png");
 export const REVERSE_ARROW_TEXTURE = PIXI.Texture.from("./assets/img/reversearrow.png");

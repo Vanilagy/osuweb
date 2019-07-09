@@ -7,7 +7,7 @@ import { MathUtil } from "../util/math_util";
 import { DrawableHitObject, drawCircle, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 
@@ -25,6 +25,7 @@ export class DrawableSlider extends DrawableHitObject {
     public sliderBall: PIXI.Graphics;
     public reverseArrow: PIXI.Sprite;
     public sliderTickGraphics: PIXI.Graphics;
+    public followCircle: PIXI.Container;
 
     public complete: boolean;
     public reductionFactor: number;
@@ -131,6 +132,13 @@ export class DrawableSlider extends DrawableHitObject {
         this.sliderBall.endFill();
         this.sliderBall.visible = false;
 
+        let followCircle = new PIXI.Graphics();
+        let thickness = FOLLOW_CIRCLE_THICKNESS_FACTOR * circleDiameter;
+        followCircle.lineStyle(thickness, 0xFFFFFF);
+        followCircle.drawCircle(0, 0, (circleDiameter - thickness) / 2);
+        followCircle.visible = false;
+        this.followCircle = followCircle;
+
         this.reverseArrow = new PIXI.Sprite(REVERSE_ARROW_TEXTURE);
         let yes1 = this.reverseArrow.width; // Keep the original width at the start.
         let yes2 = this.reverseArrow.height; // Keep the original width at the start.
@@ -156,6 +164,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.overlayContainer.addChild(this.sliderTickGraphics);
         this.overlayContainer.addChild(this.sliderBall);
         this.overlayContainer.addChild(this.reverseArrow);
+        this.overlayContainer.addChild(this.followCircle);
 
         this.container.addChild(this.baseSprite);
         this.container.addChild(this.overlayContainer);
@@ -261,7 +270,7 @@ export class DrawableSlider extends DrawableHitObject {
         completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length;
         completion = MathUtil.clamp(completion, 0, this.hitObject.repeat);
 
-        this.renderSliderBall(completion);
+        this.renderSliderBall(completion, currentTime);
         this.renderReverseArrow(completion);
         if (this.sliderTickCompletions.length > 0) this.renderSliderTicks(completion, currentSliderTime);
 
@@ -343,17 +352,31 @@ export class DrawableSlider extends DrawableHitObject {
         */
     }
 
-    private renderSliderBall(completion: number) {
-        if (completion === 0) {
-            this.sliderBall.visible = false;
-            return;
-        }
+    private renderSliderBall(completion: number, currentTime: number) {
+        if (completion === 0) return;
 
         this.sliderBall.visible = true;
+        this.followCircle.visible = true;
 
         let sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
         this.sliderBall.x = sliderBallPos.x;
         this.sliderBall.y = sliderBallPos.y;
+        this.followCircle.x = sliderBallPos.x;
+        this.followCircle.y = sliderBallPos.y;
+
+        let followCircleSizeFactor = (
+            /* base */ 1
+            + /* enlarge on start */ Math.max(0, Math.min(1, (currentTime - this.startTime) / 100))
+            + ((this.letGoTime === null) ?
+                    /* pulse */ /*Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.20))*/
+                    + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (currentTime - this.endTime) / 175))), 2) * 0.5 : 0
+            )
+        );
+
+        let followCircleDiameter = gameState.currentPlay.circleDiameter;
+        followCircleDiameter *= followCircleSizeFactor;
+        this.followCircle.width = followCircleDiameter;
+        this.followCircle.height = followCircleDiameter;
     }
 
     private renderReverseArrow(completion: number) {
