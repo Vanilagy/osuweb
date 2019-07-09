@@ -74,7 +74,7 @@ export class ProcessedBeatmap {
                         
                         currentMsPerBeatMultiplier = factor;
                     } else {
-                        currentMsPerBeatMultiplier = 100;
+                        currentMsPerBeatMultiplier = 1;
                         currentMsPerBeat = timingPoint.msPerBeat;
                     }
 

@@ -8,6 +8,9 @@ import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 
+const LOG_RENDER_INFO = true;
+const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
+
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
     public audioStartTime: number;
@@ -17,6 +20,7 @@ export class Play {
     public circleDiameterOsuPx: number;
     public circleDiameter: number;
     public ARMs: number;
+    public renderTimes: number[] = [];
 
     constructor(beatmap: Beatmap) {
         this.processedBeatmap = new ProcessedBeatmap(beatmap);
@@ -72,7 +76,7 @@ export class Play {
     }
 
     render() {
-        //console.time("Render");
+        let startTime = performance.now();
 
         let currentTime = this.getCurrentSongTime();
 
@@ -106,7 +110,23 @@ export class Play {
 
         requestAnimationFrame(this.render.bind(this));
 
-       // console.timeEnd("Render");
+        let elapsedTime = performance.now() - startTime;
+        this.renderTimes.push(elapsedTime);
+
+        if (this.renderTimes.length >= LOG_RENDER_INFO_SAMPLE_SIZE) {
+            let min = Infinity, max = 0, total = 0;
+
+            for (let time of this.renderTimes) {
+                total += time;
+                if (time < min) min = time;
+                if (time > max) max = time;
+            }
+
+            let avg = total / this.renderTimes.length;
+            console.log(`Frame time info: Average: ${avg.toFixed(3)}ms, Best: ${min.toFixed(3)}ms, Worst: ${max.toFixed(3)}ms`);
+
+            this.renderTimes.length = 0;
+        }
     }
 
     getCurrentSongTime() {
