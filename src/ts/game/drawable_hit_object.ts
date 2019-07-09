@@ -45,6 +45,10 @@ export abstract class DrawableHitObject {
     applyStackPosition() {
         this.x += this.stackHeight * -4;
         this.y += this.stackHeight * -4;
+        this.startPoint.x += this.stackHeight * -4;
+        this.startPoint.y += this.stackHeight * -4;
+        this.endPoint.x += this.stackHeight * -4;
+        this.endPoint.y += this.stackHeight * -4;
     }
 }
 

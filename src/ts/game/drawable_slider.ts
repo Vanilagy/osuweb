@@ -260,16 +260,13 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     applyStackPosition() {
-        this.x += this.stackHeight * -4;
-        this.y += this.stackHeight * -4;
+        super.applyStackPosition();
 
         if (true /* This was if(fullCalc) before */) {
-            let pixelRatio = gameState.currentPlay.pixelRatio;
-
-            this.minX += this.stackHeight * -4 * pixelRatio;
-            this.minY += this.stackHeight * -4 * pixelRatio;
-            this.maxX += this.stackHeight * -4 * pixelRatio;
-            this.maxY += this.stackHeight * -4 * pixelRatio;
+            this.minX += this.stackHeight * -4;
+            this.minY += this.stackHeight * -4;
+            this.maxX += this.stackHeight * -4;
+            this.maxY += this.stackHeight * -4;
 
             this.curve.applyStackPosition();
         }

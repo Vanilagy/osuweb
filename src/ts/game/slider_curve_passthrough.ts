@@ -100,4 +100,11 @@ export class SliderCurvePassthrough extends SliderCurve {
             }
         }
     }
+
+    applyStackPosition() {
+        let stackHeight = this.slider.stackHeight;
+
+        this.centerPos.x += stackHeight * -4;
+        this.centerPos.y += stackHeight * -4;
+    }
 }

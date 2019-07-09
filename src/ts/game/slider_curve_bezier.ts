@@ -256,4 +256,13 @@ export class SliderCurveBezier extends SliderCurve {
         this.slider.maxX = Math.max(this.slider.maxX, pos.x);
         this.slider.maxY = Math.max(this.slider.maxY, pos.y);
     }
+
+    applyStackPosition() {
+        let stackHeight = this.slider.stackHeight;
+
+        for (let point of this.equalDistancePoints) {
+            point.x += stackHeight * -4;
+            point.y += stackHeight * -4;
+        }
+    }
 }

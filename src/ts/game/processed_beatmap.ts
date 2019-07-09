@@ -129,9 +129,9 @@ export class ProcessedBeatmap {
             hitObjectId++;
         }
 
-        console.time('stack shift');
+        console.time('Stack shift');
         this.applyStackShift(false);
-        console.timeEnd('stack shift');
+        console.timeEnd('Stack shift');
     }
 
     applyStackShift(fullCalc: boolean) {
@@ -156,7 +156,7 @@ export class ProcessedBeatmap {
                 if (objectB.startTime - endTime > stackThreshold) break;
 
                 if (Math.hypot(stackBaseObject.startPoint.x - objectB.startPoint.x, stackBaseObject.startPoint.y - objectB.startPoint.y) < stackSnapDistance ||
-                    stackBaseObject.constructor.name === "DrawableSlider" && MathUtil.distance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
+                    (stackBaseObject instanceof DrawableSlider) && MathUtil.distance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
                     stackBaseIndex = b;
 
                     objectB.stackHeight = 0;
@@ -208,11 +208,11 @@ export class ProcessedBeatmap {
                     }
                 }
             }
-            else if (objectI.constructor.name === "DrawableSlider") {
+            else if (objectI instanceof DrawableSlider) {
                 while (--n >= 0) {
                     let objectN = this.hitObjects[n];
 
-                    if (objectN.constructor.name === "Spinner") continue;
+                    if (objectN instanceof DrawableSpinner) continue;
 
                     if (objectI.startTime - objectN.startTime > stackThreshold)
                         break;
