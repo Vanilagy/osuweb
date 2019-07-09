@@ -15,6 +15,7 @@ export class SoundEmitter {
     private gainNode: GainNode;
     private audioStartTime: number = null;
     private buffer: AudioBuffer = null;
+    private offset: number = 0;
 
     constructor(options: SoundEmitterOptions = {}) {
         if (options.buffer) this.setBuffer(options.buffer);
@@ -61,13 +62,15 @@ export class SoundEmitter {
         let delay = 0;
         if (offset < 0) delay = offset * -1;
 
+        this.offset = offset;
+
         this.sourceNode.start(delay, offset);
         this.audioStartTime = audioContext.currentTime;
     }
 
     getCurrentTime() {
         if (this.audioStartTime === null) return 0;
-        return (audioContext.currentTime - this.audioStartTime) * this.playbackRate;
+        return (audioContext.currentTime - this.audioStartTime + this.offset) * this.playbackRate;
     }
 }
 

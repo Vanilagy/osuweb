@@ -6,7 +6,7 @@ import { mainMusicSoundEmitter, audioContext } from "../audio/audio";
 import { mainRender } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PLAYFIELD_DIMENSIONS } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -54,7 +54,7 @@ export class Play {
     async start() {
         let audioBuffer = await this.getSongAudioBuffer();
         mainMusicSoundEmitter.setBuffer(audioBuffer);
-        mainMusicSoundEmitter.start();
+        mainMusicSoundEmitter.start(0);
 
         this.render();
     }
@@ -86,12 +86,12 @@ export class Play {
             hitObject.update(currentTime);
 
             if (hitObject instanceof DrawableCircle) {
-                if (currentTime >= hitObject.startTime) {
+                if (currentTime >= hitObject.startTime + HIT_OBJECT_FADE_OUT_TIME) {
                     hitObject.remove(); 
                     delete this.onscreenObjects[id];
                 }
             } else if (hitObject instanceof DrawableSlider) {
-                if (currentTime >= hitObject.endTime) {
+                if (currentTime >= hitObject.endTime + HIT_OBJECT_FADE_OUT_TIME) {
                     hitObject.remove();
                     delete this.onscreenObjects[id];
                 }

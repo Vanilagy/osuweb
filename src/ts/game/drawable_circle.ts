@@ -2,7 +2,7 @@ import { MathUtil } from "../util/math_util";
 import { DrawableHitObject, drawCircle } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 
 export class DrawableCircle extends DrawableHitObject {
@@ -54,23 +54,39 @@ export class DrawableCircle extends DrawableHitObject {
     update(currentTime: number) {
         let { ARMs, circleDiameter } = gameState.currentPlay;
 
-        let fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
-        fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-        fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
-
-        this.container.alpha = fadeInCompletion;
-        this.approachCircle.alpha = fadeInCompletion;
-
         this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
         this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
 
-        let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
-        let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
-        let approachCircleDiameter = circleDiameter * approachCircleFactor;
-        this.approachCircle.width = approachCircleDiameter;
-        this.approachCircle.height = approachCircleDiameter;
-        this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-        this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        if (currentTime < this.startTime) {
+            let fadeInCompletion = (currentTime - (this.startTime - ARMs)) / ARMs;
+            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+            fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
+
+            this.container.alpha = fadeInCompletion;
+            this.approachCircle.alpha = fadeInCompletion;
+            
+            let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
+            let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
+            let approachCircleDiameter = circleDiameter * approachCircleFactor;
+            this.approachCircle.width = approachCircleDiameter;
+            this.approachCircle.height = approachCircleDiameter;
+
+            this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
+            this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        } else {
+            this.approachCircle.visible = false;
+
+            let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+            fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
+
+            let alpha = 1 - fadeOutCompletion;
+            let scale = 1 + fadeOutCompletion * 0.5; // Max scale: 1.5
+
+            this.container.alpha = alpha;
+            this.container.width = circleDiameter * scale;
+            this.container.height = circleDiameter * scale;
+        }
     }
 
     remove() {

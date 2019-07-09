@@ -7,7 +7,7 @@ import { MathUtil } from "../util/math_util";
 import { DrawableHitObject, drawCircle, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 
@@ -40,7 +40,6 @@ export class DrawableSlider extends DrawableHitObject {
     public maxFollowCircleRadius: number;
     public timingInfo: SliderTimingInfo;
     public stackHeight: number;
-    public letGoTime: number;
     public hitObject: Slider;
     public sliderTickCompletions: number[];
 
@@ -185,13 +184,6 @@ export class DrawableSlider extends DrawableHitObject {
 
         let { ARMs, circleDiameter, pixelRatio, circleDiameterOsuPx } = gameState.currentPlay;
 
-        let fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
-        fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-        fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
-
-        this.container.alpha = fadeInCompletion;
-        this.approachCircle.alpha = fadeInCompletion;
-
         this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.minX - circleDiameterOsuPx/2);
         this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleDiameterOsuPx/2);
 
@@ -199,19 +191,49 @@ export class DrawableSlider extends DrawableHitObject {
         this.headSprite.x = headPos.x;
         this.headSprite.y = headPos.y;
 
-        let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
-        let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
-        let approachCircleDiameter = circleDiameter * approachCircleFactor;
-        this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-        this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-        this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        let containerAlpha = 1;
+        if (currentTime < this.startTime) {
+            let fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
+            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+            fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
+            
+            containerAlpha = fadeInCompletion;
+
+            let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
+            let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
+            let approachCircleDiameter = circleDiameter * approachCircleFactor;
+            this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
+            this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
+            this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+
+            this.approachCircle.alpha = containerAlpha;
+        } else {
+            this.approachCircle.visible = false;
+
+            let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+            fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
+
+            let alpha = 1 - fadeOutCompletion;
+            let scale = 1 + fadeOutCompletion * 0.5; // Max scale: 1.5
+
+            this.headSprite.alpha = alpha;
+            this.headSprite.width = circleDiameter * scale;
+            this.headSprite.height = circleDiameter * scale;
+        }
+
+        if (currentTime > this.endTime) {
+            let fadeOutCompletion = (currentTime - (this.endTime)) / HIT_OBJECT_FADE_OUT_TIME;
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+            fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
+
+            let alpha = 1 - fadeOutCompletion;
+            containerAlpha = alpha;
+        }
+
+        this.container.alpha = containerAlpha;      
 
         this.renderOverlay(currentTime);
-
-        if (currentTime >= this.hitObject.time) {
-            this.container.removeChild(this.headSprite);
-            approachCircleContainer.removeChild(this.approachCircle);
-        }
     }
 
     remove() {
@@ -282,96 +304,39 @@ export class DrawableSlider extends DrawableHitObject {
                 this.baseCanvas.style.webkitMask = "radial-gradient(" + (GAME_STATE.gameState.currentPlay.halfCsPixel * (this.reductionFactor - CIRCLE_BORDER_WIDTH / 2)) + "px at " + (this.startPoint.x * pixelRatio - this.minX + GAME_STATE.gameState.currentPlay.halfCsPixel) + "px " + (this.startPoint.y * pixelRatio - this.minY + GAME_STATE.gameState.currentPlay.halfCsPixel) + "px, rgba(0, 0, 0, " + MathUtil.clamp((currentSliderTime + GAME_STATE.gameState.currentPlay.ARMs / 2) / (GAME_STATE.gameState.currentPlay.ARMs / 4), 0, 1) + ") 99%, rgba(0, 0, 0, 1) 100%)";
             }
         }
-
-        if(currentSliderTime >= this.endTime - this.hitObject.time + 175) return;
-
-        this.overlayCtx.clearRect(0, 0, Math.ceil(this.sliderWidth + circleDiameter), Math.ceil(this.sliderHeight + circleDiameter));
-
-        if (isMoving) {
-            completion = Math.min(this.hitObject.repeat, (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length);
-        }
-
-        // Draws reverse arrow
-        if (this.hitObject.repeat - completion > 1 && this.complete) {
-            let reverseArrowPos: Point;
-            let p2: Point;
-            const INFINITESIMAL = 0.00001; // Okay, not really infinitely small. But you get the point.
-
-            if (Math.floor(completion) % 2 === 0) {
-                reverseArrowPos = this.getPosFromPercentage(1) as Point;
-                p2 = this.getPosFromPercentage(1 - INFINITESIMAL) as Point;
-            } else {
-                reverseArrowPos = this.getPosFromPercentage(0) as Point;
-                p2 = this.getPosFromPercentage(0 + INFINITESIMAL) as Point;
-            }
-            let angle = Math.atan2(p2.y - reverseArrowPos.y, p2.x - reverseArrowPos.x);
-            let x = reverseArrowPos.x * pixelRatio - this.minX;
-            let y = reverseArrowPos.y * pixelRatio - this.minY;
-
-            // Create second off-screen canvas used for rotating the text
-            let reverseArrowCanvas = document.createElement("canvas");
-            reverseArrowCanvas.setAttribute("width", String(circleDiameter));
-            reverseArrowCanvas.setAttribute("height", String(circleDiameter));
-
-            let reverseArrowCtx = reverseArrowCanvas.getContext("2d") as CanvasRenderingContext2D;
-            reverseArrowCtx.translate(circleDiameter/2, circleDiameter/2);
-            reverseArrowCtx.rotate(angle);
-            reverseArrowCtx.translate(-circleDiameter/2, -circleDiameter/2);
-            reverseArrowCtx.font = "lighter " + (circleDiameter * 0.6) + "px Arial";
-            reverseArrowCtx.textAlign = "center";
-            reverseArrowCtx.textBaseline = "middle";
-            reverseArrowCtx.fillStyle = "white";
-            reverseArrowCtx.fillText("➔", circleDiameter/2, circleDiameter/2);
-
-            this.overlayCtx.drawImage(reverseArrowCanvas, x, y);
-        }
-
-        // Draws slider ball and follow circle to additional canvas
-        let sliderBallPos: Point;
-        if (isMoving) {
-            sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)) as Point);
-            let fadeOutCompletion = Math.min(1, Math.max(0, (currentTime - this.letGoTime) / 120));
-
-            let colorArray = processedBeatmap.beatmap.colors;
-            let color = colorArray[this.comboInfo.comboNum % colorArray.length];
-
-            // Draw slider ball
-            if (completion < this.hitObject.repeat) {
-                if (DRAWING_MODE === 0) {
-                    let colorString = "rgb(" + color.r + "," + color.g + "," + color.b + ")";
-
-                    this.overlayCtx.beginPath();
-                    this.overlayCtx.arc(sliderBallPos.x, sliderBallPos.y, this.sliderBodyRadius, 0, Math.PI * 2);
-                    this.overlayCtx.fillStyle = colorString;
-                    this.overlayCtx.fill();
-                } else if (DRAWING_MODE === 1) {
-                    //this.overlayCtx.drawImage(GAME_STATE.gameState.currentPlay.drawElements.sliderBall, sliderBallPos.x - GAME_STATE.gameState.currentPlay.halfCsPixel * SLIDER_BALL_CS_RATIO, sliderBallPos.y - GAME_STATE.gameState.currentPlay.halfCsPixel * SLIDER_BALL_CS_RATIO, GAME_STATE.gameState.currentPlay.csPixel * SLIDER_BALL_CS_RATIO, GAME_STATE.gameState.currentPlay.csPixel * SLIDER_BALL_CS_RATIO);
-                }
-            }
-        }
         */
     }
 
     private renderSliderBall(completion: number, currentTime: number) {
         if (completion === 0) return;
 
-        this.sliderBall.visible = true;
-        this.followCircle.visible = true;
-
         let sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
-        this.sliderBall.x = sliderBallPos.x;
-        this.sliderBall.y = sliderBallPos.y;
+
+        if (currentTime < this.endTime) {
+            this.sliderBall.visible = true;
+            this.sliderBall.x = sliderBallPos.x;
+            this.sliderBall.y = sliderBallPos.y;
+        } else {
+            // The slider ball disappears upon slider completion
+            this.sliderBall.visible = false;
+        }
+
+        this.followCircle.visible = true;
         this.followCircle.x = sliderBallPos.x;
         this.followCircle.y = sliderBallPos.y;
 
-        let followCircleSizeFactor = (
-            /* base */ 1
-            + /* enlarge on start */ Math.max(0, Math.min(1, (currentTime - this.startTime) / 100))
-            + ((this.letGoTime === null) ?
-                    /* pulse */ /*Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.20))*/
-                    + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (currentTime - this.endTime) / 175))), 2) * 0.5 : 0
-            )
-        );
+        let followCircleSizeFactor = 1; // Base
+        followCircleSizeFactor += 1 * MathUtil.clamp((currentTime - this.startTime) / 100, 0, 1); // Enlarge on start
+        followCircleSizeFactor += -0.333 * MathUtil.clamp((currentTime - this.endTime) / 100, 0, 1); // Shrink on end
+
+        //let followCircleSizeFactor = (
+        //    /* base */ 1
+        //    + /* enlarge on start */ Math.max(0, Math.min(1, (currentTime - this.startTime) / 100))
+        //    + ((this.letGoTime === null) ?
+        //            /* pulse */ /*Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.20))*/
+        //            + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (currentTime - this.endTime) / 175))), 2) * ///0.5 : 0
+        //    )
+        //);
 
         let followCircleDiameter = gameState.currentPlay.circleDiameter;
         followCircleDiameter *= followCircleSizeFactor;
