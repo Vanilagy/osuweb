@@ -4,10 +4,10 @@ import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil } from "../util/math_util";
-import { DrawableHitObject, drawCircle, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 
@@ -215,7 +215,7 @@ export class DrawableSlider extends DrawableHitObject {
             fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
 
             let alpha = 1 - fadeOutCompletion;
-            let scale = 1 + fadeOutCompletion * 0.5; // Max scale: 1.5
+            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
 
             this.headSprite.alpha = alpha;
             this.headSprite.width = circleDiameter * scale;
@@ -295,16 +295,6 @@ export class DrawableSlider extends DrawableHitObject {
         this.renderSliderBall(completion, currentTime);
         this.renderReverseArrow(completion);
         if (this.sliderTickCompletions.length > 0) this.renderSliderTicks(completion, currentSliderTime);
-
-        /*
-        if (GAME_STATE.gameState.currentPlay.mods.HD) { // Slowly fade out slider body
-            this.baseCanvas.style.opacity = MathUtil.clamp(1 - ((currentSliderTime + GAME_STATE.gameState.currentPlay.ARMs / 2) / (this.endTime - this.startTime + GAME_STATE.gameState.currentPlay.ARMs / 2)), 0, 1);
-
-            if (currentSliderTime >= -GAME_STATE.gameState.currentPlay.ARMs / 2 && !isMoving) {
-                this.baseCanvas.style.webkitMask = "radial-gradient(" + (GAME_STATE.gameState.currentPlay.halfCsPixel * (this.reductionFactor - CIRCLE_BORDER_WIDTH / 2)) + "px at " + (this.startPoint.x * pixelRatio - this.minX + GAME_STATE.gameState.currentPlay.halfCsPixel) + "px " + (this.startPoint.y * pixelRatio - this.minY + GAME_STATE.gameState.currentPlay.halfCsPixel) + "px, rgba(0, 0, 0, " + MathUtil.clamp((currentSliderTime + GAME_STATE.gameState.currentPlay.ARMs / 2) / (GAME_STATE.gameState.currentPlay.ARMs / 4), 0, 1) + ") 99%, rgba(0, 0, 0, 1) 100%)";
-            }
-        }
-        */
     }
 
     private renderSliderBall(completion: number, currentTime: number) {

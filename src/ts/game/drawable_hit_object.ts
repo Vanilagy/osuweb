@@ -2,6 +2,7 @@ import { HitObject } from "../datamodel/hit_object";
 import { gameState } from "./game_state";
 import { ComboInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
+import { CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
 
 export abstract class DrawableHitObject {
     public id: number = 0;
@@ -47,8 +48,6 @@ export abstract class DrawableHitObject {
     }
 }
 
-export const DRAWING_MODE = 0;
-export const CIRCLE_BORDER_WIDTH = 1.75 / 16;
 export function drawCircle(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
     let { circleDiameter, processedBeatmap } = gameState.currentPlay;
 
@@ -82,14 +81,14 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
 
     context.globalCompositeOperation = "source-over";
     if (DRAWING_MODE === 0) {
-        let innerType = "dot";
+        let innerType = "number";
 
         if (innerType === "number") {
-            //context.font = "lighter " + (GAME_STATE.currentPlay.csPixel * 0.41) + "px monospace";
-            //context.textAlign = "center";
-            //context.textBaseline = "middle";
-            //context.fillStyle = "white";
-            //context.fillText(/*comboInfo.n*/ Math.ceil(Math.random() * 9), x + circleDiameter / 2, y + circleDiameter / 2)
+            context.font = (circleDiameter * 0.41) + "px 'Nunito'";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillStyle = "white";
+            context.fillText(String(comboInfo.n), x + circleDiameter / 2, y + circleDiameter / 2 * 1.05)
         } else {
             context.beginPath();
             context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2 * 0.25, 0, Math.PI * 2);

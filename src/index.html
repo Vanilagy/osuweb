@@ -5,10 +5,14 @@
         <title>osu! - Browser Edition</title>
         <link rel="stylesheet" href="./css/main.css">
         <link rel="shortcut icon" href="./assets/img/1024px-Red_x.svg.png">
+        <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700&display=swap" rel="stylesheet">
     </head>
     <body>
         <input type="file" id="beatmapSelect" webkitdirectory>
         <button id="playButton" style="display: none;">Play</button>
+
+        <!-- Preload this font -->
+        <div style="font-family: Nunito; visibility: hidden;">Preload</div>
 
         <canvas id="mainCanvas"></canvas>
 

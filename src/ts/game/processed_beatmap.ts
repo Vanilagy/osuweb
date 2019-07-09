@@ -36,7 +36,7 @@ export class ProcessedBeatmap {
 
         let currentTimingPoint = 1;
         let currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
-        let currentMsPerBeatMultiplier = 100;
+        let currentMsPerBeatMultiplier = 1;
         let currentSampleSet = this.beatmap.timingPoints[0].sampleSet;
         let currentVolume = this.beatmap.timingPoints[0].volume;
 

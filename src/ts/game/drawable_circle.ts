@@ -81,7 +81,7 @@ export class DrawableCircle extends DrawableHitObject {
             fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
 
             let alpha = 1 - fadeOutCompletion;
-            let scale = 1 + fadeOutCompletion * 0.5; // Max scale: 1.5
+            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
 
             this.container.alpha = alpha;
             this.container.width = circleDiameter * scale;

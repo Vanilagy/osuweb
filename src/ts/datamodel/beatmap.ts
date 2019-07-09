@@ -210,6 +210,10 @@ export class Beatmap {
     parseTimingPoint(line: string) {
         let values = line.split(',');
 
+        let offset = parseInt(values[0], 10);
+        if (this.timingPoints.length === 0) offset = 0;
+        // From the osu! website: The offset is an integral number of milliseconds, from the start of the song. It defines when the timing point starts. A timing point ends when the next one starts. The first timing point starts at 0, disregarding its offset.
+
         this.timingPoints.push({
             index: this.timingPoints.length,
             offset: parseInt(values[0], 10),

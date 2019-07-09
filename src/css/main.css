@@ -8,6 +8,7 @@ html, body {
 body {
     background: #121215;
     cursor: url('../assets/img/cheap_cursor.png') 32 32, auto;
+    color: ghostwhite;
 }
 
 #mainCanvas {
