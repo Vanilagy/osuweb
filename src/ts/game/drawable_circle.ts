@@ -2,8 +2,9 @@ import { MathUtil } from "../util/math_util";
 import { DrawableHitObject, drawCircle } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
+import { colorToHexNumber } from "../util/graphics_util";
 
 export class DrawableCircle extends DrawableHitObject {
     public hitObject: Circle;
@@ -33,11 +34,11 @@ export class DrawableCircle extends DrawableHitObject {
         this.headSprite.width = circleDiameter;
         this.headSprite.height = circleDiameter;
 
-        this.approachCircle = new PIXI.Sprite(APPROACH_CIRCLE_TEXTURE);
-        this.approachCircle.pivot.x = this.approachCircle.width / 2;
-        this.approachCircle.pivot.y = this.approachCircle.height / 2;
-        this.approachCircle.width = circleDiameter;
-        this.approachCircle.height = circleDiameter;
+        let approachCircle = new PIXI.Graphics();
+        let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
+        approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.comboInfo.color));
+        approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
+        this.approachCircle = approachCircle;
 
         this.container.addChild(this.headSprite);
     }

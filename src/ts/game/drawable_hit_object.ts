@@ -11,7 +11,7 @@ export abstract class DrawableHitObject {
     public hitObject: HitObject;
     public container: PIXI.Container;
     public headSprite: PIXI.Sprite;
-    public approachCircle: PIXI.Sprite;
+    public approachCircle: PIXI.Container;
     public stackHeight: number = 0;
 
     public x: number;

@@ -117,11 +117,11 @@ export class DrawableSlider extends DrawableHitObject {
         this.headSprite.x = headPos.x;
         this.headSprite.y = headPos.y;
 
-        this.approachCircle = new PIXI.Sprite(APPROACH_CIRCLE_TEXTURE);
-        this.approachCircle.pivot.x = this.approachCircle.width / 2;
-        this.approachCircle.pivot.y = this.approachCircle.height / 2;
-        this.approachCircle.width = circleDiameter;
-        this.approachCircle.height = circleDiameter;
+        let approachCircle = new PIXI.Graphics();
+        let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
+        approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.comboInfo.color));
+        approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
+        this.approachCircle = approachCircle;
 
         this.sliderBall = new PIXI.Graphics();
         this.sliderBall.beginFill(colorToHexNumber(this.comboInfo.color));
@@ -315,9 +315,9 @@ export class DrawableSlider extends DrawableHitObject {
 
             let angle = Math.atan2(p2.y - reverseArrowPos.y, p2.x - reverseArrowPos.x);
 
-            let shit = this.toCtxCoord(reverseArrowPos);
-            this.reverseArrow.x = shit.x;
-            this.reverseArrow.y = shit.y;
+            let ctxCoord = this.toCtxCoord(reverseArrowPos);
+            this.reverseArrow.x = ctxCoord.x;
+            this.reverseArrow.y = ctxCoord.y;
             this.reverseArrow.rotation = angle;
 
             this.reverseArrow.visible = true;
