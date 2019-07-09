@@ -2,13 +2,15 @@ import { HitObject } from "../datamodel/hit_object";
 import { gameState } from "./game_state";
 import { ComboInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
-import { CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
+import { CIRCLE_BORDER_WIDTH, DRAWING_MODE, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
+import { MathUtil } from "../util/math_util";
 
 export abstract class DrawableHitObject {
     public id: number = 0;
     public comboInfo: ComboInfo;
     public hitObject: HitObject;
     public container: PIXI.Container;
+    public headSprite: PIXI.Sprite;
     public approachCircle: PIXI.Sprite;
     public stackHeight: number = 0;
 
@@ -49,6 +51,43 @@ export abstract class DrawableHitObject {
         this.startPoint.y += this.stackHeight * -4;
         this.endPoint.x += this.stackHeight * -4;
         this.endPoint.y += this.stackHeight * -4;
+    }
+
+    // Updates the head and approach circle based on current time.
+    protected updateHeadElements(currentTime: number) {
+        let { ARMs, circleDiameter } = gameState.currentPlay;
+
+        let fadeInCompletion = 1;
+
+        if (currentTime < this.startTime) {
+            fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
+            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+            fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
+
+            let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
+            let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
+            let approachCircleDiameter = circleDiameter * approachCircleFactor;
+            this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
+            this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
+            this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+
+            this.approachCircle.alpha = fadeInCompletion;
+        } else {
+            this.approachCircle.visible = false;
+
+            let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+            fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
+
+            let alpha = 1 - fadeOutCompletion;
+            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
+
+            this.headSprite.alpha = alpha;
+            this.headSprite.width = circleDiameter * scale;
+            this.headSprite.height = circleDiameter * scale;
+        }
+
+        return { fadeInCompletion };
     }
 }
 
@@ -92,7 +131,7 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
             context.textAlign = "center";
             context.textBaseline = "middle";
             context.fillStyle = "white";
-            context.fillText(String(comboInfo.n), x + circleDiameter / 2, y + circleDiameter / 2 * 1.05)
+            context.fillText(String(comboInfo.n), x + circleDiameter / 2, y + circleDiameter / 2 * 1.06); // 1.06 = my attempt to make it centered.
         } else {
             context.beginPath();
             context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2 * 0.25, 0, Math.PI * 2);

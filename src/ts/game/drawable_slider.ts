@@ -37,7 +37,6 @@ export class DrawableSlider extends DrawableHitObject {
     public minY: number = 0;
     public maxY: number = 0;
     public sliderBodyRadius: number;
-    public maxFollowCircleRadius: number;
     public timingInfo: SliderTimingInfo;
     public stackHeight: number;
     public hitObject: Slider;
@@ -95,7 +94,6 @@ export class DrawableSlider extends DrawableHitObject {
         this.sliderWidth = this.maxX - this.minX;
         this.sliderHeight = this.maxY - this.minY;
         this.sliderBodyRadius = circleDiameter/2 * (this.reductionFactor - CIRCLE_BORDER_WIDTH);
-        this.maxFollowCircleRadius = (circleDiameter/2 * 2.20);
 
         let canvas = document.createElement('canvas');
         canvas.setAttribute('width', String(Math.ceil(this.sliderWidth * pixelRatio + circleDiameter)));
@@ -191,36 +189,8 @@ export class DrawableSlider extends DrawableHitObject {
         this.headSprite.x = headPos.x;
         this.headSprite.y = headPos.y;
 
-        let containerAlpha = 1;
-        if (currentTime < this.startTime) {
-            let fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
-            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-            fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
-            
-            containerAlpha = fadeInCompletion;
-
-            let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
-            let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
-            let approachCircleDiameter = circleDiameter * approachCircleFactor;
-            this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-            this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-            this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
-
-            this.approachCircle.alpha = containerAlpha;
-        } else {
-            this.approachCircle.visible = false;
-
-            let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
-            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
-
-            let alpha = 1 - fadeOutCompletion;
-            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
-
-            this.headSprite.alpha = alpha;
-            this.headSprite.width = circleDiameter * scale;
-            this.headSprite.height = circleDiameter * scale;
-        }
+        let { fadeInCompletion } = this.updateHeadElements(currentTime);
+        let containerAlpha = fadeInCompletion;
 
         if (currentTime > this.endTime) {
             let fadeOutCompletion = (currentTime - (this.endTime)) / HIT_OBJECT_FADE_OUT_TIME;
