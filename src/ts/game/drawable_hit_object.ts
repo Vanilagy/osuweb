@@ -36,13 +36,15 @@ export abstract class DrawableHitObject {
         this.y = this.hitObject.y;
     }
 
-    abstract draw(): any;
+    abstract draw(): void;
 
-    abstract show(currentTime: number): any;
+    abstract show(currentTime: number): void;
 
-    abstract update(currentTime: number): any;
+    abstract position(): void;
 
-    abstract remove(): any;
+    abstract update(currentTime: number): void;
+
+    abstract remove(): void;
 
     applyStackPosition() {
         this.x += this.stackHeight * -4;
@@ -68,8 +70,6 @@ export abstract class DrawableHitObject {
             let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
             let approachCircleDiameter = circleDiameter * approachCircleFactor;
             this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-            this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-            this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
 
             this.approachCircle.alpha = fadeInCompletion;
         } else {

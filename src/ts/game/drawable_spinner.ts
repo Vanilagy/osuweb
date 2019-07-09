@@ -7,6 +7,8 @@ export class DrawableSpinner extends DrawableHitObject {
 
     show(currentTime: number) {}
 
+    position() {}
+
     update(currentTime: number) {}
 
     remove() {}

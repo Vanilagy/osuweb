@@ -87,8 +87,6 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     draw() {
-        if (!this.curve) return;
-
         let { circleDiameter, pixelRatio } = gameState.currentPlay;
 
         this.sliderWidth = this.maxX - this.minX;
@@ -115,6 +113,9 @@ export class DrawableSlider extends DrawableHitObject {
         this.headSprite.pivot.y = this.headSprite.height / 2;
         this.headSprite.width = circleDiameter;
         this.headSprite.height = circleDiameter;
+        let headPos = this.toCtxCoord({x: this.x, y: this.y});
+        this.headSprite.x = headPos.x;
+        this.headSprite.y = headPos.y;
 
         this.approachCircle = new PIXI.Sprite(APPROACH_CIRCLE_TEXTURE);
         this.approachCircle.pivot.x = this.approachCircle.width / 2;
@@ -169,26 +170,23 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     show(currentTime: number) {
-        if (!this.curve) return;
-
         mainHitObjectContainer.addChildAt(this.container, 0);
         approachCircleContainer.addChild(this.approachCircle);
 
+        this.position();
         this.update(currentTime);
     }
 
-    update(currentTime: number) {
-        if (!this.curve) return;
-
-        let { ARMs, circleDiameter, pixelRatio, circleDiameterOsuPx } = gameState.currentPlay;
+    position() {
+        let { circleDiameterOsuPx } = gameState.currentPlay;
 
         this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.minX - circleDiameterOsuPx/2);
         this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleDiameterOsuPx/2);
+        this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
+        this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+    }
 
-        let headPos = this.toCtxCoord({x: this.x, y: this.y});
-        this.headSprite.x = headPos.x;
-        this.headSprite.y = headPos.y;
-
+    update(currentTime: number) {
         let { fadeInCompletion } = this.updateHeadElements(currentTime);
         let containerAlpha = fadeInCompletion;
 

@@ -27,9 +27,6 @@ export class DrawableCircle extends DrawableHitObject {
         let ctx = canvas.getContext('2d');
         drawCircle(ctx, 0, 0, this.comboInfo);
 
-        //this.container.pivot.x = circleDiameter / 2;
-        //this.container.pivot.y = circleDiameter / 2;
-
         this.headSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
         this.headSprite.pivot.x = this.headSprite.width / 2;
         this.headSprite.pivot.y = this.headSprite.height / 2;
@@ -49,14 +46,19 @@ export class DrawableCircle extends DrawableHitObject {
         mainHitObjectContainer.addChildAt(this.container, 0);
         approachCircleContainer.addChild(this.approachCircle);
 
+        this.position();
         this.update(currentTime);
+    }
+
+    position() {
+        this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
+        this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
+        this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
     }
 
     update(currentTime: number) {
         let { ARMs, circleDiameter } = gameState.currentPlay;
-
-        this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-        this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
 
         let { fadeInCompletion } = this.updateHeadElements(currentTime);
         this.container.alpha = fadeInCompletion;
