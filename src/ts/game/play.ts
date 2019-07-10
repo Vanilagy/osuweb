@@ -2,12 +2,12 @@ import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider } from "./drawable_slider";
-import { mainMusicSoundEmitter, audioContext } from "../audio/audio";
+import { mainMusicMediaPlayer, audioContext } from "../audio/audio";
 import { mainRender } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
-import { readFileAsArrayBuffer } from "../util/file_util";
+import { readFileAsArrayBuffer, readFileAsDataUrl } from "../util/file_util";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -54,23 +54,14 @@ export class Play {
 
     async start() {
         console.time("Audio load");
-        let audioBuffer = await this.getSongAudioBuffer();
-        mainMusicSoundEmitter.setBuffer(audioBuffer);
-        mainMusicSoundEmitter.start(0);
+        
+        let songFile = this.processedBeatmap.beatmap.getAudioFile();
+        await mainMusicMediaPlayer.loadBuffer(await readFileAsArrayBuffer(songFile));
+        mainMusicMediaPlayer.start(0);
+
         console.timeEnd("Audio load");
 
         this.render();
-    }
-
-    async getSongAudioBuffer() {
-        let songFile = this.processedBeatmap.beatmap.getAudioFile();
-        let arrayBuffer = await readFileAsArrayBuffer(songFile);
-
-        return new Promise<AudioBuffer>((resolve) => {
-            audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-                resolve(buffer);
-            });
-        });
     }
 
     render() {
@@ -128,7 +119,7 @@ export class Play {
     }
 
     getCurrentSongTime() {
-        return mainMusicSoundEmitter.getCurrentTime() * 1000;
+        return mainMusicMediaPlayer.getCurrentTime() * 1000;
     }
 
     toScreenCoordinatesX(osuCoordinateX: number) {

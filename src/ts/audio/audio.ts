@@ -1,6 +1,10 @@
-const DEFAULT_SOUND_VOLUME = 0.05;
+const DEFAULT_MASTER_GAIN_VALUME = 0.05;
 
 export let audioContext = new AudioContext();
+
+let masterGain = audioContext.createGain();
+masterGain.gain.value = DEFAULT_MASTER_GAIN_VALUME;
+masterGain.connect(audioContext.destination);
 
 interface SoundEmitterOptions {
     buffer?: AudioBuffer,
@@ -9,7 +13,7 @@ interface SoundEmitterOptions {
 }
 
 export class SoundEmitter {
-    private volume: number = DEFAULT_SOUND_VOLUME;
+    private volume: number; // !???!
     private playbackRate: number = 1;
     private sourceNode: AudioBufferSourceNode = null;
     private gainNode: GainNode;
@@ -18,6 +22,8 @@ export class SoundEmitter {
     private offset: number = 0;
 
     constructor(options: SoundEmitterOptions = {}) {
+        throw new Error("I am broken. Don't instanciate me!");
+
         if (options.buffer) this.setBuffer(options.buffer);
         if (options.volume) this.volume = options.volume;
         if (options.playbackRate) this.playbackRate = options.playbackRate;
@@ -74,4 +80,63 @@ export class SoundEmitter {
     }
 }
 
-export let mainMusicSoundEmitter = new SoundEmitter();
+export class MediaPlayer {
+    private audioElement: HTMLAudioElement;
+    private audioNode: MediaElementAudioSourceNode;
+    private currentUrl: string = null;
+    private startTime: number = null;
+
+    constructor() {
+        //
+    }
+
+    private resetAudioElement() {
+        if (this.audioNode) {
+            this.audioNode.disconnect();
+        }
+
+        this.audioElement = new Audio();
+        this.audioNode = audioContext.createMediaElementSource(this.audioElement);
+        this.audioNode.connect(masterGain);
+    }
+
+    loadBuffer(buffer: ArrayBuffer) {
+        let url = URL.createObjectURL(new Blob([buffer]));
+        return this.loadUrl(url);
+    }
+
+    loadUrl(url: string) {
+        return new Promise((resolve) => {
+            if (this.currentUrl) URL.revokeObjectURL(this.currentUrl);
+            this.currentUrl = url;
+
+            this.resetAudioElement();
+            this.audioElement.src = url;
+
+            // Fires once the browser thinks it can play the whole file without buffering
+            this.audioElement.addEventListener('canplaythrough', () => {
+                resolve();
+            });
+        });
+    }
+
+    start(offset: number = 0) {
+        // TOOD: Implement offset
+
+        this.startTime = performance.now();
+        this.audioElement.play();
+    }
+
+    getCurrentTime() {
+        if (this.startTime === null) return 0;
+
+        let calculated = (performance.now() - this.startTime);
+        let actual = this.audioElement.currentTime * 1000;
+        let delta = calculated - actual;
+        if (delta >= 10) console.warn("Media playback delta kinda big: " + delta);
+
+        return calculated / 1000; // return in seconds
+    }
+}
+
+export let mainMusicMediaPlayer = new MediaPlayer();
