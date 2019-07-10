@@ -1,6 +1,7 @@
 import { MathUtil } from "../util/math_util";
 
 const DEFAULT_MASTER_GAIN_VALUME = 0.05;
+const MEDIA_NUDGE_INTERVAL = 500; // In ms
 
 export let audioContext = new AudioContext();
 
@@ -88,6 +89,8 @@ export class MediaPlayer {
     private currentUrl: string = null;
     private startTime: number = null;
     private timingDeltas: number[] = [];
+    private lastNudgeTime: number;
+    private offset: number;
 
     constructor() {
         //
@@ -102,6 +105,7 @@ export class MediaPlayer {
         this.audioNode = audioContext.createMediaElementSource(this.audioElement);
         this.audioNode.connect(masterGain);
         this.timingDeltas.length = 0;
+        this.lastNudgeTime = null;
     }
 
     loadBuffer(buffer: ArrayBuffer) {
@@ -124,30 +128,50 @@ export class MediaPlayer {
         });
     }
 
+    // Offset in seconds: Positive = Start the sound at that time, Negative = Start in the song in -offset seconds
     start(offset: number = 0) {
-        // TOOD: Implement offset
+        // TODO: Implement offset
 
+        this.offset = offset;
         this.startTime = performance.now();
-        this.audioElement.play();
+
+        if (this.offset >= 0) {
+            this.audioElement.currentTime = this.offset;
+            this.audioElement.play();
+        } else {
+            // Any inaccuracies in this timeout (+-2ms) will be ironed out by the nudging algorithm in getCurrentTime
+            setTimeout(() => {
+                this.audioElement.play();
+            }, this.offset * -1 * 1000);
+        }
     }
 
     getCurrentTime() {
         if (this.startTime === null) return 0;
 
-        let calculated = (performance.now() - this.startTime);
+        let now = performance.now();
+        let offsetMs = this.offset * 1000;
+
+        let calculated = now - this.startTime + offsetMs;
         let actual = this.audioElement.currentTime * 1000;
-        let delta = calculated - actual;
-        this.timingDeltas.push(delta);
 
-        if (this.timingDeltas.length % 30 === 0 && this.timingDeltas.length > 0) {
-            let average = MathUtil.getAvgInArray(this.timingDeltas, this.timingDeltas.length - 30); // Average of last 30 deltas
-            if (Math.abs(average) >= 5) console.warn("High average media playback delta: " + average + " - Nudging offset...");
-            this.startTime += average / 2; // Nudge closer towards zero
+        // Only do this if the audio element has started playing, which, when its currentTime is 0, is likely not the case.
+        if (actual > 0) {
+            let delta = calculated - actual;
+            this.timingDeltas.push(delta);
 
-            this.timingDeltas.length = 0;
+            // Keep the calculated time as close as possible to the ACTUAL time of the audio. The reason we don't use HTMLAudioElement.currentTime for getting the current time directly, is that it tends to fluctuate +-5ms. We avoid that fluctuation by using performance.now(), but that requires us to perform this synchronization:
+
+            if (this.lastNudgeTime === null) this.lastNudgeTime = now;
+            if (now - this.lastNudgeTime >= MEDIA_NUDGE_INTERVAL) {
+                let average = MathUtil.getAvgInArray(this.timingDeltas); // Average of last deltas
+                if (Math.abs(average) >= 5) console.warn("High average media playback delta: " + average + " - Nudging offset...");
+                this.startTime += average / 2; // Nudge closer towards zero
+
+                this.timingDeltas.length = 0;
+                this.lastNudgeTime = now;
+            }
         }
-
-        //if (delta >= 10) console.warn("Media playback delta kinda big: " + delta);
 
         return calculated / 1000; // return in seconds
     }

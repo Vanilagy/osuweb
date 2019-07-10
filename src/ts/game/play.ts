@@ -57,7 +57,9 @@ export class Play {
         
         let songFile = this.processedBeatmap.beatmap.getAudioFile();
         await mainMusicMediaPlayer.loadBuffer(await readFileAsArrayBuffer(songFile));
-        mainMusicMediaPlayer.start(0);
+
+        let interludeTime = this.processedBeatmap.getInterludeTime();
+        mainMusicMediaPlayer.start(-interludeTime / 1000);
 
         console.timeEnd("Audio load");
 

@@ -8,6 +8,8 @@ import { DrawableSpinner } from "./drawable_spinner";
 import { MathUtil } from "../util/math_util";
 import { Color } from "../util/graphics_util";
 
+const MINIMUM_REQUIRED_INTERLUDE_TIME = 1500; // In milliseconds
+
 export interface ComboInfo {
     comboNum: number,
     n: number,
@@ -26,6 +28,10 @@ export class ProcessedBeatmap {
 
     init() {
         this.generateHitObjects();
+
+        console.time('Stack shift');
+        this.applyStackShift(false);
+        console.timeEnd('Stack shift');
     }
 
     generateHitObjects() {
@@ -128,10 +134,6 @@ export class ProcessedBeatmap {
     
             hitObjectId++;
         }
-
-        console.time('Stack shift');
-        this.applyStackShift(false);
-        console.timeEnd('Stack shift');
     }
 
     applyStackShift(fullCalc: boolean) {
@@ -236,5 +238,17 @@ export class ProcessedBeatmap {
         for (let i = 0; i < this.hitObjects.length; i++) {
             this.hitObjects[i].draw();
         }
+    }
+
+    // The time to delay the song at the start to allow for player preparation, in milliseconds
+    getInterludeTime() {
+        let interludeTime = 0;
+        let firstHitObject = this.hitObjects[0];
+
+        if (firstHitObject.startTime < MINIMUM_REQUIRED_INTERLUDE_TIME) {
+            interludeTime = MINIMUM_REQUIRED_INTERLUDE_TIME - firstHitObject.startTime;
+        }
+
+        return interludeTime;
     }
 }
