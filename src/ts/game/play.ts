@@ -2,12 +2,12 @@ import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider } from "./drawable_slider";
-import { mainMusicMediaPlayer, audioContext } from "../audio/audio";
+import { mainMusicMediaPlayer } from "../audio/audio";
 import { mainRender } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
-import { readFileAsArrayBuffer, readFileAsDataUrl } from "../util/file_util";
+import { readFileAsArrayBuffer } from "../util/file_util";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz

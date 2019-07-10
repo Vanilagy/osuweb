@@ -84,13 +84,16 @@ export class SoundEmitter {
 }
 
 export class MediaPlayer {
-    private audioElement: HTMLAudioElement;
-    private audioNode: MediaElementAudioSourceNode;
+    private audioElement: HTMLAudioElement = null;
+    private audioNode: MediaElementAudioSourceNode = null;
     private currentUrl: string = null;
     private startTime: number = null;
     private timingDeltas: number[] = [];
-    private lastNudgeTime: number;
+    private lastNudgeTime: number = null;
     private offset: number;
+    private playing: boolean = false;
+    private timeout: any; // any 'cause it, for some reason, doesn't work with 'number'
+    private pausedTime: number = null;
 
     constructor() {
         //
@@ -106,6 +109,8 @@ export class MediaPlayer {
         this.audioNode.connect(masterGain);
         this.timingDeltas.length = 0;
         this.lastNudgeTime = null;
+        this.pausedTime = null;
+        this.startTime = null;
     }
 
     loadBuffer(buffer: ArrayBuffer) {
@@ -130,24 +135,52 @@ export class MediaPlayer {
 
     // Offset in seconds: Positive = Start the sound at that time, Negative = Start in the song in -offset seconds
     start(offset: number = 0) {
-        // TODO: Implement offset
+        if (!this.audioElement) {
+            console.error("Cannot start MediaPlayer as it has no media to play.");
+            return;
+        }
 
         this.offset = offset;
         this.startTime = performance.now();
+        this.pausedTime = null;
 
         if (this.offset >= 0) {
             this.audioElement.currentTime = this.offset;
             this.audioElement.play();
         } else {
             // Any inaccuracies in this timeout (+-2ms) will be ironed out by the nudging algorithm in getCurrentTime
-            setTimeout(() => {
+            this.timeout = setTimeout(() => {
                 this.audioElement.play();
             }, this.offset * -1 * 1000);
         }
+
+        this.playing = true;
+    }
+
+    pause() {
+        if (!this.playing) return;
+
+        let time = this.getCurrentTime();
+        
+        clearTimeout(this.timeout);
+        this.audioElement.pause();
+
+        this.playing = false;
+        this.pausedTime = time;
+    }
+
+    unpause() {
+        if (this.pausedTime === null) {
+            console.error("Cannot unpause a MediaPlayer that hasn't been paused.");
+            return;
+        }
+
+        this.start(this.pausedTime);
     }
 
     getCurrentTime() {
         if (this.startTime === null) return 0;
+        if (this.pausedTime !== null) return this.pausedTime;
 
         let now = performance.now();
         let offsetMs = this.offset * 1000;
@@ -165,7 +198,7 @@ export class MediaPlayer {
             if (this.lastNudgeTime === null) this.lastNudgeTime = now;
             if (now - this.lastNudgeTime >= MEDIA_NUDGE_INTERVAL) {
                 let average = MathUtil.getAvgInArray(this.timingDeltas); // Average of last deltas
-                if (Math.abs(average) >= 5) console.warn("High average media playback delta: " + average + " - Nudging offset...");
+                if (Math.abs(average) >= 5) console.warn("High average media playback delta: " + average + "ms - Nudging offset...");
                 this.startTime += average / 2; // Nudge closer towards zero
 
                 this.timingDeltas.length = 0;
@@ -174,6 +207,14 @@ export class MediaPlayer {
         }
 
         return calculated / 1000; // return in seconds
+    }
+
+    isPlaying() {
+        return this.playing;
+    }
+
+    isPaused() {
+        return !this.isPlaying() && this.pausedTime !== undefined;
     }
 }
 
