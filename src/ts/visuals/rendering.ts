@@ -14,12 +14,14 @@ export let renderer = new PIXI.Renderer({
 });
 export let stage = new PIXI.Container();
 
-export let mainHitObjectContainer = new PIXI.Container();
-export let approachCircleContainer = new PIXI.Container();
-
 export function mainRender() {
     renderer.render(stage);
 }
 
+export let mainHitObjectContainer = new PIXI.Container();
+export let approachCircleContainer = new PIXI.Container();
+export let followPointContainer = new PIXI.Container();
+
+stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);

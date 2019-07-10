@@ -3,12 +3,15 @@ import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider } from "./drawable_slider";
 import { mainMusicMediaPlayer } from "../audio/audio";
-import { mainRender } from "../visuals/rendering";
+import { mainRender, followPointContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsDataUrl, readFileAsLocalResourceUrl } from "../util/file_util";
 import { loadMainBackgroundImage } from "../visuals/ui";
+import { DrawableSpinner } from "./drawable_spinner";
+import { pointDistanceSquared } from "../util/point";
+import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint, FOLLOW_POINT_DISTANCE_THRESHOLD } from "./follow_point";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -18,11 +21,14 @@ export class Play {
     public audioStartTime: number;
     public currentHitObjectId: number;
     public onscreenObjects: { [s: string]: DrawableHitObject };
+    public followPoints: FollowPoint[];
     public pixelRatio: number;
     public circleDiameterOsuPx: number;
     public circleDiameter: number;
     public ARMs: number;
     public renderTimes: number[] = [];
+    
+    private currentFollowPointIndex = 0; // is this dirty? idk
 
     constructor(beatmap: Beatmap) {
         this.processedBeatmap = new ProcessedBeatmap(beatmap);
@@ -30,6 +36,7 @@ export class Play {
         this.audioStartTime = null;
         this.currentHitObjectId = 0;
         this.onscreenObjects = {};
+        this.followPoints = [];
 
         this.pixelRatio = null;
         this.circleDiameter = null;
@@ -51,6 +58,25 @@ export class Play {
         console.time("Beatmap draw");
         this.processedBeatmap.draw();
         console.timeEnd("Beatmap draw");
+
+        this.generateFollowPoints();
+    }
+
+    private generateFollowPoints() {
+        for (let i = 1; i < this.processedBeatmap.hitObjects.length; i++) {
+            let objA = this.processedBeatmap.hitObjects[i - 1];
+            let objB = this.processedBeatmap.hitObjects[i];
+
+            // No follow points to spinners!
+            if (objA instanceof DrawableSpinner || objB instanceof DrawableSpinner) continue;
+
+            if (objA.comboInfo.comboNum === objB.comboInfo.comboNum && objA.comboInfo.n !== objB.comboInfo.n) {
+                let distSquared = pointDistanceSquared(objA.endPoint, objB.startPoint);
+
+                if (distSquared < FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED) continue;
+                this.followPoints.push(new FollowPoint(objA, objB));
+            }
+        }
     }
 
     async start() {
@@ -75,7 +101,6 @@ export class Play {
 
     render() {
         let startTime = performance.now();
-
         let currentTime = this.getCurrentSongTime();
 
         for (let id in this.onscreenObjects) {
@@ -103,7 +128,19 @@ export class Play {
     
             hitObject = this.processedBeatmap.hitObjects[++this.currentHitObjectId];
         }
-    
+
+        followPointContainer.removeChildren(); // Families in Syria be like
+        for (let i = this.currentFollowPointIndex; i < this.followPoints.length; i++) {
+            let followPoint = this.followPoints[i];
+            if (currentTime >= followPoint.disappearanceTime) {
+                this.currentFollowPointIndex++;
+                continue;
+            }
+            if (currentTime < followPoint.appearanceTime) break;
+
+            followPoint.render(currentTime);
+        }
+        
         mainRender();
 
         requestAnimationFrame(this.render.bind(this));
