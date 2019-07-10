@@ -4,7 +4,7 @@ const mainContext = mainCanvas.getContext('webgl2', {
     stencil: true,
     alpha: true,
     powerPreference: 'high-performance',
-    desynchronized: true
+    desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 });
 
 export let renderer = new PIXI.Renderer({

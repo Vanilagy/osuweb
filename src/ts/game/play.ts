@@ -7,7 +7,8 @@ import { mainRender } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
-import { readFileAsArrayBuffer } from "../util/file_util";
+import { readFileAsArrayBuffer, readFileAsDataUrl, readFileAsLocalResourceUrl } from "../util/file_util";
+import { loadMainBackgroundImage } from "../visuals/ui";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -57,6 +58,12 @@ export class Play {
         
         let songFile = this.processedBeatmap.beatmap.getAudioFile();
         await mainMusicMediaPlayer.loadBuffer(await readFileAsArrayBuffer(songFile));
+
+        let backgroundImageFile = this.processedBeatmap.beatmap.getBackgroundImageFile();
+        if (backgroundImageFile) {
+            let url = await readFileAsLocalResourceUrl(backgroundImageFile);
+            loadMainBackgroundImage(url);
+        }
 
         let interludeTime = this.processedBeatmap.getInterludeTime();
         mainMusicMediaPlayer.start(-interludeTime / 1000);

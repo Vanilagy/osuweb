@@ -95,6 +95,7 @@ export class Beatmap {
         for (let key in this.events) {
             let evt = this.events[key];
 
+            console.log(evt)
             if (evt.type === "image") {
                 return (evt as BeatmapEventImage).file;
             }

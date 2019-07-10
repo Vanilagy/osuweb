@@ -1,3 +1,5 @@
+import { isOsuBeatmapFile, isAudioFile, isImageFile } from "../util/file_util";
+
 export class BeatmapSet {
     public files: File[];
     public osuFiles: File[] = [];
@@ -8,10 +10,12 @@ export class BeatmapSet {
         this.files = files;
 
         for (let file of this.files) {
-            if (file.name.endsWith('.osu')) {
+            if (isOsuBeatmapFile(file.name)) {
                 this.osuFiles.push(file);
-            } else if (file.name.endsWith('.mp3') /* ADD MORE! */) {
+            } else if (isAudioFile(file.name)) {
                 this.audioFiles.push(file);
+            } else if (isImageFile(file.name)) {
+                this.imgFiles.push(file);
             }
         }
     }
