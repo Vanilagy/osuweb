@@ -4,6 +4,7 @@ import { ComboInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
 import { CIRCLE_BORDER_WIDTH, DRAWING_MODE, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { MathUtil } from "../util/math_util";
+import { PlayEvent } from "./play_events";
 
 export abstract class DrawableHitObject {
     public id: number = 0;
@@ -45,6 +46,8 @@ export abstract class DrawableHitObject {
     abstract update(currentTime: number): void;
 
     abstract remove(): void;
+
+    abstract addPlayEvents(playEventArray: PlayEvent[]): void;
 
     applyStackPosition() {
         this.x += this.stackHeight * -4;

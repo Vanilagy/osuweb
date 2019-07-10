@@ -5,6 +5,7 @@ import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
+import { PlayEvent, PlayEventType } from "./play_events";
 
 export class DrawableCircle extends DrawableHitObject {
     public hitObject: Circle;
@@ -68,5 +69,13 @@ export class DrawableCircle extends DrawableHitObject {
     remove() {
         mainHitObjectContainer.removeChild(this.container);
         approachCircleContainer.removeChild(this.approachCircle);
+    }
+
+    addPlayEvents(playEventArray: PlayEvent[]) {
+        playEventArray.push({
+            type: PlayEventType.HeadHit,
+            hitObject: this,
+            time: this.startTime
+        });
     }
 }

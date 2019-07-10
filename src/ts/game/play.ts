@@ -2,7 +2,7 @@ import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider } from "./drawable_slider";
-import { mainMusicMediaPlayer } from "../audio/audio";
+import { mainMusicMediaPlayer, normalHitSoundEffect } from "../audio/audio";
 import { mainRender, followPointContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
@@ -12,6 +12,7 @@ import { loadMainBackgroundImage } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
 import { pointDistanceSquared } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint, FOLLOW_POINT_DISTANCE_THRESHOLD } from "./follow_point";
+import { PlayEvent, PlayEventType } from "./play_events";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -26,7 +27,9 @@ export class Play {
     public circleDiameterOsuPx: number;
     public circleDiameter: number;
     public ARMs: number;
-    public renderTimes: number[] = [];
+    public frameTimes: number[] = [];
+    public playEvents: PlayEvent[] = [];
+    public currentPlayEvent: number = 0;
     
     private currentFollowPointIndex = 0; // is this dirty? idk
 
@@ -51,13 +54,17 @@ export class Play {
         this.circleDiameterOsuPx = this.processedBeatmap.beatmap.difficulty.getCirclePixelSize();
         this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
 
-        console.time("Beatmap init");
+        console.time("Beatmap process");
         this.processedBeatmap.init();
-        console.timeEnd("Beatmap init");
+        console.timeEnd("Beatmap process");
 
         console.time("Beatmap draw");
         this.processedBeatmap.draw();
         console.timeEnd("Beatmap draw");
+
+        console.time("Play event generation");
+        this.playEvents = this.processedBeatmap.getAllPlayEvents();
+        console.timeEnd("Play event generation");
 
         this.generateFollowPoints();
     }
@@ -97,6 +104,7 @@ export class Play {
         console.timeEnd("Audio load");
 
         this.render();
+        this.gameLoop();
     }
 
     render() {
@@ -140,28 +148,45 @@ export class Play {
 
             followPoint.render(currentTime);
         }
-        
+
         mainRender();
 
         requestAnimationFrame(this.render.bind(this));
 
         let elapsedTime = performance.now() - startTime;
-        this.renderTimes.push(elapsedTime);
+        this.frameTimes.push(elapsedTime);
 
-        if (this.renderTimes.length >= LOG_RENDER_INFO_SAMPLE_SIZE) {
+        if (this.frameTimes.length >= LOG_RENDER_INFO_SAMPLE_SIZE) {
             let min = Infinity, max = 0, total = 0;
 
-            for (let time of this.renderTimes) {
+            for (let time of this.frameTimes) {
                 total += time;
                 if (time < min) min = time;
                 if (time > max) max = time;
             }
 
-            let avg = total / this.renderTimes.length;
+            let avg = total / this.frameTimes.length;
             console.log(`Frame time info: Average: ${avg.toFixed(3)}ms, Best: ${min.toFixed(3)}ms, Worst: ${max.toFixed(3)}ms`);
 
-            this.renderTimes.length = 0;
+            this.frameTimes.length = 0;
         }
+    }
+
+    gameLoop() {
+        let currentTime = this.getCurrentSongTime();
+
+        for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
+            let playEvent = this.playEvents[this.currentPlayEvent];
+            if (playEvent.time > currentTime) break;
+
+            switch (playEvent.type) {
+                case PlayEventType.HeadHit: {
+                    normalHitSoundEffect.start();
+                }; break;
+            }
+        }
+
+        setTimeout(this.gameLoop.bind(this), 0);
     }
 
     getCurrentSongTime() {

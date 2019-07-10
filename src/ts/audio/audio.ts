@@ -1,7 +1,9 @@
 import { MathUtil } from "../util/math_util";
+import { fetchAsArrayBuffer } from "../util/network_util";
 
 const DEFAULT_MASTER_GAIN_VALUME = 0.05;
 const MEDIA_NUDGE_INTERVAL = 500; // In ms
+const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
 
 export let audioContext = new AudioContext();
 
@@ -15,8 +17,14 @@ interface SoundEmitterOptions {
     playbackRate?: number
 }
 
+export function getAudioBuffer(arrayBuffer: ArrayBuffer) {
+    return new Promise<AudioBuffer>((resolve) => {
+        audioContext.decodeAudioData(arrayBuffer, (audioBuffer) => resolve(audioBuffer));
+    });
+}
+
 export class SoundEmitter {
-    private volume: number; // !???!
+    private volume: number = 1; // !???!
     private playbackRate: number = 1;
     private sourceNode: AudioBufferSourceNode = null;
     private gainNode: GainNode;
@@ -25,8 +33,6 @@ export class SoundEmitter {
     private offset: number = 0;
 
     constructor(options: SoundEmitterOptions = {}) {
-        throw new Error("I am broken. Don't instanciate me!");
-
         if (options.buffer) this.setBuffer(options.buffer);
         if (options.volume) this.volume = options.volume;
         if (options.playbackRate) this.playbackRate = options.playbackRate;
@@ -34,7 +40,7 @@ export class SoundEmitter {
         this.gainNode = audioContext.createGain();
         this.setVolume(this.volume);
 
-        this.gainNode.connect(audioContext.destination);
+        this.gainNode.connect(masterGain);
     }
 
     setVolume(newVolume: number) {
@@ -56,6 +62,7 @@ export class SoundEmitter {
         this.sourceNode.connect(this.gainNode);
     }
 
+    // offset in seconds
     start(offset: number = 0) {
         if (this.buffer === null) {
             console.error("Cannot start a SoundEmitter that's lacking a buffer.");
@@ -69,11 +76,13 @@ export class SoundEmitter {
         this.createSourceNode();
 
         let delay = 0;
-        if (offset < 0) delay = offset * -1;
+        if (offset < 0) {
+            delay = offset * -1;
+        }
 
         this.offset = offset;
 
-        this.sourceNode.start(delay, offset);
+        this.sourceNode.start(audioContext.currentTime + delay, (offset < 0)? 0: offset);
         this.audioStartTime = audioContext.currentTime;
     }
 
@@ -94,9 +103,19 @@ export class MediaPlayer {
     private playing: boolean = false;
     private timeout: any; // any 'cause it, for some reason, doesn't work with 'number'
     private pausedTime: number = null;
+    private volume: number = 1;
+    private gainNode: GainNode;
 
     constructor() {
-        //
+        this.gainNode = audioContext.createGain();
+        this.setVolume(this.volume);
+
+        this.gainNode.connect(masterGain);
+    }
+
+    setVolume(newVolume: number) {
+        this.volume = newVolume;
+        this.gainNode.gain.value = this.volume;
     }
 
     private resetAudioElement() {
@@ -106,7 +125,7 @@ export class MediaPlayer {
 
         this.audioElement = new Audio();
         this.audioNode = audioContext.createMediaElementSource(this.audioElement);
-        this.audioNode.connect(masterGain);
+        this.audioNode.connect(this.gainNode);
         this.timingDeltas.length = 0;
         this.lastNudgeTime = null;
         this.pausedTime = null;
@@ -206,7 +225,7 @@ export class MediaPlayer {
             }
         }
 
-        return calculated / 1000; // return in seconds
+        return (calculated - OBSERVED_AUDIO_MEDIA_OFFSET) / 1000; // return in seconds
     }
 
     isPlaying() {
@@ -219,3 +238,12 @@ export class MediaPlayer {
 }
 
 export let mainMusicMediaPlayer = new MediaPlayer();
+
+export let normalHitSoundEffect = new SoundEmitter();
+normalHitSoundEffect.setVolume(0.25);
+
+async function initHitSound() {
+    let buffer = await fetchAsArrayBuffer('./assets/sound/normal-hitnormal.wav');
+    normalHitSoundEffect.setBuffer(await getAudioBuffer(buffer));    
+}
+initHitSound();

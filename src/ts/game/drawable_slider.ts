@@ -10,6 +10,7 @@ import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
+import { PlayEvent, PlayEventType } from "./play_events";
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -210,6 +211,19 @@ export class DrawableSlider extends DrawableHitObject {
         this.reverseArrow.destroy();
         this.sliderBall.destroy();
         this.sliderTickGraphics.destroy();
+    }
+
+    addPlayEvents(playEventArray: PlayEvent[]) {
+        playEventArray.push({
+            type: PlayEventType.HeadHit,
+            hitObject: this,
+            time: this.startTime
+        });
+        playEventArray.push({
+            type: PlayEventType.HeadHit,
+            hitObject: this,
+            time: this.endTime
+        });
     }
 
     getPosFromPercentage(percent: number) : Point {

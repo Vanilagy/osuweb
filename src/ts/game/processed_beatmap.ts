@@ -7,6 +7,7 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { DrawableSpinner } from "./drawable_spinner";
 import { MathUtil } from "../util/math_util";
 import { Color } from "../util/graphics_util";
+import { PlayEvent } from "./play_events";
 
 const MINIMUM_REQUIRED_INTERLUDE_TIME = 1500; // In milliseconds
 
@@ -250,5 +251,17 @@ export class ProcessedBeatmap {
         }
 
         return interludeTime;
+    }
+    
+    getAllPlayEvents(): PlayEvent[] {
+        let events: PlayEvent[] = [];
+
+        for (let hitObject of this.hitObjects) {
+            hitObject.addPlayEvents(events);
+        }
+
+        events.sort((a, b) => a.time - b.time); // Sort by time, ascending
+
+        return events;
     }
 }
