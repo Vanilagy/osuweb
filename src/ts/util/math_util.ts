@@ -98,8 +98,7 @@ export class MathUtil {
     static distance(p1: Point, p2: Point) {
 	    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
     }
-    static getRandomInt(min: number, max: number)
-    {
+    static getRandomInt(min: number, max: number) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
     static getNormalizedAngleDelta(alpha: number, beta: number) {
@@ -111,12 +110,16 @@ export class MathUtil {
         }
         return difference;
     }
-    static getAvg(array: number[]) {
-        let total = 0, len = array.length;
-        for (let i = 0; i < len; i++) {
+    // start: inclusive, end: exclusive
+    static getAvgInArray(array: number[], start: number = 0, end?: number) {
+        if (end === undefined) end = array.length;
+
+        let total = 0;
+        for (let i = start; i < end; i++) {
             total += array[i];
         }
-        return total / len;
+        
+        return total / (end - start);
     }
     static clamp(val: number, min: number, max: number) {
 	    if (val < min) {

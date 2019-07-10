@@ -1,3 +1,5 @@
+import { MathUtil } from "../util/math_util";
+
 const DEFAULT_MASTER_GAIN_VALUME = 0.05;
 
 export let audioContext = new AudioContext();
@@ -85,6 +87,7 @@ export class MediaPlayer {
     private audioNode: MediaElementAudioSourceNode;
     private currentUrl: string = null;
     private startTime: number = null;
+    private timingDeltas: number[] = [];
 
     constructor() {
         //
@@ -98,6 +101,7 @@ export class MediaPlayer {
         this.audioElement = new Audio();
         this.audioNode = audioContext.createMediaElementSource(this.audioElement);
         this.audioNode.connect(masterGain);
+        this.timingDeltas.length = 0;
     }
 
     loadBuffer(buffer: ArrayBuffer) {
@@ -133,7 +137,17 @@ export class MediaPlayer {
         let calculated = (performance.now() - this.startTime);
         let actual = this.audioElement.currentTime * 1000;
         let delta = calculated - actual;
-        if (delta >= 10) console.warn("Media playback delta kinda big: " + delta);
+        this.timingDeltas.push(delta);
+
+        if (this.timingDeltas.length % 30 === 0 && this.timingDeltas.length > 0) {
+            let average = MathUtil.getAvgInArray(this.timingDeltas, this.timingDeltas.length - 30); // Average of last 30 deltas
+            if (Math.abs(average) >= 5) console.warn("High average media playback delta: " + average + " - Nudging offset...");
+            this.startTime += average / 2; // Nudge closer towards zero
+
+            this.timingDeltas.length = 0;
+        }
+
+        //if (delta >= 10) console.warn("Media playback delta kinda big: " + delta);
 
         return calculated / 1000; // return in seconds
     }
