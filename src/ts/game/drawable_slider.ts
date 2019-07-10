@@ -44,8 +44,10 @@ export class DrawableSlider extends DrawableHitObject {
     public sliderTickCompletions: number[];
 
     constructor(hitObject: Slider) {
-        super(hitObject);
+        super(hitObject);        
+    }
 
+    init() {
         this.reductionFactor = 0.92;
         this.curve = null;
         this.complete = true;
@@ -55,18 +57,11 @@ export class DrawableSlider extends DrawableHitObject {
         this.approachCircle = null;
         this.overlayContainer = new PIXI.Container();
 
-        this.init();
+        this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
 
-        // this.endTime will be defined in Play
+        this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
+        this.renderEndTime = this.endTime + HIT_OBJECT_FADE_OUT_TIME;
 
-        if (this.hitObject.repeat % 2 === 0) {
-            this.endPoint = this.startPoint;
-        } else {
-            this.endPoint = this.getPosFromPercentage(1) as Point;
-        }
-    }
-
-    init() {
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
         } else if (this.hitObject.sections[0].type === "passthrough") {
@@ -75,6 +70,12 @@ export class DrawableSlider extends DrawableHitObject {
             (<SliderCurvePassthrough>this.curve).calculateValues(false);
         } else {
             this.curve = new SliderCurveBezier(this, false);
+        }
+
+        if (this.hitObject.repeat % 2 === 0) {
+            this.endPoint = this.startPoint;
+        } else {
+            this.endPoint = this.getPosFromPercentage(1) as Point;
         }
     }
 
@@ -248,8 +249,11 @@ export class DrawableSlider extends DrawableHitObject {
                 x: this.curve.centerPos.x + this.curve.radius * Math.cos(angle),
                 y: this.curve.centerPos.y + this.curve.radius * Math.sin(angle)
             };
+        } else if (this.curve instanceof SliderCurveEmpty) {
+            // TODO
+            console.warn("Tried to access position from empty slider curve. Empty. Slider. Curve. What's that?");
         } else {
-            console.warn("Tried to access position from empty slider. Empty. Slider. What's that?");
+            throw new Error("Tried to get position on non-existing slider curve.");
         }
     }
 

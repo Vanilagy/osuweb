@@ -12,12 +12,17 @@ export class DrawableCircle extends DrawableHitObject {
 
     constructor(hitObject: Circle) {
         super(hitObject);
-        
+    }
+
+    init() {
+        this.endTime = this.startTime;
         this.endPoint = {
             x: this.hitObject.x,
             y: this.hitObject.y
         };
-        this.endTime = this.hitObject.time;
+
+        this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
+        this.renderEndTime = this.endTime + HIT_OBJECT_FADE_OUT_TIME;
     }
 
     draw() {

@@ -4,6 +4,8 @@ import { PlayEvent } from "./play_events";
 export class DrawableSpinner extends DrawableHitObject {
     // TODO
 
+    init() {}
+
     draw() {}
 
     show(currentTime: number) {}

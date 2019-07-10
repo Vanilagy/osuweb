@@ -112,7 +112,6 @@ export class ProcessedBeatmap {
                     sliderVelocity: sliderVelocityInOsuPixelsPerMillisecond
                 };
 
-                newObject.endTime = rawHitObject.time + rawHitObject.repeat * rawHitObject.length / timingInfo.sliderVelocity;
                 newObject.timingInfo = timingInfo;
 
                 let sliderTickCompletions = [];
@@ -129,6 +128,7 @@ export class ProcessedBeatmap {
             if (newObject !== null) {
                 newObject.id = hitObjectId;
                 newObject.comboInfo = comboInfo;
+                newObject.init();
 
                 this.hitObjects.push(newObject);
             }

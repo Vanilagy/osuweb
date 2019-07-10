@@ -22,6 +22,10 @@ export abstract class DrawableHitObject {
     public startTime: number;
     public endTime: number;
 
+    // Specify the timeframe is which the object is visible and needs to be rendered.
+    public renderStartTime: number;
+    public renderEndTime: number;
+
     constructor(hitObject: HitObject) {
         this.hitObject = hitObject;
         this.container = new PIXI.Container();
@@ -36,6 +40,8 @@ export abstract class DrawableHitObject {
         this.x = this.hitObject.x;
         this.y = this.hitObject.y;
     }
+
+    abstract init(): void;
 
     abstract draw(): void;
 

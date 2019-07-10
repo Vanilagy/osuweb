@@ -111,32 +111,30 @@ export class Play {
         let startTime = performance.now();
         let currentTime = this.getCurrentSongTime();
 
+        // Update hit objects on screen, or remove them if necessary
         for (let id in this.onscreenObjects) {
             let hitObject = this.onscreenObjects[id];
-    
-            hitObject.update(currentTime);
 
-            if (hitObject instanceof DrawableCircle) {
-                if (currentTime >= hitObject.startTime + HIT_OBJECT_FADE_OUT_TIME) {
-                    hitObject.remove(); 
-                    delete this.onscreenObjects[id];
-                }
-            } else if (hitObject instanceof DrawableSlider) {
-                if (currentTime >= hitObject.endTime + HIT_OBJECT_FADE_OUT_TIME) {
-                    hitObject.remove();
-                    delete this.onscreenObjects[id];
-                }
-            }        
-        }
+            if (currentTime >= hitObject.renderEndTime) {
+                hitObject.remove();
+                delete this.onscreenObjects[id];
+
+                continue;
+            }
     
-        let hitObject = this.processedBeatmap.hitObjects[this.currentHitObjectId];
-        while (hitObject && currentTime >= hitObject.startTime - this.ARMs) {
+            hitObject.update(currentTime);      
+        }
+
+        // Add new hit objects to screen
+        for (this.currentHitObjectId; this.currentHitObjectId < this.processedBeatmap.hitObjects.length; this.currentHitObjectId++) {
+            let hitObject = this.processedBeatmap.hitObjects[this.currentHitObjectId];
+            if (currentTime < hitObject.renderStartTime) break;
+
             this.onscreenObjects[this.currentHitObjectId] = hitObject;
             hitObject.show(currentTime);
-    
-            hitObject = this.processedBeatmap.hitObjects[++this.currentHitObjectId];
         }
 
+        // Render follow points
         followPointContainer.removeChildren(); // Families in Syria be like
         for (let i = this.currentFollowPointIndex; i < this.followPoints.length; i++) {
             let followPoint = this.followPoints[i];
@@ -149,10 +147,12 @@ export class Play {
             followPoint.render(currentTime);
         }
 
+        // Let PIXI draw it all to the canvas
         mainRender();
 
         requestAnimationFrame(this.render.bind(this));
 
+        // Frame time logger:
         let elapsedTime = performance.now() - startTime;
         this.frameTimes.push(elapsedTime);
 
