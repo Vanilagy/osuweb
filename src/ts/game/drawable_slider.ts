@@ -224,6 +224,18 @@ export class DrawableSlider extends DrawableHitObject {
             hitObject: this,
             time: this.endTime
         });
+
+        if (this.hitObject.repeat > 1) {
+            let repeatCycleDuration = (this.endTime - this.startTime) / this.hitObject.repeat;
+
+            for (let i = 1; i < this.hitObject.repeat; i++) {
+                playEventArray.push({
+                    type: PlayEventType.HeadHit,
+                    hitObject: this,
+                    time: this.startTime + i * repeatCycleDuration
+                });
+            }
+        }
     }
 
     getPosFromPercentage(percent: number) : Point {
