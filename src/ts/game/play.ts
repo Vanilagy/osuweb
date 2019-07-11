@@ -174,7 +174,7 @@ export class Play {
 
     gameLoop() {
         let currentTime = this.getCurrentSongTime();
-
+        
         for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
             let playEvent = this.playEvents[this.currentPlayEvent];
             if (playEvent.time > currentTime) break;

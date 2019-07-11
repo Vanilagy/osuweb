@@ -287,12 +287,12 @@ export class DrawableSlider extends DrawableHitObject {
         completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length;
         completion = MathUtil.clamp(completion, 0, this.hitObject.repeat);
 
-        this.renderSliderBall(completion, currentTime);
+        this.renderSliderBall(completion, currentTime, currentSliderTime);
         this.renderReverseArrow(completion);
         if (this.sliderTickCompletions.length > 0) this.renderSliderTicks(completion, currentSliderTime);
     }
 
-    private renderSliderBall(completion: number, currentTime: number) {
+    private renderSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
         if (completion === 0) return;
 
         let sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
@@ -313,6 +313,23 @@ export class DrawableSlider extends DrawableHitObject {
         let followCircleSizeFactor = 1; // Base
         followCircleSizeFactor += 1 * MathUtil.clamp((currentTime - this.startTime) / 100, 0, 1); // Enlarge on start
         followCircleSizeFactor += -0.333 * MathUtil.clamp((currentTime - this.endTime) / 100, 0, 1); // Shrink on end
+
+        let biggestCurrentTickCompletion = null;
+        for (let c of this.sliderTickCompletions) {
+            if (c > completion) break;
+            biggestCurrentTickCompletion = c;
+        }
+
+        if (biggestCurrentTickCompletion !== null) {
+            // Time of the slider tick relative to the slider start time
+            let tickTime = biggestCurrentTickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+
+            let pulseFactor = (currentSliderTime - tickTime) / 150;
+            pulseFactor = 1 - MathUtil.clamp(pulseFactor, 0, 1);
+            pulseFactor *= 0.15;
+
+            followCircleSizeFactor += pulseFactor;
+        }
 
         //let followCircleSizeFactor = (
         //    /* base */ 1

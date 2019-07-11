@@ -2,7 +2,7 @@ import { MathUtil } from "../util/math_util";
 import { fetchAsArrayBuffer } from "../util/network_util";
 
 const DEFAULT_MASTER_GAIN_VALUME = 0.05;
-const MEDIA_NUDGE_INTERVAL = 500; // In ms
+const MEDIA_NUDGE_INTERVAL = 333; // In ms
 const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
 
 export let audioContext = new AudioContext();
