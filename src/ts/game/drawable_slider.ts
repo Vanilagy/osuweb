@@ -18,6 +18,14 @@ export interface SliderTimingInfo {
     sliderVelocity: number
 }
 
+// Keeps track of what the player has successfully hit
+interface SliderScoringData {
+    head: boolean,
+    ticks: number,
+    repeats: number,
+    end: boolean
+}
+
 export class DrawableSlider extends DrawableHitObject {
     public headSprite: PIXI.Sprite;
     public baseSprite: PIXI.Sprite;
@@ -42,9 +50,10 @@ export class DrawableSlider extends DrawableHitObject {
     public stackHeight: number;
     public hitObject: Slider;
     public sliderTickCompletions: number[];
+    public scoring: SliderScoringData;
 
     constructor(hitObject: Slider) {
-        super(hitObject);        
+        super(hitObject);
     }
 
     init() {
@@ -77,6 +86,13 @@ export class DrawableSlider extends DrawableHitObject {
         } else {
             this.endPoint = this.getPosFromPercentage(1) as Point;
         }
+
+        this.scoring = {
+            head: false,
+            ticks: 0,
+            repeats: 0,
+            end: false
+        };
     }
 
     toCtxCoord(pos: Point): Point {
@@ -216,12 +232,12 @@ export class DrawableSlider extends DrawableHitObject {
 
     addPlayEvents(playEventArray: PlayEvent[]) {
         playEventArray.push({
-            type: PlayEventType.HeadHit,
+            type: PlayEventType.SliderHead,
             hitObject: this,
             time: this.startTime
         });
         playEventArray.push({
-            type: PlayEventType.HeadHit,
+            type: PlayEventType.SliderEnd,
             hitObject: this,
             time: this.endTime
         });
@@ -231,12 +247,45 @@ export class DrawableSlider extends DrawableHitObject {
 
             for (let i = 1; i < this.hitObject.repeat; i++) {
                 playEventArray.push({
-                    type: PlayEventType.HeadHit,
+                    type: PlayEventType.SliderRepeat,
                     hitObject: this,
                     time: this.startTime + i * repeatCycleDuration
                 });
             }
         }
+
+        for (let tickCompletion of this.sliderTickCompletions) {
+            // Time that the tick should be hit, relative to the slider start time
+            let time = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+
+            playEventArray.push({
+                type: PlayEventType.SliderTick,
+                hitObject: this,
+                time: this.startTime + time
+            });
+        }
+    }
+
+    score() {
+        let total = 0;
+        if (this.scoring.head) total++;
+        if (this.scoring.end) total++;
+        total += this.scoring.ticks;
+        total += this.scoring.repeats;
+
+        let fraction = total / (2 + this.sliderTickCompletions.length + (this.hitObject.repeat - 1));
+        let resultingRawScore = (() => {
+            if (fraction === 1) {
+                return 300;
+            } else if (fraction >= 0.5) {
+                return 100;
+            } else if (fraction > 0) {
+                return 50;
+            }
+            return 0;
+        })();
+
+        gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false);
     }
 
     getPosFromPercentage(percent: number) : Point {

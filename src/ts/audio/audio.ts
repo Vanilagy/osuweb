@@ -204,7 +204,7 @@ export class MediaPlayer {
         let now = performance.now();
         let offsetMs = this.offset * 1000;
 
-        let calculated = now - this.startTime + offsetMs;
+        let calculated = (now - this.startTime + offsetMs);   
         let actual = this.audioElement.currentTime * 1000;
 
         // Only do this if the audio element has started playing, which, when its currentTime is 0, is likely not the case.

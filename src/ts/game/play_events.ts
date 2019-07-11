@@ -1,7 +1,11 @@
 import { DrawableHitObject } from "./drawable_hit_object";
 
 export enum PlayEventType {
-    HeadHit
+    HeadHit,
+    SliderHead,
+    SliderTick,
+    SliderRepeat,
+    SliderEnd
 }
 
 export interface PlayEvent {

@@ -189,6 +189,39 @@ export class Play {
             switch (playEvent.type) {
                 case PlayEventType.HeadHit: {
                     this.scoreCounter.add(300);
+
+                    normalHitSoundEffect.start();
+                }; break;
+                case PlayEventType.SliderHead: {
+                    let hitObject = playEvent.hitObject as DrawableSlider;
+
+                    this.scoreCounter.add(30, true);
+                    hitObject.scoring.head = true;
+
+                    normalHitSoundEffect.start();
+                }; break;
+                case PlayEventType.SliderTick: {
+                    let hitObject = playEvent.hitObject as DrawableSlider;
+
+                    this.scoreCounter.add(10, true);
+                    hitObject.scoring.ticks++;
+                }; break;
+                case PlayEventType.SliderRepeat: {
+                    let hitObject = playEvent.hitObject as DrawableSlider;
+
+                    // TODO: How much do they count?
+                    this.scoreCounter.add(30, true);
+                    hitObject.scoring.repeats++;
+
+                    normalHitSoundEffect.start();
+                }; break;
+                case PlayEventType.SliderEnd: {
+                    let hitObject = playEvent.hitObject as DrawableSlider;
+
+                    this.scoreCounter.add(30, true);
+                    hitObject.scoring.end = true;
+                    hitObject.score();
+
                     normalHitSoundEffect.start();
                 }; break;
             }

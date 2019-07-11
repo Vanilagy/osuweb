@@ -115,13 +115,31 @@ export class ProcessedBeatmap {
                 newObject.timingInfo = timingInfo;
 
                 let sliderTickCompletions = [];
-                for (let tickCompletion = 0; tickCompletion < rawHitObject.repeat; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.beatmap.difficulty.TR)) / rawHitObject.length) {
+                // Only go to completion 1, because the slider tick locations are determined solely by the first repeat cycle. In all cycles after that, they stay in the exact same place. Example: If my slider is:
+                // O----T----T-O
+                // where O represents the ends, and T is a slider tick, then repeating that slider does NOT change the position of the Ts. It follows that slider ticks don't always "tick" in constant time intervals.
+                for (let tickCompletion = 0; tickCompletion < 1; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.beatmap.difficulty.TR)) / rawHitObject.length) {
                     let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
 
                     if (t > 0 && t < 1) {
                         sliderTickCompletions.push(tickCompletion);
                     }
                 }
+                
+                // Weird implementation. Can probably be done much easier-ly. This handles the "going back and forth but keep the ticks in the same location" thing. TODO.
+                let len = sliderTickCompletions.length;
+                for (let i = 1; i < newObject.hitObject.repeat; i++) {
+                    if (i % 2 === 0) {
+                        for (let j = 0; j < len; j++) {
+                            sliderTickCompletions.push(i + sliderTickCompletions[j]);
+                        }
+                    } else {
+                        for (let j = len-1; j >= 0; j--) {
+                            sliderTickCompletions.push(i + sliderTickCompletions[j]);
+                        }
+                    }
+                }
+
                 newObject.sliderTickCompletions = sliderTickCompletions;
             }
 

@@ -48,14 +48,15 @@ export class ScoreCounter {
         this.modMultiplier = 1;
     }
 
-    add(rawAmount: number) {
+    // A raw amount of zero means miss
+    add(rawAmount: number, raw: boolean = false, increaseCombo: boolean = true) {
         let gain = rawAmount;
-        gain *= 1 + MathUtil.clamp(this.currentCombo - 1, 0, Infinity) * this.difficultyMultiplier * this.modMultiplier / 25;
+        if (!raw) gain *= 1 + MathUtil.clamp(this.currentCombo - 1, 0, Infinity) * this.difficultyMultiplier * this.modMultiplier / 25;
         gain = Math.floor(gain);
 
         this.score.points += gain;
 
-        this.currentCombo++;
+        if (increaseCombo) this.currentCombo++;
 
         someShit.setGoal(this.score.points);
     }
@@ -69,6 +70,6 @@ export class ScoreCounter {
 
 let someShit = new InterpolatedCounter({
     initial: 0,
-    duration: 333,
+    duration: 0, // temp
     ease: 'easeOutQuad'
 });
