@@ -21,7 +21,9 @@ export function mainRender() {
 export let mainHitObjectContainer = new PIXI.Container();
 export let approachCircleContainer = new PIXI.Container();
 export let followPointContainer = new PIXI.Container();
+export let hudContainer = new PIXI.Container();
 
 stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
+stage.addChild(hudContainer);

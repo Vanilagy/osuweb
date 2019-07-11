@@ -1,3 +1,8 @@
+@font-face {
+    font-family: "Bitmap";
+    src: url("../assets/fonts/VCR_OSD_MONO_1.001.ttf");
+}
+
 html, body {
     margin: 0;
     width: 100%;

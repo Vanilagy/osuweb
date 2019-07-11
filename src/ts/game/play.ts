@@ -13,6 +13,8 @@ import { DrawableSpinner } from "./drawable_spinner";
 import { pointDistanceSquared } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint, FOLLOW_POINT_DISTANCE_THRESHOLD } from "./follow_point";
 import { PlayEvent, PlayEventType } from "./play_events";
+import "./hud";
+import { ScoreCounter, Score } from "./score";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -30,11 +32,13 @@ export class Play {
     public frameTimes: number[] = [];
     public playEvents: PlayEvent[] = [];
     public currentPlayEvent: number = 0;
+    public scoreCounter: ScoreCounter;
     
     private currentFollowPointIndex = 0; // is this dirty? idk
 
     constructor(beatmap: Beatmap) {
         this.processedBeatmap = new ProcessedBeatmap(beatmap);
+        this.scoreCounter = new ScoreCounter(this.processedBeatmap);
 
         this.audioStartTime = null;
         this.currentHitObjectId = 0;
@@ -147,6 +151,9 @@ export class Play {
             followPoint.render(currentTime);
         }
 
+        // Update the score display
+        this.scoreCounter.updateDisplay();
+
         // Let PIXI draw it all to the canvas
         mainRender();
 
@@ -181,6 +188,7 @@ export class Play {
 
             switch (playEvent.type) {
                 case PlayEventType.HeadHit: {
+                    this.scoreCounter.add(300);
                     normalHitSoundEffect.start();
                 }; break;
             }

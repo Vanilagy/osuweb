@@ -300,4 +300,20 @@ export class Beatmap {
 
         return null;
     }
+
+    calculateDifficultyMultiplier() {
+        let difficultyPoints = Math.floor(this.difficulty.CS) + Math.floor(this.difficulty.HP) + Math.floor(this.difficulty.OD);
+
+        if (difficultyPoints <= 5) {
+            return 2;
+        } else if (difficultyPoints <= 12) {
+            return 3;
+        } else if (difficultyPoints <= 17) {
+            return 4;
+        } else if (difficultyPoints <= 24) {
+            return 5;
+        } else {
+            return 6;
+        }
+    }
 }

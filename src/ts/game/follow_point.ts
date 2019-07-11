@@ -4,10 +4,10 @@ import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
 import { followPointContainer } from "../visuals/rendering";
 
-export const POINT_DISTANCE = 32;
-export const FOLLOW_POINT_DISTANCE_THRESHOLD = POINT_DISTANCE * 3; // The minimum distance, in osu!pixels, that two objects need to be away from each other in order to create a follow point between them.
+export const POINT_DISTANCE = 32; // Taken from ppy, this **probably** means how many osu!pixels follow point images are apart.
+export const FOLLOW_POINT_DISTANCE_THRESHOLD = POINT_DISTANCE * 3; // The minimum distance, in osu!pixels, that two objects need to be away from each other in order to create a follow point between them. In regular osu! terms, three follow point images.
 export const FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED = FOLLOW_POINT_DISTANCE_THRESHOLD ** 2;
-export const PRE_EMPT = 450;
+export const PRE_EMPT = 450; // In ms
 
 export class FollowPoint {
     public hitObjectA: DrawableHitObject;
@@ -49,29 +49,23 @@ export class FollowPoint {
 
         let renderStart = MathUtil.clamp(relTime / duration, 0, 1);
         let renderEnd = MathUtil.clamp((relTime + PRE_EMPT) / duration, 0, 1);
+        let currentPlay = gameState.currentPlay;
 
-        if (true /* ?!?!??!? */) {
-            let currentPlay = gameState.currentPlay;
+        // Lerp
+        let p1: Point = {
+            x: this.startPoint.x * (1 - renderStart) + this.endPoint.x * renderStart,
+            y: this.startPoint.y * (1 - renderStart) + this.endPoint.y * renderStart
+        };
+        let p2: Point = {
+            x: this.startPoint.x * (1 - renderEnd) + this.endPoint.x * renderEnd,
+            y: this.startPoint.y * (1 - renderEnd) + this.endPoint.y * renderEnd
+        };
 
-            let renderStartX = renderStart * this.length;
-            let renderEndX = renderEnd * this.length;
+        let line = new PIXI.Graphics();
+        line.lineStyle(this.height, 0xFFFFFF, 0.8);
+        line.moveTo(currentPlay.toScreenCoordinatesX(p1.x), currentPlay.toScreenCoordinatesY(p1.y));
+        line.lineTo(currentPlay.toScreenCoordinatesX(p2.x), currentPlay.toScreenCoordinatesY(p2.y));
 
-            // Lerp
-            let p1: Point = {
-                x: this.startPoint.x * (1 - renderStart) + this.endPoint.x * renderStart,
-                y: this.startPoint.y * (1 - renderStart) + this.endPoint.y * renderStart
-            };
-            let p2: Point = {
-                x: this.startPoint.x * (1 - renderEnd) + this.endPoint.x * renderEnd,
-                y: this.startPoint.y * (1 - renderEnd) + this.endPoint.y * renderEnd
-            };
-
-            let line = new PIXI.Graphics();
-            line.lineStyle(this.height, 0xFFFFFF, 0.8);
-            line.moveTo(currentPlay.toScreenCoordinatesX(p1.x), currentPlay.toScreenCoordinatesY(p1.y));
-            line.lineTo(currentPlay.toScreenCoordinatesX(p2.x), currentPlay.toScreenCoordinatesY(p2.y));
-
-            followPointContainer.addChild(line);
-        }
+        followPointContainer.addChild(line);
     }
 }
