@@ -11,3 +11,11 @@ export function padNumberWithZeroes(num: number, zeroes: number) {
 
     return "0000000000000000000000000000".slice(0, neededZeroes) + str;
 }
+
+export function toPercentageString(num: number, decimals?: number) {
+    if (decimals === undefined) {
+        return (num * 100) + '%';
+    } else {
+        return (num * 100).toFixed(decimals) + '%'
+    }
+}

@@ -1,4 +1,4 @@
-import { MathUtil } from "./math_util";
+import { MathUtil, EaseType } from "./math_util";
 
 export interface Color {
     r: number, // 0-255
@@ -11,25 +11,34 @@ export function colorToHexNumber(color: Color) {
     return color.r * 0x10000 + color.g * 0x100 + color.b * 0x1;
 }
 
+type InterpolatedCounterDurationCallback = (distanceToGoal: number) => number;
+
 interface InterpolatedCounterOptions {
     initial: number,
-    duration: number, // In ms
-    ease: string
+    duration: number | InterpolatedCounterDurationCallback, // In ms
+    ease: EaseType
 }
 
 // For animating numbers going from x to y
 export class InterpolatedCounter {
+    private options: InterpolatedCounterOptions;
     private start: number;
     private end: number;
-    public duration: number;
-    public ease: string;
+    public ease: EaseType;
+    private duration: number;
     private startTime: number = -Infinity;
 
     constructor(options: InterpolatedCounterOptions) {
+        this.options = options;
         this.start = options.initial;
         this.end = this.start;
-        this.duration = options.duration;
+        this.duration = this.getDuration();
         this.ease = options.ease;
+    }
+
+    getDuration() {
+        if (typeof this.options.duration === 'number') return this.options.duration;
+        else return this.options.duration(this.end - this.start);
     }
 
     getCurrentValue() {
@@ -45,6 +54,7 @@ export class InterpolatedCounter {
         this.start = current;
         this.end = goal;
         this.startTime = performance.now();
+        this.duration = this.getDuration();
     }
 
     reset(to: number) {

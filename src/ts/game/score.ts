@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
-import { MathUtil } from "../util/math_util";
-import { scoreDisplay, comboDisplay } from "./hud";
-import { padNumberWithZeroes } from "../util/misc_util";
+import { MathUtil, EaseType } from "../util/math_util";
+import { scoreDisplay, comboDisplay, accuracyDisplay } from "./hud";
+import { padNumberWithZeroes, toPercentageString } from "../util/misc_util";
 import { InterpolatedCounter } from "../util/graphics_util";
 
 export class Score {
@@ -49,7 +49,12 @@ export class ScoreCounter {
     }
 
     // A raw amount of zero means miss
-    add(rawAmount: number, raw: boolean = false, increaseCombo: boolean = true) {
+    add(rawAmount: number, raw: boolean = false, increaseCombo: boolean = true, affectAccuracy: boolean = true) {
+        if (affectAccuracy) {
+            this.totalNumberOfHits++;
+            this.totalValueOfHits += rawAmount;
+        }        
+
         let gain = rawAmount;
         if (!raw) gain *= 1 + MathUtil.clamp(this.currentCombo - 1, 0, Infinity) * this.difficultyMultiplier * this.modMultiplier / 25;
         gain = Math.floor(gain);
@@ -58,18 +63,35 @@ export class ScoreCounter {
 
         if (increaseCombo) this.currentCombo++;
 
-        someShit.setGoal(this.score.points);
+        scoreInterpolator.setGoal(this.score.points);
+        accuracyInterpolator.setGoal(this.calculateAccuracy());
+    }
+
+    calculateAccuracy() {
+        if (this.totalNumberOfHits === 0) return 1; // 100.00% acc by default
+        return this.totalValueOfHits / (this.totalNumberOfHits * 300);
     }
 
     updateDisplay() {
-        scoreDisplay.text = padNumberWithZeroes(someShit.getCurrentValue(), 8);
+        scoreDisplay.text = padNumberWithZeroes(Math.floor(scoreInterpolator.getCurrentValue()), 8);
         comboDisplay.text = String(this.currentCombo) + "x";
+        accuracyDisplay.text = toPercentageString(accuracyInterpolator.getCurrentValue(), 2);
     }
 }
 
 
-let someShit = new InterpolatedCounter({
+let scoreInterpolator = new InterpolatedCounter({
     initial: 0,
-    duration: 0, // temp
-    ease: 'easeOutQuad'
+    duration: (distanceToGoal: number) => {
+        // Quick animation for small score increases, like slider ticks
+        if (distanceToGoal < 300) return 120;
+        return 500;
+    },
+    ease: EaseType.EaseOutCubic
+});
+
+let accuracyInterpolator = new InterpolatedCounter({
+    initial: 1,
+    duration: 250,
+    ease: EaseType.EaseOutQuad
 });

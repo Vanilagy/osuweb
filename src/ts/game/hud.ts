@@ -12,7 +12,7 @@ setTimeout(() => {
         fill: "#FFFFFF"
     });
     
-    scoreDisplay.pivot.x = scoreDisplay.width;
+    scoreDisplay.anchor.x = 1.0;
     scoreDisplay.x = window.innerWidth;
     
     comboDisplay = new PIXI.Text("0x", {
@@ -21,7 +21,7 @@ setTimeout(() => {
         fill: "#FFFFFF"
     });
     
-    comboDisplay.pivot.y = comboDisplay.height;
+    comboDisplay.anchor.y = 1.0;
     comboDisplay.y = window.innerHeight;
 
     accuracyDisplay = new PIXI.Text("100.00%", {
@@ -30,7 +30,8 @@ setTimeout(() => {
         fill: "#FFFFFF"
     });
     
-    accuracyDisplay.pivot.x = accuracyDisplay.width;
+    //accuracyDisplay.pivot.x = accuracyDisplay.width;
+    accuracyDisplay.anchor.x = 1.0;
     accuracyDisplay.x = window.innerWidth;
     accuracyDisplay.y = scoreDisplay.height;
     

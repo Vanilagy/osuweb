@@ -128,14 +128,16 @@ export class ProcessedBeatmap {
                 
                 // Weird implementation. Can probably be done much easier-ly. This handles the "going back and forth but keep the ticks in the same location" thing. TODO.
                 let len = sliderTickCompletions.length;
-                for (let i = 1; i < newObject.hitObject.repeat; i++) {
-                    if (i % 2 === 0) {
-                        for (let j = 0; j < len; j++) {
-                            sliderTickCompletions.push(i + sliderTickCompletions[j]);
-                        }
-                    } else {
-                        for (let j = len-1; j >= 0; j--) {
-                            sliderTickCompletions.push(i + 1 - sliderTickCompletions[j]);
+                if (len > 0) {
+                    for (let i = 1; i < newObject.hitObject.repeat; i++) {
+                        if (i % 2 === 0) {
+                            for (let j = 0; j < len; j++) {
+                                sliderTickCompletions.push(i + sliderTickCompletions[j]);
+                            }
+                        } else {
+                            for (let j = len-1; j >= 0; j--) {
+                                sliderTickCompletions.push(i + 1 - sliderTickCompletions[j]);
+                            }
                         }
                     }
                 }

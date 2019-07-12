@@ -3,7 +3,7 @@ import { SliderCurve } from "./slider_curve";
 import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
-import { MathUtil } from "../util/math_util";
+import { MathUtil, EaseType } from "../util/math_util";
 import { DrawableHitObject, drawCircle } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
@@ -211,7 +211,7 @@ export class DrawableSlider extends DrawableHitObject {
         if (currentTime > this.endTime) {
             let fadeOutCompletion = (currentTime - (this.endTime)) / HIT_OBJECT_FADE_OUT_TIME;
             fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
+            fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
 
             let alpha = 1 - fadeOutCompletion;
             containerAlpha = alpha;
@@ -285,7 +285,7 @@ export class DrawableSlider extends DrawableHitObject {
             return 0;
         })();
 
-        gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false);
+        gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true);
     }
 
     getPosFromPercentage(percent: number) : Point {

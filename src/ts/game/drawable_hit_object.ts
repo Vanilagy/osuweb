@@ -3,7 +3,7 @@ import { gameState } from "./game_state";
 import { ComboInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
 import { CIRCLE_BORDER_WIDTH, DRAWING_MODE, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
-import { MathUtil } from "../util/math_util";
+import { MathUtil, EaseType } from "../util/math_util";
 import { PlayEvent } from "./play_events";
 
 export abstract class DrawableHitObject {
@@ -73,7 +73,7 @@ export abstract class DrawableHitObject {
         if (currentTime < this.startTime) {
             fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
             fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-            fadeInCompletion = MathUtil.ease('easeOutQuad', fadeInCompletion);
+            fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
 
             let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
             let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
@@ -86,7 +86,7 @@ export abstract class DrawableHitObject {
 
             let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
             fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            fadeOutCompletion = MathUtil.ease('easeOutQuad', fadeOutCompletion);
+            fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
 
             let alpha = 1 - fadeOutCompletion;
             let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
