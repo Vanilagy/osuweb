@@ -4,7 +4,7 @@ import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil, EaseType } from "../util/math_util";
-import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, ScoringValue } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, ScoringValue, updateHeadElements } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
@@ -210,7 +210,7 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     update(currentTime: number) {
-        let { fadeInCompletion } = this.updateHeadElements(currentTime);
+        let { fadeInCompletion } = updateHeadElements(this, currentTime);
         let containerAlpha = fadeInCompletion;
 
         if (currentTime > this.endTime) {

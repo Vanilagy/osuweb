@@ -1,5 +1,5 @@
 import { MathUtil } from "../util/math_util";
-import { DrawableHitObject, drawCircle, ScoringValue, HitObjectHeadScoring, getDefaultHitObjectHeadScoring } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle, ScoringValue, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
@@ -82,7 +82,7 @@ export class DrawableCircle extends DrawableHitObject {
     update(currentTime: number) {
         let { ARMs, circleDiameter } = gameState.currentPlay;
 
-        let { fadeInCompletion } = this.updateHeadElements(currentTime);
+        let { fadeInCompletion } = updateHeadElements(this, currentTime);
         this.container.alpha = fadeInCompletion;
     }
 

@@ -5,6 +5,8 @@ import { Point } from "../util/point";
 import { CIRCLE_BORDER_WIDTH, DRAWING_MODE, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { MathUtil, EaseType } from "../util/math_util";
 import { PlayEvent } from "./play_events";
+import { DrawableCircle } from "./drawable_circle";
+import { DrawableSlider } from "./drawable_slider";
 
 export enum ScoringValue {
     NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
@@ -90,79 +92,6 @@ export abstract class DrawableHitObject {
         this.endPoint.x += this.stackHeight * -4;
         this.endPoint.y += this.stackHeight * -4;
     }
-
-    // Updates the head and approach circle based on current time.
-    protected updateHeadElements(currentTime: number) {
-        let { ARMs, circleDiameter } = gameState.currentPlay;
-
-        let fadeInCompletion = 1;
-
-        let headScoring = this.scoring.head;
-
-        if (headScoring.hit === ScoringValue.NotHit) {
-            if (currentTime < this.startTime) {
-                fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
-                fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-                fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
-    
-                let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
-                let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
-                let approachCircleDiameter = circleDiameter * approachCircleFactor;
-                this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-    
-                this.approachCircle.alpha = fadeInCompletion;
-            } else {
-                this.approachCircle.visible = false;
-            }
-        } else {
-            this.approachCircle.visible = false;
-
-            let time = headScoring.time;
-
-            let fadeOutCompletion = (currentTime - (time)) / HIT_OBJECT_FADE_OUT_TIME;
-            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
-
-            let alpha = 1 - fadeOutCompletion;
-            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
-
-            this.headSprite.alpha = alpha;
-            if (headScoring.hit !== ScoringValue.Miss) { // Misses just fade out, whereas all other hit ratings also cause an 'expansion' effect
-                this.headSprite.width = circleDiameter * scale;
-                this.headSprite.height = circleDiameter * scale;
-            }
-            
-        }
-
-        /*
-        if (currentTime < this.startTime) {
-            fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
-            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-            fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
-
-            let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
-            let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
-            let approachCircleDiameter = circleDiameter * approachCircleFactor;
-            this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-
-            this.approachCircle.alpha = fadeInCompletion;
-        } else {
-            this.approachCircle.visible = false;
-
-            let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
-            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
-
-            let alpha = 1 - fadeOutCompletion;
-            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
-
-            this.headSprite.alpha = alpha;
-            this.headSprite.width = circleDiameter * scale;
-            this.headSprite.height = circleDiameter * scale;
-        }*/
-
-        return { fadeInCompletion };
-    }
 }
 
 export function drawCircle(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
@@ -222,4 +151,76 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
         //    context.drawImage(GAME_STATE.currentPlay.drawElements.numbers[numberString.charAt(i)], GAME_STATE.currentPlay.halfCsPixel - numberWidth * numberString.length / 2 + hitCircleOverlap * (numberString.length - 1) / 2 + ((numberWidth - hitCircleOverlap) * i), GAME_STATE.currentPlay.halfCsPixel - numberHeight / 2, numberWidth, numberHeight);
         //}
     }
+}
+
+// Updates the head and approach circle based on current time.
+export function updateHeadElements(hitObject: DrawableCircle | DrawableSlider, currentTime: number) {
+    let { ARMs, circleDiameter } = gameState.currentPlay;
+
+    let fadeInCompletion = 1;
+
+    let headScoring = hitObject.scoring.head;
+
+    if (headScoring.hit === ScoringValue.NotHit) {
+        if (currentTime < hitObject.startTime) {
+            fadeInCompletion = (currentTime - (hitObject.hitObject.time - ARMs)) / ARMs;
+            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+            fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
+
+            let approachCircleCompletion = MathUtil.clamp((hitObject.hitObject.time - currentTime) / ARMs, 0, 1);
+            let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
+            let approachCircleDiameter = circleDiameter * approachCircleFactor;
+            hitObject.approachCircle.width = hitObject.approachCircle.height = approachCircleDiameter;
+
+            hitObject.approachCircle.alpha = fadeInCompletion;
+        } else {
+            hitObject.approachCircle.visible = false;
+        }
+    } else {
+        hitObject.approachCircle.visible = false;
+
+        let time = headScoring.time;
+
+        let fadeOutCompletion = (currentTime - (time)) / HIT_OBJECT_FADE_OUT_TIME;
+        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+        fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
+
+        let alpha = 1 - fadeOutCompletion;
+        let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
+
+        hitObject.headSprite.alpha = alpha;
+        if (headScoring.hit !== ScoringValue.Miss) { // Misses just fade out, whereas all other hit ratings also cause an 'expansion' effect
+            hitObject.headSprite.width = circleDiameter * scale;
+            hitObject.headSprite.height = circleDiameter * scale;
+        }
+    }
+
+    /*
+    if (currentTime < this.startTime) {
+        fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
+        fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+        fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
+
+        let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
+        let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
+        let approachCircleDiameter = circleDiameter * approachCircleFactor;
+        this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
+
+        this.approachCircle.alpha = fadeInCompletion;
+    } else {
+        this.approachCircle.visible = false;
+
+        let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
+        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+        fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
+
+        let alpha = 1 - fadeOutCompletion;
+        let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
+
+        this.headSprite.alpha = alpha;
+        this.headSprite.width = circleDiameter * scale;
+        this.headSprite.height = circleDiameter * scale;
+    }*/
+
+    return { fadeInCompletion };
 }
