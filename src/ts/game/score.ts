@@ -30,6 +30,8 @@ export class Score {
     public hits100: number;
     public hits50: number;
     public misses: number;
+    public geki: number; // Now, some smartass out there is gonna argue that it should be "gekis" and "katus". I'mma be the bigger smartass here and argue that, since these are Japanese words and Japanese does not have plural, these are correct.
+    public katu: number;
     public maxCombo: number;
 
     constructor() {
@@ -40,6 +42,8 @@ export class Score {
         this.hits100 = 0;
         this.hits50 = 0;
         this.misses = 0;
+        this.geki = 0;
+        this.katu = 0;
         this.maxCombo = 0;
     }
 }
@@ -95,11 +99,15 @@ export class ScoreCounter {
         }
 
         scoreInterpolator.setGoal(this.score.points);
-        accuracyInterpolator.setGoal(this.calculateAccuracy());
+        this.score.accuracy = this.calculateAccuracy();
+        accuracyInterpolator.setGoal(this.score.accuracy);
 
         if (!raw) {
-            let comboInfo = hitObject.comboInfo;
-
+            if (rawAmount === ScoringValue.Hit300) this.score.hits300++;
+            else if (rawAmount === ScoringValue.Hit100) this.score.hits100++;
+            else if (rawAmount === ScoringValue.Hit50) this.score.hits50++;
+            else this.score.misses++;
+            
             if (rawAmount !== ScoringValue.Hit300) {
                 this.isGeki = false;
 
@@ -109,9 +117,15 @@ export class ScoreCounter {
             }
 
             let scorePopupType: ScorePopupType;
-            if (comboInfo.isLast) {
-                if (this.isGeki) scorePopupType = ScorePopupType.Geki;
+            if (hitObject.comboInfo.isLast) {
+                if (this.isGeki) {
+                    this.score.geki++;
+
+                    scorePopupType = ScorePopupType.Geki;
+                }
                 else if (this.isKatu) {
+                    this.score.katu++;
+
                     if (rawAmount === ScoringValue.Hit300) scorePopupType = ScorePopupType.Katu300;
                     else scorePopupType = ScorePopupType.Katu100;
                 }
@@ -132,7 +146,7 @@ export class ScoreCounter {
     break() {
         this.currentCombo = 0;
 
-        // And do the other things
+        // ...and do the other things.
     }
 
     resetGekiAndKatu() {
