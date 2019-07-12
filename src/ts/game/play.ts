@@ -125,14 +125,16 @@ export class Play {
         for (let id in this.onscreenObjects) {
             let hitObject = this.onscreenObjects[id];
 
-            if (currentTime >= hitObject.renderEndTime) {
+            hitObject.update(currentTime);
+
+            if (hitObject.renderFinished) {
+                // Hit object can now safely be removed from the screen
+
                 hitObject.remove();
                 delete this.onscreenObjects[id];
 
                 continue;
-            }
-    
-            hitObject.update(currentTime);      
+            }             
         }
 
         // Add new hit objects to screen
@@ -247,46 +249,6 @@ export class Play {
                         this.scoreCounter.add(0);
                     }
                 }; break;
-
-                /*
-                case PlayEventType.HeadHit: {
-                    this.scoreCounter.add(300);
-
-                    //normalHitSoundEffect.start();
-                }; break;
-                case PlayEventType.SliderHead: {
-                    let hitObject = playEvent.hitObject as DrawableSlider;
-
-                    this.scoreCounter.add(30, true, true, false);
-                    hitObject.scoring.head = true;
-
-                    //normalHitSoundEffect.start();
-                }; break;
-                case PlayEventType.SliderTick: {
-                    let hitObject = playEvent.hitObject as DrawableSlider;
-
-                    this.scoreCounter.add(10, true, true, false);
-                    hitObject.scoring.ticks++;
-                }; break;
-                case PlayEventType.SliderRepeat: {
-                    let hitObject = playEvent.hitObject as DrawableSlider;
-
-                    // TODO: How much do they count?
-                    this.scoreCounter.add(30, true, true, false);
-                    hitObject.scoring.repeats++;
-
-                    //normalHitSoundEffect.start();
-                }; break;
-                case PlayEventType.SliderEnd: {
-                    let hitObject = playEvent.hitObject as DrawableSlider;
-
-                    this.scoreCounter.add(30, true, true, false);
-                    hitObject.scoring.end = true;
-                    hitObject.score();
-
-                    //normalHitSoundEffect.start();
-                }; break;
-                */
             }
         }
 

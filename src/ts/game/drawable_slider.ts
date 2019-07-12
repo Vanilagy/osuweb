@@ -79,7 +79,6 @@ export class DrawableSlider extends DrawableHitObject {
         this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
 
         this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
-        this.renderEndTime = this.endTime + HIT_OBJECT_FADE_OUT_TIME;
 
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
@@ -210,6 +209,11 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     update(currentTime: number) {
+        if (currentTime > this.endTime + HIT_OBJECT_FADE_OUT_TIME) {
+            this.renderFinished = true;
+            return;
+        }
+
         let { fadeInCompletion } = updateHeadElements(this, currentTime);
         let containerAlpha = fadeInCompletion;
 

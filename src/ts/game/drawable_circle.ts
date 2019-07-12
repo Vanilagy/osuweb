@@ -35,7 +35,6 @@ export class DrawableCircle extends DrawableHitObject {
         };
 
         this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
-        this.renderEndTime = this.endTime + HIT_OBJECT_FADE_OUT_TIME + Infinity; // Temp.
 
         this.scoring = getDefaultCircleScoring();
     }
@@ -80,6 +79,11 @@ export class DrawableCircle extends DrawableHitObject {
     }
 
     update(currentTime: number) {
+        if (this.scoring.head.time !== null && currentTime >= this.scoring.head.time + HIT_OBJECT_FADE_OUT_TIME) {
+            this.renderFinished = true;
+            return;
+        }
+
         let { ARMs, circleDiameter } = gameState.currentPlay;
 
         let { fadeInCompletion } = updateHeadElements(this, currentTime);

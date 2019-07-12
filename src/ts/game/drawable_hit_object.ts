@@ -48,9 +48,10 @@ export abstract class DrawableHitObject {
     public startTime: number;
     public endTime: number;
 
-    // Specify the timeframe is which the object is visible and needs to be rendered.
+    // Specifies the timeframe is which the object is visible and needs to be rendered.
     public renderStartTime: number;
-    public renderEndTime: number;
+    /** When true, the hit object has ended its short life as a graphical element and need not be rendered anymore. */
+    public renderFinished: boolean;
 
     constructor(hitObject: HitObject) {
         this.hitObject = hitObject;
