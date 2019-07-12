@@ -253,7 +253,7 @@ export class DrawableSlider extends DrawableHitObject {
         playEventArray.push({
             type: PlayEventType.HeadHitWindowEnd,
             hitObject: this,
-            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForRating(50)
+            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)
         });
 
         playEventArray.push({
@@ -322,13 +322,13 @@ export class DrawableSlider extends DrawableHitObject {
 
         let timeInaccuracy = time - this.startTime;
         let hitDelta = Math.abs(timeInaccuracy);
-        let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
+        let judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
 
-        this.scoring.head.hit = rating;
+        this.scoring.head.hit = judgement;
         this.scoring.head.time = time;
 
         scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, time);
-        if (rating !== 0) normalHitSoundEffect.start();
+        if (judgement !== 0) normalHitSoundEffect.start();
     }
     
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {

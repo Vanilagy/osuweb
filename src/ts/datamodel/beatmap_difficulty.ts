@@ -23,8 +23,8 @@ export class BeatmapDifficulty {
     }
 
     // OD
-    static getHitDeltaForRating(OD: number, rating: number) : number {
-        switch(rating) {
+    static getHitDeltaForJudgement(OD: number, judgement: number) : number {
+        switch(judgement) {
             case 300:
                 return Math.ceil(79.5 - 6 * OD);
             case 100:
@@ -36,19 +36,19 @@ export class BeatmapDifficulty {
         }
     }
 
-    getHitDeltaForRating(rating: number) : number {
-        return BeatmapDifficulty.getHitDeltaForRating(this.OD, rating);
+    getHitDeltaForJudgement(judgement: number) : number {
+        return BeatmapDifficulty.getHitDeltaForJudgement(this.OD, judgement);
     }
 
-    static getRatingForHitDelta(OD: number, hitDelta: number) : number {
-        if(BeatmapDifficulty.getHitDeltaForRating(OD, 300) >= hitDelta) return 300;
-        if(BeatmapDifficulty.getHitDeltaForRating(OD, 100) >= hitDelta) return 100;
-        if(BeatmapDifficulty.getHitDeltaForRating(OD, 50) >= hitDelta) return 50;
+    static getJudgementForHitDelta(OD: number, hitDelta: number) : number {
+        if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 300) >= hitDelta) return 300;
+        if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 100) >= hitDelta) return 100;
+        if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 50) >= hitDelta) return 50;
         return 0;
     }
 
-    getRatingForHitDelta(hitDelta: number) : number {
-        return BeatmapDifficulty.getRatingForHitDelta(this.OD, hitDelta);
+    getJudgementForHitDelta(hitDelta: number) : number {
+        return BeatmapDifficulty.getJudgementForHitDelta(this.OD, hitDelta);
     }
 
     // CS

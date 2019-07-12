@@ -97,13 +97,13 @@ export class DrawableCircle extends DrawableHitObject {
         approachCircleContainer.removeChild(this.approachCircle);
     }
 
-    score(time: number, rating: number) {
+    score(time: number, judgement: number) {
         let scoreCounter = gameState.currentPlay.scoreCounter;
 
-        this.scoring.head.hit = rating;
+        this.scoring.head.hit = judgement;
         this.scoring.head.time = time;
 
-        scoreCounter.add(rating, false, true, true, this, time);
+        scoreCounter.add(judgement, false, true, true, this, time);
     }
 
     addPlayEvents(playEventArray: PlayEvent[]) {
@@ -118,7 +118,7 @@ export class DrawableCircle extends DrawableHitObject {
         playEventArray.push({
             type: PlayEventType.HeadHitWindowEnd,
             hitObject: this,
-            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForRating(50)
+            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)
         });
     }
 
@@ -129,10 +129,10 @@ export class DrawableCircle extends DrawableHitObject {
 
         let timeInaccuracy = time - this.startTime;
         let hitDelta = Math.abs(timeInaccuracy);
-        let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
+        let judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
 
-        this.score(time, rating);
-        if (rating !== 0) normalHitSoundEffect.start();
+        this.score(time, judgement);
+        if (judgement !== 0) normalHitSoundEffect.start();
     }
 
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {

@@ -139,7 +139,7 @@ export class ScoreCounter {
             }
 
             if (scorePopupType === undefined)
-                scorePopupType = hitRatingToScorePopupType.get(rawAmount);
+                scorePopupType = hitJudgementToScorePopupType.get(rawAmount);
             
             assert(scorePopupType !== undefined);
             
@@ -198,11 +198,11 @@ enum ScorePopupType {
     Katu100 // Only 100s or higher in the combo, but at least one 100 - last hit was 100
 }
 
-let hitRatingToScorePopupType = new Map<number, ScorePopupType>();
-hitRatingToScorePopupType.set(ScoringValue.Hit300, ScorePopupType.Hit300);
-hitRatingToScorePopupType.set(ScoringValue.Hit100, ScorePopupType.Hit100);
-hitRatingToScorePopupType.set(ScoringValue.Hit50, ScorePopupType.Hit50);
-hitRatingToScorePopupType.set(ScoringValue.Miss, ScorePopupType.Miss);
+let hitJudgementToScorePopupType = new Map<number, ScorePopupType>();
+hitJudgementToScorePopupType.set(ScoringValue.Hit300, ScorePopupType.Hit300);
+hitJudgementToScorePopupType.set(ScoringValue.Hit100, ScorePopupType.Hit100);
+hitJudgementToScorePopupType.set(ScoringValue.Hit50, ScorePopupType.Hit50);
+hitJudgementToScorePopupType.set(ScoringValue.Miss, ScorePopupType.Miss);
 
 let scorePopupTypeToString = new Map<ScorePopupType, string>();
 scorePopupTypeToString.set(ScorePopupType.Hit300, '300');

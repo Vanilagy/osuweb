@@ -179,7 +179,7 @@ export function updateHeadElements(hitObject: DrawableCircle | DrawableSlider, c
         let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
 
         hitObject.headSprite.alpha = alpha;
-        if (headScoring.hit !== ScoringValue.Miss) { // Misses just fade out, whereas all other hit ratings also cause an 'expansion' effect
+        if (headScoring.hit !== ScoringValue.Miss) { // Misses just fade out, whereas all other hit judgements also cause an 'expansion' effect
             hitObject.headSprite.width = circleDiameter * scale;
             hitObject.headSprite.height = circleDiameter * scale;
         }
