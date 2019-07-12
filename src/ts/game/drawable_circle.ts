@@ -123,7 +123,7 @@ export class DrawableCircle extends DrawableHitObject {
     }
 
     hitHead(time: number) {
-        assert(this.scoring.head.hit === ScoringValue.NotHit);
+        if (this.scoring.head.hit !== ScoringValue.NotHit) return;
 
         let { processedBeatmap } = gameState.currentPlay;
 

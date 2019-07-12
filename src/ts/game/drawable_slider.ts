@@ -300,7 +300,7 @@ export class DrawableSlider extends DrawableHitObject {
 
         let fraction = total / (2 + this.sliderTickCompletions.length + (this.hitObject.repeat - 1));
         assert(fraction >= 0 && fraction <= 1);
-        
+
         let resultingRawScore = (() => {
             if (fraction === 1) {
                 return 300;
@@ -316,7 +316,7 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     hitHead(time: number) {
-        assert(this.scoring.head.hit === ScoringValue.NotHit);
+        if (this.scoring.head.hit !== ScoringValue.NotHit) return;
         
         let { processedBeatmap, scoreCounter } = gameState.currentPlay;
 
