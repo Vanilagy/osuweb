@@ -49,7 +49,9 @@ export class ScoreCounter {
     }
 
     // A raw amount of zero means miss
-    add(rawAmount: number, raw: boolean = false, increaseCombo: boolean = true, affectAccuracy: boolean = true) {
+    add(rawAmount: number, raw: boolean = false, affectCombo: boolean = true, affectAccuracy: boolean = true) {
+        console.log(rawAmount);
+
         if (affectAccuracy) {
             this.totalNumberOfHits++;
             this.totalValueOfHits += rawAmount;
@@ -61,10 +63,23 @@ export class ScoreCounter {
 
         this.score.points += gain;
 
-        if (increaseCombo) this.currentCombo++;
+        if (affectCombo) {
+            if (rawAmount === 0) { // Meaning miss
+                this.break();
+            } else {
+                this.currentCombo++;
+                if (this.currentCombo > this.score.maxCombo) this.score.maxCombo = this.currentCombo;
+            }
+        }
 
         scoreInterpolator.setGoal(this.score.points);
         accuracyInterpolator.setGoal(this.calculateAccuracy());
+    }
+
+    break() {
+        this.currentCombo = 0;
+
+        // And do the other things
     }
 
     calculateAccuracy() {
@@ -92,6 +107,6 @@ let scoreInterpolator = new InterpolatedCounter({
 
 let accuracyInterpolator = new InterpolatedCounter({
     initial: 1,
-    duration: 250,
+    duration: 200,
     ease: EaseType.EaseOutQuad
 });

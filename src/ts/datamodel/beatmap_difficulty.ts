@@ -32,7 +32,7 @@ export class BeatmapDifficulty {
             case 50:
                 return Math.ceil(199.5 - 10 * OD);
             default:
-                return -1
+                return Infinity; // Makes sense, right? No really, name a better value.
         }
     }
 

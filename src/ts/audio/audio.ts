@@ -239,9 +239,10 @@ export class MediaPlayer {
 }
 
 export let mainMusicMediaPlayer = new MediaPlayer();
+(window as any).musicPlayer = mainMusicMediaPlayer; // TODO: Remove. Dis for debug.
 
 export let normalHitSoundEffect = new SoundEmitter();
-normalHitSoundEffect.setVolume(0.25);
+normalHitSoundEffect.setVolume(1);
 
 async function initHitSound() {
     let buffer = await fetchAsArrayBuffer('./assets/sound/normal-hitnormal.wav');

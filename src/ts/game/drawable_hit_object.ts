@@ -6,6 +6,30 @@ import { CIRCLE_BORDER_WIDTH, DRAWING_MODE, HIT_OBJECT_FADE_OUT_TIME } from "../
 import { MathUtil, EaseType } from "../util/math_util";
 import { PlayEvent } from "./play_events";
 
+export enum ScoringValue {
+    NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
+    Hit300 = 300,
+    Hit100 = 100,
+    Hit50 = 50,
+    Miss = 0,
+    SliderHead = 30,
+    SliderTick = 10,
+    SliderRepeat = 30,
+    SliderEnd = 30
+}
+
+export interface HitObjectHeadScoring {
+    hit: ScoringValue,
+    time: number
+}
+
+export function getDefaultHitObjectHeadScoring(): HitObjectHeadScoring {
+    return {
+        hit: ScoringValue.NotHit,
+        time: null
+    };
+}
+
 export abstract class DrawableHitObject {
     public id: number = 0;
     public comboInfo: ComboInfo;
@@ -55,6 +79,9 @@ export abstract class DrawableHitObject {
 
     abstract addPlayEvents(playEventArray: PlayEvent[]): void;
 
+    /** @returns A boolean, indicating whether or not the object was handled by the button press. It could be false, for example, if the mouse wasn't over it or the object was already hit. */
+    abstract handleButtonPress(osuMouseCoordinates: Point, currentTime: number): boolean;
+
     applyStackPosition() {
         this.x += this.stackHeight * -4;
         this.y += this.stackHeight * -4;
@@ -70,6 +97,44 @@ export abstract class DrawableHitObject {
 
         let fadeInCompletion = 1;
 
+        let headScoring = this.scoring.head;
+
+        if (headScoring.hit === ScoringValue.NotHit) {
+            if (currentTime < this.startTime) {
+                fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
+                fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+                fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
+    
+                let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
+                let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
+                let approachCircleDiameter = circleDiameter * approachCircleFactor;
+                this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
+    
+                this.approachCircle.alpha = fadeInCompletion;
+            } else {
+                this.approachCircle.visible = false;
+            }
+        } else {
+            this.approachCircle.visible = false;
+
+            let time = headScoring.time;
+
+            let fadeOutCompletion = (currentTime - (time)) / HIT_OBJECT_FADE_OUT_TIME;
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+            fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
+
+            let alpha = 1 - fadeOutCompletion;
+            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
+
+            this.headSprite.alpha = alpha;
+            if (headScoring.hit !== ScoringValue.Miss) { // Misses just fade out, whereas all other hit ratings also cause an 'expansion' effect
+                this.headSprite.width = circleDiameter * scale;
+                this.headSprite.height = circleDiameter * scale;
+            }
+            
+        }
+
+        /*
         if (currentTime < this.startTime) {
             fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
             fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
@@ -94,7 +159,7 @@ export abstract class DrawableHitObject {
             this.headSprite.alpha = alpha;
             this.headSprite.width = circleDiameter * scale;
             this.headSprite.height = circleDiameter * scale;
-        }
+        }*/
 
         return { fadeInCompletion };
     }

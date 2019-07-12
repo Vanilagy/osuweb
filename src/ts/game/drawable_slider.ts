@@ -1,16 +1,17 @@
-import { Slider } from "../datamodel/slider";
+import { Slider, SliderCurveSection } from "../datamodel/slider";
 import { SliderCurve } from "./slider_curve";
 import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil, EaseType } from "../util/math_util";
-import { DrawableHitObject, drawCircle } from "./drawable_hit_object";
-import { Point, interpolatePointInPointArray } from "../util/point";
+import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, ScoringValue } from "./drawable_hit_object";
+import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
+import { normalHitSoundEffect } from "../audio/audio";
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -19,11 +20,20 @@ export interface SliderTimingInfo {
 }
 
 // Keeps track of what the player has successfully hit
-interface SliderScoringData {
-    head: boolean,
+interface SliderScoring {
+    head: HitObjectHeadScoring,
     ticks: number,
     repeats: number,
     end: boolean
+}
+
+function getDefaultSliderScoring(): SliderScoring {
+    return {
+        head: getDefaultHitObjectHeadScoring(),
+        ticks: 0,
+        repeats: 0,
+        end: false
+    };
 }
 
 export class DrawableSlider extends DrawableHitObject {
@@ -50,7 +60,7 @@ export class DrawableSlider extends DrawableHitObject {
     public stackHeight: number;
     public hitObject: Slider;
     public sliderTickCompletions: number[];
-    public scoring: SliderScoringData;
+    public scoring: SliderScoring;
 
     constructor(hitObject: Slider) {
         super(hitObject);
@@ -87,12 +97,7 @@ export class DrawableSlider extends DrawableHitObject {
             this.endPoint = this.getPosFromPercentage(1) as Point;
         }
 
-        this.scoring = {
-            head: false,
-            ticks: 0,
-            repeats: 0,
-            end: false
-        };
+        this.scoring = getDefaultSliderScoring();
     }
 
     toCtxCoord(pos: Point): Point {
@@ -231,11 +236,21 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     addPlayEvents(playEventArray: PlayEvent[]) {
+        let { processedBeatmap } = gameState.currentPlay;
+
+        /* Idk lol
         playEventArray.push({
             type: PlayEventType.SliderHead,
             hitObject: this,
             time: this.startTime
+        });*/
+        // TODO: What happens if the whole slider ended before the heat hit window ended? How does osu! handle this?
+        playEventArray.push({
+            type: PlayEventType.HeadHitWindowEnd,
+            hitObject: this,
+            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForRating(50)
         });
+
         playEventArray.push({
             type: PlayEventType.SliderEnd,
             hitObject: this,
@@ -246,10 +261,13 @@ export class DrawableSlider extends DrawableHitObject {
             let repeatCycleDuration = (this.endTime - this.startTime) / this.hitObject.repeat;
 
             for (let i = 1; i < this.hitObject.repeat; i++) {
+                let position = (i % 2 === 0)? this.startPoint : this.endPoint;
+
                 playEventArray.push({
                     type: PlayEventType.SliderRepeat,
                     hitObject: this,
-                    time: this.startTime + i * repeatCycleDuration
+                    time: this.startTime + i * repeatCycleDuration,
+                    position: position
                 });
             }
         }
@@ -257,18 +275,20 @@ export class DrawableSlider extends DrawableHitObject {
         for (let tickCompletion of this.sliderTickCompletions) {
             // Time that the tick should be hit, relative to the slider start time
             let time = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+            let position = this.getPosFromPercentage(MathUtil.reflect(tickCompletion));
 
             playEventArray.push({
                 type: PlayEventType.SliderTick,
                 hitObject: this,
-                time: this.startTime + time
+                time: this.startTime + time,
+                position: position
             });
         }
     }
 
     score() {
         let total = 0;
-        if (this.scoring.head) total++;
+        if (this.scoring.head.hit !== ScoringValue.Miss) total++;
         if (this.scoring.end) total++;
         total += this.scoring.ticks;
         total += this.scoring.repeats;
@@ -286,6 +306,30 @@ export class DrawableSlider extends DrawableHitObject {
         })();
 
         gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true);
+    }
+    
+    handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
+        let { circleRadiusOsuPx, processedBeatmap, scoreCounter } = gameState.currentPlay;
+
+        let distance = pointDistance(osuMouseCoordinates, this.startPoint);
+
+        if (distance <= circleRadiusOsuPx) {
+            if (this.scoring.head.hit === ScoringValue.NotHit) {
+                let timeInaccuracy = currentTime - this.startTime;
+                let hitDelta = Math.abs(timeInaccuracy);
+                let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
+
+                this.scoring.head.hit = rating;
+                this.scoring.head.time = currentTime;
+
+                scoreCounter.add(ScoringValue.SliderHead, true, true, false);
+                if (rating !== 0) normalHitSoundEffect.start();
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     getPosFromPercentage(percent: number) : Point {

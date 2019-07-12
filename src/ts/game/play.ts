@@ -5,16 +5,18 @@ import { DrawableSlider } from "./drawable_slider";
 import { mainMusicMediaPlayer, normalHitSoundEffect } from "../audio/audio";
 import { mainRender, followPointContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
-import { DrawableHitObject } from "./drawable_hit_object";
+import { DrawableHitObject, ScoringValue } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsDataUrl, readFileAsLocalResourceUrl } from "../util/file_util";
 import { loadMainBackgroundImage } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
-import { pointDistanceSquared } from "../util/point";
+import { pointDistanceSquared, Point, pointDistance } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint, FOLLOW_POINT_DISTANCE_THRESHOLD } from "./follow_point";
 import { PlayEvent, PlayEventType } from "./play_events";
 import "./hud";
+import "../input/input";
 import { ScoreCounter, Score } from "./score";
+import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -28,6 +30,8 @@ export class Play {
     public pixelRatio: number;
     public circleDiameterOsuPx: number;
     public circleDiameter: number;
+    public circleRadiusOsuPx: number;
+    public circleRadius: number;
     public ARMs: number;
     public frameTimes: number[] = [];
     public playEvents: PlayEvent[] = [];
@@ -57,6 +61,8 @@ export class Play {
 
         this.circleDiameterOsuPx = this.processedBeatmap.beatmap.difficulty.getCirclePixelSize();
         this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
+        this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
+        this.circleRadius = this.circleDiameter / 2;
 
         console.time("Beatmap process");
         this.processedBeatmap.init();
@@ -181,16 +187,72 @@ export class Play {
 
     gameLoop() {
         let currentTime = this.getCurrentSongTime();
+        let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
         
         for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
             let playEvent = this.playEvents[this.currentPlayEvent];
             if (playEvent.time > currentTime) break;
 
             switch (playEvent.type) {
+                case PlayEventType.HeadHitWindowEnd: {
+                    let hitObject = playEvent.hitObject;
+
+                    if (hitObject instanceof DrawableCircle) {
+                        if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
+
+                        hitObject.score(playEvent.time, ScoringValue.Miss);
+                    } else if (hitObject instanceof DrawableSlider) {
+                        if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
+
+                        hitObject.scoring.head.hit = ScoringValue.Miss;
+                        hitObject.scoring.head.time = playEvent.time;
+                        
+                        this.scoreCounter.add(0);
+                    }
+                }; break;
+                case PlayEventType.SliderEnd: {
+                    let hitObject = playEvent.hitObject as DrawableSlider;
+
+                    let distance = pointDistance(osuMouseCoordinates, hitObject.endPoint);
+                    if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
+                        hitObject.scoring.end = true;
+                        this.scoreCounter.add(30, true, true, false);
+                        normalHitSoundEffect.start();
+                    }
+
+                    // Score the slider, no matter if the end was hit or not (obviously) 
+                    hitObject.score();
+                }; break;
+                case PlayEventType.SliderRepeat: {
+                    let hitObject = playEvent.hitObject as DrawableSlider;
+
+                    let distance = pointDistance(osuMouseCoordinates, playEvent.position);
+                    if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
+                        hitObject.scoring.repeats++;
+                        this.scoreCounter.add(30, true, true, false);
+                        normalHitSoundEffect.start();
+                    } else {
+                        this.scoreCounter.add(0);
+                    }
+                }; break;
+                case PlayEventType.SliderTick: {
+                    let hitObject = playEvent.hitObject as DrawableSlider;
+
+                    let distance = pointDistance(osuMouseCoordinates, playEvent.position);
+                    if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
+                        hitObject.scoring.ticks++;
+                        this.scoreCounter.add(10, true, true, false);
+                        //normalHitSoundEffect.start(); // TODO: Play tick sound! 
+                    } else {
+                        this.scoreCounter.add(0);
+                    }
+                }; break;
+
+                /*
                 case PlayEventType.HeadHit: {
                     this.scoreCounter.add(300);
 
-                    normalHitSoundEffect.start();
+                    //normalHitSoundEffect.start();
                 }; break;
                 case PlayEventType.SliderHead: {
                     let hitObject = playEvent.hitObject as DrawableSlider;
@@ -198,7 +260,7 @@ export class Play {
                     this.scoreCounter.add(30, true, true, false);
                     hitObject.scoring.head = true;
 
-                    normalHitSoundEffect.start();
+                    //normalHitSoundEffect.start();
                 }; break;
                 case PlayEventType.SliderTick: {
                     let hitObject = playEvent.hitObject as DrawableSlider;
@@ -213,7 +275,7 @@ export class Play {
                     this.scoreCounter.add(30, true, true, false);
                     hitObject.scoring.repeats++;
 
-                    normalHitSoundEffect.start();
+                    //normalHitSoundEffect.start();
                 }; break;
                 case PlayEventType.SliderEnd: {
                     let hitObject = playEvent.hitObject as DrawableSlider;
@@ -222,12 +284,25 @@ export class Play {
                     hitObject.scoring.end = true;
                     hitObject.score();
 
-                    normalHitSoundEffect.start();
+                    //normalHitSoundEffect.start();
                 }; break;
+                */
             }
         }
 
         setTimeout(this.gameLoop.bind(this), 0);
+    }
+
+    handleButtonPress() {
+        let currentTime = this.getCurrentSongTime();
+        let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
+
+        for (let id in this.onscreenObjects) {
+            let hitObject = this.onscreenObjects[id];
+            let handled = hitObject.handleButtonPress(osuMouseCoordinates, currentTime);
+
+            if (handled) break; // One button press can only affect one hit object.
+        }
     }
 
     getCurrentSongTime() {
@@ -240,6 +315,23 @@ export class Play {
 
     toScreenCoordinatesY(osuCoordinateY: number) {
         return window.innerHeight / 2 + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio;
+    }
+
+    // Inverse of toScreenCoordinatesX
+    toOsuCoordinatesX(screenCoordinateX: number) {
+        return (screenCoordinateX - window.innerWidth / 2) / this.pixelRatio + PLAYFIELD_DIMENSIONS.width/2;
+    }
+    
+    // Inverse of toScreenCoordinatesY
+    toOsuCoordinatesY(screenCoordinateY: number) {
+        return (screenCoordinateY - window.innerHeight / 2) / this.pixelRatio + PLAYFIELD_DIMENSIONS.height/2;
+    }
+
+    getOsuMouseCoordinatesFromCurrentMousePosition(): Point {
+        return {
+            x: this.toOsuCoordinatesX(currentMousePosition.x),
+            y: this.toOsuCoordinatesY(currentMousePosition.y)
+        };
     }
 }
 

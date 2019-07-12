@@ -17,4 +17,6 @@ export class DrawableSpinner extends DrawableHitObject {
     remove() {}
 
     addPlayEvents(playEventArray: PlayEvent[]) {}
+
+    handleButtonPress() {return false;}
 }

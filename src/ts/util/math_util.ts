@@ -158,7 +158,7 @@ export class MathUtil {
 	        /**
                 Only considering the value for the range [0, 1] => [0, 1].
 	            The higher the power used (Quad, Cubic, Quart), the more sudden the animation will be.
-	         */
+	        */
 
             case EaseType.Linear: // no easing, no acceleration
                 return val; break;

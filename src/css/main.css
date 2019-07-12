@@ -3,6 +3,10 @@
     src: url("../assets/fonts/VCR_OSD_MONO_1.001.ttf");
 }
 
+* {
+    user-select: none;
+}
+
 html, body {
     margin: 0;
     width: 100%;

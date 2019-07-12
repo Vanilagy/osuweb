@@ -1,14 +1,27 @@
 import { MathUtil } from "../util/math_util";
-import { DrawableHitObject, drawCircle } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle, ScoringValue, HitObjectHeadScoring, getDefaultHitObjectHeadScoring } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
+import { Point, pointDistanceSquared, pointDistance } from "../util/point";
+import { normalHitSoundEffect } from "../audio/audio";
+
+interface CircleScoring {
+    head: HitObjectHeadScoring
+}
+
+function getDefaultCircleScoring(): CircleScoring {
+    return {
+        head: getDefaultHitObjectHeadScoring()
+    };
+}
 
 export class DrawableCircle extends DrawableHitObject {
     public hitObject: Circle;
+    public scoring: CircleScoring;
 
     constructor(hitObject: Circle) {
         super(hitObject);
@@ -22,7 +35,9 @@ export class DrawableCircle extends DrawableHitObject {
         };
 
         this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
-        this.renderEndTime = this.endTime + HIT_OBJECT_FADE_OUT_TIME;
+        this.renderEndTime = this.endTime + HIT_OBJECT_FADE_OUT_TIME + Infinity; // Temp.
+
+        this.scoring = getDefaultCircleScoring();
     }
 
     draw() {
@@ -76,11 +91,50 @@ export class DrawableCircle extends DrawableHitObject {
         approachCircleContainer.removeChild(this.approachCircle);
     }
 
+    score(time: number, rating: number) {
+        let scoreCounter = gameState.currentPlay.scoreCounter;
+
+        this.scoring.head.hit = rating;
+        this.scoring.head.time = time;
+
+        scoreCounter.add(rating);
+    }
+
     addPlayEvents(playEventArray: PlayEvent[]) {
+        let { processedBeatmap } = gameState.currentPlay;
+
+        /* Idk lol
         playEventArray.push({
             type: PlayEventType.HeadHit,
             hitObject: this,
             time: this.startTime
+        });*/
+
+        playEventArray.push({
+            type: PlayEventType.HeadHitWindowEnd,
+            hitObject: this,
+            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForRating(50)
         });
+    }
+
+    handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
+        let { circleRadiusOsuPx, processedBeatmap, scoreCounter } = gameState.currentPlay;
+
+        let distance = pointDistance(osuMouseCoordinates, this.startPoint);
+
+        if (distance <= circleRadiusOsuPx) {
+            if (this.scoring.head.hit === ScoringValue.NotHit) {
+                let timeInaccuracy = currentTime - this.startTime;
+                let hitDelta = Math.abs(timeInaccuracy);
+                let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
+
+                this.score(currentTime, rating);
+                if (rating !== 0) normalHitSoundEffect.start();
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }
