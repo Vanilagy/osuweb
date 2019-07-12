@@ -363,31 +363,30 @@ export class DrawableSlider extends DrawableHitObject {
         followCircleSizeFactor += 1 * MathUtil.clamp((currentTime - this.startTime) / 100, 0, 1); // Enlarge on start
         followCircleSizeFactor += -0.333 * MathUtil.clamp((currentTime - this.endTime) / 100, 0, 1); // Shrink on end
 
-        let biggestCurrentTickCompletion = null;
+        let biggestCurrentTickCompletion = -Infinity;
+        let biggestCurrentRepeatCompletion = -Infinity;
         for (let c of this.sliderTickCompletions) {
             if (c > completion) break;
             biggestCurrentTickCompletion = c;
         }
+        biggestCurrentRepeatCompletion = Math.floor(completion);
+        if (biggestCurrentRepeatCompletion === 0 || biggestCurrentRepeatCompletion === this.hitObject.repeat)
+            biggestCurrentRepeatCompletion = null; // We don't want the "pulse" on slider beginning and end, only on hitting repeats
 
-        if (biggestCurrentTickCompletion !== null) {
-            // Time of the slider tick relative to the slider start time
-            let tickTime = biggestCurrentTickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+        outer:
+        if (biggestCurrentTickCompletion !== null || biggestCurrentRepeatCompletion !== null) {
+            let biggestCompletion = Math.max(biggestCurrentTickCompletion, biggestCurrentRepeatCompletion);
+            if (biggestCompletion === -Infinity) break outer; // Breaking ifs, yay! Tbh, it's a useful thing.
 
-            let pulseFactor = (currentSliderTime - tickTime) / 150;
+            // Time of the slider tick or the reverse, relative to the slider start time
+            let time = biggestCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+
+            let pulseFactor = (currentSliderTime - time) / 150;
             pulseFactor = 1 - MathUtil.clamp(pulseFactor, 0, 1);
-            pulseFactor *= 0.15;
+            pulseFactor *= 0.18;
 
             followCircleSizeFactor += pulseFactor;
         }
-
-        //let followCircleSizeFactor = (
-        //    /* base */ 1
-        //    + /* enlarge on start */ Math.max(0, Math.min(1, (currentTime - this.startTime) / 100))
-        //    + ((this.letGoTime === null) ?
-        //            /* pulse */ /*Math.max(0, Math.min(0.15, 0.15 - (currentSliderTime - this.lastPulseTime) / 150 * 0.20))*/
-        //            + /* shrink on end */ -0.5 + Math.pow(Math.max(0, Math.min(1, (1 - (currentTime - this.endTime) / 175))), 2) * ///0.5 : 0
-        //    )
-        //);
 
         let followCircleDiameter = gameState.currentPlay.circleDiameter;
         followCircleDiameter *= followCircleSizeFactor;

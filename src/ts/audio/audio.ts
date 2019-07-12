@@ -144,6 +144,7 @@ export class MediaPlayer {
 
             this.resetAudioElement();
             this.audioElement.src = url;
+            this.audioElement.preload = 'auto';   
 
             // Fires once the browser thinks it can play the whole file without buffering
             this.audioElement.addEventListener('canplaythrough', () => {

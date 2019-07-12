@@ -135,7 +135,7 @@ export class ProcessedBeatmap {
                         }
                     } else {
                         for (let j = len-1; j >= 0; j--) {
-                            sliderTickCompletions.push(i + sliderTickCompletions[j]);
+                            sliderTickCompletions.push(i + 1 - sliderTickCompletions[j]);
                         }
                     }
                 }
