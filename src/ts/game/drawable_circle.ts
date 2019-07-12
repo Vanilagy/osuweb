@@ -9,6 +9,7 @@ import { PlayEvent, PlayEventType } from "./play_events";
 import { Point, pointDistanceSquared, pointDistance } from "../util/point";
 import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
+import { assert } from "../util/misc_util";
 
 interface CircleScoring {
     head: HitObjectHeadScoring
@@ -108,12 +109,11 @@ export class DrawableCircle extends DrawableHitObject {
     addPlayEvents(playEventArray: PlayEvent[]) {
         let { processedBeatmap } = gameState.currentPlay;
 
-        /* Idk lol
         playEventArray.push({
-            type: PlayEventType.HeadHit,
+            type: PlayEventType.PerfectHeadHit,
             hitObject: this,
             time: this.startTime
-        });*/
+        });
 
         playEventArray.push({
             type: PlayEventType.HeadHitWindowEnd,
@@ -122,19 +122,27 @@ export class DrawableCircle extends DrawableHitObject {
         });
     }
 
+    hitHead(time: number) {
+        assert(this.scoring.head.hit === ScoringValue.NotHit);
+
+        let { processedBeatmap } = gameState.currentPlay;
+
+        let timeInaccuracy = time - this.startTime;
+        let hitDelta = Math.abs(timeInaccuracy);
+        let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
+
+        this.score(time, rating);
+        if (rating !== 0) normalHitSoundEffect.start();
+    }
+
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
-        let { circleRadiusOsuPx, processedBeatmap, scoreCounter } = gameState.currentPlay;
+        let { circleRadiusOsuPx } = gameState.currentPlay;
 
         let distance = pointDistance(osuMouseCoordinates, this.startPoint);
 
         if (distance <= circleRadiusOsuPx) {
             if (this.scoring.head.hit === ScoringValue.NotHit) {
-                let timeInaccuracy = currentTime - this.startTime;
-                let hitDelta = Math.abs(timeInaccuracy);
-                let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
-
-                this.score(currentTime, rating);
-                if (rating !== 0) normalHitSoundEffect.start();
+                this.hitHead(currentTime);
 
                 return true;
             }

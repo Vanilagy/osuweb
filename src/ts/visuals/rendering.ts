@@ -25,8 +25,8 @@ export let scorePopupContainer = new PIXI.Container();
 export let hudContainer = new PIXI.Container();
 
 // The order of these is important, 'cause z-index 'n' stuff.
+stage.addChild(scorePopupContainer);
 stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
-stage.addChild(scorePopupContainer);
 stage.addChild(hudContainer);

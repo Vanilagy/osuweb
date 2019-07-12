@@ -10,6 +10,7 @@ import { DrawableHitObject } from "./drawable_hit_object";
 
 const SCORE_POPUP_APPEARANCE_TIME = 100; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
+const HIDE_300s = false; // Enable this if 300 popups get too annoying
 
 export enum ScoringValue {
     NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
@@ -76,12 +77,15 @@ export class ScoreCounter {
         this.resetGekiAndKatu();
     }
 
-    // A raw amount of zero means miss
+    /**
+     * 
+     * @param raw Determines if the amount should be added to the score in its raw form, ignoring any multipliers. If this is false, it additionally creates a score popup.
+     */
     add(rawAmount: number, raw: boolean = false, affectCombo: boolean = true, affectAccuracy: boolean = true, hitObject: DrawableHitObject, time: number) {
         if (affectAccuracy) {
             this.totalNumberOfHits++;
             this.totalValueOfHits += rawAmount;
-        }        
+        }
 
         let gain = rawAmount;
         if (!raw) gain *= 1 + MathUtil.clamp(this.currentCombo - 1, 0, Infinity) * this.difficultyMultiplier * this.modMultiplier / 25;
@@ -107,9 +111,10 @@ export class ScoreCounter {
             else if (rawAmount === ScoringValue.Hit100) this.score.hits100++;
             else if (rawAmount === ScoringValue.Hit50) this.score.hits50++;
             else this.score.misses++;
-            
+
             if (rawAmount !== ScoringValue.Hit300) {
                 this.isGeki = false;
+                console.log("Man what?")
 
                 if (rawAmount !== ScoringValue.Hit100) {
                     this.isKatu = false;
@@ -136,7 +141,7 @@ export class ScoreCounter {
             if (scorePopupType === undefined)
                 scorePopupType = hitRatingToScorePopupType.get(rawAmount);
             
-            assert(scorePopupType);
+            assert(scorePopupType !== undefined);
             
             let popup = new ScorePopup(scorePopupType, hitObject.endPoint, time);
             gameState.currentPlay.addScorePopup(popup);
@@ -184,14 +189,13 @@ let accuracyInterpolator = new InterpolatedCounter({
 });
 
 enum ScorePopupType {
-    Hit300 = "300",
-    Hit100 = "100",
-    Hit50 = "50",
-    Miss = "X",
-    // ...and UTF-8 introduces itself:
-    Geki = "激", // Only 300s in the combo
-    Katu300 = "喝", // Only 100s or higher in the combo, but at least one 100 - last hit was 300
-    Katu100 = "喝" // Only 100s or higher in the combo, but at least one 100 - last hit was 100
+    Hit300,
+    Hit100,
+    Hit50,
+    Miss,
+    Geki, // Only 300s in the combo
+    Katu300, // Only 100s or higher in the combo, but at least one 100 - last hit was 300
+    Katu100 // Only 100s or higher in the combo, but at least one 100 - last hit was 100
 }
 
 let hitRatingToScorePopupType = new Map<number, ScorePopupType>();
@@ -200,14 +204,24 @@ hitRatingToScorePopupType.set(ScoringValue.Hit100, ScorePopupType.Hit100);
 hitRatingToScorePopupType.set(ScoringValue.Hit50, ScorePopupType.Hit50);
 hitRatingToScorePopupType.set(ScoringValue.Miss, ScorePopupType.Miss);
 
-let scorePopupTypeColors = new Map<ScorePopupType, string>();
-scorePopupTypeColors.set(ScorePopupType.Hit300, '#38b8e8');
-scorePopupTypeColors.set(ScorePopupType.Hit100, '#57e11a');
-scorePopupTypeColors.set(ScorePopupType.Hit50, '#d6ac52');
-scorePopupTypeColors.set(ScorePopupType.Miss, '#ff0000');
-scorePopupTypeColors.set(ScorePopupType.Geki, '#38b8e8'); // Same color as Hit300
-scorePopupTypeColors.set(ScorePopupType.Katu300, '#38b8e8'); // Same color as Hit300 and Geki
-scorePopupTypeColors.set(ScorePopupType.Katu100, '#57e11a'); // Same color as Hit100
+let scorePopupTypeToString = new Map<ScorePopupType, string>();
+scorePopupTypeToString.set(ScorePopupType.Hit300, '300');
+scorePopupTypeToString.set(ScorePopupType.Hit100, '100');
+scorePopupTypeToString.set(ScorePopupType.Hit50, '50');
+scorePopupTypeToString.set(ScorePopupType.Miss, 'X');
+// ...and UTF-8 introduces itself:
+scorePopupTypeToString.set(ScorePopupType.Geki, '激');
+scorePopupTypeToString.set(ScorePopupType.Katu300, '喝');
+scorePopupTypeToString.set(ScorePopupType.Katu100, '喝');
+
+let scorePopupTypeToColor = new Map<ScorePopupType, string>();
+scorePopupTypeToColor.set(ScorePopupType.Hit300, '#38b8e8');
+scorePopupTypeToColor.set(ScorePopupType.Hit100, '#57e11a');
+scorePopupTypeToColor.set(ScorePopupType.Hit50, '#d6ac52');
+scorePopupTypeToColor.set(ScorePopupType.Miss, '#ff0000');
+scorePopupTypeToColor.set(ScorePopupType.Geki, '#38b8e8'); // Same color as Hit300
+scorePopupTypeToColor.set(ScorePopupType.Katu300, '#38b8e8'); // Same color as Hit300 and Geki
+scorePopupTypeToColor.set(ScorePopupType.Katu100, '#57e11a'); // Same color as Hit100
 
 export class ScorePopup {
     public container: PIXI.Container;
@@ -220,16 +234,22 @@ export class ScorePopup {
         let currentPlay = gameState.currentPlay;
         let { pixelRatio } = currentPlay;
 
-        let popup = new PIXI.Text(type, {
+        let popup = new PIXI.Text(scorePopupTypeToString.get(type), {
             fontFamily: "Nunito",
             fontSize: 28 * pixelRatio,
-            fill: scorePopupTypeColors.get(type)
+            fill: scorePopupTypeToColor.get(type)
         });
 
         popup.pivot.x = popup.width / 2;
         popup.pivot.y = popup.height / 2;
         popup.x = currentPlay.toScreenCoordinatesX(osuPosition.x);
         popup.y = currentPlay.toScreenCoordinatesY(osuPosition.y);
+
+        if (HIDE_300s && (
+            type === ScorePopupType.Hit300 ||
+            type === ScorePopupType.Geki ||
+            type === ScorePopupType.Katu300
+        )) popup.visible = false;
 
         this.container = popup;
     }

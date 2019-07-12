@@ -9,6 +9,8 @@ export function padNumberWithZeroes(num: number, zeroes: number) {
         neededZeroes = zeroes - dotIndex;
     }
 
+    if (neededZeroes < 0) neededZeroes = 0;
+
     return "0000000000000000000000000000".slice(0, neededZeroes) + str;
 }
 
@@ -20,8 +22,8 @@ export function toPercentageString(num: number, decimals?: number) {
     }
 }
 
-/** Throws if the passed value is falsey. */
-export function assert(value: any) {
+/** Throws if the passed value is FALSE. Not falsy. FALSE. Pass a boolean to this. */
+export function assert(value: boolean) {
     if (!value) {
         throw new Error("Assertion failed!");
     }

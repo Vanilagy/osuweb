@@ -20,6 +20,7 @@ import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
+const AUTOHIT = true; // Just hits everything perfectly. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -182,6 +183,8 @@ export class Play {
 
         requestAnimationFrame(this.render.bind(this));
 
+        if (!LOG_RENDER_INFO) return;
+
         // Frame time logger:
         let elapsedTime = performance.now() - startTime;
         this.frameTimes.push(elapsedTime);
@@ -224,14 +227,20 @@ export class Play {
                         hitObject.scoring.head.hit = ScoringValue.Miss;
                         hitObject.scoring.head.time = playEvent.time;
                         
-                        this.scoreCounter.add(0, false, true, true, hitObject, playEvent.time);
+                        this.scoreCounter.add(0, true, true, true, hitObject, playEvent.time);
                     }
+                }; break;
+                case PlayEventType.PerfectHeadHit: {
+                    if (!AUTOHIT) break;
+
+                    let hitObject = playEvent.hitObject as (DrawableCircle | DrawableSlider);
+                    hitObject.hitHead(playEvent.time);
                 }; break;
                 case PlayEventType.SliderEnd: {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, slider.endPoint);
-                    if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
+                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) || AUTOHIT) { // * 2 because this is the "size" of the follow circle
                         slider.scoring.end = true;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
                         normalHitSoundEffect.start();
@@ -250,24 +259,24 @@ export class Play {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
+                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) || AUTOHIT) { // * 2 because this is the "size" of the follow circle
                         slider.scoring.repeats++;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
                         normalHitSoundEffect.start();
                     } else {
-                        this.scoreCounter.add(0, false, true, true, slider, playEvent.time);
+                        this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }
                 }; break;
                 case PlayEventType.SliderTick: {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
+                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) || AUTOHIT) { // * 2 because this is the "size" of the follow circle
                         slider.scoring.ticks++;
                         this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
                         //normalHitSoundEffect.start(); // TODO: Play tick sound! 
                     } else {
-                        this.scoreCounter.add(0, false, true, true, slider, playEvent.time);
+                        this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }
                 }; break;
             }

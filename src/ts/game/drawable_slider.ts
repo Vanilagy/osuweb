@@ -13,6 +13,7 @@ import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
+import { assert } from "../util/misc_util";
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -243,13 +244,12 @@ export class DrawableSlider extends DrawableHitObject {
     addPlayEvents(playEventArray: PlayEvent[]) {
         let { processedBeatmap } = gameState.currentPlay;
 
-        /* Idk lol
         playEventArray.push({
-            type: PlayEventType.SliderHead,
+            type: PlayEventType.PerfectHeadHit,
             hitObject: this,
             time: this.startTime
-        });*/
-        // TODO: What happens if the whole slider ended before the heat hit window ended? How does osu! handle this?
+        });
+
         playEventArray.push({
             type: PlayEventType.HeadHitWindowEnd,
             hitObject: this,
@@ -299,6 +299,8 @@ export class DrawableSlider extends DrawableHitObject {
         total += this.scoring.repeats;
 
         let fraction = total / (2 + this.sliderTickCompletions.length + (this.hitObject.repeat - 1));
+        assert(fraction >= 0 && fraction <= 1);
+        
         let resultingRawScore = (() => {
             if (fraction === 1) {
                 return 300;
@@ -312,24 +314,31 @@ export class DrawableSlider extends DrawableHitObject {
 
         gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true, this, this.endTime);
     }
+
+    hitHead(time: number) {
+        assert(this.scoring.head.hit === ScoringValue.NotHit);
+        
+        let { processedBeatmap, scoreCounter } = gameState.currentPlay;
+
+        let timeInaccuracy = time - this.startTime;
+        let hitDelta = Math.abs(timeInaccuracy);
+        let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
+
+        this.scoring.head.hit = rating;
+        this.scoring.head.time = time;
+
+        scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, time);
+        if (rating !== 0) normalHitSoundEffect.start();
+    }
     
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
-        let { circleRadiusOsuPx, processedBeatmap, scoreCounter } = gameState.currentPlay;
+        let { circleRadiusOsuPx } = gameState.currentPlay;
 
         let distance = pointDistance(osuMouseCoordinates, this.startPoint);
 
         if (distance <= circleRadiusOsuPx) {
             if (this.scoring.head.hit === ScoringValue.NotHit) {
-                let timeInaccuracy = currentTime - this.startTime;
-                let hitDelta = Math.abs(timeInaccuracy);
-                let rating = processedBeatmap.beatmap.difficulty.getRatingForHitDelta(hitDelta);
-
-                this.scoring.head.hit = rating;
-                this.scoring.head.time = currentTime;
-
-                scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, currentTime);
-                if (rating !== 0) normalHitSoundEffect.start();
-
+                this.hitHead(currentTime);
                 return true;
             }
         }
