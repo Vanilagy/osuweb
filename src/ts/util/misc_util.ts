@@ -19,3 +19,10 @@ export function toPercentageString(num: number, decimals?: number) {
         return (num * 100).toFixed(decimals) + '%'
     }
 }
+
+/** Throws if the passed value is falsey. */
+export function assert(value: any) {
+    if (!value) {
+        throw new Error("Assertion failed!");
+    }
+}

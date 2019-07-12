@@ -1,5 +1,5 @@
 import { MathUtil } from "../util/math_util";
-import { DrawableHitObject, drawCircle, ScoringValue, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
@@ -8,6 +8,7 @@ import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { Point, pointDistanceSquared, pointDistance } from "../util/point";
 import { normalHitSoundEffect } from "../audio/audio";
+import { ScoringValue } from "./score";
 
 interface CircleScoring {
     head: HitObjectHeadScoring
@@ -101,7 +102,7 @@ export class DrawableCircle extends DrawableHitObject {
         this.scoring.head.hit = rating;
         this.scoring.head.time = time;
 
-        scoreCounter.add(rating);
+        scoreCounter.add(rating, false, true, true, this, time);
     }
 
     addPlayEvents(playEventArray: PlayEvent[]) {

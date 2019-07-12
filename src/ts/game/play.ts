@@ -3,9 +3,9 @@ import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider } from "./drawable_slider";
 import { mainMusicMediaPlayer, normalHitSoundEffect } from "../audio/audio";
-import { mainRender, followPointContainer } from "../visuals/rendering";
+import { mainRender, followPointContainer, scorePopupContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
-import { DrawableHitObject, ScoringValue } from "./drawable_hit_object";
+import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsDataUrl, readFileAsLocalResourceUrl } from "../util/file_util";
 import { loadMainBackgroundImage } from "../visuals/ui";
@@ -15,7 +15,7 @@ import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint, FOLLOW_POINT_DIST
 import { PlayEvent, PlayEventType } from "./play_events";
 import "./hud";
 import "../input/input";
-import { ScoreCounter, Score } from "./score";
+import { ScoreCounter, Score, ScorePopup, ScoringValue } from "./score";
 import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 
 const LOG_RENDER_INFO = true;
@@ -27,6 +27,7 @@ export class Play {
     public currentHitObjectId: number;
     public onscreenObjects: { [s: string]: DrawableHitObject };
     public followPoints: FollowPoint[];
+    public scorePopups: ScorePopup[];
     public pixelRatio: number;
     public circleDiameterOsuPx: number;
     public circleDiameter: number;
@@ -48,6 +49,7 @@ export class Play {
         this.currentHitObjectId = 0;
         this.onscreenObjects = {};
         this.followPoints = [];
+        this.scorePopups = [];
 
         this.pixelRatio = null;
         this.circleDiameter = null;
@@ -162,6 +164,19 @@ export class Play {
         // Update the score display
         this.scoreCounter.updateDisplay();
 
+        // Update score popups
+        for (let i = 0; i < this.scorePopups.length; i++) {
+            let popup = this.scorePopups[i];
+
+            popup.update(currentTime);
+
+            if (popup.renderingFinished) {
+                popup.remove();
+                this.scorePopups.splice(i, 1); // I hope this won't be slow
+                i--;
+            }
+        }
+
         // Let PIXI draw it all to the canvas
         mainRender();
 
@@ -209,44 +224,50 @@ export class Play {
                         hitObject.scoring.head.hit = ScoringValue.Miss;
                         hitObject.scoring.head.time = playEvent.time;
                         
-                        this.scoreCounter.add(0);
+                        this.scoreCounter.add(0, false, true, true, hitObject, playEvent.time);
                     }
                 }; break;
                 case PlayEventType.SliderEnd: {
-                    let hitObject = playEvent.hitObject as DrawableSlider;
+                    let slider = playEvent.hitObject as DrawableSlider;
 
-                    let distance = pointDistance(osuMouseCoordinates, hitObject.endPoint);
+                    let distance = pointDistance(osuMouseCoordinates, slider.endPoint);
                     if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
-                        hitObject.scoring.end = true;
-                        this.scoreCounter.add(30, true, true, false);
+                        slider.scoring.end = true;
+                        this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
                         normalHitSoundEffect.start();
+                    }
+
+                    if (slider.scoring.head.hit === ScoringValue.NotHit) {
+                        // If the slider ended before the player managed to click its head, the head is automatically "missed".
+                        slider.scoring.head.hit = ScoringValue.Miss;
+                        slider.scoring.head.time = playEvent.time;
                     }
 
                     // Score the slider, no matter if the end was hit or not (obviously) 
-                    hitObject.score();
+                    slider.score();
                 }; break;
                 case PlayEventType.SliderRepeat: {
-                    let hitObject = playEvent.hitObject as DrawableSlider;
+                    let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
                     if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
-                        hitObject.scoring.repeats++;
-                        this.scoreCounter.add(30, true, true, false);
+                        slider.scoring.repeats++;
+                        this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
                         normalHitSoundEffect.start();
                     } else {
-                        this.scoreCounter.add(0);
+                        this.scoreCounter.add(0, false, true, true, slider, playEvent.time);
                     }
                 }; break;
                 case PlayEventType.SliderTick: {
-                    let hitObject = playEvent.hitObject as DrawableSlider;
+                    let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
                     if (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) { // * 2 because this is the "size" of the follow circle
-                        hitObject.scoring.ticks++;
-                        this.scoreCounter.add(10, true, true, false);
+                        slider.scoring.ticks++;
+                        this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
                         //normalHitSoundEffect.start(); // TODO: Play tick sound! 
                     } else {
-                        this.scoreCounter.add(0);
+                        this.scoreCounter.add(0, false, true, true, slider, playEvent.time);
                     }
                 }; break;
             }
@@ -294,6 +315,11 @@ export class Play {
             x: this.toOsuCoordinatesX(currentMousePosition.x),
             y: this.toOsuCoordinatesY(currentMousePosition.y)
         };
+    }
+
+    addScorePopup(popup: ScorePopup) {
+        this.scorePopups.push(popup);
+        scorePopupContainer.addChild(popup.container);
     }
 }
 

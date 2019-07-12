@@ -4,7 +4,7 @@ import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil, EaseType } from "../util/math_util";
-import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, ScoringValue, updateHeadElements } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
@@ -12,6 +12,7 @@ import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rend
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { normalHitSoundEffect } from "../audio/audio";
+import { ScoringValue } from "./score";
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -309,7 +310,7 @@ export class DrawableSlider extends DrawableHitObject {
             return 0;
         })();
 
-        gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true);
+        gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true, this, this.endTime);
     }
     
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
@@ -326,7 +327,7 @@ export class DrawableSlider extends DrawableHitObject {
                 this.scoring.head.hit = rating;
                 this.scoring.head.time = currentTime;
 
-                scoreCounter.add(ScoringValue.SliderHead, true, true, false);
+                scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, currentTime);
                 if (rating !== 0) normalHitSoundEffect.start();
 
                 return true;
