@@ -81,7 +81,7 @@ export class ScoreCounter {
      * 
      * @param raw Determines if the amount should be added to the score in its raw form, ignoring any multipliers. If this is false, it additionally creates a score popup.
      */
-    add(rawAmount: number, raw: boolean = false, affectCombo: boolean = true, affectAccuracy: boolean = true, hitObject: DrawableHitObject, time: number) {
+    add(rawAmount: number, raw: boolean, affectCombo: boolean, affectAccuracy: boolean, hitObject: DrawableHitObject, time: number) {
         if (affectAccuracy) {
             this.totalNumberOfHits++;
             this.totalValueOfHits += rawAmount;
