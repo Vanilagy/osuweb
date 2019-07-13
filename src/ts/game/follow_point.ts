@@ -62,7 +62,7 @@ export class FollowPoint {
         };
 
         let line = new PIXI.Graphics();
-        line.lineStyle(this.height, 0xFFFFFF, 0.8);
+        line.lineStyle(this.height, 0xFFFFFF, 0.75);
         line.moveTo(currentPlay.toScreenCoordinatesX(p1.x), currentPlay.toScreenCoordinatesY(p1.y));
         line.lineTo(currentPlay.toScreenCoordinatesX(p2.x), currentPlay.toScreenCoordinatesY(p2.y));
 

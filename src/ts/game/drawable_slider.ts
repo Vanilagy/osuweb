@@ -7,7 +7,7 @@ import { MathUtil, EaseType } from "../util/math_util";
 import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, REVERSE_ARROW_TEXTURE, SQUARE_TEXTURE, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
@@ -43,8 +43,8 @@ export class DrawableSlider extends DrawableHitObject {
     public baseSprite: PIXI.Sprite;
     public baseCtx: CanvasRenderingContext2D;
     public overlayContainer: PIXI.Container;
-    public sliderBall: PIXI.Graphics;
-    public reverseArrow: PIXI.Sprite;
+    public sliderBall: PIXI.Container;
+    public reverseArrow: PIXI.Container;
     public sliderTickGraphics: PIXI.Graphics;
     public followCircle: PIXI.Container;
 
@@ -147,12 +147,14 @@ export class DrawableSlider extends DrawableHitObject {
         approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
         this.approachCircle = approachCircle;
 
-        this.sliderBall = new PIXI.Graphics();
-        this.sliderBall.beginFill(colorToHexNumber(this.comboInfo.color));
-        this.sliderBall.lineStyle(0);
-        this.sliderBall.drawCircle(0, 0, this.sliderBodyRadius);
-        this.sliderBall.endFill();
-        this.sliderBall.visible = false;
+        let sliderBall = new PIXI.Graphics();
+        sliderBall = new PIXI.Graphics();
+        sliderBall.beginFill(colorToHexNumber(this.comboInfo.color));
+        sliderBall.lineStyle(0);
+        sliderBall.drawCircle(0, 0, this.sliderBodyRadius);
+        sliderBall.endFill();
+        sliderBall.visible = false;
+        this.sliderBall = sliderBall;
 
         let followCircle = new PIXI.Graphics();
         let thickness = FOLLOW_CIRCLE_THICKNESS_FACTOR * circleDiameter;
@@ -161,6 +163,7 @@ export class DrawableSlider extends DrawableHitObject {
         followCircle.visible = false;
         this.followCircle = followCircle;
 
+        /*
         this.reverseArrow = new PIXI.Sprite(REVERSE_ARROW_TEXTURE);
         let yes1 = this.reverseArrow.width; // Keep the original width at the start.
         let yes2 = this.reverseArrow.height; // Keep the original width at the start.
@@ -179,7 +182,23 @@ export class DrawableSlider extends DrawableHitObject {
         this.reverseArrow.height = no2;
         this.reverseArrow.pivot.x = yes1 / 2;
         this.reverseArrow.pivot.y = yes2 / 2;
-        this.reverseArrow.visible = false;
+        this.reverseArrow.visible = false;*/
+
+        let reverseArrow = new PIXI.Graphics();
+        let triangleRadius = circleDiameter / 4;
+        let startingAngle = 0; // "East" on the unit circle
+        let points: PIXI.Point[] = [];
+        for (let i = 0; i < 3; i++) {
+            let angle = startingAngle + i*(Math.PI*2 / 3);
+            let point = new PIXI.Point(triangleRadius * Math.cos(angle), triangleRadius * Math.sin(angle));
+            points.push(point);
+        }
+        reverseArrow.beginFill(0xFFFFFF);
+        reverseArrow.drawPolygon(points);
+        reverseArrow.endFill();
+
+        reverseArrow.visible = false;
+        this.reverseArrow = reverseArrow;
 
         this.sliderTickGraphics = new PIXI.Graphics();
 
@@ -511,7 +530,7 @@ export class DrawableSlider extends DrawableHitObject {
 
             let sliderTickPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(tickCompletion)));
 
-            if (DRAWING_MODE === 0) {
+            if (DRAWING_MODE === DrawingMode.Procedural) {
                 let radius = gameState.currentPlay.circleDiameter * 0.038;
                 // Creates a bouncing scaling effect.
                 let parabola = (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion);
@@ -520,7 +539,7 @@ export class DrawableSlider extends DrawableHitObject {
                 this.sliderTickGraphics.beginFill(0xFFFFFF);
                 this.sliderTickGraphics.drawCircle(sliderTickPos.x, sliderTickPos.y, radius);
                 this.sliderTickGraphics.endFill();
-            } else if (DRAWING_MODE === 1) {
+            } else if (DRAWING_MODE === DrawingMode.Skin) {
                 //let diameter = GAME_STATE.currentPlay.csPixel / SLIDER_BALL_CS_RATIO / 4 * (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion);
 
                 //this.overlayCtx.drawImage(GAME_STATE.currentPlay.drawElements.sliderTick, sliderTickPos.x - diameter / 2, sliderTickPos.y - diameter / 2, diameter, diameter);

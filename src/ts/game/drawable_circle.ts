@@ -2,7 +2,7 @@ import { MathUtil } from "../util/math_util";
 import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, APPROACH_CIRCLE_TEXTURE, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";

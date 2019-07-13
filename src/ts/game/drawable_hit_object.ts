@@ -2,7 +2,7 @@ import { HitObject } from "../datamodel/hit_object";
 import { gameState } from "./game_state";
 import { ComboInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
-import { CIRCLE_BORDER_WIDTH, DRAWING_MODE, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
+import { CIRCLE_BORDER_WIDTH, DRAWING_MODE, HIT_OBJECT_FADE_OUT_TIME, DrawingMode } from "../util/constants";
 import { MathUtil, EaseType } from "../util/math_util";
 import { PlayEvent } from "./play_events";
 import { DrawableCircle } from "./drawable_circle";
@@ -91,7 +91,7 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
 
     //color = {r: 255, g: 20, b: 20};
 
-    if (DRAWING_MODE === 0) {
+    if (DRAWING_MODE === DrawingMode.Procedural) {
         context.beginPath(); // Draw circle base (will become border)
         context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2, 0, Math.PI * 2);
         context.fillStyle = "white";
@@ -111,12 +111,12 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
         context.fillStyle = "rgba(255, 255, 255, 0.5)";
         context.globalCompositeOperation = "destination-out"; // Transparency
         context.fill();
-    } else if (DRAWING_MODE === 1) {
+    } else if (DRAWING_MODE === DrawingMode.Skin) {
         //context.drawImage(GAME_STATE.currentPlay.drawElements.coloredHitcircles[comboInfo.comboNum % GAME_STATE.currentBeatmap.colors.length], x, y);
     }
 
     context.globalCompositeOperation = "source-over";
-    if (DRAWING_MODE === 0) {
+    if (DRAWING_MODE === DrawingMode.Procedural) {
         let innerType = "number";
 
         if (innerType === "number") {
@@ -131,7 +131,7 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
             context.fillStyle = "white";
             context.fill();
         }
-    } else if (DRAWING_MODE === 1) {
+    } else if (DRAWING_MODE === DrawingMode.Procedural) {
         //let numberWidth = 70 / 256 * GAME_STATE.currentPlay.csPixel,
         //    numberHeight = 104 / 256 * GAME_STATE.currentPlay.csPixel,
         //    numberString = comboInfo.n.toString(),
@@ -148,7 +148,6 @@ export function updateHeadElements(hitObject: DrawableCircle | DrawableSlider, c
     let { ARMs, circleDiameter } = gameState.currentPlay;
 
     let fadeInCompletion = 1;
-
     let headScoring = hitObject.scoring.head;
 
     if (headScoring.hit === ScoringValue.NotHit) {
@@ -157,8 +156,11 @@ export function updateHeadElements(hitObject: DrawableCircle | DrawableSlider, c
             fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
             fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
 
-            let approachCircleCompletion = MathUtil.clamp((hitObject.hitObject.time - currentTime) / ARMs, 0, 1);
-            let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
+            let approachCircleAppearTime = hitObject.startTime - ARMs;
+            let approachCircleCompletion = (currentTime - approachCircleAppearTime) / ARMs;
+            approachCircleCompletion = MathUtil.clamp(approachCircleCompletion, 0, 1);
+
+            let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0
             let approachCircleDiameter = circleDiameter * approachCircleFactor;
             hitObject.approachCircle.width = hitObject.approachCircle.height = approachCircleDiameter;
 
@@ -184,33 +186,6 @@ export function updateHeadElements(hitObject: DrawableCircle | DrawableSlider, c
             hitObject.headSprite.height = circleDiameter * scale;
         }
     }
-
-    /*
-    if (currentTime < this.startTime) {
-        fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
-        fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-        fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
-
-        let approachCircleCompletion = MathUtil.clamp((this.hitObject.time - currentTime) / ARMs, 0, 1);
-        let approachCircleFactor = 3 * (approachCircleCompletion) + 1;
-        let approachCircleDiameter = circleDiameter * approachCircleFactor;
-        this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
-
-        this.approachCircle.alpha = fadeInCompletion;
-    } else {
-        this.approachCircle.visible = false;
-
-        let fadeOutCompletion = (currentTime - (this.startTime)) / HIT_OBJECT_FADE_OUT_TIME;
-        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-        fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
-
-        let alpha = 1 - fadeOutCompletion;
-        let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
-
-        this.headSprite.alpha = alpha;
-        this.headSprite.width = circleDiameter * scale;
-        this.headSprite.height = circleDiameter * scale;
-    }*/
 
     return { fadeInCompletion };
 }

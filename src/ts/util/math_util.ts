@@ -36,20 +36,21 @@ export class MathUtil {
             bx = (1 - t) * (1 - t) * (1 - t) * pointArray[0].x + 3 * (1 - t) * (1 - t) * t * pointArray[1].x + 3 * (1 - t) * t * t * pointArray[2].x + t * t * t * pointArray[3].x;
             by = (1 - t) * (1 - t) * (1 - t) * pointArray[0].y + 3 * (1 - t) * (1 - t) * t * pointArray[1].y + 3 * (1 - t) * t * t * pointArray[2].y + t * t * t * pointArray[3].y;
         } else { // generalized equation
-            for(let i = 0; i <= n; i++) {
+            for (let i = 0; i <= n; i++) {
                 bx += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].x;
                 by += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].y;
             }
         }
 
-        return {x: bx, y: by}
+        return {x: bx, y: by};
 	}
     static binomialCoef(n: number, k: number): number {
-		let r = 1;
+        // I tried to add caching to this function, but apparently, V8 already recognized this function is "hot" (called a lot), and therefore caches it in the background or something. It was slower with manual caching than without.
 
         if (k > n)
             return 0;
 
+		let r = 1;
         for (let d = 1; d <= k; d++) {
             r *= n--;
             r /= d;
