@@ -9,7 +9,7 @@ import { MathUtil } from "../util/math_util";
 import { Color } from "../util/graphics_util";
 import { PlayEvent } from "./play_events";
 
-const MINIMUM_REQUIRED_INTERLUDE_TIME = 1500; // In milliseconds
+const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
 
 export interface ComboInfo {
     comboNum: number,
@@ -262,15 +262,15 @@ export class ProcessedBeatmap {
     }
 
     // The time to delay the song at the start to allow for player preparation, in milliseconds
-    getInterludeTime() {
-        let interludeTime = 0;
+    getPreludeTime() {
+        let preludeTime = 0;
         let firstHitObject = this.hitObjects[0];
 
-        if (firstHitObject.startTime < MINIMUM_REQUIRED_INTERLUDE_TIME) {
-            interludeTime = MINIMUM_REQUIRED_INTERLUDE_TIME - firstHitObject.startTime;
+        if (firstHitObject.startTime < MINIMUM_REQUIRED_PRELUDE_TIME) {
+            preludeTime = MINIMUM_REQUIRED_PRELUDE_TIME - firstHitObject.startTime;
         }
 
-        return interludeTime;
+        return preludeTime;
     }
     
     getAllPlayEvents(): PlayEvent[] {

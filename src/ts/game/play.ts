@@ -17,6 +17,8 @@ import "./hud";
 import "../input/input";
 import { ScoreCounter, Score, ScorePopup, ScoringValue } from "./score";
 import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
+import { progressIndicator } from "./hud";
+import { MathUtil } from "../util/math_util";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -24,7 +26,7 @@ const AUTOHIT = true; // Just hits everything perfectly. This is NOT auto, it do
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
-    public audioStartTime: number;
+    public preludeTime: number;
     public currentHitObjectId: number;
     public onscreenObjects: { [s: string]: DrawableHitObject };
     public followPoints: FollowPoint[];
@@ -46,7 +48,7 @@ export class Play {
         this.processedBeatmap = new ProcessedBeatmap(beatmap);
         this.scoreCounter = new ScoreCounter(this.processedBeatmap);
 
-        this.audioStartTime = null;
+        this.preludeTime = 0;
         this.currentHitObjectId = 0;
         this.onscreenObjects = {};
         this.followPoints = [];
@@ -111,8 +113,8 @@ export class Play {
             loadMainBackgroundImage(url);
         }
 
-        let interludeTime = this.processedBeatmap.getInterludeTime();
-        mainMusicMediaPlayer.start(-interludeTime / 1000);
+        this.preludeTime = this.processedBeatmap.getPreludeTime();
+        mainMusicMediaPlayer.start(-this.preludeTime / 1000);
 
         console.timeEnd("Audio load");
 
@@ -137,7 +139,7 @@ export class Play {
                 delete this.onscreenObjects[id];
 
                 continue;
-            }             
+            }
         }
 
         // Add new hit objects to screen
@@ -164,6 +166,27 @@ export class Play {
 
         // Update the score display
         this.scoreCounter.updateDisplay();
+
+        // Update the progress indicator
+        let firstHitObject = this.processedBeatmap.hitObjects[0],
+            lastHitObject = this.processedBeatmap.hitObjects[this.processedBeatmap.hitObjects.length - 1];
+        if (firstHitObject && lastHitObject) {
+            let start = firstHitObject.startTime,
+                end = lastHitObject.endTime;
+            let diff = currentTime - start;
+
+            if (diff < 0) {
+                let completion = (currentTime + this.preludeTime) / (start + this.preludeTime);
+                completion = MathUtil.clamp(completion, 0, 1);
+
+                progressIndicator.draw(completion, true);
+            } else {
+                let completion = (currentTime - start) / (end - start);
+                completion = MathUtil.clamp(completion, 0, 1);
+
+                progressIndicator.draw(completion, false); 
+            }
+        }
 
         // Update score popups
         for (let i = 0; i < this.scorePopups.length; i++) {
