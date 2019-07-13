@@ -17,7 +17,7 @@ import "./hud";
 import "../input/input";
 import { ScoreCounter, Score, ScorePopup, ScoringValue } from "./score";
 import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
-import { progressIndicator } from "./hud";
+import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil } from "../util/math_util";
 
 const LOG_RENDER_INFO = true;
@@ -82,6 +82,8 @@ export class Play {
         console.timeEnd("Play event generation");
 
         this.generateFollowPoints();
+
+        accuracyMeter.init();
     }
 
     private generateFollowPoints() {
@@ -187,6 +189,9 @@ export class Play {
                 progressIndicator.draw(completion, false); 
             }
         }
+        
+        // Update the accuracy meter
+        accuracyMeter.update(currentTime);
 
         // Update score popups
         for (let i = 0; i < this.scorePopups.length; i++) {
@@ -255,7 +260,7 @@ export class Play {
                 }; break;
                 case PlayEventType.PerfectHeadHit: {
                     if (!AUTOHIT) break;
-
+ 
                     let hitObject = playEvent.hitObject as (DrawableCircle | DrawableSlider);
                     hitObject.hitHead(playEvent.time);
                 }; break;

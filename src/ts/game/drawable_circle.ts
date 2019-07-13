@@ -10,6 +10,7 @@ import { Point, pointDistanceSquared, pointDistance } from "../util/point";
 import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
+import { accuracyMeter } from "./hud";
 
 interface CircleScoring {
     head: HitObjectHeadScoring
@@ -133,6 +134,8 @@ export class DrawableCircle extends DrawableHitObject {
 
         this.score(time, judgement);
         if (judgement !== 0) normalHitSoundEffect.start();
+
+        accuracyMeter.addAccuracyLine(timeInaccuracy, time);
     }
 
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {

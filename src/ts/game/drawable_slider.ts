@@ -14,6 +14,7 @@ import { PlayEvent, PlayEventType } from "./play_events";
 import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
+import { accuracyMeter } from "./hud";
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -348,6 +349,8 @@ export class DrawableSlider extends DrawableHitObject {
 
         scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, time);
         if (judgement !== 0) normalHitSoundEffect.start();
+
+        accuracyMeter.addAccuracyLine(timeInaccuracy, time);
     }
     
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {

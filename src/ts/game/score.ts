@@ -114,7 +114,6 @@ export class ScoreCounter {
 
             if (rawAmount !== ScoringValue.Hit300) {
                 this.isGeki = false;
-                console.log("Man what?")
 
                 if (rawAmount !== ScoringValue.Hit100) {
                     this.isKatu = false;
