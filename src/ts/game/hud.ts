@@ -128,6 +128,7 @@ const ACCURACY_METER_SCALE = 2;
 const ACCURACY_METER_HEIGHT = 40;
 const ACCURACY_LINE_LIFETIME = 10000; // In ms
 
+// TODO: Make this thing fade out automatically if there hasn't been input for a while
 class AccuracyMeter {
     public container: PIXI.Container;
     private base: PIXI.Graphics;

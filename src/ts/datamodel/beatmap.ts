@@ -35,7 +35,7 @@ interface BeatmapEventImage extends BeatmapEvent {
     position: Point
 }
 
-interface BeatmapEventBreak extends BeatmapEvent {
+export interface BeatmapEventBreak extends BeatmapEvent {
     start: number,
     end: number
 }

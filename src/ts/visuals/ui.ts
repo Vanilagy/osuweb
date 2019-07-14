@@ -4,7 +4,11 @@ const MAIN_BACKGROUND_IMAGE_CONTAINER: HTMLImageElement = document.querySelector
 
 export function loadMainBackgroundImage(url: string) {
     MAIN_BACKGROUND_IMAGE_CONTAINER.src = url;
-    MAIN_BACKGROUND_IMAGE_CONTAINER.style.opacity = "0.1";
+    //MAIN_BACKGROUND_IMAGE_CONTAINER.style.opacity = "0.1";
+}
+
+export function setMainBackgroundImageOpacity(opacity: number) {
+    MAIN_BACKGROUND_IMAGE_CONTAINER.style.opacity = String(opacity);
 }
 
 function onResize() {

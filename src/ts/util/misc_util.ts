@@ -28,3 +28,7 @@ export function assert(value: boolean) {
         throw new Error("Assertion failed!");
     }
 }
+
+export function lastArrayItem<T>(arr: T[]): T {
+    return arr[arr.length - 1];
+}

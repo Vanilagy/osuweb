@@ -1,4 +1,4 @@
-import { Beatmap } from "../datamodel/beatmap";
+import { Beatmap, BeatmapEventBreak } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider, SliderTimingInfo } from "./drawable_slider";
 import { Circle } from "../datamodel/circle";
@@ -8,8 +8,10 @@ import { DrawableSpinner } from "./drawable_spinner";
 import { MathUtil } from "../util/math_util";
 import { Color } from "../util/graphics_util";
 import { PlayEvent } from "./play_events";
+import { lastArrayItem } from "../util/misc_util";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
+const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
 
 export interface ComboInfo {
     comboNum: number,
@@ -18,13 +20,20 @@ export interface ComboInfo {
     color: Color
 }
 
+export interface Break {
+    startTime: number,
+    endTime: number
+}
+
 export class ProcessedBeatmap {
     public beatmap: Beatmap;
     public hitObjects: DrawableHitObject[];
+    public breaks: Break[];
 
     constructor(beatmap: Beatmap) {
         this.beatmap = beatmap;
         this.hitObjects = [];
+        this.breaks = [];
     }
 
     init() {
@@ -33,6 +42,8 @@ export class ProcessedBeatmap {
         console.time('Stack shift');
         this.applyStackShift(false);
         console.timeEnd('Stack shift');
+
+        this.generateBreaks();
     }
 
     generateHitObjects() {
@@ -283,5 +294,69 @@ export class ProcessedBeatmap {
         events.sort((a, b) => a.time - b.time); // Sort by time, ascending
 
         return events;
+    }
+
+    generateBreaks() {
+        for (let event of this.beatmap.events) {
+            if (event.type !== "break") continue;
+
+            let breakEvent = event as BeatmapEventBreak;
+
+            this.breaks.push({
+                startTime: breakEvent.start,
+                endTime: breakEvent.end
+            });
+        }
+
+        if (this.hitObjects.length > 0) {
+            let firstObject = this.hitObjects[0];
+            let lastObject = lastArrayItem(this.hitObjects);
+
+            // Add break before the first hit object
+            this.breaks.push({
+                startTime: -Infinity,
+                endTime: firstObject.startTime
+            });
+
+            // Add break after the last hit object
+            this.breaks.push({
+                startTime: lastObject.endTime,
+                endTime: Infinity
+            });
+
+            // Generate implicit breaks
+            for (let i = 0; i < this.hitObjects.length-1; i++) {
+                let ho1 = this.hitObjects[i]; // hohoho! CHRISUMASU!
+                let ho2 = this.hitObjects[i+1];
+
+                if (!ho1 || !ho2) break;
+
+                outer:
+                if (ho2.startTime - ho1.endTime >= IMPLICIT_BREAK_THRESHOLD) {
+                    // Check if there's already a break starting between the two hit object
+
+                    for (let breakEvent of this.breaks) {
+                        if (breakEvent.startTime >= ho1.endTime && breakEvent.startTime <= ho2.startTime) {
+                            break outer;
+                        }
+                    }
+
+                    // No break there yet! Let's add one!
+
+                    this.breaks.push({
+                        startTime: ho1.endTime,
+                        endTime: ho2.startTime
+                    });
+                }
+            }
+        } else {
+            // Just a "break" that spans the whole song
+            this.breaks.push({
+                startTime: -Infinity,
+                endTime: Infinity
+            });
+        }
+
+        this.breaks.sort((a, b) => a.startTime - b.startTime); // ascending
     }
 }

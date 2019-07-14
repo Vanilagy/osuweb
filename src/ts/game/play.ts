@@ -8,7 +8,7 @@ import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsDataUrl, readFileAsLocalResourceUrl } from "../util/file_util";
-import { loadMainBackgroundImage } from "../visuals/ui";
+import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint, FOLLOW_POINT_DISTANCE_THRESHOLD } from "./follow_point";
@@ -18,11 +18,15 @@ import "../input/input";
 import { ScoreCounter, Score, ScorePopup, ScoringValue } from "./score";
 import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 import { progressIndicator, accuracyMeter } from "./hud";
-import { MathUtil } from "../util/math_util";
+import { MathUtil, EaseType } from "../util/math_util";
+import { lastArrayItem } from "../util/misc_util";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
 const AUTOHIT = true; // Just hits everything perfectly. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
+const BREAK_FADE_TIME = 1250; // In ms
+const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
+const DEFAULT_BACKGROUND_OPACITY = 0.333;
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -43,6 +47,7 @@ export class Play {
     public scoreCounter: ScoreCounter;
     
     private currentFollowPointIndex = 0; // is this dirty? idk
+    private currentBreakIndex = 0;
 
     constructor(beatmap: Beatmap) {
         this.processedBeatmap = new ProcessedBeatmap(beatmap);
@@ -171,7 +176,7 @@ export class Play {
 
         // Update the progress indicator
         let firstHitObject = this.processedBeatmap.hitObjects[0],
-            lastHitObject = this.processedBeatmap.hitObjects[this.processedBeatmap.hitObjects.length - 1];
+            lastHitObject = lastArrayItem(this.processedBeatmap.hitObjects);
         if (firstHitObject && lastHitObject) {
             let start = firstHitObject.startTime,
                 end = lastHitObject.endTime;
@@ -204,6 +209,44 @@ export class Play {
                 this.scorePopups.splice(i, 1); // I hope this won't be slow
                 i--;
             }
+        }
+
+        // Handle breaks
+        while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
+            // Can't call this variable "break" because reserved keyword, retarded.
+            let breakEvent = this.processedBeatmap.breaks[this.currentBreakIndex];
+            if (currentTime >= breakEvent.endTime) {
+                this.currentBreakIndex++;
+                continue;
+            }
+
+            /** How much "break-iness" we have. Idk how to name this. 0 means not in the break, 1 means completely in the break, and anything between means *technically in the break*, but we're currently fading shit in. Or out. */
+            let x = 0;
+
+            // Comment this.
+            // Nah so basically, this takes care of the edge case that a break is shorter than BREAK_FADE_TIME*2. Since we don't want the animation to "jump", we tell it to start the fade in the very middle of the break, rather than at endTime - BREAK_FADE_TIME. This might cause x to go, like, 0.0 -> 0.6 -> 0.0, instead of the usual 0.0 -> 1.0 -> 0.0.
+            let breakFadeOutStart = Math.max(breakEvent.endTime - BREAK_FADE_TIME, (breakEvent.startTime + breakEvent.endTime)/2);
+
+            if (currentTime >= breakEvent.startTime) {
+                // If we arrive here, we should current be in a break (if I'm not mistaken)
+
+                if (currentTime >= breakFadeOutStart) {
+                    let completion = (currentTime - (breakEvent.endTime - BREAK_FADE_TIME)) / BREAK_FADE_TIME;
+                    completion = MathUtil.clamp(completion, 0, 1);
+                    x = 1 - completion;
+                } else if (currentTime >= breakEvent.startTime) {
+                    let completion = (currentTime - breakEvent.startTime) / BREAK_FADE_TIME;
+                    completion = MathUtil.clamp(completion, 0, 1);
+                    x = completion;
+                }
+            }
+
+            x = MathUtil.ease(EaseType.EaseInOutQuad, x);
+
+            // Go from 1.0 opacity to (1 - background dim) opacity
+            setMainBackgroundImageOpacity(x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY));
+
+            break;
         }
 
         // Let PIXI draw it all to the canvas

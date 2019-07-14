@@ -8,6 +8,7 @@ import { DrawableSlider } from "./drawable_slider";
 import { Point } from "../util/point";
 import { gameState } from "./game_state";
 import { SLIDER_SETTINGS } from "../util/constants";
+import { lastArrayItem } from "../util/misc_util";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 const TOLERANCE = 0.25;
@@ -91,11 +92,13 @@ export class SliderCurveBezier extends SliderCurve {
 
     getEndPoint(): Point {
         if (this.curveLength <= this.slider.hitObject.length) {
-            return this.tracePoints[this.tracePoints.length - 1]; // Just get the last point
+            return lastArrayItem(this.tracePoints); // Just get the last point
         } else { // If it's longer, backtrack from ze end
+            // TODO: Wtf is this?
+
             let lengthDifference = this.curveLength - this.slider.hitObject.length;
             let distanceTraveled = 0;
-            let lastPoint = this.tracePoints[this.tracePoints.length - 1];
+            let lastPoint = lastArrayItem(this.tracePoints);
 
             for (let i = this.tracePoints.length - 2; i >= 0; i--) {
                 let currentPoint = this.tracePoints[i];
@@ -179,7 +182,7 @@ export class SliderCurveBezier extends SliderCurve {
                 }
             }
 
-            this.pushTracePoint(points[points.length - 1]);
+            this.pushTracePoint(lastArrayItem(points));
         }
 
         if (!speedCalc) {
@@ -188,7 +191,7 @@ export class SliderCurveBezier extends SliderCurve {
             }
 
             // Extra point is added because floats
-            let lastPoint = this.tracePoints[this.tracePoints.length - 1];
+            let lastPoint = lastArrayItem(this.tracePoints);
             let secondLastPoint = this.tracePoints[this.tracePoints.length - 2];
             if (lastPoint && secondLastPoint) {
                 let angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
@@ -236,8 +239,8 @@ export class SliderCurveBezier extends SliderCurve {
     }
 
     pushTracePoint(pos: Point) { // Adding points and keeping track of the distance passed
-        if (this.tracePoints[this.tracePoints.length - 1]) {
-            let thatPoint = this.tracePoints[this.tracePoints.length - 1];
+        if (this.tracePoints.length > 0) {
+            let thatPoint = lastArrayItem(this.tracePoints);
             this.curveLength += Math.hypot(thatPoint.x - pos.x, thatPoint.y - pos.y);
         }
 
