@@ -9,6 +9,9 @@ export let accuracyDisplay: PIXI.Text;
 export let progressIndicator: ProgressIndicator;
 export let accuracyMeter: AccuracyMeter;
 
+const ACCURACY_METER_FADE_OUT_DELAY = 3000; // In ms
+const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
+
 // Cheap temporary hack to ensure font load LOL
 setTimeout(() => {
     scoreDisplay = new PIXI.Text("00000000", {
@@ -137,6 +140,8 @@ class AccuracyMeter {
     private height: number;
     private accuracyLines: PIXI.Graphics[];
     private accuracyLineSpawnTimes: WeakMap<PIXI.Graphics, number>;
+    private lastLineTime: number;
+    private time50: number; // If you don't know what it means, just look where it's assigned.
 
     constructor() {
         this.container = new PIXI.Container();
@@ -151,6 +156,9 @@ class AccuracyMeter {
 
     init() {
         let { processedBeatmap } = gameState.currentPlay;
+
+        this.lastLineTime = -Infinity;
+        this.time50 = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50);
 
         this.width = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)*2 * ACCURACY_METER_SCALE;
         this.height = ACCURACY_METER_HEIGHT;
@@ -210,12 +218,16 @@ class AccuracyMeter {
                 i--;
             }
         }
+
+        // Make sure the whole thing fades out after a few seconds of no new accuracy lines
+        let fadeOutCompletion = (currentTime - (this.lastLineTime + ACCURACY_METER_FADE_OUT_DELAY)) / ACCURACY_METER_FADE_OUT_TIME;
+        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+        this.container.alpha = 1 - fadeOutCompletion;
     }
 
     addAccuracyLine(inaccuracy: number, currentTime: number) {
         let { processedBeatmap } = gameState.currentPlay;
 
-        let time50 = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50);
         let judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(Math.abs(inaccuracy));
         if (judgement === 0) return;
 
@@ -232,10 +244,11 @@ class AccuracyMeter {
         line.blendMode = PIXI.BLEND_MODES.ADD;
 
         line.pivot.x = line.width/2;
-        line.x = this.width/2 + (inaccuracy/time50) * this.width/2;
+        line.x = this.width/2 + (inaccuracy / this.time50) * this.width/2;
 
         this.overlay.addChild(line);
         this.accuracyLines.push(line);
         this.accuracyLineSpawnTimes.set(line, currentTime);
+        this.lastLineTime = currentTime;
     }
 }
