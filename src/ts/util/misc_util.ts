@@ -29,6 +29,6 @@ export function assert(value: boolean) {
     }
 }
 
-export function lastArrayItem<T>(arr: T[]): T {
+export function last<T>(arr: T[]): T {
     return arr[arr.length - 1];
 }

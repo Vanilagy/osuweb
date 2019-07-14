@@ -19,7 +19,7 @@ import { ScoreCounter, Score, ScorePopup, ScoringValue } from "./score";
 import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
-import { lastArrayItem } from "../util/misc_util";
+import { last } from "../util/misc_util";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -176,7 +176,7 @@ export class Play {
 
         // Update the progress indicator
         let firstHitObject = this.processedBeatmap.hitObjects[0],
-            lastHitObject = lastArrayItem(this.processedBeatmap.hitObjects);
+            lastHitObject = last(this.processedBeatmap.hitObjects);
         if (firstHitObject && lastHitObject) {
             let start = firstHitObject.startTime,
                 end = lastHitObject.endTime;
