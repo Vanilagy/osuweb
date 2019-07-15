@@ -19,6 +19,7 @@ export enum EaseType {
     EaseOutSine,
     EaseInOutSine,
     EaseInExpo,
+    EaseOutExpo,
     EaseInOutExpo
 }
 
@@ -197,7 +198,7 @@ export class MathUtil {
                 return Math.cos(Math.PI * val) * -0.5 + 0.5; break;
             case EaseType.EaseInExpo: // Accelerate exponentially until finish
                 return val === 0 ? 0 : Math.pow(2, 10 * (val - 1)); break;
-            case EaseType.EaseOutCubic: // Initial exponential acceleration slowing to stop
+            case EaseType.EaseOutExpo: // Initial exponential acceleration slowing to stop
                 return val === 1 ? 1 : (-Math.pow(2, -10 * val) + 1);
             case EaseType.EaseInOutExpo: // Exponential acceleration and deceleration
                 if (val === 0 || val === 1) return val;

@@ -3,11 +3,12 @@ import { PlayEvent, PlayEventType } from "./play_events";
 import { Spinner } from "../datamodel/spinner";
 import { mainHitObjectContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
-import { MathUtil } from "../util/math_util";
+import { MathUtil, EaseType } from "../util/math_util";
 import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 import { normalHitSoundEffect } from "../audio/audio";
+import { Interpolator } from "../util/graphics_util";
 
 const SPINNER_CENTER_CIRCLE_RADIUS = 5;
 const SPINNER_SPINNY_THING_RADIUS = 30;
@@ -20,12 +21,19 @@ export class DrawableSpinner extends DrawableHitObject {
     private componentContainer: PIXI.Container;
     private centerCircle: PIXI.Container;
     private spinnyThing: PIXI.Container; // yesyesyes it'll be renamed
+    private clearText: PIXI.Text;
+    private clearTextInterpolator: Interpolator;
+    private bonusSpinsElement: PIXI.Text;
+    private bonusSpinsInterpolator: Interpolator;
+
     private duration: number;
     private lastSpinPosition: Point = null;
     private lastInputTime: number = null;
     private spinnerAngle = 0;
     private totalRadiansSpun = 0; // The sum of all absolute angles this spinner has been spun (the total "angular distance")
     private requiredSpins: number;
+    private cleared: boolean;
+    private bonusSpins: number;
 
     constructor(hitObject: Spinner) {
         super(hitObject);
@@ -41,8 +49,22 @@ export class DrawableSpinner extends DrawableHitObject {
         this.duration = this.endTime - this.startTime;
         // 1 Spin = 1 Revolution
         this.requiredSpins = (100 + processedBeatmap.beatmap.difficulty.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
+        this.cleared = false;
+        this.bonusSpins = 0;
 
         this.componentContainer = new PIXI.Container();
+        this.clearTextInterpolator = new Interpolator({
+            from: 0,
+            to: 1,
+            ease: EaseType.EaseOutExpo,
+            duration: 500
+        });
+        this.bonusSpinsInterpolator = new Interpolator({
+            from: 0,
+            to: 1,
+            ease: EaseType.Linear,
+            duration: 750
+        });
 
         this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
     }
@@ -66,9 +88,33 @@ export class DrawableSpinner extends DrawableHitObject {
         approachCircle.arc(0, 0, 200 * pixelRatio, 0, Math.PI*2);
         this.approachCircle = approachCircle;
 
+        let clearText = new PIXI.Text("Clear!", {
+            fontFamily: "Nunito",
+            fontSize: 32 * pixelRatio,
+            fill: "#FFFFFF"
+        });
+        clearText.anchor.x = 0.5;
+        clearText.anchor.y = 0.5;
+        clearText.y = -100 * pixelRatio;
+        clearText.visible = false;
+        this.clearText = clearText;
+
+        let bonusSpinsElement = new PIXI.Text("", {
+            fontFamily: "Nunito",
+            fontSize: 24 * pixelRatio,
+            fill: "#FFFFFF"
+        });
+        bonusSpinsElement.anchor.x = 0.5;
+        bonusSpinsElement.anchor.y = 0.5;
+        bonusSpinsElement.y = 100 * pixelRatio;
+        bonusSpinsElement.visible = true;
+        this.bonusSpinsElement = bonusSpinsElement;
+
         this.componentContainer.addChild(this.centerCircle);
         this.componentContainer.addChild(this.approachCircle);
         this.componentContainer.addChild(this.spinnyThing);
+        this.componentContainer.addChild(this.clearText);
+        this.componentContainer.addChild(this.bonusSpinsElement);
 
         this.container.addChild(this.componentContainer);
     }
@@ -109,6 +155,20 @@ export class DrawableSpinner extends DrawableHitObject {
         this.approachCircle.scale.y = (1 - completion);
 
         this.spinnyThing.rotation = this.spinnerAngle;
+
+        let clearTextScale = this.clearTextInterpolator.getCurrentValue(currentTime);
+        this.clearText.scale.x = clearTextScale;
+        this.clearText.scale.y = clearTextScale;
+        this.clearText.visible = this.cleared;
+
+       // −1.556x2+1.156x+0.9000
+       // −1.222x2+1.122x+0.9000
+
+        let bonusSpinsCompletion = this.bonusSpinsInterpolator.getCurrentValue(currentTime);
+        let parab = -1.222 * bonusSpinsCompletion**2 + 1.122 * bonusSpinsCompletion + 0.900;
+        this.bonusSpinsElement.scale.x = parab;
+        this.bonusSpinsElement.scale.y = parab;
+        this.bonusSpinsElement.alpha = 1 - MathUtil.ease(EaseType.EaseInQuad, bonusSpinsCompletion);
     }
 
     score() {
@@ -141,7 +201,8 @@ export class DrawableSpinner extends DrawableHitObject {
         if (currentTime < this.startTime || currentTime >= this.endTime) return;
 
         let pressed = anyGameButtonIsPressed();
-        
+
+        // TODO: This code bugs out with AUTOHIT, when moving
         if (!pressed) {
             this.lastSpinPosition = null;
             this.lastInputTime = null;
@@ -232,6 +293,19 @@ export class DrawableSpinner extends DrawableHitObject {
         if (wholeDif > 0) {
             // Give 100 raw score for every spin
             currentPlay.scoreCounter.add(wholeDif * 100, true, false, false, this, currentTime);
+        }
+        if (spinsSpunNow >= this.requiredSpins && !this.cleared) {
+            this.cleared = true;
+            this.clearTextInterpolator.start(currentTime);
+        }
+        let bonusSpins = Math.floor(spinsSpunNow - this.requiredSpins);
+        if (bonusSpins > 0 && bonusSpins > this.bonusSpins) {
+            let dif = bonusSpins - this.bonusSpins;
+            currentPlay.scoreCounter.add(dif * 1000, true, false, false, this, currentTime)
+
+            this.bonusSpins = bonusSpins;
+            this.bonusSpinsElement.text = String(this.bonusSpins * 1000);
+            this.bonusSpinsInterpolator.start(currentTime);
         }
 
         this.lastInputTime = currentTime;

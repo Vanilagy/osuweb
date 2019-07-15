@@ -63,3 +63,43 @@ export class InterpolatedCounter {
         this.startTime = -Infinity;
     }
 }
+
+interface InterpolatorOptions {
+    ease: EaseType,
+    duration: number,
+    from: number,
+    to: number
+}
+
+export class Interpolator {
+    private options: InterpolatorOptions;
+    private startTime: number = -Infinity;
+
+    constructor(options: InterpolatorOptions) {
+        this.options = options;
+    }
+
+    /**
+     * 
+     * @param customTime A custom time parameter to override performance.now with your own timekeeping system.
+     */
+    start(customTime?: number) {
+        let time;
+        if (customTime !== undefined) time = customTime;
+        else time = performance.now();
+
+        this.startTime = time;
+    }
+
+    getCurrentValue(customTime?: number) {
+        let time;
+        if (customTime !== undefined) time = customTime;
+        else time = performance.now();
+
+        let completion = (time - this.startTime) / this.options.duration;
+        completion = MathUtil.clamp(completion, 0, 1);
+        completion = MathUtil.ease(this.options.ease, completion);
+
+        return (1 - completion) * this.options.from + completion * this.options.to;
+    }
+}
