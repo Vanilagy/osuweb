@@ -9,6 +9,11 @@ export let currentMousePosition: Point = {
 window.onmousemove = (e) => {
     currentMousePosition.x = e.clientX;
     currentMousePosition.y = e.clientY;
+
+    // Ergh. Unclean. Input shouldn't know about Play.
+    if (gameState.currentPlay) {
+        gameState.currentPlay.handleMouseMove();
+    }
 };
 
 const PREVENT_NATIVE_CONTEXT_MENU = true;

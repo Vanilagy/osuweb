@@ -5,6 +5,7 @@ import { BeatmapSet } from "./beatmap_set";
 import { Color } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
+import { Spinner } from "./spinner";
 
 class BeatmapCreationOptions {
     text: string;
@@ -250,9 +251,8 @@ export class Beatmap {
             this.sliderCount++;
         }
         else if (hitObjectData === 8 || hitObjectData === 12) {
-            return;
             if (!this.loadFlat) {
-                //this.hitObjects.push(new Spinner(values));
+                this.hitObjects.push(new Spinner(values));
                 //Console.verbose("Spinner added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.spinnerCount++;

@@ -139,6 +139,14 @@ export class Play {
 
             hitObject.update(currentTime);
 
+            // TEMP! DIRTY! REMOVE THIS! TODO!
+            if (hitObject instanceof DrawableSpinner) {
+                let spinner = hitObject as DrawableSpinner;
+                
+                // Spin counter-clockwise as fast as possible. Clockwise just looks shit.
+                if (AUTOHIT) spinner.spin(-1e9, currentTime);
+            }
+
             if (hitObject.renderFinished) {
                 // Hit object can now safely be removed from the screen
 
@@ -350,6 +358,11 @@ export class Play {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }
                 }; break;
+                case PlayEventType.SpinnerEnd: {
+                    let spinner = playEvent.hitObject as DrawableSpinner;
+
+                    spinner.score();
+                }; break;
             }
         }
 
@@ -365,6 +378,20 @@ export class Play {
             let handled = hitObject.handleButtonPress(osuMouseCoordinates, currentTime);
 
             if (handled) break; // One button press can only affect one hit object.
+        }
+    }
+
+    handleMouseMove() {
+        let currentTime = this.getCurrentSongTime();
+        let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
+
+        for (let id in this.onscreenObjects) {
+            let hitObject = this.onscreenObjects[id];
+
+            if (hitObject instanceof DrawableSpinner) {
+                let spinner = hitObject as DrawableSpinner;
+                spinner.handleMouseMove(osuMouseCoordinates, currentTime);
+            }
         }
     }
 

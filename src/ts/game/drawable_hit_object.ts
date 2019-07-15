@@ -45,7 +45,6 @@ export abstract class DrawableHitObject {
     constructor(hitObject: HitObject) {
         this.hitObject = hitObject;
         this.container = new PIXI.Container();
-        this.approachCircle;
 
         this.startPoint = {
             x: this.hitObject.x,

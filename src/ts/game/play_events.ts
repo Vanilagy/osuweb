@@ -7,7 +7,8 @@ export enum PlayEventType {
     SliderRepeat,
     SliderEnd,
     HeadHitWindowEnd,
-    PerfectHeadHit
+    PerfectHeadHit,
+    SpinnerEnd
 }
 
 export interface PlayEvent {
