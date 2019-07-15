@@ -1,6 +1,6 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { MathUtil, EaseType } from "../util/math_util";
-import { scoreDisplay, comboDisplay, accuracyDisplay } from "./hud";
+import { scoreDisplay, comboDisplay, accuracyDisplay, comboAnimationInterpolator } from "./hud";
 import { padNumberWithZeroes, toPercentageString, assert } from "../util/misc_util";
 import { InterpolatedCounter } from "../util/graphics_util";
 import { gameState } from "./game_state";
@@ -99,12 +99,14 @@ export class ScoreCounter {
             } else {
                 this.currentCombo++;
                 if (this.currentCombo > this.score.maxCombo) this.score.maxCombo = this.currentCombo;
+
+                comboAnimationInterpolator.start(time);
             }
         }
 
-        scoreInterpolator.setGoal(this.score.points);
+        scoreInterpolator.setGoal(this.score.points, time);
         this.score.accuracy = this.calculateAccuracy();
-        accuracyInterpolator.setGoal(this.score.accuracy);
+        accuracyInterpolator.setGoal(this.score.accuracy, time);
 
         if (!raw) {
             if (rawAmount === ScoringValue.Hit300) this.score.hits300++;
@@ -163,10 +165,15 @@ export class ScoreCounter {
         return this.totalValueOfHits / (this.totalNumberOfHits * 300);
     }
 
-    updateDisplay() {
-        scoreDisplay.text = padNumberWithZeroes(Math.floor(scoreInterpolator.getCurrentValue()), 8);
+    updateDisplay(currentTime: number) {
+        scoreDisplay.text = padNumberWithZeroes(Math.floor(scoreInterpolator.getCurrentValue(currentTime)), 8);
+
         comboDisplay.text = String(this.currentCombo) + "x";
-        accuracyDisplay.text = toPercentageString(accuracyInterpolator.getCurrentValue(), 2);
+        let comboScale = comboAnimationInterpolator.getCurrentValue(currentTime);
+        comboDisplay.scale.x = comboScale;
+        comboDisplay.scale.y = comboScale;
+
+        accuracyDisplay.text = toPercentageString(accuracyInterpolator.getCurrentValue(currentTime), 2);
     }
 }
 

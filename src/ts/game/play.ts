@@ -180,7 +180,7 @@ export class Play {
         }
 
         // Update the score display
-        this.scoreCounter.updateDisplay();
+        this.scoreCounter.updateDisplay(currentTime);
 
         // Update the progress indicator
         let firstHitObject = this.processedBeatmap.hitObjects[0],

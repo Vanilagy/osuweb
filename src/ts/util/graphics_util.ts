@@ -41,19 +41,26 @@ export class InterpolatedCounter {
         else return this.options.duration(this.end - this.start);
     }
 
-    getCurrentValue() {
-        let now = performance.now();
+    getCurrentValue(customTime?: number) {
+        let now;
+        if (customTime !== undefined) now = customTime;
+        else now = performance.now();
+        
         let completion = MathUtil.clamp((now - this.startTime) / this.duration, 0, 1);
         completion = MathUtil.ease(this.ease, completion);
 
         return this.start * (1 - completion) + this.end * completion;
     }
 
-    setGoal(goal: number) {
+    setGoal(goal: number, customTime?: number) {
+        let now;
+        if (customTime !== undefined) now = customTime;
+        else now = performance.now();
+
         let current = this.getCurrentValue();
         this.start = current;
         this.end = goal;
-        this.startTime = performance.now();
+        this.startTime = now;
         this.duration = this.getDuration();
     }
 
@@ -84,19 +91,24 @@ export class Interpolator {
      * @param customTime A custom time parameter to override performance.now with your own timekeeping system.
      */
     start(customTime?: number) {
-        let time;
-        if (customTime !== undefined) time = customTime;
-        else time = performance.now();
+        let now;
+        if (customTime !== undefined) now = customTime;
+        else now = performance.now();
 
-        this.startTime = time;
+        this.startTime = now;
+    }
+
+    /** Instantly finish the animation. */
+    end() {
+        this.startTime = -Infinity;
     }
 
     getCurrentValue(customTime?: number) {
-        let time;
-        if (customTime !== undefined) time = customTime;
-        else time = performance.now();
+        let now;
+        if (customTime !== undefined) now = customTime;
+        else now = performance.now();
 
-        let completion = (time - this.startTime) / this.options.duration;
+        let completion = (now - this.startTime) / this.options.duration;
         completion = MathUtil.clamp(completion, 0, 1);
         completion = MathUtil.ease(this.options.ease, completion);
 

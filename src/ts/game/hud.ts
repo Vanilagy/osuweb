@@ -2,6 +2,7 @@ import { hudContainer } from "../visuals/rendering";
 import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
+import { Interpolator } from "../util/graphics_util";
 
 export let scoreDisplay: PIXI.Text;
 export let comboDisplay: PIXI.Text;
@@ -11,6 +12,14 @@ export let accuracyMeter: AccuracyMeter;
 
 const ACCURACY_METER_FADE_OUT_DELAY = 3000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
+
+export let comboAnimationInterpolator = new Interpolator({
+    ease: EaseType.EaseOutQuad,
+    duration: 500,
+    from: 1.25,
+    to: 1
+});
+comboAnimationInterpolator.end();
 
 // Cheap temporary hack to ensure font load LOL
 setTimeout(() => {
