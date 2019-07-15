@@ -202,10 +202,12 @@ export class DrawableSpinner extends DrawableHitObject {
 
         let pressed = anyGameButtonIsPressed();
 
-        // TODO: This code bugs out with AUTOHIT, when moving
         if (!pressed) {
-            this.lastSpinPosition = null;
-            this.lastInputTime = null;
+            if (this.lastSpinPosition !== null) {
+                this.lastSpinPosition = null;
+                this.lastInputTime = null;
+            }
+            
             return;
         }
 
