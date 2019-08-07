@@ -15,7 +15,9 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
-import { approachCircleTexture } from "./skin";
+import { approachCircleTexture, sliderBallTexture } from "./skin";
+
+const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -161,14 +163,28 @@ export class DrawableSlider extends DrawableHitObject {
             this.approachCircle = approachCircle;
         }
 
-        let sliderBall = new PIXI.Graphics();
-        sliderBall = new PIXI.Graphics();
-        sliderBall.beginFill(colorToHexNumber(this.comboInfo.color));
-        sliderBall.lineStyle(0);
-        sliderBall.drawCircle(0, 0, this.sliderBodyRadius);
-        sliderBall.endFill();
-        sliderBall.visible = false;
-        this.sliderBall = sliderBall;
+        if (DRAWING_MODE === DrawingMode.Procedural) {
+            let sliderBall = new PIXI.Graphics();
+            sliderBall = new PIXI.Graphics();
+            sliderBall.beginFill(colorToHexNumber(this.comboInfo.color));
+            sliderBall.lineStyle(0);
+            sliderBall.drawCircle(0, 0, this.sliderBodyRadius);
+            sliderBall.endFill();
+
+            this.sliderBall = sliderBall;
+        } else if (DRAWING_MODE === DrawingMode.Skin) {
+            let diameter = circleDiameter * SLIDER_BALL_CS_RATIO;
+
+            let sliderBall = new PIXI.Sprite(sliderBallTexture);
+            sliderBall.pivot.x = sliderBall.width / 2;
+            sliderBall.pivot.y = sliderBall.height / 2;
+            sliderBall.width = diameter;
+            sliderBall.height = diameter;
+            sliderBall.tint = colorToHexNumber(this.comboInfo.color);
+
+            this.sliderBall = sliderBall;
+        }
+        this.sliderBall.visible = false;
 
         let followCircle = new PIXI.Graphics();
         let thickness = FOLLOW_CIRCLE_THICKNESS_FACTOR * circleDiameter;
