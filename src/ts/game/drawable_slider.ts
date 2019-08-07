@@ -15,9 +15,10 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
-import { approachCircleTexture, sliderBallTexture } from "./skin";
+import { approachCircleTexture, sliderBallTexture, followCircleTexture, reverseArrowTexture } from "./skin";
 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
+const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -186,49 +187,65 @@ export class DrawableSlider extends DrawableHitObject {
         }
         this.sliderBall.visible = false;
 
-        let followCircle = new PIXI.Graphics();
-        let thickness = FOLLOW_CIRCLE_THICKNESS_FACTOR * circleDiameter;
-        followCircle.lineStyle(thickness, 0xFFFFFF);
-        followCircle.drawCircle(0, 0, (circleDiameter - thickness) / 2);
-        followCircle.visible = false;
-        this.followCircle = followCircle;
+        if (DRAWING_MODE === DrawingMode.Procedural) {
+            let followCircle = new PIXI.Graphics();
+            let thickness = FOLLOW_CIRCLE_THICKNESS_FACTOR * circleDiameter;
+            followCircle.lineStyle(thickness, 0xFFFFFF);
+            followCircle.drawCircle(0, 0, (circleDiameter - thickness) / 2);
 
-        /*
-        this.reverseArrow = new PIXI.Sprite(REVERSE_ARROW_TEXTURE);
-        let yes1 = this.reverseArrow.width; // Keep the original width at the start.
-        let yes2 = this.reverseArrow.height; // Keep the original width at the start.
+            this.followCircle = followCircle;
+        } else if (DRAWING_MODE === DrawingMode.Skin) {
+            let followCircle = new PIXI.Sprite(followCircleTexture);
+            followCircle.pivot.x = followCircle.width / 2;
+            followCircle.pivot.y = followCircle.height / 2;
+            followCircle.width = circleDiameter;
+            followCircle.height = circleDiameter;
 
-        // Make all this a bit... cleaner.
-        // Essentially what this does is set the width OR height, whatever is bigger, to the circleDiameter, and adjust the other dimension so that the ratio is kept.
-        let no1, no2, r = yes1/yes2;
-        if (yes1 > yes2) {
-            no1 = circleDiameter;
-            no2 = circleDiameter / r;
-        } else {
-            no1 = circleDiameter / r;
-            no2 = circleDiameter;
+            this.followCircle = followCircle;
         }
-        this.reverseArrow.width = no1;
-        this.reverseArrow.height = no2;
-        this.reverseArrow.pivot.x = yes1 / 2;
-        this.reverseArrow.pivot.y = yes2 / 2;
-        this.reverseArrow.visible = false;*/
+        this.followCircle.visible = false;
 
-        let reverseArrow = new PIXI.Graphics();
-        let triangleRadius = circleDiameter / 4;
-        let startingAngle = 0; // "East" on the unit circle
-        let points: PIXI.Point[] = [];
-        for (let i = 0; i < 3; i++) {
-            let angle = startingAngle + i*(Math.PI*2 / 3);
-            let point = new PIXI.Point(triangleRadius * Math.cos(angle), triangleRadius * Math.sin(angle));
-            points.push(point);
+        if (DRAWING_MODE === DrawingMode.Procedural) {
+            let reverseArrow = new PIXI.Graphics();
+            let triangleRadius = circleDiameter / 4;
+            let startingAngle = 0; // "East" on the unit circle
+            let points: PIXI.Point[] = [];
+
+            for (let i = 0; i < 3; i++) {
+                let angle = startingAngle + i*(Math.PI*2 / 3);
+                let point = new PIXI.Point(triangleRadius * Math.cos(angle), triangleRadius * Math.sin(angle));
+                points.push(point);
+            }
+            
+            reverseArrow.beginFill(0xFFFFFF);
+            reverseArrow.drawPolygon(points);
+            reverseArrow.endFill();
+
+            this.reverseArrow = reverseArrow;
+        } else if (DRAWING_MODE === DrawingMode.Skin) {
+            let reverseArrow = new PIXI.Sprite(reverseArrowTexture);
+            let yes1 = reverseArrow.width; // Keep the original width at the start.
+            let yes2 = reverseArrow.height; // Keep the original width at the start.
+
+            // Make all this a bit... cleaner.
+            // Essentially what this does is set the width OR height, whatever is bigger, to the circleDiameter, and adjust the other dimension so that the ratio is kept.
+            let no1, no2, r = yes1/yes2;
+            if (yes1 > yes2) {
+                no1 = circleDiameter;
+                no2 = circleDiameter / r;
+            } else {
+                no1 = circleDiameter / r;
+                no2 = circleDiameter;
+            }
+
+            reverseArrow.width = no1;
+            reverseArrow.height = no2;
+            reverseArrow.pivot.x = yes1 / 2;
+            reverseArrow.pivot.y = yes2 / 2;
+
+            this.reverseArrow = reverseArrow;
         }
-        reverseArrow.beginFill(0xFFFFFF);
-        reverseArrow.drawPolygon(points);
-        reverseArrow.endFill();
-
-        reverseArrow.visible = false;
-        this.reverseArrow = reverseArrow;
+        this.reverseArrow.visible = false;
 
         this.sliderTickGraphics = new PIXI.Graphics();
 
@@ -469,7 +486,7 @@ export class DrawableSlider extends DrawableHitObject {
         this.followCircle.y = sliderBallPos.y;
 
         let followCircleSizeFactor = 1; // Base
-        followCircleSizeFactor += 1 * MathUtil.clamp((currentTime - this.startTime) / 100, 0, 1); // Enlarge on start
+        followCircleSizeFactor += (FOLLOW_CIRCLE_CS_RATIO - 1) * MathUtil.clamp((currentTime - this.startTime) / 100, 0, 1); // Enlarge to FOLLOW_CIRCLE_CS_RATIO on start
         followCircleSizeFactor += -0.333 * MathUtil.clamp((currentTime - this.endTime) / 100, 0, 1); // Shrink on end
 
         let biggestCurrentTickCompletion = -Infinity;
