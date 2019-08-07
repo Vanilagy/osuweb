@@ -47,7 +47,6 @@ export class Play {
     public playEvents: PlayEvent[] = [];
     public currentPlayEvent: number = 0;
     public scoreCounter: ScoreCounter;
-    public coloredHitCircles: HTMLCanvasElement[];
     
     private currentFollowPointIndex = 0; // is this dirty? idk
     private currentBreakIndex = 0;
@@ -61,7 +60,6 @@ export class Play {
         this.onscreenObjects = {};
         this.followPoints = [];
         this.scorePopups = [];
-        this.coloredHitCircles = [];
 
         this.pixelRatio = null;
         this.circleDiameter = null;
@@ -82,30 +80,7 @@ export class Play {
         this.processedBeatmap.init();
         console.timeEnd("Beatmap process");
 
-        console.time("Beatmap draw")
-
-        for (let i = 0; i < this.processedBeatmap.beatmap.colors.length; i++) {
-            let color = this.processedBeatmap.beatmap.colors[i];
-            let canvas = document.createElement("canvas");
-            canvas.setAttribute("width", String(Math.ceil(this.circleDiameter)));
-            canvas.setAttribute("height", String(Math.ceil(this.circleDiameter)));
-            let ctx = canvas.getContext("2d");
-
-            ctx.drawImage(hitCircleImage, 0, 0, this.circleDiameter, this.circleDiameter);
-
-            let imageData = ctx.getImageData(0, 0, this.circleDiameter, this.circleDiameter);
-            for (let i = 0; i < imageData.data.length; i += 4) { // Multiplies color values while maintaining alpha channel
-                imageData.data[i] = Math.floor((imageData.data[i] / 255) * (color.r / 255) * 255);
-                imageData.data[i + 1] = Math.floor((imageData.data[i + 1] / 255) * (color.g / 255) * 255);
-                imageData.data[i + 2] = Math.floor((imageData.data[i + 2] / 255) * (color.b / 255) * 255);
-            }
-            ctx.putImageData(imageData, 0, 0);
-
-            ctx.drawImage(hitCircleOverlayImage, 0, 0, this.circleDiameter, this.circleDiameter);
-
-            this.coloredHitCircles.push(canvas);
-        }
-
+        console.time("Beatmap draw");
         this.processedBeatmap.draw();
         console.timeEnd("Beatmap draw");
 

@@ -3,9 +3,6 @@ import { ComboInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
 import { PlayEvent } from "./play_events";
 
-export const NUMBER_HEIGHT_CS_RATIO = 52 / 128; // Determined empirically by comparing asset dimensions.
-export const UNSCALED_NUMBER_HEIGHT = 47;
-
 export abstract class DrawableHitObject {
     public id: number = 0;
     public comboInfo: ComboInfo;

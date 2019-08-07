@@ -1,4 +1,4 @@
-import { UNSCALED_NUMBER_HEIGHT } from "../game/drawable_hit_object";
+import { UNSCALED_NUMBER_HEIGHT } from "../util/constants";
 
 export interface SpriteNumberTextures {
     0: PIXI.Texture,

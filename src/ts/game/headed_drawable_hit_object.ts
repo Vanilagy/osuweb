@@ -1,12 +1,12 @@
-import { DrawableHitObject, NUMBER_HEIGHT_CS_RATIO } from "./drawable_hit_object";
+import { DrawableHitObject } from "./drawable_hit_object";
 import { HitObject } from "../datamodel/hit_object";
 import { gameState } from "./game_state";
 import { ScoringValue } from "./score";
 import { MathUtil, EaseType } from "../util/math_util";
-import { HIT_OBJECT_FADE_OUT_TIME, DRAWING_MODE, DrawingMode, CIRCLE_BORDER_WIDTH } from "../util/constants";
+import { HIT_OBJECT_FADE_OUT_TIME, DRAWING_MODE, DrawingMode, CIRCLE_BORDER_WIDTH, NUMBER_HEIGHT_CS_RATIO, PROCEDURAL_HEAD_INNER_TYPE } from "../util/constants";
 import { ComboInfo } from "./processed_beatmap";
 import { SpriteNumber } from "../visuals/sprite_number";
-import { digitTextures, approachCircleTexture } from "./skin";
+import { digitTextures, approachCircleTexture, hitCircleTexture, hitCircleOverlayTexture } from "./skin";
 import { colorToHexNumber } from "../util/graphics_util";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { Point, pointDistance } from "../util/point";
@@ -52,7 +52,7 @@ export function getDefaultSliderScoring(): SliderScoring {
 }
 
 export abstract class HeadedDrawableHitObject extends DrawableHitObject {
-    public headSprite: PIXI.Sprite;
+    public headContainer: PIXI.Container;
     public approachCircle: PIXI.Container;
     public stackHeight: number = 0;
     public scoring: CircleScoring | SliderScoring;
@@ -73,18 +73,36 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     draw() {
         let circleDiameter = gameState.currentPlay.circleDiameter;
 
-        let canvas = document.createElement('canvas');
-        canvas.setAttribute('width', String(circleDiameter));
-        canvas.setAttribute('height', String(circleDiameter));
-        let ctx = canvas.getContext('2d');
-        drawCircle(ctx, 0, 0, this.comboInfo);
+        let headBase: PIXI.Sprite;
+        if (DRAWING_MODE === DrawingMode.Procedural) {
+            let canvas = document.createElement('canvas');
+            canvas.setAttribute('width', String(circleDiameter));
+            canvas.setAttribute('height', String(circleDiameter));
+            let ctx = canvas.getContext('2d');
+            drawHitObjectHead(ctx, 0, 0, this.comboInfo);
 
-        this.headSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
-        this.headSprite.pivot.x = this.headSprite.width / 2;
-        this.headSprite.pivot.y = this.headSprite.height / 2;
-        this.headSprite.width = circleDiameter;
-        this.headSprite.height = circleDiameter;
+            headBase = new PIXI.Sprite(PIXI.Texture.from(canvas));
+        } else if (DRAWING_MODE === DrawingMode.Skin) {
+            headBase = new PIXI.Sprite(hitCircleTexture);
+            headBase.tint = colorToHexNumber(this.comboInfo.color);
+        }
 
+        headBase.pivot.x = headBase.width / 2;
+        headBase.pivot.y = headBase.height / 2;
+        headBase.width = circleDiameter;
+        headBase.height = circleDiameter;
+
+        let headOverlay: PIXI.Container;
+        if (DRAWING_MODE === DrawingMode.Skin) {
+            headOverlay = new PIXI.Sprite(hitCircleOverlayTexture);
+
+            headOverlay.pivot.x = headOverlay.width / 2;
+            headOverlay.pivot.y = headOverlay.height / 2;
+            headOverlay.width = circleDiameter;
+            headOverlay.height = circleDiameter;
+        }
+
+        let headNumber: PIXI.Container;
         if (DRAWING_MODE === DrawingMode.Skin) {
             let text = new SpriteNumber({
                 textures: digitTextures,
@@ -94,10 +112,8 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
                 overlap: 15
             });
             text.setValue(this.comboInfo.n);
-            text.container.x = circleDiameter/2;
-            text.container.y = circleDiameter/2;
 
-            this.headSprite.addChild(text.container);
+            headNumber = text.container;
         }
 
         if (DRAWING_MODE === DrawingMode.Procedural) {
@@ -118,7 +134,13 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
             this.approachCircle = approachCircle;
         }
 
-        this.container.addChild(this.headSprite);
+        let headContainer = new PIXI.Container();
+        headContainer.addChild(headBase);
+        if (headOverlay) headContainer.addChild(headOverlay);
+        if (headNumber) headContainer.addChild(headNumber);
+
+        this.headContainer = headContainer;
+        this.container.addChild(this.headContainer);
     }
 
     show(currentTime: number) {
@@ -208,10 +230,10 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
             let alpha = 1 - fadeOutCompletion;
             let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
     
-            this.headSprite.alpha = alpha;
+            this.headContainer.alpha = alpha;
             if (headScoring.hit !== ScoringValue.Miss) { // Misses just fade out, whereas all other hit judgements also cause an 'expansion' effect
-                this.headSprite.width = circleDiameter * scale;
-                this.headSprite.height = circleDiameter * scale;
+                this.headContainer.width = circleDiameter * scale;
+                this.headContainer.height = circleDiameter * scale;
             }
         }
     
@@ -219,69 +241,45 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     }
 }
 
-export function drawCircle(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) { // Draws circle used for Hit Circles, Slider Heads and Repeat Tails
-    let { circleDiameter, processedBeatmap } = gameState.currentPlay;
+/** Draws a hit object head procedurally, complete with base, overlay and number. */
+export function drawHitObjectHead(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) {
+    console.trace()
+    let { circleDiameter } = gameState.currentPlay;
 
     let color = comboInfo.color;
 
-    //color = {r: 255, g: 20, b: 20};
+    context.beginPath(); // Draw circle base (will become border)
+    context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2, 0, Math.PI * 2);
+    context.fillStyle = "white";
+    context.fill();
 
-    if (DRAWING_MODE === DrawingMode.Procedural) {
-        console.log("Get donw on it")
+    let colorString = "rgb(" + Math.round(color.r * 0.68) + "," + Math.round(color.g * 0.68) + "," + Math.round(color.b * 0.68) + ")";
+    let darkColorString = "rgb(" + Math.round(color.r * 0.2) + "," + Math.round(color.g * 0.2) + "," + Math.round(color.b * 0.2) + ")";
 
-        context.beginPath(); // Draw circle base (will become border)
-        context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2, 0, Math.PI * 2);
-        context.fillStyle = "white";
-        context.fill();
+    let radialGradient = context.createRadialGradient(x + circleDiameter / 2, y + circleDiameter / 2, 0, x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2);
+    radialGradient.addColorStop(0, colorString);
+    radialGradient.addColorStop(1, darkColorString);
 
-        let colorString = "rgb(" + Math.round(color.r * 0.68) + "," + Math.round(color.g * 0.68) + "," + Math.round(color.b * 0.68) + ")";
-        let darkColorString = "rgb(" + Math.round(color.r * 0.2) + "," + Math.round(color.g * 0.2) + "," + Math.round(color.b * 0.2) + ")";
-
-        let radialGradient = context.createRadialGradient(x + circleDiameter / 2, y + circleDiameter / 2, 0, x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2);
-        radialGradient.addColorStop(0, colorString);
-        radialGradient.addColorStop(1, darkColorString);
-
-        context.beginPath(); // Draw circle body with radial gradient
-        context.arc(x + circleDiameter / 2, y + circleDiameter / 2, (circleDiameter / 2) * (1 - CIRCLE_BORDER_WIDTH), 0, Math.PI * 2);
-        context.fillStyle = radialGradient;
-        context.fill();
-        context.fillStyle = "rgba(255, 255, 255, 0.5)";
-        context.globalCompositeOperation = "destination-out"; // Transparency
-        context.fill();
-    } else if (DRAWING_MODE === DrawingMode.Skin) {
-        //context.drawImage(hitCircleImage, x, y, circleDiameter, circleDiameter);
-
-        context.drawImage(gameState.currentPlay.coloredHitCircles[comboInfo.colorIndex], x, y);
-
-        //context.drawImage(GAME_STATE.currentPlay.drawElements.coloredHitcircles[comboInfo.comboNum % GAME_STATE.currentBeatmap.colors.length], x, y);
-    }
+    context.beginPath(); // Draw circle body with radial gradient
+    context.arc(x + circleDiameter / 2, y + circleDiameter / 2, (circleDiameter / 2) * (1 - CIRCLE_BORDER_WIDTH), 0, Math.PI * 2);
+    context.fillStyle = radialGradient;
+    context.fill();
+    context.fillStyle = "rgba(255, 255, 255, 0.5)";
+    context.globalCompositeOperation = "destination-out"; // Transparency
+    context.fill();
 
     context.globalCompositeOperation = "source-over";
-    if (DRAWING_MODE === DrawingMode.Procedural) {
-        let innerType = "number";
 
-        if (innerType === "number") {
-            context.font = (circleDiameter * 0.41) + "px 'Nunito'";
-            context.textAlign = "center";
-            context.textBaseline = "middle";
-            context.fillStyle = "white";
-            context.fillText(String(comboInfo.n), x + circleDiameter / 2, y + circleDiameter / 2 * 1.06); // 1.06 = my attempt to make it centered.
-        } else {
-            context.beginPath();
-            context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2 * 0.25, 0, Math.PI * 2);
-            context.fillStyle = "white";
-            context.fill();
-        }
-    } else if (DRAWING_MODE === DrawingMode.Skin) {
-        //let numberWidth = 70 / 256 * GAME_STATE.currentPlay.csPixel,
-        //    numberHeight = 104 / 256 * GAME_STATE.currentPlay.csPixel,
-        //    numberString = comboInfo.n.toString(),
-        //    hitCircleOverlap = 6;
-//
-        //for (let i = 0; i < numberString.length; i++) {
-        //    context.drawImage(GAME_STATE.currentPlay.drawElements.numbers[numberString.charAt(i)], GAME_STATE.currentPlay.halfCsPixel - numberWidth * numberString.length / 2 + hitCircleOverlap * (numberString.length - 1) / 2 + ((numberWidth - hitCircleOverlap) * i), GAME_STATE.currentPlay.halfCsPixel - numberHeight / 2, numberWidth, numberHeight);
-        //}
+    if (PROCEDURAL_HEAD_INNER_TYPE === "number") {
+        context.font = (circleDiameter * 0.41) + "px 'Nunito'";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = "white";
+        context.fillText(String(comboInfo.n), x + circleDiameter / 2, y + circleDiameter / 2 * 1.06); // 1.06 = my attempt to make it centered.
+    } else if (PROCEDURAL_HEAD_INNER_TYPE === "dot") {
+        context.beginPath();
+        context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2 * 0.25, 0, Math.PI * 2);
+        context.fillStyle = "white";
+        context.fill();
     }
 }
-
-// Updates the head and approach circle based on current time.

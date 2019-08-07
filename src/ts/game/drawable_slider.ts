@@ -26,7 +26,6 @@ export interface SliderTimingInfo {
 }
 
 export class DrawableSlider extends HeadedDrawableHitObject {
-    public headSprite: PIXI.Sprite;
     public baseSprite: PIXI.Sprite;
     public baseCtx: CanvasRenderingContext2D;
     public overlayContainer: PIXI.Container;
@@ -46,7 +45,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public maxY: number = 0;
     public sliderBodyRadius: number;
     public timingInfo: SliderTimingInfo;
-    public stackHeight: number;
     public hitObject: Slider;
     public sliderTickCompletions: number[];
     public scoring: SliderScoring;
@@ -61,7 +59,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.complete = true;
 
         this.baseSprite = null;
-        this.headSprite = null;
+        this.headContainer = null;
         this.approachCircle = null;
         this.overlayContainer = new PIXI.Container();
 
@@ -101,8 +99,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         super.draw();
 
         let headPos = this.toCtxCoord({x: this.x, y: this.y});
-        this.headSprite.x = headPos.x;
-        this.headSprite.y = headPos.y;
+        this.headContainer.x = headPos.x;
+        this.headContainer.y = headPos.y;
 
         let { circleDiameter, pixelRatio } = gameState.currentPlay;
 
@@ -210,7 +208,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         this.container.addChild(this.baseSprite);
         this.container.addChild(this.overlayContainer);
-        this.container.addChild(this.headSprite);
+        this.container.addChild(this.headContainer);
     }
 
     position() {

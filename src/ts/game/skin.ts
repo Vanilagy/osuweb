@@ -3,8 +3,10 @@ import { SpriteNumberTextures } from "../visuals/sprite_number";
 
 export let hitCircleArrayBuffer: ArrayBuffer;
 export let hitCircleImage: HTMLImageElement;
+export let hitCircleTexture: PIXI.Texture;
 export let hitCircleOverlayArrayBuffer: ArrayBuffer;
 export let hitCircleOverlayImage: HTMLImageElement;
+export let hitCircleOverlayTexture: PIXI.Texture;
 export let approachCircleTexture: PIXI.Texture;
 export let sliderBallTexture: PIXI.Texture;
 export let followCircleTexture: PIXI.Texture;
@@ -28,7 +30,9 @@ export async function initSkin() {
 
     hitCircleImage = document.createElement('img');
     hitCircleImage.src = URL.createObjectURL(new Blob([hitCircleArrayBuffer]));
+    hitCircleTexture = PIXI.Texture.from(hitCircleImage);
 
     hitCircleOverlayImage = document.createElement('img');
     hitCircleOverlayImage.src = URL.createObjectURL(new Blob([hitCircleOverlayArrayBuffer]));
+    hitCircleOverlayTexture = PIXI.Texture.from(hitCircleOverlayImage);
 }
