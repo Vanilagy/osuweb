@@ -20,6 +20,7 @@ export class DrawableSpinner extends DrawableHitObject {
     public hitObject: Spinner;
     private componentContainer: PIXI.Container;
     private centerCircle: PIXI.Container;
+    private approachCircle: PIXI.Container;
     private spinnyThing: PIXI.Container; // yesyesyes it'll be renamed
     private clearText: PIXI.Text;
     private clearTextInterpolator: Interpolator;

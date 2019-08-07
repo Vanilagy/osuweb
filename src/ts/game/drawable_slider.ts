@@ -1,22 +1,20 @@
-import { Slider, SliderCurveSection } from "../datamodel/slider";
+import { Slider } from "../datamodel/slider";
 import { SliderCurve } from "./slider_curve";
 import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil, EaseType } from "../util/math_util";
-import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements, NUMBER_HEIGHT_CS_RATIO } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
-import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
+import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
-import { approachCircleTexture, sliderBallTexture, followCircleTexture, reverseArrowTexture, digitTextures } from "./skin";
-import { SpriteNumber } from "../visuals/sprite_number";
+import { sliderBallTexture, followCircleTexture, reverseArrowTexture } from "./skin";
+import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
 const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
@@ -27,24 +25,7 @@ export interface SliderTimingInfo {
     sliderVelocity: number
 }
 
-// Keeps track of what the player has successfully hit
-interface SliderScoring {
-    head: HitObjectHeadScoring,
-    ticks: number,
-    repeats: number,
-    end: boolean
-}
-
-function getDefaultSliderScoring(): SliderScoring {
-    return {
-        head: getDefaultHitObjectHeadScoring(),
-        ticks: 0,
-        repeats: 0,
-        end: false
-    };
-}
-
-export class DrawableSlider extends DrawableHitObject {
+export class DrawableSlider extends HeadedDrawableHitObject {
     public headSprite: PIXI.Sprite;
     public baseSprite: PIXI.Sprite;
     public baseCtx: CanvasRenderingContext2D;
@@ -117,6 +98,12 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     draw() {
+        super.draw();
+
+        let headPos = this.toCtxCoord({x: this.x, y: this.y});
+        this.headSprite.x = headPos.x;
+        this.headSprite.y = headPos.y;
+
         let { circleDiameter, pixelRatio } = gameState.currentPlay;
 
         this.sliderWidth = this.maxX - this.minX;
@@ -129,56 +116,7 @@ export class DrawableSlider extends DrawableHitObject {
         let ctx = canvas.getContext('2d');
         this.baseCtx = ctx;
         this.curve.render(1);
-
         this.baseSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
-
-        let headCanvas = document.createElement('canvas');
-        headCanvas.setAttribute('width', String(circleDiameter));
-        headCanvas.setAttribute('height', String(circleDiameter));
-        let headCtx = headCanvas.getContext('2d');
-        drawCircle(headCtx, 0, 0, this.comboInfo);
-
-        this.headSprite = new PIXI.Sprite(PIXI.Texture.from(headCanvas));
-        this.headSprite.pivot.x = this.headSprite.width / 2;
-        this.headSprite.pivot.y = this.headSprite.height / 2;
-        this.headSprite.width = circleDiameter;
-        this.headSprite.height = circleDiameter;
-        let headPos = this.toCtxCoord({x: this.x, y: this.y});
-        this.headSprite.x = headPos.x;
-        this.headSprite.y = headPos.y;
-
-        if (DRAWING_MODE === DrawingMode.Skin) {
-            let text = new SpriteNumber({
-                textures: digitTextures,
-                horizontalAlign: "center",
-                verticalAlign: "middle",
-                digitHeight: NUMBER_HEIGHT_CS_RATIO * circleDiameter,
-                overlap: 15
-            });
-            text.setValue(this.comboInfo.n);
-            text.container.x = circleDiameter/2;
-            text.container.y = circleDiameter/2;
-
-            this.headSprite.addChild(text.container);
-        }
-
-        if (DRAWING_MODE === DrawingMode.Procedural) {
-            let approachCircle = new PIXI.Graphics();
-            let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
-            approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.comboInfo.color));
-            approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
-
-            this.approachCircle = approachCircle;
-        } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let approachCircle = new PIXI.Sprite(approachCircleTexture);
-            approachCircle.pivot.x = approachCircle.width / 2;
-            approachCircle.pivot.y = approachCircle.height / 2;
-            approachCircle.width = circleDiameter;
-            approachCircle.height = circleDiameter;
-            approachCircle.tint = colorToHexNumber(this.comboInfo.color);
-
-            this.approachCircle = approachCircle;
-        }
 
         if (DRAWING_MODE === DrawingMode.Procedural) {
             let sliderBall = new PIXI.Graphics();
@@ -275,21 +213,13 @@ export class DrawableSlider extends DrawableHitObject {
         this.container.addChild(this.headSprite);
     }
 
-    show(currentTime: number) {
-        mainHitObjectContainer.addChildAt(this.container, 0);
-        approachCircleContainer.addChild(this.approachCircle);
-
-        this.position();
-        this.update(currentTime);
-    }
-
     position() {
+        super.position(); // Haha, superposition. Yes. This joke is funny and not funny at the same time. Until observed, of course.
+
         let { circleDiameterOsuPx } = gameState.currentPlay;
 
         this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.minX - circleDiameterOsuPx/2);
         this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleDiameterOsuPx/2);
-        this.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-        this.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
     }
 
     update(currentTime: number) {
@@ -298,7 +228,7 @@ export class DrawableSlider extends DrawableHitObject {
             return;
         }
 
-        let { fadeInCompletion } = updateHeadElements(this, currentTime);
+        let { fadeInCompletion } = this.updateHeadElements(currentTime);
         let containerAlpha = fadeInCompletion;
 
         if (currentTime > this.endTime) {
@@ -316,27 +246,17 @@ export class DrawableSlider extends DrawableHitObject {
     }
 
     remove() {
-        mainHitObjectContainer.removeChild(this.container);
-        approachCircleContainer.removeChild(this.approachCircle);
+        super.remove();
+
         this.reverseArrow.destroy();
         this.sliderBall.destroy();
         this.sliderTickGraphics.destroy();
     }
 
     addPlayEvents(playEventArray: PlayEvent[]) {
+        super.addPlayEvents(playEventArray);
+
         let { processedBeatmap } = gameState.currentPlay;
-
-        playEventArray.push({
-            type: PlayEventType.PerfectHeadHit,
-            hitObject: this,
-            time: this.startTime
-        });
-
-        playEventArray.push({
-            type: PlayEventType.HeadHitWindowEnd,
-            hitObject: this,
-            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)
-        });
 
         playEventArray.push({
             type: PlayEventType.SliderEnd,
@@ -413,21 +333,6 @@ export class DrawableSlider extends DrawableHitObject {
         if (judgement !== 0) normalHitSoundEffect.start();
 
         accuracyMeter.addAccuracyLine(timeInaccuracy, time);
-    }
-    
-    handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
-        let { circleRadiusOsuPx } = gameState.currentPlay;
-
-        let distance = pointDistance(osuMouseCoordinates, this.startPoint);
-
-        if (distance <= circleRadiusOsuPx) {
-            if (this.scoring.head.hit === ScoringValue.NotHit) {
-                this.hitHead(currentTime);
-                return true;
-            }
-        }
-
-        return false;
     }
 
     getPosFromPercentage(percent: number) : Point {

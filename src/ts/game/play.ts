@@ -6,21 +6,22 @@ import { mainMusicMediaPlayer, normalHitSoundEffect } from "../audio/audio";
 import { mainRender, followPointContainer, scorePopupContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
-import { readFileAsArrayBuffer, readFileAsDataUrl, readFileAsLocalResourceUrl } from "../util/file_util";
+import { PLAYFIELD_DIMENSIONS } from "../util/constants";
+import { readFileAsArrayBuffer, readFileAsLocalResourceUrl } from "../util/file_util";
 import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance } from "../util/point";
-import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint, FOLLOW_POINT_DISTANCE_THRESHOLD } from "./follow_point";
+import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./follow_point";
 import { PlayEvent, PlayEventType } from "./play_events";
 import "./hud";
 import "../input/input";
-import { ScoreCounter, Score, ScorePopup, ScoringValue } from "./score";
+import { ScoreCounter, ScorePopup, ScoringValue } from "./score";
 import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { hitCircleImage, hitCircleOverlayImage } from "./skin";
+import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -338,7 +339,7 @@ export class Play {
                 case PlayEventType.PerfectHeadHit: {
                     if (!AUTOHIT) break;
  
-                    let hitObject = playEvent.hitObject as (DrawableCircle | DrawableSlider);
+                    let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
                     hitObject.hitHead(playEvent.time);
                 }; break;
                 case PlayEventType.SliderEnd: {

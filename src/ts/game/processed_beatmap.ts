@@ -10,6 +10,7 @@ import { Color } from "../util/graphics_util";
 import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
+import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -187,8 +188,8 @@ export class ProcessedBeatmap {
                 let objectB = this.hitObjects[b];
                 let stackBaseObject = hitObject;
 
-                if (stackBaseObject instanceof DrawableSpinner) break;
-                if (objectB instanceof DrawableSpinner) continue;
+                if (!(stackBaseObject instanceof HeadedDrawableHitObject)) break;
+                if (!(objectB instanceof HeadedDrawableHitObject)) continue;
 
                 let endTime = stackBaseObject.endTime;
 
@@ -213,12 +214,17 @@ export class ProcessedBeatmap {
         for (let i = extendedEndIndex; i > 0; i--) {
             let n = i;
 
-            let objectI = this.hitObjects[i];
-            if (objectI.stackHeight !== 0 || objectI instanceof DrawableSpinner) continue;
+            let hitObject = this.hitObjects[i];
+            if (!(hitObject instanceof HeadedDrawableHitObject)) continue;
+
+            let objectI = hitObject;
+            
+            if (objectI.stackHeight !== 0) continue;
+
             if (objectI instanceof DrawableCircle) {
                 while (--n >= 0) {
                     let objectN = this.hitObjects[n];
-                    if (objectN instanceof DrawableSpinner) continue;
+                    if (!(objectN instanceof HeadedDrawableHitObject)) continue;
 
                     let endTime = objectN.endTime;
 
@@ -235,6 +241,8 @@ export class ProcessedBeatmap {
 
                         for (let j = n + 1; j <= i; j++) {
                             let objectJ = this.hitObjects[j];
+                            if (!(objectJ instanceof HeadedDrawableHitObject)) continue;
+
                             if (MathUtil.distance(objectN.endPoint, objectJ.startPoint) < stackSnapDistance)
                                 objectJ.stackHeight -= offset;
                         }
@@ -251,7 +259,7 @@ export class ProcessedBeatmap {
                 while (--n >= 0) {
                     let objectN = this.hitObjects[n];
 
-                    if (objectN instanceof DrawableSpinner) continue;
+                    if (!(objectN instanceof HeadedDrawableHitObject)) continue;
 
                     if (objectI.startTime - objectN.startTime > stackThreshold)
                         break;
@@ -266,8 +274,9 @@ export class ProcessedBeatmap {
 
         for (let z = 0; z < this.hitObjects.length; z++) {
             let hitObject = this.hitObjects[z];
-            if (hitObject.stackHeight !== 0)
-                this.hitObjects[z].applyStackPosition();
+            if (!(hitObject instanceof HeadedDrawableHitObject)) continue;
+
+            if (hitObject.stackHeight !== 0) hitObject.applyStackPosition();
         }
     }
 
