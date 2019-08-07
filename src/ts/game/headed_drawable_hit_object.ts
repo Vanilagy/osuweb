@@ -76,8 +76,8 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
         let headBase: PIXI.Sprite;
         if (DRAWING_MODE === DrawingMode.Procedural) {
             let canvas = document.createElement('canvas');
-            canvas.setAttribute('width', String(circleDiameter));
-            canvas.setAttribute('height', String(circleDiameter));
+            canvas.setAttribute('width', String(Math.ceil(circleDiameter)));
+            canvas.setAttribute('height', String(Math.ceil(circleDiameter)));
             let ctx = canvas.getContext('2d');
             drawHitObjectHead(ctx, 0, 0, this.comboInfo);
 
@@ -243,7 +243,6 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
 
 /** Draws a hit object head procedurally, complete with base, overlay and number. */
 export function drawHitObjectHead(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) {
-    console.trace()
     let { circleDiameter } = gameState.currentPlay;
 
     let color = comboInfo.color;
