@@ -4,7 +4,7 @@ import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePassthrough } from "./slider_curve_passthrough";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil, EaseType } from "../util/math_util";
-import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements, NUMBER_HEIGHT_CS_RATIO } from "./drawable_hit_object";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
@@ -15,7 +15,8 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
-import { approachCircleTexture, sliderBallTexture, followCircleTexture, reverseArrowTexture } from "./skin";
+import { approachCircleTexture, sliderBallTexture, followCircleTexture, reverseArrowTexture, digitTextures } from "./skin";
+import { SpriteNumber } from "../visuals/sprite_number";
 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
 const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
@@ -146,6 +147,21 @@ export class DrawableSlider extends DrawableHitObject {
         this.headSprite.x = headPos.x;
         this.headSprite.y = headPos.y;
 
+        if (DRAWING_MODE === DrawingMode.Skin) {
+            let text = new SpriteNumber({
+                textures: digitTextures,
+                horizontalAlign: "center",
+                verticalAlign: "middle",
+                digitHeight: NUMBER_HEIGHT_CS_RATIO * circleDiameter,
+                overlap: 15
+            });
+            text.setValue(this.comboInfo.n);
+            text.container.x = circleDiameter/2;
+            text.container.y = circleDiameter/2;
+
+            this.headSprite.addChild(text.container);
+        }
+
         if (DRAWING_MODE === DrawingMode.Procedural) {
             let approachCircle = new PIXI.Graphics();
             let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
@@ -216,7 +232,7 @@ export class DrawableSlider extends DrawableHitObject {
                 let point = new PIXI.Point(triangleRadius * Math.cos(angle), triangleRadius * Math.sin(angle));
                 points.push(point);
             }
-            
+
             reverseArrow.beginFill(0xFFFFFF);
             reverseArrow.drawPolygon(points);
             reverseArrow.endFill();

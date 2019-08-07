@@ -1,5 +1,5 @@
 import { MathUtil } from "../util/math_util";
-import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
+import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements, NUMBER_HEIGHT_CS_RATIO } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
 import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
@@ -11,7 +11,8 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
-import { approachCircleTexture } from "./skin";
+import { approachCircleTexture, digitTextures } from "./skin";
+import { SpriteNumber } from "../visuals/sprite_number";
 
 interface CircleScoring {
     head: HitObjectHeadScoring
@@ -57,6 +58,21 @@ export class DrawableCircle extends DrawableHitObject {
         this.headSprite.pivot.y = this.headSprite.height / 2;
         this.headSprite.width = circleDiameter;
         this.headSprite.height = circleDiameter;
+
+        if (DRAWING_MODE === DrawingMode.Skin) {
+            let text = new SpriteNumber({
+                textures: digitTextures,
+                horizontalAlign: "center",
+                verticalAlign: "middle",
+                digitHeight: NUMBER_HEIGHT_CS_RATIO * circleDiameter,
+                overlap: 15
+            });
+            text.setValue(this.comboInfo.n);
+            text.container.x = circleDiameter/2;
+            text.container.y = circleDiameter/2;
+
+            this.headSprite.addChild(text.container);
+        }
 
         if (DRAWING_MODE === DrawingMode.Procedural) {
             let approachCircle = new PIXI.Graphics();

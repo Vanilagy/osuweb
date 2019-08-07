@@ -10,6 +10,9 @@ import { DrawableSlider } from "./drawable_slider";
 import { ScoringValue } from "./score";
 import { hitCircleImage } from "./skin";
 
+export const NUMBER_HEIGHT_CS_RATIO = 52 / 128; // Determined empirically by comparing asset dimensions.
+export const UNSCALED_NUMBER_HEIGHT = 47;
+
 export interface HitObjectHeadScoring {
     hit: ScoringValue,
     time: number
