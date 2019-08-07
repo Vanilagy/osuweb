@@ -26,10 +26,12 @@ export interface SpriteNumberOptions {
 export class SpriteNumber {
     public container: PIXI.Container;
     private options: SpriteNumberOptions;
+    private sprites: PIXI.Sprite[];
 
     constructor(options: SpriteNumberOptions) {
         this.container = new PIXI.Container();
         this.options = options;
+        this.sprites = [];
 
         switch (this.options.verticalAlign) {
             case "top": {
@@ -45,24 +47,38 @@ export class SpriteNumber {
     }
 
     setValue(num: number) {
-        let sprites: PIXI.Sprite[] = [];
         let str = num.toString();
+
+        // Add or remove sprites from the sprite pool
+        if (str.length < this.sprites.length) {
+            while (str.length !== this.sprites.length) {
+                let last = this.sprites.pop();
+
+                this.container.removeChild(last);
+            }
+        } else if (str.length > this.sprites.length) {
+            while (str.length !== this.sprites.length) {
+                let newSprite = new PIXI.Sprite();
+
+                this.sprites.push(newSprite);
+                this.container.addChild(newSprite);
+            }
+        }
 
         let totalWidth = 0;
         let overlapX = (this.options.overlap / 2) / UNSCALED_NUMBER_HEIGHT * this.options.digitHeight;
 
         for (let i = 0; i < str.length; i++) {
             let char = str.charAt(i);
+            let weakTextures = this.options.textures as any; // "weak" as in "not type-checked"
+            let texture = weakTextures[char] as PIXI.Texture;
 
-            let weakTextures = this.options.textures as any;
-
-            let texture = weakTextures[char];
-            let sprite = new PIXI.Sprite(texture);
-
-            let ratio = sprite.width / sprite.height;
+            let sprite = this.sprites[i];
+            sprite.texture = texture;
             sprite.height = this.options.digitHeight;
+        
+            let ratio = texture.width / texture.height;
             sprite.width = this.options.digitHeight * ratio;
-
             totalWidth += sprite.width;
 
             if (i > 0) {
@@ -70,8 +86,6 @@ export class SpriteNumber {
                 sprite.position.x -= overlapX;
                 totalWidth -= overlapX;
             }
-
-            sprites.push(sprite);
         }
 
         switch (this.options.horizontalAlign) {
@@ -85,8 +99,5 @@ export class SpriteNumber {
                 this.container.pivot.x = totalWidth;
             }; break;
         }
-
-        this.container.removeChildren();
-        this.container.addChild(...sprites);
     }
 }
