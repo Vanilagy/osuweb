@@ -216,5 +216,3 @@ export class MathUtil {
         }
     }
 }
-
-let interpolationStorage = {};

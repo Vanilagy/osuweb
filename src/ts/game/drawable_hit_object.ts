@@ -8,6 +8,7 @@ import { PlayEvent } from "./play_events";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider } from "./drawable_slider";
 import { ScoringValue } from "./score";
+import { hitCircleImage } from "./skin";
 
 export interface HitObjectHeadScoring {
     hit: ScoringValue,
@@ -91,6 +92,8 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
     //color = {r: 255, g: 20, b: 20};
 
     if (DRAWING_MODE === DrawingMode.Procedural) {
+        console.log("Get donw on it")
+
         context.beginPath(); // Draw circle base (will become border)
         context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2, 0, Math.PI * 2);
         context.fillStyle = "white";
@@ -111,6 +114,10 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
         context.globalCompositeOperation = "destination-out"; // Transparency
         context.fill();
     } else if (DRAWING_MODE === DrawingMode.Skin) {
+        //context.drawImage(hitCircleImage, x, y, circleDiameter, circleDiameter);
+
+        context.drawImage(gameState.currentPlay.coloredHitCircles[comboInfo.colorIndex], x, y);
+
         //context.drawImage(GAME_STATE.currentPlay.drawElements.coloredHitcircles[comboInfo.comboNum % GAME_STATE.currentBeatmap.colors.length], x, y);
     }
 
@@ -130,7 +137,7 @@ export function drawCircle(context: CanvasRenderingContext2D, x: number, y: numb
             context.fillStyle = "white";
             context.fill();
         }
-    } else if (DRAWING_MODE === DrawingMode.Procedural) {
+    } else if (DRAWING_MODE === DrawingMode.Skin) {
         //let numberWidth = 70 / 256 * GAME_STATE.currentPlay.csPixel,
         //    numberHeight = 104 / 256 * GAME_STATE.currentPlay.csPixel,
         //    numberString = comboInfo.n.toString(),

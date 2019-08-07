@@ -15,6 +15,7 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
+import { approachCircleTexture } from "./skin";
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -142,11 +143,23 @@ export class DrawableSlider extends DrawableHitObject {
         this.headSprite.x = headPos.x;
         this.headSprite.y = headPos.y;
 
-        let approachCircle = new PIXI.Graphics();
-        let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
-        approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.comboInfo.color));
-        approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
-        this.approachCircle = approachCircle;
+        if (DRAWING_MODE === DrawingMode.Procedural) {
+            let approachCircle = new PIXI.Graphics();
+            let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
+            approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.comboInfo.color));
+            approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
+
+            this.approachCircle = approachCircle;
+        } else if (DRAWING_MODE === DrawingMode.Skin) {
+            let approachCircle = new PIXI.Sprite(approachCircleTexture);
+            approachCircle.pivot.x = approachCircle.width / 2;
+            approachCircle.pivot.y = approachCircle.height / 2;
+            approachCircle.width = circleDiameter;
+            approachCircle.height = circleDiameter;
+            approachCircle.tint = colorToHexNumber(this.comboInfo.color);
+
+            this.approachCircle = approachCircle;
+        }
 
         let sliderBall = new PIXI.Graphics();
         sliderBall = new PIXI.Graphics();

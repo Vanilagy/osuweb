@@ -12,7 +12,7 @@ export enum DrawingMode {
     Skin // Use only image assets
 }
 
-export const DRAWING_MODE = DrawingMode.Procedural;
+export const DRAWING_MODE: DrawingMode = DrawingMode.Skin;
 export const CIRCLE_BORDER_WIDTH = 1.75 / 16;
 
 export const SLIDER_SETTINGS = {

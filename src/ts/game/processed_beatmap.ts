@@ -18,7 +18,8 @@ export interface ComboInfo {
     comboNum: number,
     n: number,
     isLast: boolean,
-    color: Color
+    color: Color,
+    colorIndex: number
 }
 
 export interface Break {
@@ -77,7 +78,8 @@ export class ProcessedBeatmap {
                 comboNum: nextCombo,
                 n: comboCount++,
                 isLast: (this.beatmap.hitObjects[i + 1]) ? this.beatmap.hitObjects[i + 1].newCombo !== null : true,
-                color: colorArray[nextCombo % colorArray.length]
+                color: colorArray[nextCombo % colorArray.length],
+                colorIndex: nextCombo % colorArray.length
             };
 
             if (currentTimingPoint < this.beatmap.timingPoints.length) {

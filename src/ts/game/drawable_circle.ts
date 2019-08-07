@@ -2,7 +2,7 @@ import { MathUtil } from "../util/math_util";
 import { DrawableHitObject, drawCircle, HitObjectHeadScoring, getDefaultHitObjectHeadScoring, updateHeadElements } from "./drawable_hit_object";
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
-import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
 import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
@@ -11,6 +11,7 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
+import { approachCircleTexture } from "./skin";
 
 interface CircleScoring {
     head: HitObjectHeadScoring
@@ -57,11 +58,23 @@ export class DrawableCircle extends DrawableHitObject {
         this.headSprite.width = circleDiameter;
         this.headSprite.height = circleDiameter;
 
-        let approachCircle = new PIXI.Graphics();
-        let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
-        approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.comboInfo.color));
-        approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
-        this.approachCircle = approachCircle;
+        if (DRAWING_MODE === DrawingMode.Procedural) {
+            let approachCircle = new PIXI.Graphics();
+            let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
+            approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.comboInfo.color));
+            approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
+
+            this.approachCircle = approachCircle;
+        } else if (DRAWING_MODE === DrawingMode.Skin) {
+            let approachCircle = new PIXI.Sprite(approachCircleTexture);
+            approachCircle.pivot.x = approachCircle.width / 2;
+            approachCircle.pivot.y = approachCircle.height / 2;
+            approachCircle.width = circleDiameter;
+            approachCircle.height = circleDiameter;
+            approachCircle.tint = colorToHexNumber(this.comboInfo.color);
+
+            this.approachCircle = approachCircle;
+        }
 
         this.container.addChild(this.headSprite);
     }
