@@ -12,6 +12,7 @@ export let sliderBallTexture: PIXI.Texture;
 export let followCircleTexture: PIXI.Texture;
 export let reverseArrowTexture: PIXI.Texture;
 export let digitTextures: SpriteNumberTextures;
+export let sliderTickTexture: PIXI.Texture;
 
 export async function initSkin() {
     hitCircleArrayBuffer = await fetchAsArrayBuffer("./assets/temp/hitcircle@2x.png");
@@ -20,6 +21,7 @@ export async function initSkin() {
     sliderBallTexture = PIXI.Texture.from("./assets/temp/sliderb@2x.png");
     followCircleTexture = PIXI.Texture.from("./assets/temp/sliderfollowcircle@2x.png");
     reverseArrowTexture = PIXI.Texture.from("./assets/temp/reversearrow@2x.png");
+    sliderTickTexture = PIXI.Texture.from("./assets/temp/sliderscorepoint.png");
 
     let thang: any = {};
     for (let i = 0; i <= 9; i++) {

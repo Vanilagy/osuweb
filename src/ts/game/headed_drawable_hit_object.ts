@@ -12,6 +12,8 @@ import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rend
 import { Point, pointDistance } from "../util/point";
 import { PlayEvent, PlayEventType } from "./play_events";
 
+const APPROACH_CIRCLE_CS_RATIO = 126/118; // Determined from image dimensions
+
 export interface HitObjectHeadScoring {
     hit: ScoringValue,
     time: number
@@ -211,7 +213,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
                 approachCircleCompletion = MathUtil.clamp(approachCircleCompletion, 0, 1);
     
                 let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0
-                let approachCircleDiameter = circleDiameter * approachCircleFactor;
+                let approachCircleDiameter = circleDiameter * APPROACH_CIRCLE_CS_RATIO * approachCircleFactor;
                 this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
     
                 this.approachCircle.alpha = fadeInCompletion;

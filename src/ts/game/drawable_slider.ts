@@ -13,11 +13,12 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
-import { sliderBallTexture, followCircleTexture, reverseArrowTexture } from "./skin";
+import { sliderBallTexture, followCircleTexture, reverseArrowTexture, sliderTickTexture } from "./skin";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
 const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
+const SLIDER_TICK_CS_RATIO = 16/118;
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -31,7 +32,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public overlayContainer: PIXI.Container;
     public sliderBall: PIXI.Container;
     public reverseArrow: PIXI.Container;
-    public sliderTickGraphics: PIXI.Graphics;
+    public sliderTickContainer: PIXI.Container;
     public followCircle: PIXI.Container;
 
     public complete: boolean;
@@ -199,9 +200,39 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
         this.reverseArrow.visible = false;
 
-        this.sliderTickGraphics = new PIXI.Graphics();
+        this.sliderTickContainer = new PIXI.Container();
+        for (let i = 0; i < this.sliderTickCompletions.length; i++) {
+            let completion = this.sliderTickCompletions[i];
+            if (completion >= 1) break;
 
-        this.overlayContainer.addChild(this.sliderTickGraphics);
+            let tickElement: PIXI.Container;
+            if (DRAWING_MODE === DrawingMode.Procedural) {
+                let graphics = new PIXI.Graphics();
+
+                graphics.beginFill(0xFFFFFF);
+                graphics.drawCircle(0, 0, circleDiameter * 0.038);
+                graphics.endFill();
+
+                tickElement = graphics;
+            } else if (DRAWING_MODE === DrawingMode.Skin) {
+                let sprite = new PIXI.Sprite(sliderTickTexture);
+
+                sprite.anchor.set(0.5, 0.5);
+                sprite.width = circleDiameter * SLIDER_TICK_CS_RATIO;
+                sprite.height = circleDiameter * SLIDER_TICK_CS_RATIO;
+
+                tickElement = sprite;
+            }
+
+            let sliderTickPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
+
+            tickElement.x = sliderTickPos.x;
+            tickElement.y = sliderTickPos.y;
+
+            this.sliderTickContainer.addChild(tickElement);
+        }
+
+        if (this.sliderTickCompletions.length > 0) this.overlayContainer.addChild(this.sliderTickContainer);
         this.overlayContainer.addChild(this.sliderBall);
         this.overlayContainer.addChild(this.reverseArrow);
         this.overlayContainer.addChild(this.followCircle);
@@ -248,7 +279,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         this.reverseArrow.destroy();
         this.sliderBall.destroy();
-        this.sliderTickGraphics.destroy();
+        this.sliderTickContainer.destroy();
     }
 
     addPlayEvents(playEventArray: PlayEvent[]) {
@@ -467,17 +498,27 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
-        this.sliderTickGraphics.clear();
-        this.sliderTickGraphics.lineStyle(0);
-
         let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
         let currentCycle = Math.floor(completion);
 
-        for (let i = 0; i < this.sliderTickCompletions.length; i++) {
-            let tickCompletion = this.sliderTickCompletions[i];
-            if (tickCompletion <= completion) continue; // If we're already past that tick
-            if (tickCompletion - currentCycle >= 1) break; // If tick does not belong to this repeat cycle
+        for (let i = 0; i < this.sliderTickContainer.children.length; i++) {
+            let tickElement = this.sliderTickContainer.children[i];
 
+            let tickCompletionIndex = this.sliderTickContainer.children.length * currentCycle;
+            if (currentCycle % 2 === 0) {
+                tickCompletionIndex += i;
+            } else {
+                tickCompletionIndex += this.sliderTickContainer.children.length - 1 - i;
+            }
+            let tickCompletion = this.sliderTickCompletions[tickCompletionIndex];
+
+            if (tickCompletion <= completion) {
+                tickElement.visible = false;
+                continue;
+            } else {
+                tickElement.visible = true;
+            }
+            
             // The currentSliderTime at the beginning of the current repeat cycle
             let msPerRepeatCycle = this.hitObject.length / this.timingInfo.sliderVelocity;
             let currentRepeatTime = currentCycle * msPerRepeatCycle;
@@ -494,24 +535,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let animationCompletion = (currentSliderTime - animationStart) / SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
             animationCompletion = MathUtil.clamp(animationCompletion, 0, 1);
 
-            if (animationCompletion === 0) continue;
+            // Creates a bouncing scaling effect.
+            let parabola = (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion);
 
-            let sliderTickPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(tickCompletion)));
+            if (animationCompletion === 0) parabola = 0;
+            if (animationCompletion >= 1) parabola = 1;
 
-            if (DRAWING_MODE === DrawingMode.Procedural) {
-                let radius = gameState.currentPlay.circleDiameter * 0.038;
-                // Creates a bouncing scaling effect.
-                let parabola = (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion);
-                radius *= parabola;
-
-                this.sliderTickGraphics.beginFill(0xFFFFFF);
-                this.sliderTickGraphics.drawCircle(sliderTickPos.x, sliderTickPos.y, radius);
-                this.sliderTickGraphics.endFill();
-            } else if (DRAWING_MODE === DrawingMode.Skin) {
-                //let diameter = GAME_STATE.currentPlay.csPixel / SLIDER_BALL_CS_RATIO / 4 * (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion);
-
-                //this.overlayCtx.drawImage(GAME_STATE.currentPlay.drawElements.sliderTick, sliderTickPos.x - diameter / 2, sliderTickPos.y - diameter / 2, diameter, diameter);
-            }
+            tickElement.scale.set(parabola);
         }
     }
 }
