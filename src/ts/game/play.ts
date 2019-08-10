@@ -7,7 +7,7 @@ import { mainRender, followPointContainer, scorePopupContainer } from "../visual
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
-import { readFileAsArrayBuffer, readFileAsLocalResourceUrl } from "../util/file_util";
+import { readFileAsArrayBuffer, readFileAsLocalResourceUrl, readFileAsDataUrl } from "../util/file_util";
 import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance } from "../util/point";
@@ -114,11 +114,12 @@ export class Play {
         console.time("Audio load");
         
         let songFile = this.processedBeatmap.beatmap.getAudioFile();
-        await mainMusicMediaPlayer.loadBuffer(await readFileAsArrayBuffer(songFile));
+        let url = readFileAsLocalResourceUrl(songFile);
+        await mainMusicMediaPlayer.loadUrl(url);
 
         let backgroundImageFile = this.processedBeatmap.beatmap.getBackgroundImageFile();
         if (backgroundImageFile) {
-            let url = await readFileAsLocalResourceUrl(backgroundImageFile);
+            let url = readFileAsLocalResourceUrl(backgroundImageFile);
             loadMainBackgroundImage(url);
         }
 

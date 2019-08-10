@@ -6,6 +6,7 @@ const MEDIA_NUDGE_INTERVAL = 333; // In ms
 const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
 
 export let audioContext = new AudioContext();
+if (audioContext.state === "suspended") console.warn("AUDIO CONTEXT IS SUSPENDED. MAKE SURE TO RESUME IT BEFORE ANYTHING IMPORTANT!");
 
 let masterGain = audioContext.createGain();
 masterGain.gain.value = DEFAULT_MASTER_GAIN_VALUME;
@@ -155,6 +156,8 @@ export class MediaPlayer {
 
     // Offset in seconds: Positive = Start the sound at that time, Negative = Start in the song in -offset seconds
     start(offset: number = 0) {
+        audioContext.resume();
+
         if (!this.audioElement) {
             console.error("Cannot start MediaPlayer as it has no media to play.");
             return;

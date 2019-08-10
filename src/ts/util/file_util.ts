@@ -39,11 +39,8 @@ export async function readFileAsDataUrl(file: File) {
 }
 
 // TODO: Excessively calling this function, even with the same file, will keep creating new resources and filling up RAM. We'll likely need some more sophisticated storage object for this.
-export async function readFileAsLocalResourceUrl(file: File) {
-    let arrayBuffer = await readFileAsArrayBuffer(file);
-    let blob = new Blob([arrayBuffer]);
-
-    return URL.createObjectURL(blob);
+export function readFileAsLocalResourceUrl(file: File) {
+    return URL.createObjectURL(file);
 }
 
 // Including the dot. file.jpg => .jpg

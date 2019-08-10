@@ -3,7 +3,7 @@ import { HitObject } from "../datamodel/hit_object";
 import { gameState } from "./game_state";
 import { ScoringValue } from "./score";
 import { MathUtil, EaseType } from "../util/math_util";
-import { HIT_OBJECT_FADE_OUT_TIME, DRAWING_MODE, DrawingMode, CIRCLE_BORDER_WIDTH, NUMBER_HEIGHT_CS_RATIO, PROCEDURAL_HEAD_INNER_TYPE } from "../util/constants";
+import { HIT_OBJECT_FADE_OUT_TIME, DRAWING_MODE, DrawingMode, CIRCLE_BORDER_WIDTH, NUMBER_HEIGHT_CS_RATIO, PROCEDURAL_HEAD_INNER_TYPE, HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
 import { ComboInfo } from "./processed_beatmap";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { digitTextures, approachCircleTexture, hitCircleTexture, hitCircleOverlayTexture } from "./skin";
@@ -204,9 +204,9 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     
         if (headScoring.hit === ScoringValue.NotHit) {
             if (currentTime < this.startTime) {
-                fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / ARMs;
+                fadeInCompletion = (currentTime - (this.hitObject.time - ARMs)) / HIT_OBJECT_FADE_IN_TIME;
                 fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-                fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
+                //fadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
     
                 let approachCircleAppearTime = this.startTime - ARMs;
                 let approachCircleCompletion = (currentTime - approachCircleAppearTime) / ARMs;
@@ -230,7 +230,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
             fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
     
             let alpha = 1 - fadeOutCompletion;
-            let scale = 1 + fadeOutCompletion * 0.333; // Max scale: 1.333
+            let scale = 1 + MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion) * 0.333; // Max scale: 1.333
     
             this.headContainer.alpha = alpha;
             if (headScoring.hit !== ScoringValue.Miss) { // Misses just fade out, whereas all other hit judgements also cause an 'expansion' effect

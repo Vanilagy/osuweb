@@ -19,6 +19,9 @@ import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
 const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
 const SLIDER_TICK_CS_RATIO = 16/118;
+const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
+const FOLLOW_CIRCLE_SCALE_OUT_DURATION = 200;
+const FOLLOW_CIRCLE_PULSE_DURATION = 200;
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -435,9 +438,12 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.followCircle.x = sliderBallPos.x;
         this.followCircle.y = sliderBallPos.y;
 
-        let followCircleSizeFactor = 1; // Base
-        followCircleSizeFactor += (FOLLOW_CIRCLE_CS_RATIO - 1) * MathUtil.clamp((currentTime - this.startTime) / 100, 0, 1); // Enlarge to FOLLOW_CIRCLE_CS_RATIO on start
-        followCircleSizeFactor += -0.333 * MathUtil.clamp((currentTime - this.endTime) / 100, 0, 1); // Shrink on end
+        let enlargeCompletion = (currentTime - this.startTime) / FOLLOW_CIRCLE_SCALE_IN_DURATION;
+        enlargeCompletion = MathUtil.clamp(enlargeCompletion, 0, 1);
+        enlargeCompletion = MathUtil.ease(EaseType.EaseOutQuad, enlargeCompletion);
+
+        let followCircleSizeFactor = 0;
+        followCircleSizeFactor += (FOLLOW_CIRCLE_CS_RATIO - 1) * enlargeCompletion; // Enlarge to FOLLOW_CIRCLE_CS_RATIO on start
 
         let biggestCurrentTickCompletion = -Infinity;
         let biggestCurrentRepeatCompletion = -Infinity;
@@ -457,12 +463,19 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             // Time of the slider tick or the reverse, relative to the slider start time
             let time = biggestCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
 
-            let pulseFactor = (currentSliderTime - time) / 150;
-            pulseFactor = 1 - MathUtil.clamp(pulseFactor, 0, 1);
-            pulseFactor *= 0.18;
+            let pulseFactor = (currentSliderTime - time) / FOLLOW_CIRCLE_PULSE_DURATION;
+            pulseFactor = 1 - MathUtil.ease(EaseType.EaseOutQuad, MathUtil.clamp(pulseFactor, 0, 1));
+            pulseFactor *= 0.20;
 
             followCircleSizeFactor += pulseFactor;
         }
+
+        let shrinkCompletion = (currentTime - this.endTime) / FOLLOW_CIRCLE_SCALE_OUT_DURATION;
+        shrinkCompletion = MathUtil.clamp(shrinkCompletion, 0, 1);
+        shrinkCompletion = MathUtil.ease(EaseType.EaseOutQuad, shrinkCompletion);
+
+        followCircleSizeFactor *= 1 * (1 - shrinkCompletion) + 0.75 * shrinkCompletion; // Shrink on end, to 1.5x
+        followCircleSizeFactor += 1; // Base. Never get smaller than this.
 
         let followCircleDiameter = gameState.currentPlay.circleDiameter;
         followCircleDiameter *= followCircleSizeFactor;
