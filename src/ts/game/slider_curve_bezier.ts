@@ -5,7 +5,7 @@ import { MathUtil } from "../util/math_util";
 //import {SLIDER_SETTINGS} from "../game/drawableslider";
 //import {Console} from "../console";
 import { DrawableSlider } from "./drawable_slider";
-import { Point } from "../util/point";
+import { Point, pointAngle } from "../util/point";
 import { gameState } from "./game_state";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { last } from "../util/misc_util";
@@ -117,6 +117,16 @@ export class SliderCurveBezier extends SliderCurve {
                 }
             }
         }
+    }
+
+    getAngleFromPercentage(percent: number) {
+        let index = Math.floor(percent * (this.equalDistancePoints.length - 1));
+        if (index === (this.equalDistancePoints.length - 1)) index--;
+
+        let p1 = this.equalDistancePoints[index];
+        let p2 = this.equalDistancePoints[index + 1];
+
+        return pointAngle(p1, p2);
     }
 
     calculateTracePoints(speedCalc: boolean) {

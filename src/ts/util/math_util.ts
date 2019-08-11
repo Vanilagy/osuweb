@@ -215,4 +215,16 @@ export class MathUtil {
                 return val;
         }
     }
+
+    static lerp(start: number, end: number, t: number) {
+        return (1-t)*start + t*end;
+    }
+
+    /** Makes sure an angle is in the interval [-PI, PI] */
+    static constrainRadians(angle: number) {
+        if (angle > Math.PI) angle -= Math.PI*2;
+        if (angle < -Math.PI) angle += Math.PI*2;
+
+        return angle;
+    }
 }

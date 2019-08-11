@@ -6,7 +6,7 @@ import { SliderCurveSection } from "../datamodel/slider";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { Point } from "../util/point";
 
-export class SliderCurve {
+export abstract class SliderCurve {
     protected slider: DrawableSlider;
     protected sections: SliderCurveSection[];
     protected curveLength: number;
@@ -25,7 +25,9 @@ export class SliderCurve {
 
     render(completion: number) { }
 
-    getEndPoint(): Point { return; }
+    abstract getEndPoint(): Point;
+
+    abstract getAngleFromPercentage(percent: number): number;
 
     draw() { // Paints the slider, defined through path
         let { circleDiameter, processedBeatmap } = gameState.currentPlay;

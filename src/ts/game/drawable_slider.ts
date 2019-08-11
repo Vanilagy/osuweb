@@ -15,6 +15,7 @@ import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { sliderBallTexture, followCircleTexture, reverseArrowTexture, sliderTickTexture } from "./skin";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
+import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
 const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
@@ -37,6 +38,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public reverseArrow: PIXI.Container;
     public sliderTickContainer: PIXI.Container;
     public followCircle: PIXI.Container;
+    public sliderEnds: HitCirclePrimitive[];
+    public hitCirclePrimitiveContainer: PIXI.Container;
 
     public complete: boolean;
     public reductionFactor: number;
@@ -61,11 +64,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.reductionFactor = 0.92;
         this.curve = null;
         this.complete = true;
-
-        this.baseSprite = null;
-        this.headContainer = null;
-        this.approachCircle = null;
-        this.overlayContainer = new PIXI.Container();
 
         this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
 
@@ -102,11 +100,65 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     draw() {
         super.draw();
 
-        let headPos = this.toCtxCoord({x: this.x, y: this.y});
-        this.headContainer.x = headPos.x;
-        this.headContainer.y = headPos.y;
+        let { circleDiameter, pixelRatio, ARMs } = gameState.currentPlay;
+    
+        this.head = new HitCirclePrimitive({
+            fadeInStart: this.startTime - ARMs,
+            comboInfo: this.comboInfo,
+            hasApproachCircle: true,
+            hasNumber: true,
+            type: HitCirclePrimitiveType.SliderHead
+        });
 
-        let { circleDiameter, pixelRatio } = gameState.currentPlay;
+        let ctxStartPos = this.toCtxCoord({x: this.startPoint.x, y: this.startPoint.y});
+        let otherPoint = this.getPosFromPercentage(1);
+        let ctxEndPos = this.toCtxCoord({x: otherPoint.x, y: otherPoint.y});
+
+        this.head.container.x = ctxStartPos.x;
+        this.head.container.y = ctxStartPos.y;
+
+        this.hitCirclePrimitiveContainer = new PIXI.Container();
+        this.hitCirclePrimitiveContainer.addChild(this.head.container);
+
+        this.sliderEnds = [];
+        let msPerRepeatCycle = this.hitObject.length / this.timingInfo.sliderVelocity;
+        for (let i = 0; i < this.hitObject.repeat; i++) {
+            let pos = (i % 2 === 0)? ctxEndPos : ctxStartPos;
+            
+            let fadeInStart: number;
+            if (i === 0) {
+                fadeInStart = this.startTime - ARMs;
+            } else {
+                fadeInStart = this.startTime + (i-1) * msPerRepeatCycle;
+            }
+
+            let reverseArrowAngle: number;
+            if (i < this.hitObject.repeat-1) {
+                if (i % 2 === 0) {
+                    let angle = this.curve.getAngleFromPercentage(1);
+                    angle = MathUtil.constrainRadians(angle + Math.PI); // Turn it by 180°
+
+                    reverseArrowAngle = angle;
+                } else {
+                    reverseArrowAngle = this.curve.getAngleFromPercentage(0);
+                }
+            }
+
+            let primitive = new HitCirclePrimitive({
+                fadeInStart: fadeInStart,
+                comboInfo: this.comboInfo,
+                hasApproachCircle: false,
+                hasNumber: false,
+                reverseArrowAngle: reverseArrowAngle,
+                type: HitCirclePrimitiveType.SliderEnd
+            });
+
+            primitive.container.x = pos.x;
+            primitive.container.y = pos.y;
+
+            this.sliderEnds.push(primitive);
+            this.hitCirclePrimitiveContainer.addChildAt(primitive.container, 0);
+        }
 
         this.sliderWidth = this.maxX - this.minX;
         this.sliderHeight = this.maxY - this.minY;
@@ -235,14 +287,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.sliderTickContainer.addChild(tickElement);
         }
 
+        this.overlayContainer = new PIXI.Container();
         if (this.sliderTickCompletions.length > 0) this.overlayContainer.addChild(this.sliderTickContainer);
         this.overlayContainer.addChild(this.sliderBall);
         this.overlayContainer.addChild(this.reverseArrow);
         this.overlayContainer.addChild(this.followCircle);
 
         this.container.addChild(this.baseSprite);
+        this.container.addChild(this.hitCirclePrimitiveContainer);
         this.container.addChild(this.overlayContainer);
-        this.container.addChild(this.headContainer);
     }
 
     position() {
@@ -260,21 +313,24 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             return;
         }
 
-        let { fadeInCompletion } = this.updateHeadElements(currentTime);
-        let containerAlpha = fadeInCompletion;
+        this.updateHeadElements(currentTime);
+        let fadeInCompletion = this.head.getFadeInCompletion(currentTime);
 
-        if (currentTime > this.endTime) {
+        if (currentTime < this.endTime) {
+            this.baseSprite.alpha = fadeInCompletion;
+            this.overlayContainer.alpha = fadeInCompletion;
+        } else {
             let fadeOutCompletion = (currentTime - (this.endTime)) / HIT_OBJECT_FADE_OUT_TIME;
             fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
             fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
 
             let alpha = 1 - fadeOutCompletion;
-            containerAlpha = alpha;
+            
+            this.baseSprite.alpha = alpha;
+            this.overlayContainer.alpha = alpha;
         }
 
-        this.container.alpha = containerAlpha;      
-
-        this.renderOverlay(currentTime);
+        this.renderSubelements(currentTime);
     }
 
     remove() {
@@ -362,7 +418,19 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.scoring.head.time = time;
 
         scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, time);
-        if (judgement !== 0) normalHitSoundEffect.start();
+        if (judgement !== 0) {
+            normalHitSoundEffect.start();
+
+            this.head.setFadeOut({
+                type: HitCirclePrimitiveFadeOutType.ScaleOut,
+                time: time
+            });
+        } else {
+            this.head.setFadeOut({
+                type: HitCirclePrimitiveFadeOutType.FadeOut,
+                time: time
+            });
+        }
 
         accuracyMeter.addAccuracyLine(timeInaccuracy, time);
     }
@@ -407,17 +475,33 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
     }
 
-    private renderOverlay(currentTime: number) {
+    private renderSubelements(currentTime: number) {
         let completion = 0;
         let currentSliderTime = currentTime - this.hitObject.time;
-        let isMoving = currentSliderTime >= 0;
 
         completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length;
         completion = MathUtil.clamp(completion, 0, this.hitObject.repeat);
 
+        this.renderSliderEnds(completion, currentTime);
         this.renderSliderBall(completion, currentTime, currentSliderTime);
-        this.renderReverseArrow(completion);
         if (this.sliderTickCompletions.length > 0) this.renderSliderTicks(completion, currentSliderTime);
+    }
+
+    private renderSliderEnds(completion: number, currentTime: number) {
+        for (let i = 0; i < this.sliderEnds.length; i++) {
+            let sliderEnd = this.sliderEnds[i];
+
+            if (completion >= (i+1) && !sliderEnd.isFadingOut()) {
+                let time = this.startTime + (i+1) * this.hitObject.length / this.timingInfo.sliderVelocity;
+
+                sliderEnd.setFadeOut({
+                    type: HitCirclePrimitiveFadeOutType.ScaleOut,
+                    time: time
+                });
+            } 
+
+            sliderEnd.update(currentTime);
+        }
     }
 
     private renderSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
@@ -481,33 +565,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         followCircleDiameter *= followCircleSizeFactor;
         this.followCircle.width = followCircleDiameter;
         this.followCircle.height = followCircleDiameter;
-    }
-
-    private renderReverseArrow(completion: number) {
-        if (this.hitObject.repeat - completion > 1) {
-            const INFINITESIMAL = 0.00001; // Okay, not really infinitely small. But you get the point.
-            let reverseArrowPos: Point;
-            let p2: Point;
-
-            if (Math.floor(completion) % 2 === 0) {
-                reverseArrowPos = this.getPosFromPercentage(1) as Point;
-                p2 = this.getPosFromPercentage(1 - INFINITESIMAL) as Point;
-            } else {
-                reverseArrowPos = this.getPosFromPercentage(0) as Point;
-                p2 = this.getPosFromPercentage(0 + INFINITESIMAL) as Point;
-            }
-
-            let angle = Math.atan2(p2.y - reverseArrowPos.y, p2.x - reverseArrowPos.x);
-
-            let ctxCoord = this.toCtxCoord(reverseArrowPos);
-            this.reverseArrow.x = ctxCoord.x;
-            this.reverseArrow.y = ctxCoord.y;
-            this.reverseArrow.rotation = angle;
-
-            this.reverseArrow.visible = true;
-        } else {
-            this.reverseArrow.visible = false;
-        }
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {

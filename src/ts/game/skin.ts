@@ -13,6 +13,8 @@ export let followCircleTexture: PIXI.Texture;
 export let reverseArrowTexture: PIXI.Texture;
 export let digitTextures: SpriteNumberTextures;
 export let sliderTickTexture: PIXI.Texture;
+export let sliderEndCircleTexture = PIXI.Texture.EMPTY;
+export let sliderEndCircleOverlayTexture = PIXI.Texture.EMPTY;
 
 export async function initSkin() {
     hitCircleArrayBuffer = await fetchAsArrayBuffer("./assets/temp/hitcircle@2x.png");

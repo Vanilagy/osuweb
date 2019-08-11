@@ -39,6 +39,18 @@ export class SliderCurvePassthrough extends SliderCurve {
         };
     }
 
+    getAngleFromPercentage(percent: number) {
+        let angle = MathUtil.lerp(this.startingAngle, this.startingAngle + this.angleDifference, percent);
+
+        if (this.angleDifference > 0) {
+            angle += Math.PI/2; // Rotate 90° clockwise
+        } else {
+            angle -= Math.PI/2; // Rotate 90° counter-clockwise
+        }
+
+        return MathUtil.constrainRadians(angle);
+    }
+
     calculateValues(speedCalc: boolean) {
         let points = this.sections[0].values;
 

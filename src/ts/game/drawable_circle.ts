@@ -5,6 +5,7 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
+import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;
@@ -26,6 +27,22 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         this.scoring = getDefaultCircleScoring();
     }
 
+    draw() {
+        super.draw();
+
+        let { ARMs } = gameState.currentPlay;
+    
+        this.head = new HitCirclePrimitive({
+            fadeInStart: this.startTime - ARMs,
+            comboInfo: this.comboInfo,
+            hasApproachCircle: true,
+            hasNumber: true,
+            type: HitCirclePrimitiveType.HitCircle
+        });
+
+        this.container.addChild(this.head.container);
+    }
+
     position() {
         super.position(); // See DrawableSlider for the joke
 
@@ -39,8 +56,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
             return;
         }
 
-        let { fadeInCompletion } = this.updateHeadElements(currentTime);
-        this.container.alpha = fadeInCompletion;
+        this.updateHeadElements(currentTime);
     }
 
     score(time: number, judgement: number) {
@@ -62,7 +78,19 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         let judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
 
         this.score(time, judgement);
-        if (judgement !== 0) normalHitSoundEffect.start();
+        if (judgement !== 0) {
+            normalHitSoundEffect.start();
+
+            this.head.setFadeOut({
+                type: HitCirclePrimitiveFadeOutType.ScaleOut,
+                time: time
+            });
+        } else {
+            this.head.setFadeOut({
+                type: HitCirclePrimitiveFadeOutType.FadeOut,
+                time: time
+            });
+        }
 
         accuracyMeter.addAccuracyLine(timeInaccuracy, time);
     }
