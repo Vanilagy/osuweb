@@ -9,7 +9,7 @@ import { gameState } from "./game_state";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
-export class SliderCurvePassthrough extends SliderCurve {
+export class SliderCurvePerfect extends SliderCurve {
     public centerPos: Point = {x: 0, y: 0};
     public angleDifference: number = 0;
     public radius: number = 0;

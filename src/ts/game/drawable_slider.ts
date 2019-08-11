@@ -1,7 +1,7 @@
 import { Slider } from "../datamodel/slider";
 import { SliderCurve } from "./slider_curve";
 import { SliderCurveEmpty } from "./slider_curve_empty";
-import { SliderCurvePassthrough } from "./slider_curve_passthrough";
+import { SliderCurvePerfect } from "./slider_curve_perfect";
 import { SliderCurveBezier } from "./slider_curve_bezier";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
@@ -71,10 +71,10 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
-        } else if (this.hitObject.sections[0].type === "passthrough") {
-            this.curve = new SliderCurvePassthrough(this);
+        } else if (this.hitObject.sections[0].type === "perfect") {
+            this.curve = new SliderCurvePerfect(this);
 
-            (<SliderCurvePassthrough>this.curve).calculateValues(false);
+            (<SliderCurvePerfect>this.curve).calculateValues(false);
         } else {
             this.curve = new SliderCurveBezier(this, false);
         }
@@ -402,7 +402,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     getPosFromPercentage(percent: number) : Point {
         if (this.curve instanceof SliderCurveBezier) {
             return interpolatePointInPointArray(this.curve.equalDistancePoints, percent);
-        } else if (this.curve instanceof SliderCurvePassthrough) {
+        } else if (this.curve instanceof SliderCurvePerfect) {
             let angle = this.curve.startingAngle + this.curve.angleDifference * percent;
 
             return {
