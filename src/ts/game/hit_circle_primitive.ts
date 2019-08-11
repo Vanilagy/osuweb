@@ -189,6 +189,7 @@ export class HitCirclePrimitive {
         if (this.fadeOut === null) {
             let fadeInCompletion = this.getFadeInCompletion(currentTime);
             this.container.alpha = fadeInCompletion;
+            if (this.reverseArrow) this.reverseArrow.alpha = fadeInCompletion;
 
             if (this.approachCircle !== null) {
                 let approachCircleCompletion = (currentTime - this.options.fadeInStart) / ARMs;
@@ -206,7 +207,8 @@ export class HitCirclePrimitive {
             if (this.reverseArrow !== null) {
                 let scale = this.getReverseArrowScale(currentTime);
 
-                this.reverseArrow.scale.set(scale);
+                this.reverseArrow.width = circleDiameter * scale;
+                this.reverseArrow.height = circleDiameter * scale;
             }
         } else {
             if (this.approachCircle !== null) this.approachCircle.visible = false;
@@ -229,7 +231,12 @@ export class HitCirclePrimitive {
                 }
 
                 if (this.reverseArrow !== null) {
-                    this.reverseArrow.scale.set(this.lastReverseArrowScale * scale)
+                    this.reverseArrow.width = circleDiameter * scale;
+                    this.reverseArrow.height = circleDiameter * scale;
+
+                    // TODO: Is this fine? Like, what about reverse arrows where width !== height?
+
+                    //this.reverseArrow.scale.set(this.lastReverseArrowScale * scale)
                 }
             }
 

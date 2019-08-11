@@ -532,13 +532,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
-        let { ARMs } = gameState.currentPlay;
+        let { ARMs, circleDiameter } = gameState.currentPlay;
 
         let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
         let currentCycle = Math.floor(completion);
 
         for (let i = 0; i < this.sliderTickContainer.children.length; i++) {
-            let tickElement = this.sliderTickContainer.children[i];
+            let tickElement = this.sliderTickContainer.children[i] as PIXI.Container;
 
             let tickCompletionIndex = this.sliderTickContainer.children.length * currentCycle;
             if (currentCycle % 2 === 0) {
@@ -579,7 +579,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             if (animationCompletion === 0) parabola = 0;
             if (animationCompletion >= 1) parabola = 1;
 
-            tickElement.scale.set(parabola);
+            tickElement.width = circleDiameter * SLIDER_TICK_CS_RATIO * parabola;
+            tickElement.height = circleDiameter * SLIDER_TICK_CS_RATIO * parabola;
         }
     }
 }
