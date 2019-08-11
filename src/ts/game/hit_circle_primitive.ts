@@ -45,7 +45,7 @@ export class HitCirclePrimitive {
     private overlay: PIXI.Container;
     private number: PIXI.Container;
     public approachCircle: PIXI.Container;
-    private reverseArrow: PIXI.Container;
+    public reverseArrow: PIXI.Container;
     private lastReverseArrowScale: number;
 
     constructor(options: HitCirclePrimitiveOptions) {
@@ -179,7 +179,6 @@ export class HitCirclePrimitive {
         container.addChild(base);
         if (overlay) container.addChild(overlay);
         if (number) container.addChild(number);
-        if (reverseArrow) container.addChild(reverseArrow);
 
         this.container = container;
     }
@@ -217,6 +216,7 @@ export class HitCirclePrimitive {
 
             let alpha = MathUtil.lerp(this.fadeOutStartOpacity, 0, fadeOutCompletion);
             this.container.alpha = alpha;
+            if (this.reverseArrow) this.reverseArrow.alpha = alpha;
 
             if (this.fadeOut.type === HitCirclePrimitiveFadeOutType.ScaleOut) {
                 let scale = 1 + MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion) * 0.333; // Max scale: 1.333
@@ -229,7 +229,7 @@ export class HitCirclePrimitive {
                 }
 
                 if (this.reverseArrow !== null) {
-                    this.reverseArrow.scale.set(/*this.lastReverseArrowScale*/ 1 * scale)
+                    this.reverseArrow.scale.set(this.lastReverseArrowScale * scale)
                 }
             }
 
@@ -263,7 +263,7 @@ export class HitCirclePrimitive {
     setFadeOut(options: HitCirclePrimitiveFadeOutOptions) {
         this.fadeOut = options;
         this.fadeOutStartOpacity = 1 || this.getFadeInCompletion(options.time); // It looks like opacity is set to 1 when fade-out starts.
-        this.lastReverseArrowScale = this.getReverseArrowScale(options.time);
+        this.lastReverseArrowScale = 1 || this.getReverseArrowScale(options.time);
     }
 
     isFadingOut() {

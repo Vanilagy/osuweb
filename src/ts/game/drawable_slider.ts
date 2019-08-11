@@ -35,11 +35,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public baseCtx: CanvasRenderingContext2D;
     public overlayContainer: PIXI.Container;
     public sliderBall: PIXI.Container;
-    public reverseArrow: PIXI.Container;
     public sliderTickContainer: PIXI.Container;
     public followCircle: PIXI.Container;
     public sliderEnds: HitCirclePrimitive[];
     public hitCirclePrimitiveContainer: PIXI.Container;
+    public reverseArrowContainer: PIXI.Container;
 
     public complete: boolean;
     public reductionFactor: number;
@@ -119,6 +119,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         this.hitCirclePrimitiveContainer = new PIXI.Container();
         this.hitCirclePrimitiveContainer.addChild(this.head.container);
+        this.reverseArrowContainer = new PIXI.Container();
 
         this.sliderEnds = [];
         let msPerRepeatCycle = this.hitObject.length / this.timingInfo.sliderVelocity;
@@ -158,6 +159,12 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.sliderEnds.push(primitive);
             this.hitCirclePrimitiveContainer.addChildAt(primitive.container, 0);
+
+            if (primitive.reverseArrow !== null) {
+                primitive.reverseArrow.x = pos.x;
+                primitive.reverseArrow.y = pos.y;
+                this.reverseArrowContainer.addChildAt(primitive.reverseArrow, 0);
+            }
         }
 
         this.sliderWidth = this.maxX - this.minX;
@@ -213,48 +220,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
         this.followCircle.visible = false;
 
-        if (DRAWING_MODE === DrawingMode.Procedural) {
-            let reverseArrow = new PIXI.Graphics();
-            let triangleRadius = circleDiameter / 4;
-            let startingAngle = 0; // "East" on the unit circle
-            let points: PIXI.Point[] = [];
-
-            for (let i = 0; i < 3; i++) {
-                let angle = startingAngle + i*(Math.PI*2 / 3);
-                let point = new PIXI.Point(triangleRadius * Math.cos(angle), triangleRadius * Math.sin(angle));
-                points.push(point);
-            }
-
-            reverseArrow.beginFill(0xFFFFFF);
-            reverseArrow.drawPolygon(points);
-            reverseArrow.endFill();
-
-            this.reverseArrow = reverseArrow;
-        } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let reverseArrow = new PIXI.Sprite(reverseArrowTexture);
-            let yes1 = reverseArrow.width; // Keep the original width at the start.
-            let yes2 = reverseArrow.height; // Keep the original width at the start.
-
-            // Make all this a bit... cleaner.
-            // Essentially what this does is set the width OR height, whatever is bigger, to the circleDiameter, and adjust the other dimension so that the ratio is kept.
-            let no1, no2, r = yes1/yes2;
-            if (yes1 > yes2) {
-                no1 = circleDiameter;
-                no2 = circleDiameter / r;
-            } else {
-                no1 = circleDiameter / r;
-                no2 = circleDiameter;
-            }
-
-            reverseArrow.width = no1;
-            reverseArrow.height = no2;
-            reverseArrow.pivot.x = yes1 / 2;
-            reverseArrow.pivot.y = yes2 / 2;
-
-            this.reverseArrow = reverseArrow;
-        }
-        this.reverseArrow.visible = false;
-
         this.sliderTickContainer = new PIXI.Container();
         for (let i = 0; i < this.sliderTickCompletions.length; i++) {
             let completion = this.sliderTickCompletions[i];
@@ -290,12 +255,12 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.overlayContainer = new PIXI.Container();
         if (this.sliderTickCompletions.length > 0) this.overlayContainer.addChild(this.sliderTickContainer);
         this.overlayContainer.addChild(this.sliderBall);
-        this.overlayContainer.addChild(this.reverseArrow);
         this.overlayContainer.addChild(this.followCircle);
 
         this.container.addChild(this.baseSprite);
         this.container.addChild(this.hitCirclePrimitiveContainer);
         this.container.addChild(this.overlayContainer);
+        this.container.addChild(this.reverseArrowContainer);
     }
 
     position() {
@@ -336,7 +301,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     remove() {
         super.remove();
 
-        this.reverseArrow.destroy();
         this.sliderBall.destroy();
         this.sliderTickContainer.destroy();
     }
@@ -568,6 +532,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
+        let { ARMs } = gameState.currentPlay;
+
         let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
         let currentCycle = Math.floor(completion);
 
@@ -594,12 +560,14 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let currentRepeatTime = currentCycle * msPerRepeatCycle;
             // The time the tick should have fully appeared (animation complete), relative to the current repeat cycle
             // Slider velocity here is doubled, meaning the ticks appear twice as fast as the slider ball moves.
-            let relativeTickTime = ((tickCompletion - lowestTickCompletionFromCurrentRepeat) * this.hitObject.length / (this.timingInfo.sliderVelocity * 2));
+            let relativeTickTime = ((tickCompletion - lowestTickCompletionFromCurrentRepeat) * this.hitObject.length / (this.timingInfo.sliderVelocity * 2)) + SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
             // Sum both up to get the timing of the tick relative to the beginning of the whole slider:
             let tickTime = currentRepeatTime + relativeTickTime;
             
-            // If we're past the first cycle, slider ticks have to appear exactly animationDuration ms later, so that we can actually fit an appearance animation of animationDuration ms into that cycle.
-            if (currentCycle > 0) tickTime += SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
+            // If we're in the first cycle, slider ticks appear a certain duration earlier. Experiments have lead to the value being subtracted here:
+            if (currentCycle === 0) {
+                tickTime -= ARMs * 2/3 - 100;
+            }
 
             let animationStart = tickTime - SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
             let animationCompletion = (currentSliderTime - animationStart) / SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
