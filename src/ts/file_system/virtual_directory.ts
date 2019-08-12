@@ -20,10 +20,42 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
         return this.entries[name] || null;
     }
 
+    getFileByName(name: string) {
+        let entry = this.getEntryByName(name);
+
+        if (entry instanceof VirtualFile) return entry as VirtualFile;
+        return null;
+    }
+
     forEach(func: (entry: VirtualFileSystemEntry) => any) {
         for (let key in this.entries) {
             func(this.entries[key]);
         }
+    }
+
+    /** Load all files in this directory. */
+    loadShallow() {
+        let arr: Promise<void>[] = [];
+        this.forEach((entry) => {
+            if (entry instanceof VirtualFile) arr.push(entry.load());
+        });
+
+        return Promise.all(arr);
+    }
+
+    /** Load all files in this directory and its subdirectories. */
+    loadDeep() {
+        let arr: Promise<void>[] = [];
+
+        function addFilesInDirectory(dir: VirtualDirectory) {
+            dir.forEach((entry) => {
+                if (entry instanceof VirtualFile) arr.push(entry.load());
+                else addFilesInDirectory(entry as VirtualDirectory);
+            });
+        }
+        addFilesInDirectory(this);
+
+        return Promise.all(arr);
     }
 
     static fromFileList(list: FileList) {

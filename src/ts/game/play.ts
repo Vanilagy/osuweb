@@ -20,7 +20,6 @@ import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
-import { hitCircleImage, hitCircleOverlayImage } from "./skin";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 
 const LOG_RENDER_INFO = true;

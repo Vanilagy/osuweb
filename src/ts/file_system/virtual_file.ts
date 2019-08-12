@@ -10,6 +10,8 @@ export class VirtualFile extends VirtualFileSystemEntry {
     }
 
     async load() {
+        if (this.blob) return;
+
         if (typeof this.resource === "string") {
             let response = await fetch(this.resource);
             this.blob = await response.blob();

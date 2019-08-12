@@ -13,9 +13,9 @@ import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
 import { assert } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
-import { sliderBallTexture, followCircleTexture, reverseArrowTexture, sliderTickTexture } from "./skin";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
+import { currentSkin } from "./skin";
 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
 const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
@@ -191,7 +191,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         } else if (DRAWING_MODE === DrawingMode.Skin) {
             let diameter = circleDiameter * SLIDER_BALL_CS_RATIO;
 
-            let sliderBall = new PIXI.Sprite(sliderBallTexture);
+            let sliderBall = new PIXI.Sprite(currentSkin.textures["sliderBall"]);
             sliderBall.pivot.x = sliderBall.width / 2;
             sliderBall.pivot.y = sliderBall.height / 2;
             sliderBall.width = diameter;
@@ -210,7 +210,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.followCircle = followCircle;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let followCircle = new PIXI.Sprite(followCircleTexture);
+            let followCircle = new PIXI.Sprite(currentSkin.textures["followCircle"]);
             followCircle.pivot.x = followCircle.width / 2;
             followCircle.pivot.y = followCircle.height / 2;
             followCircle.width = circleDiameter;
@@ -235,7 +235,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
                 tickElement = graphics;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let sprite = new PIXI.Sprite(sliderTickTexture);
+                let sprite = new PIXI.Sprite(currentSkin.textures["sliderTick"]);
 
                 sprite.anchor.set(0.5, 0.5);
                 sprite.width = circleDiameter * SLIDER_TICK_CS_RATIO;

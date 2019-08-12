@@ -90,7 +90,7 @@ export class Beatmap {
     }
 
     getAudioFile() {
-        return this.beatmapSet.directory.getEntryByName(this.audioFilename) as VirtualFile;
+        return this.beatmapSet.directory.getFileByName(this.audioFilename);
     }
 
     getBackgroundImageName() {
@@ -107,7 +107,7 @@ export class Beatmap {
 
     getBackgroundImageFile() {
         let fileName = this.getBackgroundImageName();
-        return this.beatmapSet.directory.getEntryByName(fileName) as VirtualFile;
+        return this.beatmapSet.directory.getFileByName(fileName);
     }
 
     parseBeatmap(text: string) {

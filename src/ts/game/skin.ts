@@ -1,42 +1,55 @@
-import { fetchAsArrayBuffer } from "../util/network_util";
-import { SpriteNumberTextures } from "../visuals/sprite_number";
+import { SpriteNumberTextures, SpriteNumber } from "../visuals/sprite_number";
+import { VirtualDirectory } from "../file_system/virtual_directory";
+import { VirtualFile } from "../file_system/virtual_file";
 
-export let hitCircleArrayBuffer: ArrayBuffer;
-export let hitCircleImage: HTMLImageElement;
-export let hitCircleTexture: PIXI.Texture;
-export let hitCircleOverlayArrayBuffer: ArrayBuffer;
-export let hitCircleOverlayImage: HTMLImageElement;
-export let hitCircleOverlayTexture: PIXI.Texture;
-export let approachCircleTexture: PIXI.Texture;
-export let sliderBallTexture: PIXI.Texture;
-export let followCircleTexture: PIXI.Texture;
-export let reverseArrowTexture: PIXI.Texture;
-export let digitTextures: SpriteNumberTextures;
-export let sliderTickTexture: PIXI.Texture;
-export let sliderEndCircleTexture = PIXI.Texture.EMPTY;
-export let sliderEndCircleOverlayTexture = PIXI.Texture.EMPTY;
+// This is all temp:
+let currentSkinPath = "./assets/current_skin/";
+let currentSkinDirectory = new VirtualDirectory("root");
 
-export async function initSkin() {
-    hitCircleArrayBuffer = await fetchAsArrayBuffer("./assets/temp/hitcircle@2x.png");
-    hitCircleOverlayArrayBuffer = await fetchAsArrayBuffer("./assets/temp/hitcircleoverlay@2x.png");
-    approachCircleTexture = PIXI.Texture.from("./assets/temp/approachcircle.png")
-    sliderBallTexture = PIXI.Texture.from("./assets/temp/sliderb@2x.png");
-    followCircleTexture = PIXI.Texture.from("./assets/temp/sliderfollowcircle@2x.png");
-    reverseArrowTexture = PIXI.Texture.from("./assets/temp/reversearrow@2x.png");
-    sliderTickTexture = PIXI.Texture.from("./assets/temp/sliderscorepoint.png");
-
-    let thang: any = {};
-    for (let i = 0; i <= 9; i++) {
-        let tex = PIXI.Texture.from(`./assets/temp/default-${i}@2x.png`);
-        thang[i] = tex;
-    }
-    digitTextures = thang;
-
-    hitCircleImage = document.createElement('img');
-    hitCircleImage.src = URL.createObjectURL(new Blob([hitCircleArrayBuffer]));
-    hitCircleTexture = PIXI.Texture.from(hitCircleImage);
-
-    hitCircleOverlayImage = document.createElement('img');
-    hitCircleOverlayImage.src = URL.createObjectURL(new Blob([hitCircleOverlayArrayBuffer]));
-    hitCircleOverlayTexture = PIXI.Texture.from(hitCircleOverlayImage);
+let wantedFiles = ["hitcircle@2x.png", "hitcircleoverlay@2x.png", "approachcircle.png", "sliderb@2x.png", "sliderfollowcircle@2x.png", "reversearrow@2x.png", "sliderscorepoint.png"];
+for (let i = 0; i <= 9; i++) {
+    wantedFiles.push(`default-${i}@2x.png`);
 }
+
+wantedFiles.forEach((fileName) => {
+    currentSkinDirectory.addEntry(VirtualFile.fromUrl(currentSkinPath + fileName, fileName));
+});
+
+export class Skin {
+    private directory: VirtualDirectory;
+    public textures: { [name: string]: PIXI.Texture };
+    public defaultDigitTextures: SpriteNumberTextures;
+
+    constructor(directory: VirtualDirectory) {
+        this.directory = directory;
+        this.textures = {};
+        this.defaultDigitTextures = null;
+    }
+
+    async init() {
+        await this.load();
+
+        this.textures["hitCircle"] = PIXI.Texture.from(await this.directory.getFileByName("hitcircle@2x.png").readAsResourceUrl());
+        this.textures["hitCircleOverlay"] = PIXI.Texture.from(await this.directory.getFileByName("hitcircleoverlay@2x.png").readAsResourceUrl());
+        this.textures["approachCircle"] = PIXI.Texture.from(await this.directory.getFileByName("approachcircle.png").readAsResourceUrl());
+        this.textures["sliderBall"] = PIXI.Texture.from(await this.directory.getFileByName("sliderb@2x.png").readAsResourceUrl());
+        this.textures["followCircle"] = PIXI.Texture.from(await this.directory.getFileByName("sliderfollowcircle@2x.png").readAsResourceUrl());
+        this.textures["reverseArrow"] = PIXI.Texture.from(await this.directory.getFileByName("reversearrow@2x.png").readAsResourceUrl());
+        this.textures["sliderTick"] = PIXI.Texture.from(await this.directory.getFileByName("sliderscorepoint.png").readAsResourceUrl());
+        this.textures["sliderEndCircle"] = PIXI.Texture.EMPTY;
+        this.textures["sliderEndCircleOverlay"] = PIXI.Texture.EMPTY;
+
+        let thang: any = {};
+        for (let i = 0; i <= 9; i++) {
+            let tex = PIXI.Texture.from(await this.directory.getFileByName(`default-${i}@2x.png`).readAsResourceUrl());
+            thang[i] = tex;
+        }
+        this.defaultDigitTextures = thang;
+    }
+
+    async load() {
+        await this.directory.loadShallow();
+    }
+}
+
+export let currentSkin = new Skin(currentSkinDirectory);

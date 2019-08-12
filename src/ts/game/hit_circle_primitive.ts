@@ -1,10 +1,10 @@
 import { ComboInfo } from "./processed_beatmap";
 import { gameState } from "./game_state";
 import { DRAWING_MODE, DrawingMode, PROCEDURAL_HEAD_INNER_TYPE, CIRCLE_BORDER_WIDTH, NUMBER_HEIGHT_CS_RATIO, HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
-import { hitCircleTexture, hitCircleOverlayTexture, digitTextures, approachCircleTexture, reverseArrowTexture, sliderEndCircleTexture, sliderEndCircleOverlayTexture } from "./skin";
 import { colorToHexNumber } from "../util/graphics_util";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { MathUtil, EaseType } from "../util/math_util";
+import { currentSkin } from "./skin";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
 const APPROACH_CIRCLE_CS_RATIO = 126/118; // Determined from image dimensions
@@ -72,9 +72,9 @@ export class HitCirclePrimitive {
         } else if (DRAWING_MODE === DrawingMode.Skin) {
             let tex: PIXI.Texture;
             if (this.options.type !== HitCirclePrimitiveType.SliderEnd) {
-                tex = hitCircleTexture;
+                tex = currentSkin.textures["hitCircle"];
             } else {
-                tex = sliderEndCircleTexture;
+                tex = currentSkin.textures["sliderEndCircle"];
             }
 
             base = new PIXI.Sprite(tex);
@@ -92,9 +92,9 @@ export class HitCirclePrimitive {
         if (DRAWING_MODE === DrawingMode.Skin) {
             let tex: PIXI.Texture;
             if (this.options.type !== HitCirclePrimitiveType.SliderEnd) {
-                tex = hitCircleOverlayTexture;
+                tex = currentSkin.textures["hitCircleOverlay"];
             } else {
-                tex = sliderEndCircleOverlayTexture;
+                tex = currentSkin.textures["sliderEndCircleOverlay"];
             }
 
             overlay = new PIXI.Sprite(tex);
@@ -111,7 +111,7 @@ export class HitCirclePrimitive {
         if (this.options.hasNumber) {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let text = new SpriteNumber({
-                    textures: digitTextures,
+                    textures: currentSkin.defaultDigitTextures,
                     horizontalAlign: "center",
                     verticalAlign: "middle",
                     digitHeight: NUMBER_HEIGHT_CS_RATIO * circleDiameter,
@@ -128,7 +128,7 @@ export class HitCirclePrimitive {
         let reverseArrow: PIXI.Container;
         if (this.options.reverseArrowAngle !== undefined) {
             if (DRAWING_MODE === DrawingMode.Skin) {
-                reverseArrow = new PIXI.Sprite(reverseArrowTexture);
+                reverseArrow = new PIXI.Sprite(currentSkin.textures["reverseArrow"]);
 
                 let yes1 = reverseArrow.width; // Keep the original width at the start.
                 let yes2 = reverseArrow.height; // Keep the original width at the start.
@@ -164,7 +164,7 @@ export class HitCirclePrimitive {
     
                 this.approachCircle = approachCircle;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let approachCircle = new PIXI.Sprite(approachCircleTexture);
+                let approachCircle = new PIXI.Sprite(currentSkin.textures["approachCircle"]);
                 approachCircle.pivot.x = approachCircle.width / 2;
                 approachCircle.pivot.y = approachCircle.height / 2;
                 approachCircle.width = circleDiameter;

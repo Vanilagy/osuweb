@@ -1,11 +1,11 @@
 import './visuals/ui';
 import './visuals/simple_beatmap_selector';
-import { initSkin } from './game/skin';
+import { currentSkin } from './game/skin';
 
 const osu: string | null = 'ORERU!';
 
 async function init() {
-    await initSkin();
+    await currentSkin.init();
 
     console.log(osu!); // Love the syntax <3
 }
