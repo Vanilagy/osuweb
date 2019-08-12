@@ -6,6 +6,7 @@ import { Color } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 import { Spinner } from "./spinner";
+import { VirtualFile } from "../util/file_system";
 
 class BeatmapCreationOptions {
     text: string;
@@ -89,7 +90,7 @@ export class Beatmap {
     }
 
     getAudioFile() {
-        return this.beatmapSet.audioFiles.find((file) => file.name === this.audioFilename);
+        return this.beatmapSet.directory.getEntryByName(this.audioFilename) as VirtualFile;
     }
 
     getBackgroundImageName() {
@@ -106,7 +107,7 @@ export class Beatmap {
 
     getBackgroundImageFile() {
         let fileName = this.getBackgroundImageName();
-        return this.beatmapSet.imgFiles.find((file) => file.name === fileName);
+        return this.beatmapSet.directory.getEntryByName(fileName) as VirtualFile;
     }
 
     parseBeatmap(text: string) {

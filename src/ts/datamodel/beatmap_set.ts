@@ -1,22 +1,20 @@
 import { isOsuBeatmapFile, isAudioFile, isImageFile } from "../util/file_util";
+import { VirtualDirectory, VirtualFile } from "../util/file_system";
 
 export class BeatmapSet {
-    public files: File[];
-    public osuFiles: File[] = [];
-    public audioFiles: File[] = [];
-    public imgFiles: File[] = [];
+    public directory: VirtualDirectory;
 
-    constructor(files: File[]) {
-        this.files = files;
+    constructor(directory: VirtualDirectory) {
+        this.directory = directory;
+    }
 
-        for (let file of this.files) {
-            if (isOsuBeatmapFile(file.name)) {
-                this.osuFiles.push(file);
-            } else if (isAudioFile(file.name)) {
-                this.audioFiles.push(file);
-            } else if (isImageFile(file.name)) {
-                this.imgFiles.push(file);
-            }
-        }
+    getBeatmapFiles() {
+        let arr: VirtualFile[] = [];
+
+        this.directory.forEach((entry) => {
+            if (entry instanceof VirtualFile && isOsuBeatmapFile(entry.name)) arr.push(entry);
+        });
+
+        return arr;
     }
 }

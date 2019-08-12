@@ -2,23 +2,27 @@ import { Beatmap } from "../datamodel/beatmap";
 import { startPlay } from "../game/play";
 import { BeatmapSet } from "../datamodel/beatmap_set";
 import { readFileAsText } from "../util/file_util";
+import { VirtualDirectory, VirtualFile } from "../util/file_system";
 
 const beatmapFileSelect = document.querySelector('#beatmapSelect') as HTMLInputElement;
 
 beatmapFileSelect.addEventListener('change', async (e) => {
-    let beatmapSet = new BeatmapSet([...beatmapFileSelect.files]);
+    let directory = VirtualDirectory.fromFileList(beatmapFileSelect.files);
+    let beatmapSet = new BeatmapSet(directory);
 
-    let selectedOsuFile: File;
-    if (beatmapSet.osuFiles.length === 1) selectedOsuFile = beatmapSet.osuFiles[0];
+    let beatmapFiles = beatmapSet.getBeatmapFiles();
+
+    let selectedOsuFile: VirtualFile;
+    if (beatmapFiles.length === 1) selectedOsuFile = beatmapFiles[0];
     else {
         let promptStr = 'Select a beatmap by entering the number:\n';
-        beatmapSet.osuFiles.forEach((file, index) => {
+        beatmapFiles.forEach((file, index) => {
             let name = file.name;
             promptStr += index + ': ' + name + '\n';
         });
 
         let selection = prompt(promptStr);
-        if (selection !== null) selectedOsuFile = beatmapSet.osuFiles[Number(selection)];
+        if (selection !== null) selectedOsuFile = beatmapFiles[Number(selection)];
     }
 
     if (!selectedOsuFile) return;
@@ -26,7 +30,7 @@ beatmapFileSelect.addEventListener('change', async (e) => {
     beatmapFileSelect.style.display = 'none';
 
     new Beatmap({
-        text: await readFileAsText(selectedOsuFile),
+        text: await selectedOsuFile.readAsText(),
         beatmapSet: beatmapSet
     }, (map) => {
         startPlay(map);

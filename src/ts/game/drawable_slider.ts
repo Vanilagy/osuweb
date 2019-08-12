@@ -259,8 +259,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         this.container.addChild(this.baseSprite);
         this.container.addChild(this.hitCirclePrimitiveContainer);
-        this.container.addChild(this.overlayContainer);
         this.container.addChild(this.reverseArrowContainer);
+        this.container.addChild(this.overlayContainer);
     }
 
     position() {
