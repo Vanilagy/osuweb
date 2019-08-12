@@ -29,10 +29,9 @@ beatmapFileSelect.addEventListener('change', async (e) => {
 
     beatmapFileSelect.style.display = 'none';
 
-    new Beatmap({
+    let beatmap = new Beatmap({
         text: await selectedOsuFile.readAsText(),
         beatmapSet: beatmapSet
-    }, (map) => {
-        startPlay(map);
     });
+    startPlay(beatmap);
 });

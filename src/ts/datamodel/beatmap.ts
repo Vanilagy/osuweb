@@ -43,7 +43,6 @@ export interface BeatmapEventBreak extends BeatmapEvent {
 }
 
 export class Beatmap {
-    private callback: Function;
     public loadFlat: boolean;
 
     public events: BeatmapEvent[] = [];
@@ -79,10 +78,9 @@ export class Beatmap {
     public beatmapID: number = null;
     public beatmapSetID: number = null;
 
-    constructor(options: BeatmapCreationOptions, callback: (beatmap: Beatmap) => void) {
+    constructor(options: BeatmapCreationOptions) {
         //Console.verbose("--- START BEATMAP LOADING ---");
         this.beatmapSet = options.beatmapSet;
-        this.callback = callback;
         this.difficulty = new BeatmapDifficulty();
         this.loadFlat = options.loadFlat;
 
@@ -192,8 +190,6 @@ export class Beatmap {
         //Console.verbose("--- BEATMAP LOADING FINISHED ---");
 
         //this._stars = new DifficultyCalculator(this).calculate(null);
-
-        if(this.callback) this.callback(this);
     }
 
     parseComboColor(line: string) {
