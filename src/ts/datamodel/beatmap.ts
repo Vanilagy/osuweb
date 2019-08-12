@@ -6,7 +6,7 @@ import { Color } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 import { Spinner } from "./spinner";
-import { VirtualFile } from "../util/file_system";
+import { VirtualFile } from "../file_system/virtual_file";
 
 class BeatmapCreationOptions {
     text: string;

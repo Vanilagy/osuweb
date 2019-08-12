@@ -1,8 +1,8 @@
 import { Beatmap } from "../datamodel/beatmap";
 import { startPlay } from "../game/play";
 import { BeatmapSet } from "../datamodel/beatmap_set";
-import { readFileAsText } from "../util/file_util";
-import { VirtualDirectory, VirtualFile } from "../util/file_system";
+import { VirtualDirectory } from "../file_system/virtual_directory";
+import { VirtualFile } from "../file_system/virtual_file";
 
 const beatmapFileSelect = document.querySelector('#beatmapSelect') as HTMLInputElement;
 

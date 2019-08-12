@@ -1,5 +1,6 @@
 import { isOsuBeatmapFile, isAudioFile, isImageFile } from "../util/file_util";
-import { VirtualDirectory, VirtualFile } from "../util/file_system";
+import { VirtualDirectory } from "../file_system/virtual_directory";
+import { VirtualFile } from "../file_system/virtual_file";
 
 export class BeatmapSet {
     public directory: VirtualDirectory;
