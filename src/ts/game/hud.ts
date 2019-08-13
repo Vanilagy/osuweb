@@ -3,8 +3,10 @@ import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Interpolator } from "../util/graphics_util";
+import { SpriteNumber } from "../visuals/sprite_number";
+import { currentSkin } from "./skin";
 
-export let scoreDisplay: PIXI.Text;
+export let scoreDisplay: SpriteNumber;
 export let comboDisplay: PIXI.Text;
 export let accuracyDisplay: PIXI.Text;
 export let progressIndicator: ProgressIndicator;
@@ -23,14 +25,16 @@ comboAnimationInterpolator.end();
 
 // Cheap temporary hack to ensure font load LOL
 setTimeout(() => {
-    scoreDisplay = new PIXI.Text("00000000", {
-        fontFamily: "Bitmap",
-        fontSize: 60,
-        fill: "#FFFFFF"
+    scoreDisplay = new SpriteNumber({
+        digitHeight: 60,
+        verticalAlign: "top",
+        horizontalAlign: "right",
+        overlap: currentSkin.config.fonts.scoreOverlap,
+        textures: currentSkin.scoreNumberTextures,
+        leftPad: 8
     });
-    
-    scoreDisplay.anchor.x = 1.0;
-    scoreDisplay.x = window.innerWidth;
+    scoreDisplay.setValue(0);
+    scoreDisplay.container.x = window.innerWidth;
     
     comboDisplay = new PIXI.Text("0x", {
         fontFamily: "Bitmap",
@@ -50,7 +54,7 @@ setTimeout(() => {
     //accuracyDisplay.pivot.x = accuracyDisplay.width;
     accuracyDisplay.anchor.x = 1.0;
     accuracyDisplay.x = window.innerWidth;
-    accuracyDisplay.y = scoreDisplay.height + 5;
+    accuracyDisplay.y = scoreDisplay.container.height + 5;
 
     progressIndicator = new ProgressIndicator();
 
@@ -59,7 +63,7 @@ setTimeout(() => {
     accuracyMeter.container.y = window.innerHeight;
 
     hudContainer.addChild(accuracyMeter.container);
-    hudContainer.addChild(scoreDisplay);
+    hudContainer.addChild(scoreDisplay.container);
     hudContainer.addChild(comboDisplay);
     hudContainer.addChild(accuracyDisplay);
     hudContainer.addChild(progressIndicator.container);

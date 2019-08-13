@@ -61,7 +61,7 @@ export class InterpolatedCounter {
         if (customTime !== undefined) now = customTime;
         else now = performance.now();
 
-        let current = this.getCurrentValue();
+        let current = this.getCurrentValue(now);
         this.start = current;
         this.end = goal;
         this.startTime = now;

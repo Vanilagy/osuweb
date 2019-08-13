@@ -299,49 +299,4 @@ export class Beatmap {
 
         return null;
     }
-
-    calculateDifficultyMultiplier() {
-        // Based on: https://osu.ppy.sh/help/wiki/Score/
-
-        /*
-
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-
-Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-It will only account for original values only.
-v
-TODO
-*/
-        let difficultyPoints = this.difficulty.CS + this.difficulty.HP + this.difficulty.OD;
-
-        if (difficultyPoints <= 5) {
-            return 2;
-        } else if (difficultyPoints <= 12) {
-            return 3;
-        } else if (difficultyPoints <= 17) {
-            return 4;
-        } else if (difficultyPoints <= 24) {
-            return 5;
-        } else {
-            return 6;
-        }
-    }
 }

@@ -374,4 +374,60 @@ export class ProcessedBeatmap {
 
         this.breaks.sort((a, b) => a.startTime - b.startTime); // ascending
     }
+
+    /** Returns the total length of the playable portion of the map. */
+    getPlayableLength() {
+        if (this.hitObjects.length === 0) return 0;
+        else return last(this.hitObjects).endTime - this.hitObjects[0].startTime;
+    }
+
+    getTotalBreakTime() {
+        let total = 0;
+
+        for (let osuBreak of this.breaks) {
+            total += osuBreak.endTime - osuBreak.startTime;
+        }
+
+        return total;
+    }
+
+    calculateDifficultyMultiplier() {
+        // Based on: https://osu.ppy.sh/help/wiki/Score/
+
+        /*
+
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        v
+        TODO
+        */
+
+        // Using the algorithm found in McOsu:
+        let breakTime = this.getTotalBreakTime();
+        let playableLength = this.getPlayableLength();
+        let drainLength = Math.max(playableLength - Math.min(breakTime, playableLength), 1000) / 1000;
+        let difficultyPoints = Math.round((this.beatmap.difficulty.CS + this.beatmap.difficulty.HP + this.beatmap.difficulty.OD + MathUtil.clamp(this.hitObjects.length / drainLength * 8, 0, 16)) / 38.0 * 5.0);
+
+        return difficultyPoints;
+    }
 }

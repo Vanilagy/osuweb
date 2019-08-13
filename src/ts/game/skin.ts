@@ -11,8 +11,11 @@ const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8",
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 
 let wantedFiles = ["skin.ini", "hitcircle@2x.png", "hitcircleoverlay@2x.png", "approachcircle.png", "sliderb@2x.png", "sliderfollowcircle@2x.png", "reversearrow@2x.png", "sliderscorepoint.png"];
-for (let i = 0; i <= 9; i++) {
-    wantedFiles.push(`default-${i}@2x.png`);
+for (let suffix of HIT_CIRCLE_NUMBER_SUFFIXES) {
+    wantedFiles.push(`default-${suffix}@2x.png`);
+}
+for (let suffix of SCORE_NUMBER_SUFFIXES) {
+    wantedFiles.push(`score-${suffix}@2x.png`);
 }
 
 wantedFiles.forEach((fileName) => {

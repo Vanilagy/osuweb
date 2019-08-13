@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
-import { DrawableSlider } from "./drawable_slider";
+import { DrawableSlider, FOLLOW_CIRCLE_CS_RATIO } from "./drawable_slider";
 import { mainMusicMediaPlayer, normalHitSoundEffect } from "../audio/audio";
 import { mainRender, followPointContainer, scorePopupContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
@@ -86,6 +86,8 @@ export class Play {
         console.time("Play event generation");
         this.playEvents = this.processedBeatmap.getAllPlayEvents();
         console.timeEnd("Play event generation");
+
+        this.scoreCounter.init();
 
         this.generateFollowPoints();
 
@@ -321,7 +323,7 @@ export class Play {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, slider.endPoint);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) || AUTOHIT) { // * 2 because this is the "size" of the follow circle
+                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_CS_RATIO) || AUTOHIT) {
                         slider.scoring.end = true;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
                         normalHitSoundEffect.start();
@@ -340,7 +342,7 @@ export class Play {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) || AUTOHIT) { // * 2 because this is the "size" of the follow circle
+                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_CS_RATIO) || AUTOHIT) {
                         slider.scoring.repeats++;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
                         normalHitSoundEffect.start();
@@ -352,7 +354,7 @@ export class Play {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * 2) || AUTOHIT) { // * 2 because this is the "size" of the follow circle
+                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_CS_RATIO) || AUTOHIT) {
                         slider.scoring.ticks++;
                         this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
                         //normalHitSoundEffect.start(); // TODO: Play tick sound! 

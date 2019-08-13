@@ -1,6 +1,6 @@
 export class BeatmapDifficulty {
-    public SL: number = 0.95; // Stack leniency TODO: Is this really the default?
-    public SV: number = 1.4; // Slider velocity
+    public SL: number = 0.7; // Stack leniency taken from McOsu
+    public SV: number = 1; // Slider velocity TODO: is this the default?
     public TR: number = 1; // Slider tick rate
     public AR: number = 5; // Approach rate
     public HP: number = 5; // Hit Points

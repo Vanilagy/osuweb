@@ -64,6 +64,9 @@ export class ScoreCounter {
 
     constructor(processedBeatmap: ProcessedBeatmap) {
         this.processedBeatmap = processedBeatmap;
+    }
+
+    init() {
         this.score = new Score();
 
         this.currentCombo = 0;
@@ -71,7 +74,7 @@ export class ScoreCounter {
         this.totalNumberOfHits = 0;
         this.totalValueOfHits = 0;
 
-        this.difficultyMultiplier = this.processedBeatmap.beatmap.calculateDifficultyMultiplier();
+        this.difficultyMultiplier = this.processedBeatmap.calculateDifficultyMultiplier();
         this.modMultiplier = 1;
 
         this.resetGekiAndKatu();
@@ -87,9 +90,11 @@ export class ScoreCounter {
             this.totalValueOfHits += rawAmount;
         }
 
+        let effectiveCombo = Math.max(0, this.currentCombo - 1);
+
         let gain = rawAmount;
-        if (!raw) gain *= 1 + MathUtil.clamp(this.currentCombo - 1, 0, Infinity) * this.difficultyMultiplier * this.modMultiplier / 25;
-        gain = Math.floor(gain);
+        if (!raw) gain = rawAmount + (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25));
+        gain = Math.round(gain); // TODO: round or floor, here?
 
         this.score.points += gain;
 
@@ -166,7 +171,7 @@ export class ScoreCounter {
     }
 
     updateDisplay(currentTime: number) {
-        scoreDisplay.text = padNumberWithZeroes(Math.floor(scoreInterpolator.getCurrentValue(currentTime)), 8);
+        scoreDisplay.setValue(Math.floor(scoreInterpolator.getCurrentValue(currentTime)));
 
         comboDisplay.text = String(this.currentCombo) + "x";
         let comboScale = comboAnimationInterpolator.getCurrentValue(currentTime);
@@ -182,7 +187,7 @@ let scoreInterpolator = new InterpolatedCounter({
     initial: 0,
     duration: (distanceToGoal: number) => {
         // Quick animation for small score increases, like slider ticks
-        if (distanceToGoal < 300) return 120;
+        if (distanceToGoal <= 30) return 110;
         return 500;
     },
     ease: EaseType.EaseOutCubic

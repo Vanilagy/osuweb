@@ -18,7 +18,7 @@ import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveTy
 import { currentSkin } from "./skin";
 
 const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
-const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
+export const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
 const SLIDER_TICK_CS_RATIO = 16/118;
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
 const FOLLOW_CIRCLE_SCALE_OUT_DURATION = 200;

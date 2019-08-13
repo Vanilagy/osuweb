@@ -11,8 +11,10 @@ export interface SpriteNumberTextures {
     7: PIXI.Texture,
     8: PIXI.Texture,
     9: PIXI.Texture,
+    comma?: PIXI.Texture,
     dot?: PIXI.Texture,
-    comma?: PIXI.Texture
+    percent?: PIXI.Texture,
+    x?: PIXI.Texture
 }
 
 export interface SpriteNumberOptions {
@@ -20,7 +22,8 @@ export interface SpriteNumberOptions {
     horizontalAlign: "left" | "center" | "right",
     verticalAlign: "top" | "middle" | "bottom",
     digitHeight: number,
-    overlap: number
+    overlap: number,
+    leftPad?: number
 }
 
 export class SpriteNumber {
@@ -29,8 +32,10 @@ export class SpriteNumber {
     private sprites: PIXI.Sprite[];
 
     constructor(options: SpriteNumberOptions) {
-        this.container = new PIXI.Container();
         this.options = options;
+        if (this.options.leftPad === undefined) this.options.leftPad = 0;
+
+        this.container = new PIXI.Container();
         this.sprites = [];
 
         switch (this.options.verticalAlign) {
@@ -48,6 +53,14 @@ export class SpriteNumber {
 
     setValue(num: number) {
         let str = num.toString();
+
+        if (this.options.leftPad) {
+            let nonDecimalLength = Math.floor(num).toString().length;
+
+            if (this.options.leftPad > nonDecimalLength) {
+                str = "0000000000000000000000000000".slice(0, this.options.leftPad - nonDecimalLength) + str;
+            }
+        }
 
         // Add or remove sprites from the sprite pool
         if (str.length < this.sprites.length) {
@@ -79,13 +92,9 @@ export class SpriteNumber {
         
             let ratio = texture.width / texture.height;
             sprite.width = this.options.digitHeight * ratio;
-            totalWidth += sprite.width;
+            totalWidth += sprite.width - overlapX;
 
-            if (i > 0) {
-                sprite.position.x += sprite.width * i;
-                sprite.position.x -= overlapX;
-                totalWidth -= overlapX;
-            }
+            sprite.position.x = (sprite.width - overlapX) * i;
         }
 
         switch (this.options.horizontalAlign) {
