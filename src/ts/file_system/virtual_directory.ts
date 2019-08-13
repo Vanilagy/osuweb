@@ -2,12 +2,14 @@ import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
 import { VirtualFile } from "./virtual_file";
 
 export class VirtualDirectory extends VirtualFileSystemEntry {
-    public readonly entries: { [name: string]: VirtualFileSystemEntry };
+    private entries: { [name: string]: VirtualFileSystemEntry };
+    public networkFallbackUrl: string;
 
     constructor(name: string) {
         super();
 
         this.name = name;
+        this.networkFallbackUrl = null;
         this.entries = {};
     }
 
@@ -16,12 +18,26 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
         entry.setParent(this);
     }
 
-    getEntryByName(name: string) {
-        return this.entries[name] || null;
+    async getEntryByName(name: string) {
+        let entry = this.entries[name];
+        if (entry) return entry;
+
+        if (this.networkFallbackUrl) {
+            let response = await fetch(this.networkFallbackUrl + '/' + name);
+            if (response.ok) {
+                let blob = await response.blob();
+                let file = VirtualFile.fromBlob(blob, name);
+
+                this.addEntry(file);
+                return file;
+            }
+        }
+
+        return null;
     }
 
-    getFileByName(name: string) {
-        let entry = this.getEntryByName(name);
+    async getFileByName(name: string) {
+        let entry = await this.getEntryByName(name);
 
         if (entry instanceof VirtualFile) return entry as VirtualFile;
         return null;
@@ -67,7 +83,7 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
             while (true) {
                 if (index >= pathSegments.length - 1) return currentDir;
 
-                let entry = currentDir.getEntryByName(pathSegments[index]) as VirtualDirectory;
+                let entry = currentDir.entries[pathSegments[index]] as VirtualDirectory;
                 if (!entry) {
                     entry = new VirtualDirectory(pathSegments[index]);
                     currentDir.addEntry(entry);

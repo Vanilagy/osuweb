@@ -114,11 +114,11 @@ export class Play {
     async start() {
         console.time("Audio load");
         
-        let songFile = this.processedBeatmap.beatmap.getAudioFile();
+        let songFile = await this.processedBeatmap.beatmap.getAudioFile();
         let url = await songFile.readAsResourceUrl();
         await mainMusicMediaPlayer.loadUrl(url);
 
-        let backgroundImageFile = this.processedBeatmap.beatmap.getBackgroundImageFile();
+        let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
         if (backgroundImageFile) {
             let url = await backgroundImageFile.readAsResourceUrl();
             loadMainBackgroundImage(url);

@@ -1,7 +1,7 @@
 import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
 
 export class VirtualFile extends VirtualFileSystemEntry {
-    private resource: File | string;
+    private resource: Blob | File | string;
     private blob: Blob = null;
     private cachedResourceUrl: string;
 
@@ -67,6 +67,15 @@ export class VirtualFile extends VirtualFileSystemEntry {
 
         newFile.resource = file;
         newFile.name = file.name;
+
+        return newFile;
+    }
+
+    static fromBlob(blob: Blob, resourceName: string) {
+        let newFile = new VirtualFile();
+
+        newFile.resource = blob;
+        newFile.name = resourceName;
 
         return newFile;
     }

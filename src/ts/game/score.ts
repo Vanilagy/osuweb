@@ -185,13 +185,13 @@ export class ScoreCounter {
 
         phantomComboDisplay.setValue(this.currentCombo);
         let phantomComboAnimCompletion = phantomComboAnimationInterpolator.getCurrentValue(currentTime);
-        let phantomComboScale = MathUtil.lerp(1.6, 1, MathUtil.ease(EaseType.EaseOutCubic, phantomComboAnimCompletion));
+        let phantomComboScale = MathUtil.lerp(1.5, 1, MathUtil.ease(EaseType.EaseOutCubic, phantomComboAnimCompletion));
         phantomComboDisplay.container.scale.set(phantomComboScale);
         phantomComboDisplay.container.alpha = 0.666 * (1 - phantomComboAnimCompletion);
 
         let comboAnimCompletion = comboAnimationInterpolator.getCurrentValue(currentTime);
         let parabola = -4 * comboAnimCompletion**2 + 4 * comboAnimCompletion;
-        comboDisplay.container.scale.set(1 + parabola * 0.1);
+        comboDisplay.container.scale.set(1 + parabola * 0.08);
 
         let nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
         while (nextDelayedComboIncrease && currentTime >= nextDelayedComboIncrease.time + 150) {
@@ -205,7 +205,6 @@ export class ScoreCounter {
         accuracyDisplay.setValue(accuracyInterpolator.getCurrentValue(currentTime) * 100);
     }
 }
-
 
 let scoreInterpolator = new InterpolatedCounter({
     initial: 0,

@@ -4,28 +4,100 @@ import { VirtualFile } from "../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../datamodel/skin_configuration";
 
 // This is all temp:
-let currentSkinPath = "./assets/current_skin/";
+let currentSkinPath = "./assets/yugen";
 let currentSkinDirectory = new VirtualDirectory("root");
+currentSkinDirectory.networkFallbackUrl = currentSkinPath;
 
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 
-let wantedFiles = ["skin.ini", "hitcircle@2x.png", "hitcircleoverlay@2x.png", "approachcircle.png", "sliderb@2x.png", "sliderfollowcircle@2x.png", "reversearrow@2x.png", "sliderscorepoint.png"];
-for (let suffix of HIT_CIRCLE_NUMBER_SUFFIXES) {
-    wantedFiles.push(`default-${suffix}@2x.png`);
-}
-for (let suffix of SCORE_NUMBER_SUFFIXES) {
-    wantedFiles.push(`score-${suffix}@2x.png`);
-}
+export class OsuTexture {
+    private sd: PIXI.Texture[] = [];
+    private hd: PIXI.Texture[] = [];
 
-wantedFiles.forEach((fileName) => {
-    currentSkinDirectory.addEntry(VirtualFile.fromUrl(currentSkinPath + fileName, fileName));
-});
+    constructor() { }
+
+    getBest(animationIndex = 0) {
+        let hd = this.hd[animationIndex];
+        if (hd) return hd;
+        return this.sd[animationIndex] || null;
+    }
+
+    getWorst(animationIndex = 0) {
+        let sd = this.sd[animationIndex];
+        if (sd) return sd;
+        return this.hd[animationIndex] || null;
+    }
+
+    getDynamic(size: number, animationIndex = 0) {
+        let sd = this.sd[animationIndex],
+            hd = this.hd[animationIndex];
+
+        if (!sd && !hd) return null;
+        if (!sd) return hd;
+        if (!hd) return sd;
+
+        if (size <= sd.width && size <= sd.height) return sd;
+        else return hd;
+    }
+
+    /** Returns the width of the standard definition version. */
+    getWidth() {
+        let sd = this.sd[0];
+        if (sd) return sd.width;
+        let hd = this.hd[0];
+        if (hd) return hd.width/2;
+        
+        return null;
+    }
+
+    /** Returns the height of the standard definition version. */
+    getHeight() {
+        let sd = this.sd[0];
+        if (sd) return sd.height;
+        let hd = this.hd[0];
+        if (hd) return hd.height/2;
+        
+        return null;
+    }
+
+    static async fromFiles(directory: VirtualDirectory, name: string, extension: string, hd = false, animationName: string = null) {
+        let newOsuTexture = new OsuTexture();
+
+        let sdBaseFile = await directory.getFileByName(`${name}.${extension}`);
+        let hdBaseFile: VirtualFile;
+        if (hd) hdBaseFile = await directory.getFileByName(`${name}@2x.${extension}`);
+
+        if (sdBaseFile) newOsuTexture.sd.push(PIXI.Texture.from(await sdBaseFile.readAsResourceUrl()));
+        if (hdBaseFile) newOsuTexture.hd.push(PIXI.Texture.from(await hdBaseFile.readAsResourceUrl()));
+
+        if (animationName && !sdBaseFile && !hdBaseFile) {
+            let i = 0;
+
+            while (true) {
+                let name = animationName.replace("{n}", i.toString());
+
+                let sdFile = await directory.getFileByName(`${name}.${extension}`);
+                let hdFile: VirtualFile;
+                if (hd) hdFile = await directory.getFileByName(`${name}@2x.${extension}`);
+
+                if (!sdFile && !hdFile) break; // No more animation states
+
+                if (sdFile) newOsuTexture.sd.push(PIXI.Texture.from(await sdFile.readAsResourceUrl()));
+                if (hdFile) newOsuTexture.hd.push(PIXI.Texture.from(await sdFile.readAsResourceUrl()));
+
+                i++;
+            }
+        }
+
+        return newOsuTexture;
+    }
+}
 
 export class Skin {
     private directory: VirtualDirectory;
     public config: SkinConfiguration = DEFAULT_SKIN_CONFIG;
-    public textures: { [name: string]: PIXI.Texture };
+    public textures: { [name: string]: OsuTexture };
     public hitCircleNumberTextures: SpriteNumberTextures;
     public scoreNumberTextures: SpriteNumberTextures;
     public comboNumberTextures: SpriteNumberTextures;
@@ -39,69 +111,48 @@ export class Skin {
     }
 
     async init() {
-        await this.load();
+        console.time("Skin init");
 
-        let skinConfigurationFile = this.directory.getFileByName("skin.ini") || this.directory.getFileByName("Skin.ini");
+        let skinConfigurationFile = await this.directory.getFileByName("skin.ini") || await this.directory.getFileByName("Skin.ini");
         if (skinConfigurationFile) {
             this.config = parseSkinConfiguration(await skinConfigurationFile.readAsText());
         } else {
             this.config.general.version = "latest"; // If the skin.ini file is not present, latest will be used instead.
         }
 
-        this.textures["hitCircle"] = PIXI.Texture.from(await this.directory.getFileByName("hitcircle@2x.png").readAsResourceUrl());
-        this.textures["hitCircleOverlay"] = PIXI.Texture.from(await this.directory.getFileByName("hitcircleoverlay@2x.png").readAsResourceUrl());
-        this.textures["approachCircle"] = PIXI.Texture.from(await this.directory.getFileByName("approachcircle.png").readAsResourceUrl());
-        this.textures["sliderBall"] = PIXI.Texture.from(await this.directory.getFileByName("sliderb@2x.png").readAsResourceUrl());
-        this.textures["followCircle"] = PIXI.Texture.from(await this.directory.getFileByName("sliderfollowcircle@2x.png").readAsResourceUrl());
-        this.textures["reverseArrow"] = PIXI.Texture.from(await this.directory.getFileByName("reversearrow@2x.png").readAsResourceUrl());
-        this.textures["sliderTick"] = PIXI.Texture.from(await this.directory.getFileByName("sliderscorepoint.png").readAsResourceUrl());
-        this.textures["sliderEndCircle"] = PIXI.Texture.EMPTY;
-        this.textures["sliderEndCircleOverlay"] = PIXI.Texture.EMPTY;
+        this.textures["hitCircle"] = await OsuTexture.fromFiles(this.directory, "hitcircle", "png", true);
+        this.textures["hitCircleOverlay"] = await OsuTexture.fromFiles(this.directory, "hitcircleoverlay", "png", true, "hitcircleoverlay-{n}");
+        this.textures["approachCircle"] = await OsuTexture.fromFiles(this.directory, "approachcircle", "png", true);
+        this.textures["sliderBall"] = await OsuTexture.fromFiles(this.directory, "sliderb", "png", true, "sliderb{n}"); // No hyphen
+        this.textures["followCircle"] = await OsuTexture.fromFiles(this.directory, "sliderfollowcircle", "png", true, "sliderfollowcircle-{n}");
+        this.textures["reverseArrow"] = await OsuTexture.fromFiles(this.directory, "reversearrow", "png", true);
+        this.textures["sliderTick"] = await OsuTexture.fromFiles(this.directory, "sliderscorepoint", "png", true);
+        this.textures["hitCircle"] = await OsuTexture.fromFiles(this.directory, "hitcircle", "png", true);
+        this.textures["sliderEndCircle"] = new OsuTexture();
+        this.textures["sliderEndCircleOverlay"] = new OsuTexture();
 
         // Hit circle numbers
         let tempObj: any = {};
         for (let suffix of HIT_CIRCLE_NUMBER_SUFFIXES) {
-            let tex: PIXI.Texture;
-            let file = this.directory.getFileByName(`${this.config.fonts.hitCirclePrefix}-${suffix}@2x.png`);
-            if (file) {
-                tex = PIXI.Texture.from(await file.readAsResourceUrl());
-            } else {
-                tex = PIXI.Texture.EMPTY;
-            }
-
-            tempObj[suffix] = tex;
+            tempObj[suffix] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.hitCirclePrefix}-${suffix}`, "png", true);
         }
         this.hitCircleNumberTextures = tempObj;
 
         // Score numbers
         tempObj = {};
         for (let suffix of SCORE_NUMBER_SUFFIXES) {
-            let tex: PIXI.Texture;
-            let file = this.directory.getFileByName(`${this.config.fonts.scorePrefix}-${suffix}@2x.png`);
-            if (file) {
-                tex = PIXI.Texture.from(await file.readAsResourceUrl());
-            } else {
-                tex = PIXI.Texture.EMPTY;
-            }
-            
-            tempObj[suffix] = tex;
+            tempObj[suffix] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.scorePrefix}-${suffix}`, "png", true);
         }
         this.scoreNumberTextures = tempObj;
 
         // Combo numbers
         tempObj = {};
-        for (let suffix of SCORE_NUMBER_SUFFIXES) { // Uses the same suffixes as score
-            let tex: PIXI.Texture;
-            let file = this.directory.getFileByName(`${this.config.fonts.comboPrefix}-${suffix}@2x.png`);
-            if (file) {
-                tex = PIXI.Texture.from(await file.readAsResourceUrl());
-            } else {
-                tex = PIXI.Texture.EMPTY;
-            }
-            
-            tempObj[suffix] = tex;
+        for (let suffix of SCORE_NUMBER_SUFFIXES) { // Combo uses the same suffixes as score
+            tempObj[suffix] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
         }
         this.comboNumberTextures = tempObj;
+
+        console.timeEnd("Skin init");
     }
 
     async load() {

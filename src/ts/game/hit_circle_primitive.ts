@@ -72,9 +72,9 @@ export class HitCirclePrimitive {
         } else if (DRAWING_MODE === DrawingMode.Skin) {
             let tex: PIXI.Texture;
             if (this.options.type !== HitCirclePrimitiveType.SliderEnd) {
-                tex = currentSkin.textures["hitCircle"];
+                tex = currentSkin.textures["hitCircle"].getDynamic(circleDiameter);
             } else {
-                tex = currentSkin.textures["sliderEndCircle"];
+                tex = currentSkin.textures["sliderEndCircle"].getDynamic(circleDiameter);
             }
 
             base = new PIXI.Sprite(tex);
@@ -92,9 +92,9 @@ export class HitCirclePrimitive {
         if (DRAWING_MODE === DrawingMode.Skin) {
             let tex: PIXI.Texture;
             if (this.options.type !== HitCirclePrimitiveType.SliderEnd) {
-                tex = currentSkin.textures["hitCircleOverlay"];
+                tex = currentSkin.textures["hitCircleOverlay"].getDynamic(circleDiameter);
             } else {
-                tex = currentSkin.textures["sliderEndCircleOverlay"];
+                tex = currentSkin.textures["sliderEndCircleOverlay"].getDynamic(circleDiameter);
             }
 
             overlay = new PIXI.Sprite(tex);
@@ -128,7 +128,7 @@ export class HitCirclePrimitive {
         let reverseArrow: PIXI.Container;
         if (this.options.reverseArrowAngle !== undefined) {
             if (DRAWING_MODE === DrawingMode.Skin) {
-                reverseArrow = new PIXI.Sprite(currentSkin.textures["reverseArrow"]);
+                reverseArrow = new PIXI.Sprite(currentSkin.textures["reverseArrow"].getDynamic(circleDiameter));
 
                 let yes1 = reverseArrow.width; // Keep the original width at the start.
                 let yes2 = reverseArrow.height; // Keep the original width at the start.
@@ -164,7 +164,7 @@ export class HitCirclePrimitive {
     
                 this.approachCircle = approachCircle;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let approachCircle = new PIXI.Sprite(currentSkin.textures["approachCircle"]);
+                let approachCircle = new PIXI.Sprite(currentSkin.textures["approachCircle"].getBest());
                 approachCircle.pivot.x = approachCircle.width / 2;
                 approachCircle.pivot.y = approachCircle.height / 2;
                 approachCircle.width = circleDiameter;

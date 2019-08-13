@@ -1,20 +1,21 @@
 import { UNSCALED_NUMBER_HEIGHT } from "../util/constants";
+import { OsuTexture } from "../game/skin";
 
 export interface SpriteNumberTextures {
-    0: PIXI.Texture,
-    1: PIXI.Texture,
-    2: PIXI.Texture,
-    3: PIXI.Texture,
-    4: PIXI.Texture,
-    5: PIXI.Texture,
-    6: PIXI.Texture,
-    7: PIXI.Texture,
-    8: PIXI.Texture,
-    9: PIXI.Texture,
-    comma?: PIXI.Texture,
-    dot?: PIXI.Texture,
-    percent?: PIXI.Texture,
-    x?: PIXI.Texture
+    0: OsuTexture,
+    1: OsuTexture,
+    2: OsuTexture,
+    3: OsuTexture,
+    4: OsuTexture,
+    5: OsuTexture,
+    6: OsuTexture,
+    7: OsuTexture,
+    8: OsuTexture,
+    9: OsuTexture,
+    comma?: OsuTexture,
+    dot?: OsuTexture,
+    percent?: OsuTexture,
+    x?: OsuTexture
 }
 
 export interface SpriteNumberOptions {
@@ -70,36 +71,36 @@ export class SpriteNumber {
             }
         }
 
-        let textures: PIXI.Texture[] = [];
+        let osuTextures: OsuTexture[] = [];
         for (let i = 0; i < str.length; i++) {
             let char = str.charAt(i);
 
             if (char === ".") {
-                textures.push(this.options.textures.dot);
+                osuTextures.push(this.options.textures.dot);
                 continue;
             }
 
             let weakTextures = this.options.textures as any; // "weak" as in "not type-checked"
-            let texture = weakTextures[char] as PIXI.Texture;
+            let texture = weakTextures[char] as OsuTexture;
 
-            textures.push(texture);
+            osuTextures.push(texture);
         }
         if (this.options.hasX) {
-            textures.push(this.options.textures.x);
+            osuTextures.push(this.options.textures.x);
         }
         if (this.options.hasPercent) {
-            textures.push(this.options.textures.percent);
+            osuTextures.push(this.options.textures.percent);
         }
 
         // Add or remove sprites from the sprite pool
-        if (textures.length < this.sprites.length) {
-            while (textures.length !== this.sprites.length) {
+        if (osuTextures.length < this.sprites.length) {
+            while (osuTextures.length !== this.sprites.length) {
                 let last = this.sprites.pop();
 
                 this.container.removeChild(last);
             }
-        } else if (textures.length > this.sprites.length) {
-            while (textures.length !== this.sprites.length) {
+        } else if (osuTextures.length > this.sprites.length) {
+            while (osuTextures.length !== this.sprites.length) {
                 let newSprite = new PIXI.Sprite();
 
                 this.sprites.push(newSprite);
@@ -111,22 +112,14 @@ export class SpriteNumber {
         let currentX = 0;
         let overlapX = (this.options.overlap / 2) / UNSCALED_NUMBER_HEIGHT * this.options.digitHeight;
         
-        for (let i = 0; i < textures.length; i++) {
-            let texture = textures[i];
+        let referenceHeight = osuTextures[0].getHeight(); // The height of the digit 0
+        for (let i = 0; i < osuTextures.length; i++) {
+            let osuTexture = osuTextures[i];
+            let texture = osuTexture.getDynamic(this.options.digitHeight);
 
             let sprite = this.sprites[i];
             sprite.texture = texture;
-            sprite.height = this.options.digitHeight;
-
-            if (texture === this.options.textures.x || texture === this.options.textures.percent) {
-                // These values are completely eyeballed. Is this fine, though?
-
-                sprite.position.y = this.options.digitHeight * 0.05;
-                sprite.height *= 0.83;
-                
-            } else {
-                sprite.position.y = 0;
-            }
+            sprite.height = (osuTexture.getHeight() / referenceHeight) * this.options.digitHeight;
         
             let ratio = texture.width / texture.height;
             sprite.width = sprite.height * ratio;

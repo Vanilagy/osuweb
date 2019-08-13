@@ -189,9 +189,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.sliderBall = sliderBall;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let diameter = circleDiameter * SLIDER_BALL_CS_RATIO;
+            let diameter = circleDiameter * (currentSkin.textures["sliderBall"].getWidth() / 128); // The texture is always scaled in a way that it fits the slider body. Weird, but that's what's been observed.
 
-            let sliderBall = new PIXI.Sprite(currentSkin.textures["sliderBall"]);
+            let sliderBall = new PIXI.Sprite(currentSkin.textures["sliderBall"].getDynamic(diameter));
             sliderBall.pivot.x = sliderBall.width / 2;
             sliderBall.pivot.y = sliderBall.height / 2;
             sliderBall.width = diameter;
@@ -212,7 +212,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.followCircle = followCircle;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let followCircle = new PIXI.Sprite(currentSkin.textures["followCircle"]);
+            let followCircle = new PIXI.Sprite(currentSkin.textures["followCircle"].getDynamic(circleDiameter * FOLLOW_CIRCLE_CS_RATIO));
             followCircle.pivot.x = followCircle.width / 2;
             followCircle.pivot.y = followCircle.height / 2;
             followCircle.width = circleDiameter;
@@ -237,7 +237,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
                 tickElement = graphics;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let sprite = new PIXI.Sprite(currentSkin.textures["sliderTick"]);
+                let sprite = new PIXI.Sprite(currentSkin.textures["sliderTick"].getBest());
 
                 sprite.anchor.set(0.5, 0.5);
                 sprite.width = circleDiameter * SLIDER_TICK_CS_RATIO;
