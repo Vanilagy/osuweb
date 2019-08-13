@@ -71,10 +71,12 @@ export class HitCirclePrimitive {
             base = new PIXI.Sprite(PIXI.Texture.from(canvas));
         } else if (DRAWING_MODE === DrawingMode.Skin) {
             let tex: PIXI.Texture;
-            if (this.options.type !== HitCirclePrimitiveType.SliderEnd) {
+            if (this.options.type === HitCirclePrimitiveType.HitCircle) {
                 tex = currentSkin.textures["hitCircle"].getDynamic(circleDiameter);
-            } else {
-                tex = currentSkin.textures["sliderEndCircle"].getDynamic(circleDiameter);
+            } else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
+                tex = currentSkin.textures["sliderStartCircle"].getDynamic(circleDiameter) || currentSkin.textures["hitCircle"].getDynamic(circleDiameter);
+            } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
+                tex = currentSkin.textures["sliderEndCircle"].getDynamic(circleDiameter) || currentSkin.textures["hitCircle"].getDynamic(circleDiameter);
             }
 
             base = new PIXI.Sprite(tex);
@@ -91,10 +93,22 @@ export class HitCirclePrimitive {
         let overlay: PIXI.Container;
         if (DRAWING_MODE === DrawingMode.Skin) {
             let tex: PIXI.Texture;
-            if (this.options.type !== HitCirclePrimitiveType.SliderEnd) {
+            if (this.options.type === HitCirclePrimitiveType.HitCircle) {
                 tex = currentSkin.textures["hitCircleOverlay"].getDynamic(circleDiameter);
-            } else {
-                tex = currentSkin.textures["sliderEndCircleOverlay"].getDynamic(circleDiameter);
+            } else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
+                let baseTex = currentSkin.textures["sliderStartCircle"].getBest();
+                if (baseTex) {
+                    let overlayTex = currentSkin.textures["sliderStartCircleOverlay"].getDynamic(circleDiameter);
+                    if (overlayTex) tex = overlayTex;
+                    else tex = PIXI.Texture.EMPTY;
+                } else tex = currentSkin.textures["hitCircleOverlay"].getDynamic(circleDiameter); // Fall back to regular hitcircle's overlay
+            } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
+                let baseTex = currentSkin.textures["sliderEndCircle"].getBest();
+                if (baseTex) {
+                    let overlayTex = currentSkin.textures["sliderEndCircleOverlay"].getDynamic(circleDiameter);
+                    if (overlayTex) tex = overlayTex;
+                    else tex = PIXI.Texture.EMPTY;
+                } else tex = currentSkin.textures["hitCircleOverlay"].getDynamic(circleDiameter); // Fall back to regular hitcircle's overlay
             }
 
             overlay = new PIXI.Sprite(tex);

@@ -4,6 +4,7 @@ import { VirtualFile } from "./virtual_file";
 export class VirtualDirectory extends VirtualFileSystemEntry {
     private entries: { [name: string]: VirtualFileSystemEntry };
     public networkFallbackUrl: string;
+    public failedNetworkFallbacks: Set<string>; // In order to prevent hitting the network twice for a 404 resource.
 
     constructor(name: string) {
         super();
@@ -11,6 +12,7 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
         this.name = name;
         this.networkFallbackUrl = null;
         this.entries = {};
+        this.failedNetworkFallbacks = new Set();
     }
 
     addEntry(entry: VirtualFileSystemEntry) {
@@ -23,13 +25,18 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
         if (entry) return entry;
 
         if (this.networkFallbackUrl) {
-            let response = await fetch(this.networkFallbackUrl + '/' + name);
+            let url = this.networkFallbackUrl + '/' + name;
+            if (this.failedNetworkFallbacks.has(url)) return null;
+
+            let response = await fetch(url);
             if (response.ok) {
                 let blob = await response.blob();
                 let file = VirtualFile.fromBlob(blob, name);
 
                 this.addEntry(file);
                 return file;
+            } else {
+                this.failedNetworkFallbacks.add(url);
             }
         }
 

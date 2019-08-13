@@ -65,18 +65,6 @@ setTimeout(() => {
     accuracyDisplay.container.x = window.innerWidth;
     accuracyDisplay.container.y = scoreDisplay.container.height + 5;
 
-    /*
-    accuracyDisplay = new PIXI.Text("100.00%", {
-        fontFamily: "Bitmap",
-        fontSize: 40,
-        fill: "#FFFFFF"
-    });
-    
-    //accuracyDisplay.pivot.x = accuracyDisplay.width;
-    accuracyDisplay.anchor.x = 1.0;
-    accuracyDisplay.x = window.innerWidth;
-    accuracyDisplay.y = scoreDisplay.container.height + 5;*/
-
     progressIndicator = new ProgressIndicator();
 
     accuracyMeter = new AccuracyMeter();
