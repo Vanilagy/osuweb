@@ -7,21 +7,14 @@ import { SpriteNumber } from "../visuals/sprite_number";
 import { currentSkin } from "./skin";
 
 export let scoreDisplay: SpriteNumber;
-export let comboDisplay: PIXI.Text;
+export let phantomComboDisplay: SpriteNumber;
+export let comboDisplay: SpriteNumber;
 export let accuracyDisplay: PIXI.Text;
 export let progressIndicator: ProgressIndicator;
 export let accuracyMeter: AccuracyMeter;
 
 const ACCURACY_METER_FADE_OUT_DELAY = 3000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
-
-export let comboAnimationInterpolator = new Interpolator({
-    ease: EaseType.EaseOutQuad,
-    duration: 500,
-    from: 1.25,
-    to: 1
-});
-comboAnimationInterpolator.end();
 
 // Cheap temporary hack to ensure font load LOL
 setTimeout(() => {
@@ -35,15 +28,29 @@ setTimeout(() => {
     });
     scoreDisplay.setValue(0);
     scoreDisplay.container.x = window.innerWidth;
-    
-    comboDisplay = new PIXI.Text("0x", {
-        fontFamily: "Bitmap",
-        fontSize: 60,
-        fill: "#FFFFFF"
+
+    phantomComboDisplay = new SpriteNumber({
+        digitHeight: 60,
+        verticalAlign: "bottom",
+        horizontalAlign: "left",
+        overlap: currentSkin.config.fonts.scoreOverlap,
+        textures: currentSkin.scoreNumberTextures,
+        hasX: true
     });
-    
-    comboDisplay.anchor.y = 1.0;
-    comboDisplay.y = window.innerHeight;
+    phantomComboDisplay.setValue(0);
+    phantomComboDisplay.container.y = window.innerHeight;
+    phantomComboDisplay.container.alpha = 0.5;
+
+    comboDisplay = new SpriteNumber({
+        digitHeight: 60,
+        verticalAlign: "bottom",
+        horizontalAlign: "left",
+        overlap: currentSkin.config.fonts.scoreOverlap,
+        textures: currentSkin.scoreNumberTextures,
+        hasX: true
+    });
+    comboDisplay.setValue(0);
+    comboDisplay.container.y = window.innerHeight;
 
     accuracyDisplay = new PIXI.Text("100.00%", {
         fontFamily: "Bitmap",
@@ -64,7 +71,8 @@ setTimeout(() => {
 
     hudContainer.addChild(accuracyMeter.container);
     hudContainer.addChild(scoreDisplay.container);
-    hudContainer.addChild(comboDisplay);
+    hudContainer.addChild(phantomComboDisplay.container);
+    hudContainer.addChild(comboDisplay.container);
     hudContainer.addChild(accuracyDisplay);
     hudContainer.addChild(progressIndicator.container);
 }, 500);

@@ -23,7 +23,8 @@ export interface SpriteNumberOptions {
     verticalAlign: "top" | "middle" | "bottom",
     digitHeight: number,
     overlap: number,
-    leftPad?: number
+    leftPad?: number,
+    hasX?: boolean // append the "x" sprite
 }
 
 export class SpriteNumber {
@@ -62,15 +63,28 @@ export class SpriteNumber {
             }
         }
 
+        let textures: PIXI.Texture[] = [];
+        for (let i = 0; i < str.length; i++) {
+            let char = str.charAt(i);
+            let weakTextures = this.options.textures as any; // "weak" as in "not type-checked"
+            let texture = weakTextures[char] as PIXI.Texture;
+
+            textures.push(texture);
+        }
+
+        if (this.options.hasX) {
+            textures.push(this.options.textures.x);
+        }
+
         // Add or remove sprites from the sprite pool
-        if (str.length < this.sprites.length) {
-            while (str.length !== this.sprites.length) {
+        if (textures.length < this.sprites.length) {
+            while (textures.length !== this.sprites.length) {
                 let last = this.sprites.pop();
 
                 this.container.removeChild(last);
             }
-        } else if (str.length > this.sprites.length) {
-            while (str.length !== this.sprites.length) {
+        } else if (textures.length > this.sprites.length) {
+            while (textures.length !== this.sprites.length) {
                 let newSprite = new PIXI.Sprite();
 
                 this.sprites.push(newSprite);
@@ -79,23 +93,35 @@ export class SpriteNumber {
         }
 
         let totalWidth = 0;
+        let currentX = 0;
         let overlapX = (this.options.overlap / 2) / UNSCALED_NUMBER_HEIGHT * this.options.digitHeight;
-
-        for (let i = 0; i < str.length; i++) {
-            let char = str.charAt(i);
-            let weakTextures = this.options.textures as any; // "weak" as in "not type-checked"
-            let texture = weakTextures[char] as PIXI.Texture;
+        
+        for (let i = 0; i < textures.length; i++) {
+            let texture = textures[i];
 
             let sprite = this.sprites[i];
             sprite.texture = texture;
             sprite.height = this.options.digitHeight;
+
+            if (texture === this.options.textures.x) {
+                // These values are completely eyeballed. Is this fine, though?
+
+                sprite.position.y = this.options.digitHeight * 0.05;
+                sprite.height *= 0.83;
+                
+            } else {
+                sprite.position.y = 0;
+            }
         
             let ratio = texture.width / texture.height;
-            sprite.width = this.options.digitHeight * ratio;
-            totalWidth += sprite.width - overlapX;
+            sprite.width = sprite.height * ratio;
+            totalWidth += sprite.width;
 
-            sprite.position.x = (sprite.width - overlapX) * i;
+            sprite.position.x = currentX;
+            currentX += sprite.width - overlapX;
         }
+
+        totalWidth -= (str.length - 1) * overlapX;
 
         switch (this.options.horizontalAlign) {
             case "left": {

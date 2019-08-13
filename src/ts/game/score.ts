@@ -1,8 +1,8 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { MathUtil, EaseType } from "../util/math_util";
-import { scoreDisplay, comboDisplay, accuracyDisplay, comboAnimationInterpolator } from "./hud";
+import { scoreDisplay, phantomComboDisplay, accuracyDisplay, comboDisplay } from "./hud";
 import { padNumberWithZeroes, toPercentageString, assert } from "../util/misc_util";
-import { InterpolatedCounter } from "../util/graphics_util";
+import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { gameState } from "./game_state";
 import { Point } from "../util/point";
 import { scorePopupContainer } from "../visuals/rendering";
@@ -49,8 +49,14 @@ export class Score {
     }
 }
 
+interface DelayedVisualComboIncrease {
+    time: number,
+    value: number
+}
+
 export class ScoreCounter {
-    public processedBeatmap: ProcessedBeatmap;    
+    public processedBeatmap: ProcessedBeatmap;
+    public delayedVisualComboIncreases: DelayedVisualComboIncrease[]; // For the combo display, which actually shows the change in combo a bit later. Just look at it and you'll know what I'm talking about.
     public score: Score;
 
     public currentCombo: number;
@@ -68,6 +74,7 @@ export class ScoreCounter {
 
     init() {
         this.score = new Score();
+        this.delayedVisualComboIncreases = [];
 
         this.currentCombo = 0;
         // These are used to calculate accuracy:
@@ -100,12 +107,13 @@ export class ScoreCounter {
 
         if (affectCombo) {
             if (rawAmount === 0) { // Meaning miss
-                this.break();
+                this.break(time);
             } else {
                 this.currentCombo++;
                 if (this.currentCombo > this.score.maxCombo) this.score.maxCombo = this.currentCombo;
 
-                comboAnimationInterpolator.start(time);
+                phantomComboAnimationInterpolator.start(time);
+                this.delayedVisualComboIncreases.push({time: time, value: this.currentCombo});
             }
         }
 
@@ -154,10 +162,12 @@ export class ScoreCounter {
         }
     }
 
-    break() {
-        this.currentCombo = 0;
+    break(time: number) {
+        if (this.currentCombo === 0) return;
 
-        // ...and do the other things.
+        this.currentCombo = 0;
+        phantomComboAnimationInterpolator.start(time);
+        this.delayedVisualComboIncreases.push({time: time, value: this.currentCombo});
     }
 
     resetGekiAndKatu() {
@@ -173,10 +183,24 @@ export class ScoreCounter {
     updateDisplay(currentTime: number) {
         scoreDisplay.setValue(Math.floor(scoreInterpolator.getCurrentValue(currentTime)));
 
-        comboDisplay.text = String(this.currentCombo) + "x";
-        let comboScale = comboAnimationInterpolator.getCurrentValue(currentTime);
-        comboDisplay.scale.x = comboScale;
-        comboDisplay.scale.y = comboScale;
+        phantomComboDisplay.setValue(this.currentCombo);
+        let phantomComboAnimCompletion = phantomComboAnimationInterpolator.getCurrentValue(currentTime);
+        let phantomComboScale = MathUtil.lerp(1.6, 1, MathUtil.ease(EaseType.EaseOutCubic, phantomComboAnimCompletion));
+        phantomComboDisplay.container.scale.set(phantomComboScale);
+        phantomComboDisplay.container.alpha = 0.666 * (1 - phantomComboAnimCompletion);
+
+        let comboAnimCompletion = comboAnimationInterpolator.getCurrentValue(currentTime);
+        let parabola = -4 * comboAnimCompletion**2 + 4 * comboAnimCompletion;
+        comboDisplay.container.scale.set(1 + parabola * 0.1);
+
+        let nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
+        while (nextDelayedComboIncrease && currentTime >= nextDelayedComboIncrease.time + 150) {
+            comboAnimationInterpolator.start(nextDelayedComboIncrease.time);
+            comboDisplay.setValue(nextDelayedComboIncrease.value);
+
+            this.delayedVisualComboIncreases.shift();
+            nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
+        }
 
         accuracyDisplay.text = toPercentageString(accuracyInterpolator.getCurrentValue(currentTime), 2);
     }
@@ -195,8 +219,23 @@ let scoreInterpolator = new InterpolatedCounter({
 
 let accuracyInterpolator = new InterpolatedCounter({
     initial: 1,
-    duration: 200,
+    duration: 250,
     ease: EaseType.EaseOutQuad
+});
+
+let phantomComboAnimationInterpolator = new Interpolator({
+    ease: EaseType.Linear,
+    duration: 500,
+    from: 0,
+    to: 1
+});
+phantomComboAnimationInterpolator.end();
+
+let comboAnimationInterpolator = new Interpolator({
+    ease: EaseType.Linear,
+    duration: 250,
+    from: 0,
+    to: 1
 });
 
 enum ScorePopupType {
