@@ -16,7 +16,7 @@ html, body {
 }
 
 body {
-    background: #18181d;
+    background: /*#18181d*/ black;
     cursor: url('../assets/img/cheap_cursor.png') 64 64, auto;
     color: ghostwhite;
 }

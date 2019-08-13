@@ -111,11 +111,11 @@ export class HitCirclePrimitive {
         if (this.options.hasNumber) {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let text = new SpriteNumber({
-                    textures: currentSkin.defaultDigitTextures,
+                    textures: currentSkin.hitCircleNumberTextures,
                     horizontalAlign: "center",
                     verticalAlign: "middle",
                     digitHeight: NUMBER_HEIGHT_CS_RATIO * circleDiameter,
-                    overlap: 15
+                    overlap: currentSkin.config.fonts.hitCircleOverlap
                 });
                 text.setValue(this.options.comboInfo.n);
 
@@ -177,8 +177,14 @@ export class HitCirclePrimitive {
 
         let container = new PIXI.Container();
         container.addChild(base);
-        if (overlay) container.addChild(overlay);
-        if (number) container.addChild(number);
+
+        if (currentSkin.config.general.hitCircleOverlayAboveNumber) {
+            if (number) container.addChild(number);
+            if (overlay) container.addChild(overlay);
+        } else {
+            if (overlay) container.addChild(overlay);
+            if (number) container.addChild(number);
+        }
 
         this.container = container;
     }

@@ -9,6 +9,8 @@ export class SliderCurveEmpty extends SliderCurve {
         //this.equalDistancePoints.push(drawableSlider.startPoint); // TODO
     }
 
+    render() {}
+
     getEndPoint(): Point {
         return null;
     }

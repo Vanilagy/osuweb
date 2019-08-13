@@ -196,7 +196,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             sliderBall.pivot.y = sliderBall.height / 2;
             sliderBall.width = diameter;
             sliderBall.height = diameter;
-            sliderBall.tint = colorToHexNumber(this.comboInfo.color);
+
+            if (currentSkin.config.general.allowSliderBallTint) sliderBall.tint = colorToHexNumber(this.comboInfo.color);
+            else sliderBall.tint = colorToHexNumber(currentSkin.config.colors.sliderBall);
 
             this.sliderBall = sliderBall;
         }

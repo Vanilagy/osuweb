@@ -11,6 +11,10 @@ export function colorToHexNumber(color: Color) {
     return color.r * 0x10000 + color.g * 0x100 + color.b * 0x1;
 }
 
+export function colorToHexStirng(color: Color) {
+    return '#' + ('000000' + colorToHexNumber(color).toString(16)).slice(-6);
+}
+
 type InterpolatedCounterDurationCallback = (distanceToGoal: number) => number;
 
 interface InterpolatedCounterOptions {

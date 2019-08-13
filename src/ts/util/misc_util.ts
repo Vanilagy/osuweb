@@ -32,3 +32,7 @@ export function assert(value: boolean) {
 export function last<T>(arr: T[]): T {
     return arr[arr.length - 1];
 }
+
+export function jsonClone<T>(obj: T) {
+    return JSON.parse(JSON.stringify(obj)) as T;
+}
