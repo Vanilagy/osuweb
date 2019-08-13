@@ -9,7 +9,7 @@ import { currentSkin } from "./skin";
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;
 export let comboDisplay: SpriteNumber;
-export let accuracyDisplay: PIXI.Text;
+export let accuracyDisplay: SpriteNumber;
 export let progressIndicator: ProgressIndicator;
 export let accuracyMeter: AccuracyMeter;
 
@@ -52,6 +52,20 @@ setTimeout(() => {
     comboDisplay.setValue(0);
     comboDisplay.container.y = window.innerHeight;
 
+    accuracyDisplay = new SpriteNumber({
+        digitHeight: 40,
+        verticalAlign: "top",
+        horizontalAlign: "right",
+        overlap: currentSkin.config.fonts.scoreOverlap,
+        textures: currentSkin.scoreNumberTextures,
+        fixedDecimals: 2,
+        hasPercent: true
+    });
+    accuracyDisplay.setValue(100);
+    accuracyDisplay.container.x = window.innerWidth;
+    accuracyDisplay.container.y = scoreDisplay.container.height + 5;
+
+    /*
     accuracyDisplay = new PIXI.Text("100.00%", {
         fontFamily: "Bitmap",
         fontSize: 40,
@@ -61,7 +75,7 @@ setTimeout(() => {
     //accuracyDisplay.pivot.x = accuracyDisplay.width;
     accuracyDisplay.anchor.x = 1.0;
     accuracyDisplay.x = window.innerWidth;
-    accuracyDisplay.y = scoreDisplay.container.height + 5;
+    accuracyDisplay.y = scoreDisplay.container.height + 5;*/
 
     progressIndicator = new ProgressIndicator();
 
@@ -73,7 +87,7 @@ setTimeout(() => {
     hudContainer.addChild(scoreDisplay.container);
     hudContainer.addChild(phantomComboDisplay.container);
     hudContainer.addChild(comboDisplay.container);
-    hudContainer.addChild(accuracyDisplay);
+    hudContainer.addChild(accuracyDisplay.container);
     hudContainer.addChild(progressIndicator.container);
 }, 500);
 
@@ -100,8 +114,8 @@ class ProgressIndicator {
         sprite.pivot.x = sprite.width / 2;
         sprite.pivot.y = sprite.height / 2;
         // SO UNCLEAN OMG! TEMP! TODO!!
-        sprite.x = window.innerWidth - accuracyDisplay.width - 30;
-        sprite.y = accuracyDisplay.y + accuracyDisplay.height / 2;
+        sprite.x = window.innerWidth - accuracyDisplay.container.width - 30;
+        sprite.y = accuracyDisplay.container.y + accuracyDisplay.container.height / 2;
 
         this.container = sprite;
 

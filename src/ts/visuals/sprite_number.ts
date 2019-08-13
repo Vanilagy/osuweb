@@ -24,7 +24,9 @@ export interface SpriteNumberOptions {
     digitHeight: number,
     overlap: number,
     leftPad?: number,
-    hasX?: boolean // append the "x" sprite
+    fixedDecimals?: number,
+    hasX?: boolean // append the "x" sprite,
+    hasPercent?: boolean // append the "percent" sprite
 }
 
 export class SpriteNumber {
@@ -53,7 +55,12 @@ export class SpriteNumber {
     }
 
     setValue(num: number) {
-        let str = num.toString();
+        let str: string;
+        if (this.options.fixedDecimals !== undefined) {
+            str = num.toFixed(this.options.fixedDecimals);
+        } else {
+            str = num.toString();
+        }
 
         if (this.options.leftPad) {
             let nonDecimalLength = Math.floor(num).toString().length;
@@ -66,14 +73,22 @@ export class SpriteNumber {
         let textures: PIXI.Texture[] = [];
         for (let i = 0; i < str.length; i++) {
             let char = str.charAt(i);
+
+            if (char === ".") {
+                textures.push(this.options.textures.dot);
+                continue;
+            }
+
             let weakTextures = this.options.textures as any; // "weak" as in "not type-checked"
             let texture = weakTextures[char] as PIXI.Texture;
 
             textures.push(texture);
         }
-
         if (this.options.hasX) {
             textures.push(this.options.textures.x);
+        }
+        if (this.options.hasPercent) {
+            textures.push(this.options.textures.percent);
         }
 
         // Add or remove sprites from the sprite pool
@@ -103,7 +118,7 @@ export class SpriteNumber {
             sprite.texture = texture;
             sprite.height = this.options.digitHeight;
 
-            if (texture === this.options.textures.x) {
+            if (texture === this.options.textures.x || texture === this.options.textures.percent) {
                 // These values are completely eyeballed. Is this fine, though?
 
                 sprite.position.y = this.options.digitHeight * 0.05;

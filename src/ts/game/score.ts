@@ -202,7 +202,7 @@ export class ScoreCounter {
             nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
         }
 
-        accuracyDisplay.text = toPercentageString(accuracyInterpolator.getCurrentValue(currentTime), 2);
+        accuracyDisplay.setValue(accuracyInterpolator.getCurrentValue(currentTime) * 100);
     }
 }
 
