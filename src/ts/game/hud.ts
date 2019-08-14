@@ -17,46 +17,24 @@ const ACCURACY_METER_FADE_OUT_DELAY = 3000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 
 export async function initHud() {
+    let scoreHeight = window.innerHeight * 0.06,
+        comboHeight = window.innerHeight * 0.08,
+        accuracyHeight = window.innerHeight * 0.04;
+
     scoreDisplay = new SpriteNumber({
-        digitHeight: 60,
-        digitWidth: 60 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        digitHeight: scoreHeight,
+        digitWidth: scoreHeight * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
         verticalAlign: "top",
         horizontalAlign: "right",
         overlap: currentSkin.config.fonts.scoreOverlap,
         textures: currentSkin.scoreNumberTextures,
         leftPad: 8
     });
-    scoreDisplay.setValue(0);
-    scoreDisplay.container.x = window.innerWidth;
-
-    phantomComboDisplay = new SpriteNumber({
-        digitHeight: 60,
-        //digitWidth: 60 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
-        verticalAlign: "bottom",
-        horizontalAlign: "left",
-        overlap: currentSkin.config.fonts.scoreOverlap,
-        textures: currentSkin.scoreNumberTextures,
-        hasX: true
-    });
-    phantomComboDisplay.setValue(0);
-    phantomComboDisplay.container.y = window.innerHeight;
-    phantomComboDisplay.container.alpha = 0.5;
-
-    comboDisplay = new SpriteNumber({
-        digitHeight: 60,
-        //digitWidth: 60 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
-        verticalAlign: "bottom",
-        horizontalAlign: "left",
-        overlap: currentSkin.config.fonts.scoreOverlap,
-        textures: currentSkin.scoreNumberTextures,
-        hasX: true
-    });
-    comboDisplay.setValue(0);
-    comboDisplay.container.y = window.innerHeight;
+    scoreDisplay.container.x = window.innerWidth - window.innerHeight * 0.01;
 
     accuracyDisplay = new SpriteNumber({
-        digitHeight: 40,
-        digitWidth: 40 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        digitHeight: accuracyHeight,
+        digitWidth: accuracyHeight * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
         verticalAlign: "top",
         horizontalAlign: "right",
         overlap: currentSkin.config.fonts.scoreOverlap,
@@ -64,11 +42,39 @@ export async function initHud() {
         fixedDecimals: 2,
         hasPercent: true
     });
-    accuracyDisplay.setValue(100);
-    accuracyDisplay.container.x = window.innerWidth;
-    accuracyDisplay.container.y = scoreDisplay.container.height + 5;
+    accuracyDisplay.setValue(100); // Hacky. TODO.
+    accuracyDisplay.container.x = scoreDisplay.container.x;
+    accuracyDisplay.container.y = scoreHeight + window.innerHeight * 0.008;
 
-    progressIndicator = new ProgressIndicator();
+    phantomComboDisplay = new SpriteNumber({
+        digitHeight: comboHeight,
+        //digitWidth: comboSize * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        verticalAlign: "bottom",
+        horizontalAlign: "left",
+        overlap: currentSkin.config.fonts.scoreOverlap,
+        textures: currentSkin.scoreNumberTextures,
+        hasX: true
+    });
+    phantomComboDisplay.container.y = window.innerHeight - window.innerHeight * 0.005;
+    phantomComboDisplay.container.x = window.innerHeight * 0.005;
+    phantomComboDisplay.container.alpha = 0.5;
+
+    comboDisplay = new SpriteNumber({
+        digitHeight: comboHeight,
+        //digitWidth: comboSize * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        verticalAlign: "bottom",
+        horizontalAlign: "left",
+        overlap: currentSkin.config.fonts.scoreOverlap,
+        textures: currentSkin.scoreNumberTextures,
+        hasX: true
+    });
+    comboDisplay.container.y = phantomComboDisplay.container.y;
+    comboDisplay.container.x = phantomComboDisplay.container.x;
+
+    progressIndicator = new ProgressIndicator(window.innerHeight * 0.05);
+    // SO UNCLEAN OMG! TEMP! TODO!!
+    progressIndicator.container.x = accuracyDisplay.container.x - accuracyDisplay.container.width - window.innerHeight * 0.035;
+    progressIndicator.container.y = window.innerHeight * 0.09;
 
     accuracyMeter = new AccuracyMeter();
     accuracyMeter.container.x = window.innerWidth / 2;
@@ -82,31 +88,28 @@ export async function initHud() {
     hudContainer.addChild(progressIndicator.container);
 }
 
-const PROGRESS_INDICATOR_DIAMETER = 36;
-
 class ProgressIndicator {
     public container: PIXI.Container;
     private ctx: CanvasRenderingContext2D;
+    private diameter: number;
 
-    constructor() {
+    constructor(diameter: number) {
         let sprite = new PIXI.Sprite();
+        this.diameter = diameter;
 
         let canvas = document.createElement('canvas');
-        canvas.setAttribute('width', String(Math.ceil(PROGRESS_INDICATOR_DIAMETER)));
-        canvas.setAttribute('height', String(Math.ceil(PROGRESS_INDICATOR_DIAMETER)));
+        canvas.setAttribute('width', String(Math.ceil(diameter)));
+        canvas.setAttribute('height', String(Math.ceil(diameter)));
         let ctx = canvas.getContext('2d');
         this.ctx = ctx;
 
         let texture = PIXI.Texture.from(canvas);
         sprite.texture = texture;
 
-        sprite.width = PROGRESS_INDICATOR_DIAMETER;
-        sprite.height = PROGRESS_INDICATOR_DIAMETER;
+        sprite.width = diameter;
+        sprite.height = diameter;
         sprite.pivot.x = sprite.width / 2;
         sprite.pivot.y = sprite.height / 2;
-        // SO UNCLEAN OMG! TEMP! TODO!!
-        sprite.x = window.innerWidth - accuracyDisplay.container.width - 30;
-        sprite.y = accuracyDisplay.container.y + accuracyDisplay.container.height / 2;
 
         this.container = sprite;
 
@@ -118,7 +121,7 @@ class ProgressIndicator {
 
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        let radius = PROGRESS_INDICATOR_DIAMETER / 2;
+        let radius = this.diameter / 2;
         let lineWidth = 2;
         let startAngle = -Math.PI / 2; // "North"
         let endAngle = startAngle + Math.PI*2 * completion;

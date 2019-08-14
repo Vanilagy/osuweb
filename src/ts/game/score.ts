@@ -88,6 +88,11 @@ export class ScoreCounter {
         this.modMultiplier = 1;
 
         this.resetGekiAndKatu();
+
+        scoreDisplay.setValue(0);
+        accuracyDisplay.setValue(100);
+        phantomComboDisplay.setValue(0);
+        comboDisplay.setValue(0);
     }
 
     /**
@@ -360,7 +365,7 @@ export class ScorePopup {
 
         let fadeOutCompletion = (currentTime - this.startTime) / SCORE_POPUP_FADE_OUT_TIME;
         fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-        fadeOutCompletion = MathUtil.ease(EaseType.EaseInQuad, fadeOutCompletion);
+        fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
 
         // At the end of the fade out, the thing should be at 1.125x the start size.
         let factor = appearanceCompletion + gradualScaleUp * 0.125;

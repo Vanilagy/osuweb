@@ -11,7 +11,7 @@ export let renderer = new PIXI.Renderer({
     width: window.innerWidth,
     height: window.innerHeight,
     context: mainContext,
-    antialias: true
+    antialias: false
 });
 export let stage = new PIXI.Container();
 

@@ -26,7 +26,7 @@ const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
 const AUTOHIT = true; // Just hits everything perfectly. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1250; // In ms
-const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
+const BACKGROUND_DIM = 0.75; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 
 export class Play {
@@ -66,7 +66,7 @@ export class Play {
     }
     
     init() {
-        let screenHeight = window.innerHeight * 0.95;
+        let screenHeight = window.innerHeight * 1; // The factor was determined through experimentation. Makes sense it's 1.
         let screenWidth = screenHeight * (640 / 480);
         this.pixelRatio = screenHeight / 480;
 
@@ -404,21 +404,25 @@ export class Play {
     }
 
     toScreenCoordinatesX(osuCoordinateX: number) {
-        return window.innerWidth / 2 + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
+        let coord = window.innerWidth*0.5 + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
+
+        return Math.round(coord);
     }
 
     toScreenCoordinatesY(osuCoordinateY: number) {
-        return window.innerHeight / 2 + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio;
+        let coord = window.innerHeight*0.51 + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
+
+        return Math.round(coord);
     }
 
     // Inverse of toScreenCoordinatesX
     toOsuCoordinatesX(screenCoordinateX: number) {
-        return (screenCoordinateX - window.innerWidth / 2) / this.pixelRatio + PLAYFIELD_DIMENSIONS.width/2;
+        return (screenCoordinateX - window.innerWidth*0.5) / this.pixelRatio + PLAYFIELD_DIMENSIONS.width/2;
     }
     
     // Inverse of toScreenCoordinatesY
     toOsuCoordinatesY(screenCoordinateY: number) {
-        return (screenCoordinateY - window.innerHeight / 2) / this.pixelRatio + PLAYFIELD_DIMENSIONS.height/2;
+        return (screenCoordinateY - window.innerHeight*0.51) / this.pixelRatio + PLAYFIELD_DIMENSIONS.height/2;
     }
 
     getOsuMouseCoordinatesFromCurrentMousePosition(): Point {

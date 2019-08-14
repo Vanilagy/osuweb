@@ -20,21 +20,51 @@ export class OsuTexture {
 
     constructor() { }
 
+    hasActualSdBase() {
+        return this.sdBase !== null;
+    }
+
+    hasActualHdBase() {
+        return this.hdBase !== null;
+    }
+
+    getActualSdBase() {
+        return this.sdBase;
+    }
+
+    getActualHdBase() {
+        return this.hdBase;
+    }
+
+    /** If the texture doesn't have a base, fall back to the first frame of the animation */
+    getDeFactoSdBase() {
+        return this.sdBase || this.sd[0] || null;
+    }
+
+    /** If the texture doesn't have a base, fall back to the first frame of the animation */
+    getDeFactoHdBase() {
+        return this.hdBase || this.hd[0] || null;
+    }
+
+    getAnimationFrameCount() {
+        return Math.max(this.sd.length, this.hd.length) || 1;
+    }
+
     getBest(animationIndex?: number) {
-        let hd = (animationIndex === undefined)? this.hdBase : (this.hd[animationIndex] || this.hdBase);
+        let hd = (animationIndex === undefined)? this.getDeFactoHdBase() : (this.hd[animationIndex] || this.hdBase);
         if (hd) return hd;
-        return ((animationIndex === undefined)? this.sdBase : (this.sd[animationIndex] || this.sdBase)) || null;
+        return ((animationIndex === undefined)? this.getDeFactoSdBase() : (this.sd[animationIndex] || this.sdBase)) || null;
     }
 
     getWorst(animationIndex?: number) {
-        let sd = (animationIndex === undefined)? this.sdBase : (this.sd[animationIndex] || this.sdBase);
+        let sd = (animationIndex === undefined)? this.getDeFactoSdBase() : (this.sd[animationIndex] || this.sdBase);
         if (sd) return sd;
-        return ((animationIndex === undefined)? this.hdBase : (this.hd[animationIndex] || this.hdBase)) || null;
+        return ((animationIndex === undefined)? this.getDeFactoHdBase() : (this.hd[animationIndex] || this.hdBase)) || null;
     }
 
     getDynamic(size: number, animationIndex?: number) {
-        let sd = (animationIndex === undefined)? this.hdBase : (this.hd[animationIndex] || this.hdBase),
-            hd = (animationIndex === undefined)? this.sdBase : (this.sd[animationIndex] || this.sdBase);
+        let sd = (animationIndex === undefined)? this.getDeFactoSdBase() : (this.sd[animationIndex] || this.sdBase),
+            hd = (animationIndex === undefined)? this.getDeFactoHdBase() : (this.hd[animationIndex] || this.hdBase);
 
         if (!sd && !hd) return null;
         if (!sd) return hd;
@@ -46,9 +76,9 @@ export class OsuTexture {
 
     /** Returns the width of the standard definition version. */
     getWidth() {
-        let sd = this.sdBase;
+        let sd = this.getDeFactoSdBase();
         if (sd) return sd.width;
-        let hd = this.hdBase;
+        let hd = this.getDeFactoHdBase();
         if (hd) return hd.width/2;
         
         return null;
@@ -56,9 +86,9 @@ export class OsuTexture {
 
     /** Returns the height of the standard definition version. */
     getHeight() {
-        let sd = this.sdBase;
+        let sd = this.getDeFactoSdBase();
         if (sd) return sd.height;
-        let hd = this.hdBase;
+        let hd = this.getDeFactoHdBase();
         if (hd) return hd.height/2;
         
         return null;
@@ -110,12 +140,12 @@ export class OsuTexture {
                 if (sdFile) {
                     let tex = PIXI.Texture.from(await sdFile.readAsResourceUrl());
                     newOsuTexture.sd.push(tex);
-                    if (i === 0 && !newOsuTexture.sdBase) newOsuTexture.sdBase = tex;
+                    //if (i === 0 && !newOsuTexture.sdBase) newOsuTexture.sdBase = tex;
                 }
                 if (hdFile) {
                     let tex = PIXI.Texture.from(await hdFile.readAsResourceUrl());
                     newOsuTexture.hd.push(tex);
-                    if (i === 0 && !newOsuTexture.hdBase) newOsuTexture.hdBase = tex;
+                    //if (i === 0 && !newOsuTexture.hdBase) newOsuTexture.hdBase = tex;
                 }
 
                 i++;
@@ -160,6 +190,8 @@ export class Skin {
         this.textures["sliderEndCircleOverlay"] = await OsuTexture.fromFiles(this.directory, "sliderendcircleoverlay", "png", true, "sliderendcircleoverlay-{n}");
         this.textures["approachCircle"] = await OsuTexture.fromFiles(this.directory, "approachcircle", "png", true);
         this.textures["sliderBall"] = await OsuTexture.fromFiles(this.directory, "sliderb", "png", true, "sliderb{n}"); // No hyphen
+        this.textures["sliderBallBg"] = await OsuTexture.fromFiles(this.directory, "sliderb-nd", "png", false);
+        this.textures["sliderBallSpec"] = await OsuTexture.fromFiles(this.directory, "sliderb-spec", "png", false);
         this.textures["followCircle"] = await OsuTexture.fromFiles(this.directory, "sliderfollowcircle", "png", true, "sliderfollowcircle-{n}");
         this.textures["reverseArrow"] = await OsuTexture.fromFiles(this.directory, "reversearrow", "png", true);
         this.textures["sliderTick"] = await OsuTexture.fromFiles(this.directory, "sliderscorepoint", "png", true);
