@@ -106,6 +106,7 @@ export class MediaPlayer {
     private pausedTime: number = null;
     private volume: number = 1;
     private gainNode: GainNode;
+    private playbackRate = 1;
 
     constructor() {
         this.gainNode = audioContext.createGain();
@@ -125,6 +126,7 @@ export class MediaPlayer {
         }
 
         this.audioElement = new Audio();
+        this.audioElement.playbackRate = this.playbackRate;
         this.audioNode = audioContext.createMediaElementSource(this.audioElement);
         this.audioNode.connect(this.gainNode);
         this.timingDeltas.length = 0;
@@ -170,11 +172,14 @@ export class MediaPlayer {
         if (this.offset >= 0) {
             this.audioElement.currentTime = this.offset;
             this.audioElement.play();
+            this.audioElement.playbackRate = this.playbackRate;
+            
         } else {
             // Any inaccuracies in this timeout (+-2ms) will be ironed out by the nudging algorithm in getCurrentTime
             this.timeout = setTimeout(() => {
                 this.audioElement.play();
-            }, this.offset * -1 * 1000);
+                this.audioElement.playbackRate = this.playbackRate;
+            }, this.offset * -1 * 1000 / this.playbackRate);
         }
 
         this.playing = true;
@@ -208,7 +213,7 @@ export class MediaPlayer {
         let now = performance.now();
         let offsetMs = this.offset * 1000;
 
-        let calculated = (now - this.startTime + offsetMs);   
+        let calculated = this.playbackRate * (now - this.startTime) + offsetMs;   
         let actual = this.audioElement.currentTime * 1000;
 
         // Only do this if the audio element has started playing, which, when its currentTime is 0, is likely not the case.

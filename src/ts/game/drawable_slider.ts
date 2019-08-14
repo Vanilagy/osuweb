@@ -24,6 +24,7 @@ const SLIDER_TICK_CS_RATIO = 16/118;
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
 const FOLLOW_CIRCLE_SCALE_OUT_DURATION = 200;
 const FOLLOW_CIRCLE_PULSE_DURATION = 200;
+const MAX_SLIDER_BALL_SLIDER_VELOCITY = 0.25; // In osu pixels per millisecond. This variable is used to cap the rotation speed on slider balls for very fast sliders.
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -452,18 +453,20 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private renderSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
         if (completion === 0) return;
 
-        let { circleDiameter, circleRadiusOsuPx } = gameState.currentPlay;
+        let { circleDiameter } = gameState.currentPlay;
 
         let sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
-
-        let rolledDistance = this.hitObject.length * MathUtil.reflect(completion);
-        let radians = rolledDistance / 15;
 
         if (currentTime < this.endTime) {
             this.sliderBall.container.visible = true;
             this.sliderBall.container.x = sliderBallPos.x;
             this.sliderBall.container.y = sliderBallPos.y;
             this.sliderBall.base.rotation = this.curve.getAngleFromPercentage(MathUtil.reflect(completion));
+
+            let sliderBallRollCompletion = (Math.min(MAX_SLIDER_BALL_SLIDER_VELOCITY, this.timingInfo.sliderVelocity) * currentSliderTime) / this.hitObject.length;
+            sliderBallRollCompletion = MathUtil.clamp(sliderBallRollCompletion, 0, this.hitObject.repeat);
+            let rolledDistance = this.hitObject.length * MathUtil.reflect(sliderBallRollCompletion);
+            let radians = rolledDistance / 15;
 
             let osuTex = currentSkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();
@@ -621,21 +624,23 @@ class SliderBall {
 
             this.base = sliderBall;
 
-            let bgTexture = currentSkin.textures["sliderBallBg"];
-            let tex = bgTexture.getDynamic(diameter);
-            if (tex) {
-                let sliderBallBg = new PIXI.Sprite(bgTexture.getDynamic(diameter));
-                sliderBallBg.pivot.x = sliderBallBg.width / 2;
-                sliderBallBg.pivot.y = sliderBallBg.height / 2;
-                sliderBallBg.width = diameter;
-                sliderBallBg.height = diameter;
-                sliderBallBg.tint = 0x000000; // Always tinted black.
-
-                this.background = sliderBallBg;
+            if (!osuTexture.hasActualBase()) {
+                let bgTexture = currentSkin.textures["sliderBallBg"];
+                let tex = bgTexture.getDynamic(diameter);
+                if (tex) {
+                    let sliderBallBg = new PIXI.Sprite(bgTexture.getDynamic(diameter));
+                    sliderBallBg.pivot.x = sliderBallBg.width / 2;
+                    sliderBallBg.pivot.y = sliderBallBg.height / 2;
+                    sliderBallBg.width = diameter;
+                    sliderBallBg.height = diameter;
+                    sliderBallBg.tint = 0x000000; // Always tinted black.
+    
+                    this.background = sliderBallBg;
+                }
             }
 
             let specTexture = currentSkin.textures["sliderBallSpec"];
-            tex = specTexture.getDynamic(diameter);
+            let tex = specTexture.getDynamic(diameter);
             if (tex) {
                 let sliderBallSpec = new PIXI.Sprite(specTexture.getDynamic(diameter));
                 sliderBallSpec.pivot.x = sliderBallSpec.width / 2;

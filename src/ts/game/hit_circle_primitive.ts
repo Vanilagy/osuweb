@@ -7,7 +7,7 @@ import { MathUtil, EaseType } from "../util/math_util";
 import { currentSkin } from "./skin";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
-const APPROACH_CIRCLE_CS_RATIO = 126/118; // Determined from image dimensions
+const APPROACH_CIRCLE_CS_RATIO = 118/118; // Bleh. lol
 const REVERSE_ARROW_PULSE_DURATION = 300;
 
 interface HitCirclePrimitiveOptions {
@@ -144,9 +144,11 @@ export class HitCirclePrimitive {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = currentSkin.textures["reverseArrow"];
 
-                reverseArrow = new PIXI.Sprite(osuTexture.getDynamic(circleDiameter));
+                let diameter = circleDiameter * osuTexture.getBiggestDimension() / 128;
 
-                let dimensions = osuTexture.getDownsizedDimensions(circleDiameter);
+                reverseArrow = new PIXI.Sprite(osuTexture.getDynamic(diameter));
+
+                let dimensions = osuTexture.getDownsizedDimensions(diameter);
                 reverseArrow.pivot.x = reverseArrow.width/2;
                 reverseArrow.pivot.y = reverseArrow.height/2;
                 reverseArrow.width = dimensions.width;

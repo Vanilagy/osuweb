@@ -5,7 +5,7 @@ import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "
 import { Dimensions } from "../util/graphics_util";
 
 // This is all temp:
-let currentSkinPath = "./assets/skins/yugen";
+let currentSkinPath = "./assets/skins/default";
 let currentSkinDirectory = new VirtualDirectory("root");
 currentSkinDirectory.networkFallbackUrl = currentSkinPath;
 
@@ -26,6 +26,10 @@ export class OsuTexture {
 
     hasActualHdBase() {
         return this.hdBase !== null;
+    }
+
+    hasActualBase() {
+        return this.hasActualSdBase() || this.hasActualHdBase();
     }
 
     getActualSdBase() {
