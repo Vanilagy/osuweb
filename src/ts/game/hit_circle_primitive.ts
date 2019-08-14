@@ -142,30 +142,21 @@ export class HitCirclePrimitive {
         let reverseArrow: PIXI.Container;
         if (this.options.reverseArrowAngle !== undefined) {
             if (DRAWING_MODE === DrawingMode.Skin) {
-                reverseArrow = new PIXI.Sprite(currentSkin.textures["reverseArrow"].getDynamic(circleDiameter));
+                let osuTexture = currentSkin.textures["reverseArrow"];
 
-                let yes1 = reverseArrow.width; // Keep the original width at the start.
-                let yes2 = reverseArrow.height; // Keep the original width at the start.
-    
-                // Make all this a bit... cleaner.
-                // Essentially what this does is set the width OR height, whatever is bigger, to the circleDiameter, and adjust the other dimension so that the ratio is kept.
-                let no1, no2, r = yes1/yes2;
-                if (yes1 > yes2) {
-                    no1 = circleDiameter;
-                    no2 = circleDiameter / r;
-                } else {
-                    no1 = circleDiameter / r;
-                    no2 = circleDiameter;
-                }
-    
-                reverseArrow.width = no1;
-                reverseArrow.height = no2;
-                reverseArrow.pivot.x = yes1 / 2;
-                reverseArrow.pivot.y = yes2 / 2;
+                reverseArrow = new PIXI.Sprite(osuTexture.getDynamic(circleDiameter));
 
+                let dimensions = osuTexture.getDownsizedDimensions(circleDiameter);
+                reverseArrow.pivot.x = reverseArrow.width/2;
+                reverseArrow.pivot.y = reverseArrow.height/2;
+                reverseArrow.width = dimensions.width;
+                reverseArrow.height = dimensions.height;
                 reverseArrow.rotation = this.options.reverseArrowAngle;
 
-                this.reverseArrow = reverseArrow;
+                let wrapper = new PIXI.Container();
+                wrapper.addChild(reverseArrow);
+
+                this.reverseArrow = wrapper;
             }
         }
 
@@ -251,12 +242,7 @@ export class HitCirclePrimitive {
                 }
 
                 if (this.reverseArrow !== null) {
-                    this.reverseArrow.width = circleDiameter * scale;
-                    this.reverseArrow.height = circleDiameter * scale;
-
-                    // TODO: Is this fine? Like, what about reverse arrows where width !== height?
-
-                    //this.reverseArrow.scale.set(this.lastReverseArrowScale * scale)
+                    this.reverseArrow.scale.set(scale);
                 }
             }
 

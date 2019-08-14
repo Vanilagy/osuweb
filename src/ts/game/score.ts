@@ -12,6 +12,7 @@ import { currentSkin } from "./skin";
 
 const SCORE_POPUP_APPEARANCE_TIME = 100; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
+const SCORE_POPUP_CS_RATIO = 1;
 const HIDE_300s = false; // Enable this if 300 popups get too annoying
 
 export enum ScoringValue {
@@ -278,6 +279,8 @@ export class ScorePopup {
     public container: PIXI.Container;
     private startTime: number = null;
     public renderingFinished: boolean = false;
+    private startWidth: number;
+    private startHeight: number;
 
     constructor(type: ScorePopupType, osuPosition: Point, startTime: number) {
         this.startTime = startTime;
@@ -314,15 +317,21 @@ export class ScorePopup {
                 case ScorePopupType.Geki: name = "hit300g"; break;
             }
 
-            let texture = currentSkin.textures[name].getDynamic(circleDiameter, 0);
+            let osuTexture = currentSkin.textures[name];
+            let texture = osuTexture.getDynamic(circleDiameter, 0);
             let sprite = new PIXI.Sprite(texture);
 
             sprite.pivot.x = sprite.width/2;
             sprite.pivot.y = sprite.height/2;
-            sprite.width = circleDiameter/2;
-            sprite.height = circleDiameter/2;
 
-            this.container = sprite;
+            let dimensions = osuTexture.getDownsizedDimensions(osuTexture.getBiggestDimension() / 128 * circleDiameter);
+            sprite.width = dimensions.width;
+            sprite.height = dimensions.height;
+
+            let wrapper = new PIXI.Container();
+            wrapper.addChild(sprite);
+
+            this.container = wrapper;
         }
 
         this.container.x = currentPlay.toScreenCoordinatesX(osuPosition.x);
@@ -339,6 +348,8 @@ export class ScorePopup {
             return;
         }
 
+        let { circleDiameter } = gameState.currentPlay;
+
         let appearanceCompletion = (currentTime - this.startTime) / SCORE_POPUP_APPEARANCE_TIME;
         appearanceCompletion = MathUtil.clamp(appearanceCompletion, 0, 1);
         // Same as 'em slider ticks
@@ -352,8 +363,10 @@ export class ScorePopup {
         fadeOutCompletion = MathUtil.ease(EaseType.EaseInQuad, fadeOutCompletion);
 
         // At the end of the fade out, the thing should be at 1.125x the start size.
-        this.container.scale.x = appearanceCompletion + gradualScaleUp * 0.125;
-        this.container.scale.y = appearanceCompletion + gradualScaleUp * 0.125;
+        let factor = appearanceCompletion + gradualScaleUp * 0.125;
+        //this.container.width = SCORE_POPUP_CS_RATIO * circleDiameter * factor;
+        //this.container.height = SCORE_POPUP_CS_RATIO * circleDiameter * factor;
+        this.container.scale.set(factor);
         this.container.alpha = 1 - fadeOutCompletion;
     }
 

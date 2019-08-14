@@ -5,6 +5,7 @@ import { SLIDER_SETTINGS } from "../util/constants";
 import { Point } from "../util/point";
 import { colorToHexStirng, Color } from "../util/graphics_util";
 import { currentSkin } from "./skin";
+import { MathUtil } from "../util/math_util";
 
 export abstract class SliderCurve {
     protected slider: DrawableSlider;
@@ -52,9 +53,9 @@ export abstract class SliderCurve {
             this.slider.baseCtx.lineWidth = i * 2;
             let brightnessCompletion = 1 - (i / this.slider.sliderBodyRadius); // 0 -> Border, 1 -> Center
 
-            let red = Math.min(255, color.r + brightnessCompletion * 75),
-                green = Math.min(255, color.g + brightnessCompletion * 75),
-                blue = Math.min(255, color.b + brightnessCompletion * 75);
+            let red = Math.min(255, MathUtil.lerp(color.r, color.r + 75, brightnessCompletion)),
+                green = Math.min(255, MathUtil.lerp(color.g, color.g + 75, brightnessCompletion)),
+                blue = Math.min(255, MathUtil.lerp(color.b, color.b + 75, brightnessCompletion));
 
             this.slider.baseCtx.strokeStyle = `rgb(${red | 0},${green | 0},${blue | 0})`;
             if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();

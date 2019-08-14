@@ -2,9 +2,10 @@ import { SpriteNumberTextures } from "../visuals/sprite_number";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../datamodel/skin_configuration";
+import { Dimensions } from "../util/graphics_util";
 
 // This is all temp:
-let currentSkinPath = "./assets/skins/seoul";
+let currentSkinPath = "./assets/skins/default";
 let currentSkinDirectory = new VirtualDirectory("root");
 currentSkinDirectory.networkFallbackUrl = currentSkinPath;
 
@@ -61,6 +62,27 @@ export class OsuTexture {
         if (hd) return hd.height/2;
         
         return null;
+    }
+
+    getBiggestDimension() {
+        return Math.max(this.getWidth(), this.getHeight());
+    }
+
+    getDownsizedDimensions(maxDimension: number): Dimensions {
+        let width = this.getWidth(), height = this.getHeight();
+        let ratio = width/height;
+
+        if (width > height) {
+            return {
+                width: maxDimension,
+                height: maxDimension / ratio
+            };
+        } else {
+            return {
+                width: maxDimension * ratio,
+                height: maxDimension
+            };
+        }
     }
 
     static async fromFiles(directory: VirtualDirectory, name: string, extension: string, hd = false, animationName: string = null) {

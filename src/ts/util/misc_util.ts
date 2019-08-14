@@ -36,3 +36,8 @@ export function last<T>(arr: T[]): T {
 export function jsonClone<T>(obj: T) {
     return JSON.parse(JSON.stringify(obj)) as T;
 }
+
+// https://stackoverflow.com/questions/8935632/check-if-character-is-number
+export function charIsDigit(c: string) {
+    return c >= '0' && c <= '9';
+}

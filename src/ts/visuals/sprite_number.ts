@@ -1,5 +1,8 @@
 import { UNSCALED_NUMBER_HEIGHT } from "../util/constants";
 import { OsuTexture } from "../game/skin";
+import { charIsDigit } from "../util/misc_util";
+
+export const USUAL_DIGIT_WIDTH_HEIGHT_RATIO = 36/52;
 
 export interface SpriteNumberTextures {
     0: OsuTexture,
@@ -23,6 +26,7 @@ export interface SpriteNumberOptions {
     horizontalAlign: "left" | "center" | "right",
     verticalAlign: "top" | "middle" | "bottom",
     digitHeight: number,
+    digitWidth?: number,
     overlap: number,
     leftPad?: number,
     fixedDecimals?: number,
@@ -112,8 +116,10 @@ export class SpriteNumber {
         let currentX = 0;
         let overlapX = (this.options.overlap / 2) / UNSCALED_NUMBER_HEIGHT * this.options.digitHeight;
         
-        let referenceHeight = osuTextures[0].getHeight(); // The height of the digit 0
+        let referenceHeight = this.options.textures["0"].getHeight(); // The height of the digit 0
         for (let i = 0; i < osuTextures.length; i++) {
+            let isDigit = charIsDigit(str.charAt(i));
+
             let osuTexture = osuTextures[i];
             let texture = osuTexture.getDynamic(this.options.digitHeight);
 
@@ -121,12 +127,23 @@ export class SpriteNumber {
             sprite.texture = texture;
             sprite.height = (osuTexture.getHeight() / referenceHeight) * this.options.digitHeight;
         
-            let ratio = texture.width / texture.height;
-            sprite.width = sprite.height * ratio;
-            totalWidth += sprite.width;
+            if (isDigit && this.options.digitWidth !== undefined) {
+                let ratio = texture.width / texture.height;
+                let actualWidth = sprite.height * ratio;
 
-            sprite.position.x = currentX;
-            currentX += sprite.width - overlapX;
+                sprite.width = actualWidth;
+                totalWidth += this.options.digitWidth;
+
+                sprite.position.x = currentX + (this.options.digitWidth - actualWidth)/2; // Center it
+                currentX += this.options.digitWidth - overlapX;
+            } else {
+                let ratio = texture.width / texture.height;
+                sprite.width = sprite.height * ratio;
+                totalWidth += sprite.width;
+
+                sprite.position.x = currentX;
+                currentX += sprite.width - overlapX;
+            }
         }
 
         totalWidth -= (str.length - 1) * overlapX;

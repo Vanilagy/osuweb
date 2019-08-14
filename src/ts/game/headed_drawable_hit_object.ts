@@ -70,7 +70,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
 
     show(currentTime: number) {
         mainHitObjectContainer.addChildAt(this.container, 0);
-        approachCircleContainer.addChildAt(this.head.approachCircle, 0);
+        approachCircleContainer.addChild(this.head.approachCircle);
 
         this.position();
         this.update(currentTime);

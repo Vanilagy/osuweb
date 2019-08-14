@@ -189,7 +189,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.sliderBall = sliderBall;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let diameter = circleDiameter * (currentSkin.textures["sliderBall"].getWidth() / 128); // The texture is always scaled in a way that it fits the slider body. Weird, but that's what's been observed.
+            let osuTexture = currentSkin.textures["sliderBall"];
+
+            let diameter = circleDiameter * (osuTexture.getBiggestDimension() / 128); // The texture is always scaled in a way that it fits the slider body. Weird, but that's what's been observed.
 
             let sliderBall = new PIXI.Sprite(currentSkin.textures["sliderBall"].getDynamic(diameter));
             sliderBall.pivot.x = sliderBall.width / 2;
@@ -479,6 +481,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.sliderBall.visible = true;
             this.sliderBall.x = sliderBallPos.x;
             this.sliderBall.y = sliderBallPos.y;
+            this.sliderBall.rotation = this.curve.getAngleFromPercentage(MathUtil.reflect(completion));
         } else {
             // The slider ball disappears upon slider completion
             this.sliderBall.visible = false;

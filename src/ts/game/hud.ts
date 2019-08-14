@@ -3,7 +3,7 @@ import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Interpolator } from "../util/graphics_util";
-import { SpriteNumber } from "../visuals/sprite_number";
+import { SpriteNumber, USUAL_DIGIT_WIDTH_HEIGHT_RATIO } from "../visuals/sprite_number";
 import { currentSkin } from "./skin";
 
 export let scoreDisplay: SpriteNumber;
@@ -19,6 +19,7 @@ const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 export async function initHud() {
     scoreDisplay = new SpriteNumber({
         digitHeight: 60,
+        digitWidth: 60 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
         verticalAlign: "top",
         horizontalAlign: "right",
         overlap: currentSkin.config.fonts.scoreOverlap,
@@ -30,6 +31,7 @@ export async function initHud() {
 
     phantomComboDisplay = new SpriteNumber({
         digitHeight: 60,
+        //digitWidth: 60 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
         verticalAlign: "bottom",
         horizontalAlign: "left",
         overlap: currentSkin.config.fonts.scoreOverlap,
@@ -42,6 +44,7 @@ export async function initHud() {
 
     comboDisplay = new SpriteNumber({
         digitHeight: 60,
+        //digitWidth: 60 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
         verticalAlign: "bottom",
         horizontalAlign: "left",
         overlap: currentSkin.config.fonts.scoreOverlap,
@@ -53,6 +56,7 @@ export async function initHud() {
 
     accuracyDisplay = new SpriteNumber({
         digitHeight: 40,
+        digitWidth: 40 * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
         verticalAlign: "top",
         horizontalAlign: "right",
         overlap: currentSkin.config.fonts.scoreOverlap,

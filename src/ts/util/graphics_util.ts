@@ -119,3 +119,8 @@ export class Interpolator {
         return (1 - completion) * this.options.from + completion * this.options.to;
     }
 }
+
+export interface Dimensions {
+    width: number,
+    height: number
+}

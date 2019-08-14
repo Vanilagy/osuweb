@@ -62,8 +62,20 @@ export class DrawableCircle extends HeadedDrawableHitObject {
     score(time: number, judgement: number) {
         let scoreCounter = gameState.currentPlay.scoreCounter;
 
-        this.scoring.head.hit = judgement;
         this.scoring.head.time = time;
+        this.scoring.head.hit = judgement;
+
+        if (judgement !== 0) {
+            this.head.setFadeOut({
+                type: HitCirclePrimitiveFadeOutType.ScaleOut,
+                time: time
+            });
+        } else {
+            this.head.setFadeOut({
+                type: HitCirclePrimitiveFadeOutType.FadeOut,
+                time: time
+            });
+        }
 
         scoreCounter.add(judgement, false, true, true, this, time);
     }
@@ -80,16 +92,6 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         this.score(time, judgement);
         if (judgement !== 0) {
             normalHitSoundEffect.start();
-
-            this.head.setFadeOut({
-                type: HitCirclePrimitiveFadeOutType.ScaleOut,
-                time: time
-            });
-        } else {
-            this.head.setFadeOut({
-                type: HitCirclePrimitiveFadeOutType.FadeOut,
-                time: time
-            });
         }
 
         accuracyMeter.addAccuracyLine(timeInaccuracy, time);
