@@ -217,9 +217,7 @@ export class HitCirclePrimitive {
 
             if (this.reverseArrow !== null) {
                 let scale = this.getReverseArrowScale(currentTime);
-
-                this.reverseArrow.width = circleDiameter * scale;
-                this.reverseArrow.height = circleDiameter * scale;
+                this.reverseArrow.scale.set(scale);
             }
         } else {
             if (this.approachCircle !== null) this.approachCircle.visible = false;
