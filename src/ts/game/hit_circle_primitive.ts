@@ -232,7 +232,7 @@ export class HitCirclePrimitive {
             if (this.reverseArrow) this.reverseArrow.alpha = alpha;
 
             if (this.fadeOut.type === HitCirclePrimitiveFadeOutType.ScaleOut) {
-                let scale = 1 + MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion) * 0.333; // Max scale: 1.333
+                let scale = 1 + MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion) * 0.5; // Max scale: 1.5
 
                 this.base.width = circleDiameter * scale;
                 this.base.height = circleDiameter * scale;

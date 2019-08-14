@@ -53,9 +53,13 @@ export abstract class SliderCurve {
             this.slider.baseCtx.lineWidth = i * 2;
             let brightnessCompletion = 1 - (i / this.slider.sliderBodyRadius); // 0 -> Border, 1 -> Center
 
-            let red = Math.min(255, MathUtil.lerp(color.r, color.r + 75, brightnessCompletion)),
-                green = Math.min(255, MathUtil.lerp(color.g, color.g + 75, brightnessCompletion)),
-                blue = Math.min(255, MathUtil.lerp(color.b, color.b + 75, brightnessCompletion));
+            let red = MathUtil.lerp(color.r, color.r * 1.0 + 75, brightnessCompletion),
+                green = MathUtil.lerp(color.g, color.g * 1.0 + 75, brightnessCompletion),
+                blue = MathUtil.lerp(color.b, color.b * 1.0 + 75, brightnessCompletion);
+
+            if (red > 255) red = 255;
+            if (green > 255) green = 255;
+            if (blue > 255) blue = 255;
 
             this.slider.baseCtx.strokeStyle = `rgb(${red | 0},${green | 0},${blue | 0})`;
             if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();

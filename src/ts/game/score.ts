@@ -10,7 +10,7 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { DRAWING_MODE, DrawingMode } from "../util/constants";
 import { currentSkin } from "./skin";
 
-const SCORE_POPUP_APPEARANCE_TIME = 100; // Both in ms
+const SCORE_POPUP_APPEARANCE_TIME = 200; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
 const SCORE_POPUP_CS_RATIO = 1;
 const HIDE_300s = false; // Enable this if 300 popups get too annoying
@@ -359,7 +359,7 @@ export class ScorePopup {
         appearanceCompletion = MathUtil.clamp(appearanceCompletion, 0, 1);
         // Same as 'em slider ticks
         //let parabola = (-2.381 * appearanceCompletion * appearanceCompletion + 3.381 * appearanceCompletion);
-        appearanceCompletion = MathUtil.ease(EaseType.EaseOutCubic, appearanceCompletion);
+        appearanceCompletion = MathUtil.ease(EaseType.EaseOutElastic, appearanceCompletion, 0.55);
 
         let gradualScaleUp = (currentTime - this.startTime) / SCORE_POPUP_FADE_OUT_TIME;
 
@@ -367,8 +367,8 @@ export class ScorePopup {
         fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
         fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
 
-        // At the end of the fade out, the thing should be at 1.125x the start size.
-        let factor = appearanceCompletion + gradualScaleUp * 0.125;
+        // At the end of the fade out, the thing should be at 1.12x the start size.
+        let factor = appearanceCompletion + gradualScaleUp * 0.12;
         //this.container.width = SCORE_POPUP_CS_RATIO * circleDiameter * factor;
         //this.container.height = SCORE_POPUP_CS_RATIO * circleDiameter * factor;
         this.container.scale.set(factor);

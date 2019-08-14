@@ -153,8 +153,8 @@ export class MathUtil {
         }
         return val;
     }
-    static ease(type: EaseType, val: number) {
-        let p = 0.3; // Some shit used for elastic bounce
+    static ease(type: EaseType, val: number, p = 0.3) {
+        // p = Some shit used for elastic bounce
 
 	    switch (type) {
 	        /**
