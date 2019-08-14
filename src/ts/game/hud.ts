@@ -156,8 +156,7 @@ class ProgressIndicator {
     }
 }
 
-const ACCURACY_METER_SCALE = 2;
-const ACCURACY_METER_HEIGHT = 40;
+const ACCURACY_METER_HEIGHT_FACTOR = 0.02;
 const ACCURACY_LINE_LIFETIME = 10000; // In ms
 
 // TODO: Make this thing fade out automatically if there hasn't been input for a while
@@ -166,6 +165,7 @@ class AccuracyMeter {
     private base: PIXI.Graphics;
     private overlay: PIXI.Container;
     private width: number;
+    private lineWidth: number;
     private height: number;
     private accuracyLines: PIXI.Graphics[];
     private accuracyLineSpawnTimes: WeakMap<PIXI.Graphics, number>;
@@ -189,8 +189,12 @@ class AccuracyMeter {
         this.lastLineTime = -Infinity;
         this.time50 = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50);
 
-        this.width = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)*2 * ACCURACY_METER_SCALE;
-        this.height = ACCURACY_METER_HEIGHT;
+        this.height = Math.max(15, Math.round(window.innerHeight * ACCURACY_METER_HEIGHT_FACTOR / 5) * 5);
+        let widthScale = this.height * 0.04;
+        this.width = Math.round(processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)*2 * widthScale / 2) * 2;
+
+        //this.lineWidth = Math.floor(this.height/5 / 2) * 2;
+        this.lineWidth = 2;
 
         this.base.clear();
 
@@ -201,23 +205,23 @@ class AccuracyMeter {
 
         // Orange strip
         this.base.beginFill(0xd6ac52, 1);
-        this.base.drawRect(0, this.height*3/8, this.width, this.height/4);
+        this.base.drawRect(0, this.height*2/5, this.width, this.height/5);
         this.base.endFill();
 
         // Green strip
-        let greenStripWidth = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(100)*2 * ACCURACY_METER_SCALE;
+        let greenStripWidth = Math.ceil(processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(100)*2 * widthScale);
         this.base.beginFill(0x57e11a, 1);
-        this.base.drawRect(this.width/2 - greenStripWidth/2, this.height*3/8, greenStripWidth, this.height/4);
+        this.base.drawRect(Math.floor(this.width/2 - greenStripWidth/2), this.height*2/5, greenStripWidth, this.height/5);
         this.base.endFill();
 
         // Blue strip
-        let blueStripWidth = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(300)*2 * ACCURACY_METER_SCALE;
+        let blueStripWidth = Math.ceil(processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(300)*2 * widthScale);
         this.base.beginFill(0x38b8e8, 1);
-        this.base.drawRect(this.width/2 - blueStripWidth/2, this.height*3/8, blueStripWidth, this.height/4);
+        this.base.drawRect(Math.floor(this.width/2 - blueStripWidth/2), this.height*2/5, blueStripWidth, this.height/5);
         this.base.endFill();
 
         // White middle line
-        let lineWidth = 1 * ACCURACY_METER_SCALE;
+        let lineWidth = this.lineWidth;
         this.base.beginFill(0xFFFFFF);
         this.base.drawRect(this.width/2 - lineWidth/2, 0, lineWidth, this.height);
         this.base.endFill();
@@ -268,7 +272,7 @@ class AccuracyMeter {
 
         let line = new PIXI.Graphics();
         line.beginFill(color, 0.65);
-        line.drawRect(0, 0, 1.5 * ACCURACY_METER_SCALE, this.height);
+        line.drawRect(0, 0, this.lineWidth, this.height);
         line.endFill();
         line.blendMode = PIXI.BLEND_MODES.ADD;
 
