@@ -471,6 +471,12 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
                 (this.sliderBall.base as PIXI.Sprite).texture = osuTex.getDynamic(circleDiameter * (osuTex.getBiggestDimension() / 128), currentFrame);
             }
+
+            if (currentSkin.config.general.sliderBallFlip) {
+                // Flip the scale when necessary
+                if      (completion % 2 <= 1 && this.sliderBall.base.scale.x < 0) this.sliderBall.base.scale.x *= -1;
+                else if (completion % 2 > 1  && this.sliderBall.base.scale.x > 0) this.sliderBall.base.scale.x *= -1;
+            }
         } else {
             // The slider ball disappears upon slider completion
             this.sliderBall.container.visible = false;
