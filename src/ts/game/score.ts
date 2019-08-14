@@ -7,6 +7,8 @@ import { gameState } from "./game_state";
 import { Point } from "../util/point";
 import { scorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
+import { DRAWING_MODE, DrawingMode } from "../util/constants";
+import { currentSkin } from "./skin";
 
 const SCORE_POPUP_APPEARANCE_TIME = 100; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -281,26 +283,54 @@ export class ScorePopup {
         this.startTime = startTime;
 
         let currentPlay = gameState.currentPlay;
-        let { pixelRatio } = currentPlay;
+        let { circleDiameter, pixelRatio } = currentPlay;
 
-        let popup = new PIXI.Text(scorePopupTypeToString.get(type), {
-            fontFamily: "Nunito",
-            fontSize: 28 * pixelRatio,
-            fill: scorePopupTypeToColor.get(type)
-        });
+        if (DRAWING_MODE === DrawingMode.Procedural) {
+            let popup = new PIXI.Text(scorePopupTypeToString.get(type), {
+                fontFamily: "Nunito",
+                fontSize: 28 * pixelRatio,
+                fill: scorePopupTypeToColor.get(type)
+            });
+    
+            popup.pivot.x = popup.width / 2;
+            popup.pivot.y = popup.height / 2;
+    
+            if (HIDE_300s && (
+                type === ScorePopupType.Hit300 ||
+                type === ScorePopupType.Geki ||
+                type === ScorePopupType.Katu300
+            )) popup.visible = false;
+    
+            this.container = popup;
+        } else if (DRAWING_MODE === DrawingMode.Skin) {
+            let name: string;
+            switch (type) {
+                case ScorePopupType.Miss: name = "hit0"; break;
+                case ScorePopupType.Hit50: name = "hit50"; break;
+                case ScorePopupType.Hit100: name = "hit100"; break;
+                case ScorePopupType.Katu100: name = "hit100k"; break;
+                case ScorePopupType.Hit300: name = "hit300"; break;
+                case ScorePopupType.Katu300: name = "hit300k"; break;
+                case ScorePopupType.Geki: name = "hit300g"; break;
+            }
 
-        popup.pivot.x = popup.width / 2;
-        popup.pivot.y = popup.height / 2;
-        popup.x = currentPlay.toScreenCoordinatesX(osuPosition.x);
-        popup.y = currentPlay.toScreenCoordinatesY(osuPosition.y);
+            let texture = currentSkin.textures[name].getDynamic(circleDiameter, 0);
+            let sprite = new PIXI.Sprite(texture);
 
-        if (HIDE_300s && (
-            type === ScorePopupType.Hit300 ||
-            type === ScorePopupType.Geki ||
-            type === ScorePopupType.Katu300
-        )) popup.visible = false;
+            sprite.pivot.x = sprite.width/2;
+            sprite.pivot.y = sprite.height/2;
+            sprite.width = circleDiameter/2;
+            sprite.height = circleDiameter/2;
 
-        this.container = popup;
+            this.container = sprite;
+        }
+
+        this.container.x = currentPlay.toScreenCoordinatesX(osuPosition.x);
+        this.container.y = currentPlay.toScreenCoordinatesY(osuPosition.y);
+
+        if (type === ScorePopupType.Miss) {
+            this.container.rotation = (2 * (Math.random() - 0.5)) * Math.PI * 0.1; // Random tilt for miss popup
+        }
     }
 
     update(currentTime: number) {

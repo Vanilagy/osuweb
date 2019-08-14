@@ -16,8 +16,7 @@ export let accuracyMeter: AccuracyMeter;
 const ACCURACY_METER_FADE_OUT_DELAY = 3000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 
-// Cheap temporary hack to ensure font load LOL
-setTimeout(() => {
+export async function initHud() {
     scoreDisplay = new SpriteNumber({
         digitHeight: 60,
         verticalAlign: "top",
@@ -77,7 +76,7 @@ setTimeout(() => {
     hudContainer.addChild(comboDisplay.container);
     hudContainer.addChild(accuracyDisplay.container);
     hudContainer.addChild(progressIndicator.container);
-}, 500);
+}
 
 const PROGRESS_INDICATOR_DIAMETER = 36;
 

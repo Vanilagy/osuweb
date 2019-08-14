@@ -10,7 +10,8 @@ const mainContext = mainCanvas.getContext('webgl2', {
 export let renderer = new PIXI.Renderer({
     width: window.innerWidth,
     height: window.innerHeight,
-    context: mainContext
+    context: mainContext,
+    antialias: true
 });
 export let stage = new PIXI.Container();
 

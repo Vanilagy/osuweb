@@ -4,7 +4,7 @@ import { VirtualFile } from "../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../datamodel/skin_configuration";
 
 // This is all temp:
-let currentSkinPath = "./assets/current_skin";
+let currentSkinPath = "./assets/skins/seoul";
 let currentSkinDirectory = new VirtualDirectory("root");
 currentSkinDirectory.networkFallbackUrl = currentSkinPath;
 
@@ -12,26 +12,28 @@ const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8",
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 
 export class OsuTexture {
+    private sdBase: PIXI.Texture = null;
+    private hdBase: PIXI.Texture = null;
     private sd: PIXI.Texture[] = [];
     private hd: PIXI.Texture[] = [];
 
     constructor() { }
 
-    getBest(animationIndex = 0) {
-        let hd = this.hd[animationIndex];
+    getBest(animationIndex?: number) {
+        let hd = (animationIndex === undefined)? this.hdBase : (this.hd[animationIndex] || this.hdBase);
         if (hd) return hd;
-        return this.sd[animationIndex] || null;
+        return ((animationIndex === undefined)? this.sdBase : (this.sd[animationIndex] || this.sdBase)) || null;
     }
 
-    getWorst(animationIndex = 0) {
-        let sd = this.sd[animationIndex];
+    getWorst(animationIndex?: number) {
+        let sd = (animationIndex === undefined)? this.sdBase : (this.sd[animationIndex] || this.sdBase);
         if (sd) return sd;
-        return this.hd[animationIndex] || null;
+        return ((animationIndex === undefined)? this.hdBase : (this.hd[animationIndex] || this.hdBase)) || null;
     }
 
-    getDynamic(size: number, animationIndex = 0) {
-        let sd = this.sd[animationIndex],
-            hd = this.hd[animationIndex];
+    getDynamic(size: number, animationIndex?: number) {
+        let sd = (animationIndex === undefined)? this.hdBase : (this.hd[animationIndex] || this.hdBase),
+            hd = (animationIndex === undefined)? this.sdBase : (this.sd[animationIndex] || this.sdBase);
 
         if (!sd && !hd) return null;
         if (!sd) return hd;
@@ -43,9 +45,9 @@ export class OsuTexture {
 
     /** Returns the width of the standard definition version. */
     getWidth() {
-        let sd = this.sd[0];
+        let sd = this.sdBase;
         if (sd) return sd.width;
-        let hd = this.hd[0];
+        let hd = this.hdBase;
         if (hd) return hd.width/2;
         
         return null;
@@ -53,9 +55,9 @@ export class OsuTexture {
 
     /** Returns the height of the standard definition version. */
     getHeight() {
-        let sd = this.sd[0];
+        let sd = this.sdBase;
         if (sd) return sd.height;
-        let hd = this.hd[0];
+        let hd = this.hdBase;
         if (hd) return hd.height/2;
         
         return null;
@@ -68,10 +70,10 @@ export class OsuTexture {
         let hdBaseFile: VirtualFile;
         if (hd) hdBaseFile = await directory.getFileByName(`${name}@2x.${extension}`);
 
-        if (sdBaseFile) newOsuTexture.sd.push(PIXI.Texture.from(await sdBaseFile.readAsResourceUrl()));
-        if (hdBaseFile) newOsuTexture.hd.push(PIXI.Texture.from(await hdBaseFile.readAsResourceUrl()));
+        if (sdBaseFile) newOsuTexture.sdBase = PIXI.Texture.from(await sdBaseFile.readAsResourceUrl());
+        if (hdBaseFile) newOsuTexture.hdBase = PIXI.Texture.from(await hdBaseFile.readAsResourceUrl());
 
-        if (animationName && !sdBaseFile && !hdBaseFile) {
+        if (animationName) {
             let i = 0;
 
             while (true) {
@@ -83,8 +85,16 @@ export class OsuTexture {
 
                 if (!sdFile && !hdFile) break; // No more animation states
 
-                if (sdFile) newOsuTexture.sd.push(PIXI.Texture.from(await sdFile.readAsResourceUrl()));
-                if (hdFile) newOsuTexture.hd.push(PIXI.Texture.from(await sdFile.readAsResourceUrl()));
+                if (sdFile) {
+                    let tex = PIXI.Texture.from(await sdFile.readAsResourceUrl());
+                    newOsuTexture.sd.push(tex);
+                    if (i === 0 && !newOsuTexture.sdBase) newOsuTexture.sdBase = tex;
+                }
+                if (hdFile) {
+                    let tex = PIXI.Texture.from(await hdFile.readAsResourceUrl());
+                    newOsuTexture.hd.push(tex);
+                    if (i === 0 && !newOsuTexture.hdBase) newOsuTexture.hdBase = tex;
+                }
 
                 i++;
             }
@@ -132,6 +142,13 @@ export class Skin {
         this.textures["reverseArrow"] = await OsuTexture.fromFiles(this.directory, "reversearrow", "png", true);
         this.textures["sliderTick"] = await OsuTexture.fromFiles(this.directory, "sliderscorepoint", "png", true);
         this.textures["hitCircle"] = await OsuTexture.fromFiles(this.directory, "hitcircle", "png", true);
+        this.textures["hit0"] = await OsuTexture.fromFiles(this.directory, "hit0", "png", true, "hit0-{n}");
+        this.textures["hit50"] = await OsuTexture.fromFiles(this.directory, "hit50", "png", true, "hit50-{n}");
+        this.textures["hit100"] = await OsuTexture.fromFiles(this.directory, "hit100", "png", true, "hit100-{n}");
+        this.textures["hit100k"] = await OsuTexture.fromFiles(this.directory, "hit100k", "png", true, "hit100k-{n}");
+        this.textures["hit300"] = await OsuTexture.fromFiles(this.directory, "hit300", "png", true, "hit300-{n}");
+        this.textures["hit300k"] = await OsuTexture.fromFiles(this.directory, "hit300k", "png", true, "hit300k-{n}");
+        this.textures["hit300g"] = await OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
 
         // Hit circle numbers
         let tempObj: any = {};
