@@ -298,20 +298,10 @@ export class Play {
 
             switch (playEvent.type) {
                 case PlayEventType.HeadHitWindowEnd: {
-                    let hitObject = playEvent.hitObject;
+                    let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
+                    if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
 
-                    if (hitObject instanceof DrawableCircle) {
-                        if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
-
-                        hitObject.score(playEvent.time, ScoringValue.Miss);
-                    } else if (hitObject instanceof DrawableSlider) {
-                        if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
-
-                        hitObject.scoring.head.hit = ScoringValue.Miss;
-                        hitObject.scoring.head.time = playEvent.time;
-                        
-                        this.scoreCounter.add(0, true, true, true, hitObject, playEvent.time);
-                    }
+                    hitObject.hitHead(playEvent.time + 0.01); // Add epsilon so hit isn't taken as a barely 50
                 }; break;
                 case PlayEventType.PerfectHeadHit: {
                     if (!AUTOHIT) break;

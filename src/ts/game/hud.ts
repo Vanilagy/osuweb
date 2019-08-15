@@ -19,7 +19,7 @@ const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 export async function initHud() {
     let scoreHeight = window.innerHeight * 0.06,
         comboHeight = window.innerHeight * 0.08,
-        accuracyHeight = window.innerHeight * 0.04;
+        accuracyHeight = window.innerHeight * 0.038;
 
     scoreDisplay = new SpriteNumber({
         digitHeight: scoreHeight,

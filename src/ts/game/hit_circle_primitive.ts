@@ -171,14 +171,21 @@ export class HitCirclePrimitive {
     
                 this.approachCircle = approachCircle;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let approachCircle = new PIXI.Sprite(currentSkin.textures["approachCircle"].getBest());
+                let osuTexture = currentSkin.textures["approachCircle"];
+                let approachCircle = new PIXI.Sprite(osuTexture.getBest());
+
+                let diameter = circleDiameter * (osuTexture.getBiggestDimension() / 128);
+                let dimensions = osuTexture.getDownsizedDimensions(diameter);
                 approachCircle.pivot.x = approachCircle.width / 2;
                 approachCircle.pivot.y = approachCircle.height / 2;
-                approachCircle.width = circleDiameter;
-                approachCircle.height = circleDiameter;
+                approachCircle.width = dimensions.width;
+                approachCircle.height = dimensions.height;
                 approachCircle.tint = colorToHexNumber(this.options.comboInfo.color);
+
+                let wrapper = new PIXI.Container();
+                wrapper.addChild(approachCircle);
     
-                this.approachCircle = approachCircle;
+                this.approachCircle = wrapper;
             }
         }
 
@@ -211,6 +218,7 @@ export class HitCirclePrimitive {
                 let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0
                 let approachCircleDiameter = circleDiameter * APPROACH_CIRCLE_CS_RATIO * approachCircleFactor;
                 this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
+                this.approachCircle.scale.set(approachCircleFactor);
     
                 this.approachCircle.alpha = fadeInCompletion;
 
