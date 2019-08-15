@@ -11,6 +11,7 @@ import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
+import { IGNORE_BEATMAP_SKIN, currentSkin, DEFAULT_COLORS } from "./skin";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -52,8 +53,17 @@ export class ProcessedBeatmap {
     generateHitObjects() {
         let hitObjectId = 0;
         let comboCount = 1;
-        let nextCombo = 0;
-        let colorArray = this.beatmap.colors;
+        let currentCombo = 0;
+
+        let colorArray: Color[];
+        if (IGNORE_BEATMAP_SKIN) {
+            colorArray = currentSkin.colors;
+            if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
+        } else {
+            colorArray = this.beatmap.colors;
+            if (colorArray.length === 0) colorArray = currentSkin.colors;
+            if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
+        }
 
         let currentTimingPoint = 1;
         let currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
@@ -68,19 +78,20 @@ export class ProcessedBeatmap {
 
             if (rawHitObject.newCombo !== null) {
                 if (rawHitObject.newCombo === -1) {
-                    nextCombo++;
+                    currentCombo++;
+                } else {
+                    if (IGNORE_BEATMAP_SKIN) currentCombo++; // No color skipping with this option enabled!
+                    else currentCombo += rawHitObject.newCombo + 1;
                 }
-                else {
-                    nextCombo += rawHitObject.newCombo + 1;
-                }
+
                 comboCount = 1;
             }
             comboInfo = {
-                comboNum: nextCombo,
+                comboNum: currentCombo,
                 n: comboCount++,
-                isLast: (this.beatmap.hitObjects[i + 1]) ? this.beatmap.hitObjects[i + 1].newCombo !== null : true,
-                color: colorArray[nextCombo % colorArray.length],
-                colorIndex: nextCombo % colorArray.length
+                isLast: (this.beatmap.hitObjects[i + 1])? this.beatmap.hitObjects[i + 1].newCombo !== null : true,
+                color: colorArray[currentCombo % colorArray.length],
+                colorIndex: currentCombo % colorArray.length
             };
 
             if (currentTimingPoint < this.beatmap.timingPoints.length) {

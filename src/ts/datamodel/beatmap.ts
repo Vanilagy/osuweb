@@ -181,11 +181,6 @@ export class Beatmap {
             }
         }
 
-        if (this.colors.length === 0) {
-            this.colors = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
-            //Console.info("No combo colors in Beatmap found. Using default ones!");
-        }
-
         if(!this.ARFound) this.difficulty.AR = this.difficulty.OD;
 
         //Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");

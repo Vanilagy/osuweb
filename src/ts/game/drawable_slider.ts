@@ -473,7 +473,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let osuTex = currentSkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();
             if (frameCount > 1) {
-                let sliderBallRollCompletion = (Math.min(MAX_SLIDER_BALL_SLIDER_VELOCITY, this.timingInfo.sliderVelocity) * currentSliderTime) / this.hitObject.length;
+                let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.timingInfo.sliderVelocity);
+                let sliderBallRollCompletion = (this.timingInfo.sliderVelocity * velocityRatio * currentSliderTime) / (this.hitObject.length * velocityRatio);
                 sliderBallRollCompletion = MathUtil.clamp(sliderBallRollCompletion, 0, this.hitObject.repeat);
                 let rolledDistance = this.hitObject.length * MathUtil.reflect(sliderBallRollCompletion);
                 let radians = rolledDistance / 15;

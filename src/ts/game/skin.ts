@@ -2,15 +2,17 @@ import { SpriteNumberTextures } from "../visuals/sprite_number";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../datamodel/skin_configuration";
-import { Dimensions } from "../util/graphics_util";
+import { Dimensions, Color } from "../util/graphics_util";
 
 // This is all temp:
-let currentSkinPath = "./assets/skins/seoul";
+let currentSkinPath = "./assets/skins/default";
 let currentSkinDirectory = new VirtualDirectory("root");
 currentSkinDirectory.networkFallbackUrl = currentSkinPath;
 
+export const IGNORE_BEATMAP_SKIN = true;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
+export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
 
 export class OsuTexture {
     private sdBase: PIXI.Texture = null;
@@ -167,6 +169,7 @@ export class Skin {
     public hitCircleNumberTextures: SpriteNumberTextures;
     public scoreNumberTextures: SpriteNumberTextures;
     public comboNumberTextures: SpriteNumberTextures;
+    public colors: Color[];
 
     constructor(directory: VirtualDirectory) {
         this.directory = directory;
@@ -174,6 +177,7 @@ export class Skin {
         this.hitCircleNumberTextures = null;
         this.scoreNumberTextures = null;
         this.comboNumberTextures = null;
+        this.colors = [];
     }
 
     async init() {
@@ -184,6 +188,13 @@ export class Skin {
             this.config = parseSkinConfiguration(await skinConfigurationFile.readAsText());
         } else {
             this.config.general.version = "latest"; // If the skin.ini file is not present, latest will be used instead.
+        }
+
+        for (let i = 1; i <= 8; i++) {
+            let color = this.config.colors[("combo" + i) as keyof SkinConfiguration["colors"]];
+            if (color === null) break;
+
+            this.colors.push(color);
         }
 
         this.textures["hitCircle"] = await OsuTexture.fromFiles(this.directory, "hitcircle", "png", true);
@@ -211,21 +222,21 @@ export class Skin {
         // Hit circle numbers
         let tempObj: any = {};
         for (let suffix of HIT_CIRCLE_NUMBER_SUFFIXES) {
-            tempObj[suffix] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.hitCirclePrefix}-${suffix}`, "png", true);
+            tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.hitCirclePrefix}-${suffix}`, "png", true);
         }
         this.hitCircleNumberTextures = tempObj;
 
         // Score numbers
         tempObj = {};
         for (let suffix of SCORE_NUMBER_SUFFIXES) {
-            tempObj[suffix] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.scorePrefix}-${suffix}`, "png", true);
+            tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.scorePrefix}-${suffix}`, "png", true);
         }
         this.scoreNumberTextures = tempObj;
 
         // Combo numbers
         tempObj = {};
         for (let suffix of SCORE_NUMBER_SUFFIXES) { // Combo uses the same suffixes as score
-            tempObj[suffix] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
+            tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
         }
         this.comboNumberTextures = tempObj;
 
