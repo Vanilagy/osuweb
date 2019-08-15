@@ -48,18 +48,18 @@ export abstract class SliderCurve {
             color = this.slider.comboInfo.color;
         }
 
+        let targetRed = Math.min(255, color.r * 1.125 + 75),
+            targetGreen = Math.min(255, color.g * 1.125 + 75),
+            targetBlue = Math.min(255, color.b * 1.125 + 75);
+
         // Gradient
         for (let i = this.slider.sliderBodyRadius; i > 1; i -= 2) {
             this.slider.baseCtx.lineWidth = i * 2;
             let brightnessCompletion = 1 - (i / this.slider.sliderBodyRadius); // 0 -> Border, 1 -> Center
 
-            let red = MathUtil.lerp(color.r, color.r * 1.0 + 75, brightnessCompletion),
-                green = MathUtil.lerp(color.g, color.g * 1.0 + 75, brightnessCompletion),
-                blue = MathUtil.lerp(color.b, color.b * 1.0 + 75, brightnessCompletion);
-
-            if (red > 255) red = 255;
-            if (green > 255) green = 255;
-            if (blue > 255) blue = 255;
+            let red = MathUtil.lerp(color.r, targetRed, brightnessCompletion),
+                green = MathUtil.lerp(color.g, targetGreen, brightnessCompletion),
+                blue = MathUtil.lerp(color.b, targetBlue, brightnessCompletion);
 
             this.slider.baseCtx.strokeStyle = `rgb(${red | 0},${green | 0},${blue | 0})`;
             if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();

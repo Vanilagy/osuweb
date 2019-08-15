@@ -217,13 +217,20 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
                 tickElement = graphics;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let sprite = new PIXI.Sprite(currentSkin.textures["sliderTick"].getBest());
+                let osuTexture = currentSkin.textures["sliderTick"];
+                let sprite = new PIXI.Sprite(osuTexture.getBest());
 
                 sprite.anchor.set(0.5, 0.5);
-                sprite.width = circleDiameter * SLIDER_TICK_CS_RATIO;
-                sprite.height = circleDiameter * SLIDER_TICK_CS_RATIO;
 
-                tickElement = sprite;
+                let dimensions = osuTexture.getDownsizedDimensions(circleDiameter * SLIDER_TICK_CS_RATIO * (osuTexture.getBiggestDimension() / 16));
+
+                sprite.width = dimensions.width;
+                sprite.height = dimensions.height;
+
+                let wrapper = new PIXI.Container();
+                wrapper.addChild(sprite);
+
+                tickElement = wrapper;
             }
 
             let sliderTickPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
@@ -463,15 +470,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.sliderBall.container.y = sliderBallPos.y;
             this.sliderBall.base.rotation = this.curve.getAngleFromPercentage(MathUtil.reflect(completion));
 
-            let sliderBallRollCompletion = (Math.min(MAX_SLIDER_BALL_SLIDER_VELOCITY, this.timingInfo.sliderVelocity) * currentSliderTime) / this.hitObject.length;
-            sliderBallRollCompletion = MathUtil.clamp(sliderBallRollCompletion, 0, this.hitObject.repeat);
-            let rolledDistance = this.hitObject.length * MathUtil.reflect(sliderBallRollCompletion);
-            let radians = rolledDistance / 15;
-
             let osuTex = currentSkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();
             if (frameCount > 1) {
+                let sliderBallRollCompletion = (Math.min(MAX_SLIDER_BALL_SLIDER_VELOCITY, this.timingInfo.sliderVelocity) * currentSliderTime) / this.hitObject.length;
+                sliderBallRollCompletion = MathUtil.clamp(sliderBallRollCompletion, 0, this.hitObject.repeat);
+                let rolledDistance = this.hitObject.length * MathUtil.reflect(sliderBallRollCompletion);
+                let radians = rolledDistance / 15;
                 let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
+
                 (this.sliderBall.base as PIXI.Sprite).texture = osuTex.getDynamic(circleDiameter * (osuTex.getBiggestDimension() / 128), currentFrame);
             }
 
@@ -582,8 +589,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             if (animationCompletion === 0) parabola = 0;
             if (animationCompletion >= 1) parabola = 1;
 
-            tickElement.width = circleDiameter * SLIDER_TICK_CS_RATIO * parabola;
-            tickElement.height = circleDiameter * SLIDER_TICK_CS_RATIO * parabola;
+            tickElement.scale.set(parabola);
         }
     }
 }
