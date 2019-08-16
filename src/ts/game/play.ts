@@ -6,7 +6,7 @@ import { mainMusicMediaPlayer, normalHitSoundEffect } from "../audio/audio";
 import { mainRender, followPointContainer, scorePopupContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PLAYFIELD_DIMENSIONS } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsLocalResourceUrl, readFileAsDataUrl } from "../util/file_util";
 import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
@@ -35,6 +35,7 @@ export class Play {
     public currentHitObjectId: number;
     public onscreenObjects: { [s: string]: DrawableHitObject };
     public followPoints: FollowPoint[];
+    public onscreenFollowPoints: FollowPoint[];
     public scorePopups: ScorePopup[];
     public pixelRatio: number;
     public circleDiameterOsuPx: number;
@@ -46,7 +47,6 @@ export class Play {
     public playEvents: PlayEvent[] = [];
     public currentPlayEvent: number = 0;
     public scoreCounter: ScoreCounter;
-    
     private currentFollowPointIndex = 0; // is this dirty? idk
     private currentBreakIndex = 0;
 
@@ -58,6 +58,7 @@ export class Play {
         this.currentHitObjectId = 0;
         this.onscreenObjects = {};
         this.followPoints = [];
+        this.onscreenFollowPoints = [];
         this.scorePopups = [];
 
         this.pixelRatio = null;
@@ -67,8 +68,8 @@ export class Play {
     
     init() {
         let screenHeight = window.innerHeight * 1; // The factor was determined through experimentation. Makes sense it's 1.
-        let screenWidth = screenHeight * (640 / 480);
-        this.pixelRatio = screenHeight / 480;
+        let screenWidth = screenHeight * (STANDARD_SCREEN_DIMENSIONS.width / STANDARD_SCREEN_DIMENSIONS.height);
+        this.pixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
 
         this.circleDiameterOsuPx = this.processedBeatmap.beatmap.difficulty.getCirclePixelSize();
         this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
@@ -125,7 +126,7 @@ export class Play {
         }
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
-        mainMusicMediaPlayer.start(-this.preludeTime / 1000);
+        mainMusicMediaPlayer.start(/*-this.preludeTime / 1000*/ 0);
 
         console.timeEnd("Audio load");
 
@@ -171,16 +172,26 @@ export class Play {
         }
 
         // Render follow points
-        followPointContainer.removeChildren(); // Families in Syria be like
+        //followPointContainer.removeChildren(); // Families in Syria be like
         for (let i = this.currentFollowPointIndex; i < this.followPoints.length; i++) {
             let followPoint = this.followPoints[i];
-            if (currentTime >= followPoint.disappearanceTime) {
-                this.currentFollowPointIndex++;
-                continue;
-            }
-            if (currentTime < followPoint.appearanceTime) break;
+            if (currentTime < followPoint.renderStartTime) break;
 
-            followPoint.render(currentTime);
+            this.onscreenFollowPoints.push(followPoint);
+            followPoint.show();
+
+            this.currentFollowPointIndex++;
+        }
+
+        for (let i = 0; i < this.onscreenFollowPoints.length; i++) {
+            let followPoint = this.onscreenFollowPoints[i];
+
+            followPoint.update(currentTime);
+
+            if (followPoint.renderFinished) {
+                followPoint.remove();
+                this.onscreenFollowPoints.splice(i--, 1);
+            }
         }
 
         // Update the score display

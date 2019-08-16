@@ -2,6 +2,10 @@ export const PLAYFIELD_DIMENSIONS = { // In osu!pixels
     width: 512,
     height: 384
 };
+export const STANDARD_SCREEN_DIMENSIONS = {
+    width: 640,
+    height: 480
+};
 
 export const HIT_OBJECT_FADE_IN_TIME = 400; // In ms. This is constant and actually independent of AR.
 export const HIT_OBJECT_FADE_OUT_TIME = 200; // In ms

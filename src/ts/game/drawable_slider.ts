@@ -474,9 +474,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let frameCount = osuTex.getAnimationFrameCount();
             if (frameCount > 1) {
                 let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.timingInfo.sliderVelocity);
-                let sliderBallRollCompletion = (this.timingInfo.sliderVelocity * velocityRatio * currentSliderTime) / (this.hitObject.length * velocityRatio);
-                sliderBallRollCompletion = MathUtil.clamp(sliderBallRollCompletion, 0, this.hitObject.repeat);
-                let rolledDistance = this.hitObject.length * MathUtil.reflect(sliderBallRollCompletion);
+                let rolledDistance = this.hitObject.length * velocityRatio * MathUtil.reflect(completion);
                 let radians = rolledDistance / 15;
                 let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
 

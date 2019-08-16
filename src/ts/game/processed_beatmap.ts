@@ -395,8 +395,8 @@ export class ProcessedBeatmap {
     getTotalBreakTime() {
         let total = 0;
 
-        for (let osuBreak of this.breaks) {
-            total += osuBreak.endTime - osuBreak.startTime;
+        for (let breakEvent of this.breaks) {
+            total += breakEvent.endTime - breakEvent.startTime;
         }
 
         return total;

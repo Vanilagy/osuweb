@@ -10,7 +10,7 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { DRAWING_MODE, DrawingMode } from "../util/constants";
 import { currentSkin } from "./skin";
 
-const SCORE_POPUP_APPEARANCE_TIME = 200; // Both in ms
+const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
 const SCORE_POPUP_CS_RATIO = 1;
 const HIDE_300s = false; // Enable this if 300 popups get too annoying

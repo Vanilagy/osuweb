@@ -56,21 +56,29 @@ export class OsuTexture {
         return Math.max(this.sd.length, this.hd.length) || 1;
     }
 
-    getBest(animationIndex?: number) {
+    getSd(animationIndex?: number) {
+        let sd = (animationIndex === undefined)? this.getDeFactoSdBase() : (this.sd[animationIndex] || this.sdBase);
+        if (sd) return sd;
+        return null;
+    }
+
+    getHd(animationIndex?: number) {
         let hd = (animationIndex === undefined)? this.getDeFactoHdBase() : (this.hd[animationIndex] || this.hdBase);
         if (hd) return hd;
-        return ((animationIndex === undefined)? this.getDeFactoSdBase() : (this.sd[animationIndex] || this.sdBase)) || null;
+        return null;
+    }
+
+    getBest(animationIndex?: number) {
+        return this.getHd(animationIndex) || this.getSd(animationIndex);
     }
 
     getWorst(animationIndex?: number) {
-        let sd = (animationIndex === undefined)? this.getDeFactoSdBase() : (this.sd[animationIndex] || this.sdBase);
-        if (sd) return sd;
-        return ((animationIndex === undefined)? this.getDeFactoHdBase() : (this.hd[animationIndex] || this.hdBase)) || null;
+        return this.getSd(animationIndex) || this.getHd(animationIndex);
     }
 
     getDynamic(size: number, animationIndex?: number) {
-        let sd = (animationIndex === undefined)? this.getDeFactoSdBase() : (this.sd[animationIndex] || this.sdBase),
-            hd = (animationIndex === undefined)? this.getDeFactoHdBase() : (this.hd[animationIndex] || this.hdBase);
+        let sd = this.getSd(animationIndex),
+            hd = this.getHd(animationIndex);
 
         if (!sd && !hd) return null;
         if (!sd) return hd;
@@ -81,31 +89,31 @@ export class OsuTexture {
     }
 
     /** Returns the width of the standard definition version. */
-    getWidth() {
-        let sd = this.getDeFactoSdBase();
+    getWidth(animationIndex?: number) {
+        let sd = this.getSd(animationIndex);
         if (sd) return sd.width;
-        let hd = this.getDeFactoHdBase();
+        let hd = this.getHd(animationIndex);
         if (hd) return hd.width/2;
         
         return null;
     }
 
     /** Returns the height of the standard definition version. */
-    getHeight() {
-        let sd = this.getDeFactoSdBase();
+    getHeight(animationIndex?: number) {
+        let sd = this.getSd(animationIndex);
         if (sd) return sd.height;
-        let hd = this.getDeFactoHdBase();
+        let hd = this.getHd(animationIndex);
         if (hd) return hd.height/2;
         
         return null;
     }
 
-    getBiggestDimension() {
-        return Math.max(this.getWidth(), this.getHeight());
+    getBiggestDimension(animationIndex?: number) {
+        return Math.max(this.getWidth(animationIndex), this.getHeight(animationIndex));
     }
 
-    getDownsizedDimensions(maxDimension: number): Dimensions {
-        let width = this.getWidth(), height = this.getHeight();
+    getDownsizedDimensions(maxDimension: number, animationIndex?: number): Dimensions {
+        let width = this.getWidth(animationIndex), height = this.getHeight(animationIndex);
         let ratio = width/height;
 
         if (width > height) {
@@ -210,7 +218,7 @@ export class Skin {
         this.textures["followCircle"] = await OsuTexture.fromFiles(this.directory, "sliderfollowcircle", "png", true, "sliderfollowcircle-{n}");
         this.textures["reverseArrow"] = await OsuTexture.fromFiles(this.directory, "reversearrow", "png", true);
         this.textures["sliderTick"] = await OsuTexture.fromFiles(this.directory, "sliderscorepoint", "png", true);
-        this.textures["hitCircle"] = await OsuTexture.fromFiles(this.directory, "hitcircle", "png", true);
+        this.textures["followPoint"] = await OsuTexture.fromFiles(this.directory, "followpoint", "png", true, "followpoint-{n}");
         this.textures["hit0"] = await OsuTexture.fromFiles(this.directory, "hit0", "png", true, "hit0-{n}");
         this.textures["hit50"] = await OsuTexture.fromFiles(this.directory, "hit50", "png", true, "hit50-{n}");
         this.textures["hit100"] = await OsuTexture.fromFiles(this.directory, "hit100", "png", true, "hit100-{n}");
