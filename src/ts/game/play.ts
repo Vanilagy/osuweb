@@ -126,7 +126,7 @@ export class Play {
         }
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
-        mainMusicMediaPlayer.start(/*-this.preludeTime / 1000*/ 0);
+        mainMusicMediaPlayer.start(-this.preludeTime / 1000);
 
         console.timeEnd("Audio load");
 

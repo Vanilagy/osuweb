@@ -134,7 +134,7 @@ export class FollowPoint {
                 sprite.height = height;
 
                 // The overall container's alpha will be that of the LAST part
-                this.container.alpha = 1 - fadeOutCompletion;
+                part.alpha = 1 - fadeOutCompletion;
             }
         }
 
