@@ -1,8 +1,6 @@
-import { UNSCALED_NUMBER_HEIGHT } from "../util/constants";
 import { OsuTexture } from "../game/skin";
 import { charIsDigit } from "../util/misc_util";
 
-export const USUAL_DIGIT_WIDTH_HEIGHT_RATIO = 36/52;
 export const USUAL_SCORE_DIGIT_HEIGHT = 46;
 
 export interface SpriteNumberTextures {

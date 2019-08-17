@@ -4,10 +4,9 @@ import { DRAWING_MODE, DrawingMode, PROCEDURAL_HEAD_INNER_TYPE, CIRCLE_BORDER_WI
 import { colorToHexNumber } from "../util/graphics_util";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { MathUtil, EaseType } from "../util/math_util";
-import { currentSkin } from "./skin";
+import { currentSkin, OsuTexture } from "./skin";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
-const APPROACH_CIRCLE_CS_RATIO = 118/118; // Bleh. lol
 const REVERSE_ARROW_PULSE_DURATION = 300;
 
 interface HitCirclePrimitiveOptions {
@@ -60,7 +59,7 @@ export class HitCirclePrimitive {
     private draw() {
         let circleDiameter = gameState.currentPlay.circleDiameter;
 
-        let base: PIXI.Sprite;
+        let base: PIXI.Container;
         if (DRAWING_MODE === DrawingMode.Procedural) {
             let canvas = document.createElement('canvas');
             canvas.setAttribute('width', String(Math.ceil(circleDiameter)));
@@ -68,58 +67,88 @@ export class HitCirclePrimitive {
             let ctx = canvas.getContext('2d');
             drawHitObjectHead(ctx, 0, 0, this.options.comboInfo);
 
-            base = new PIXI.Sprite(PIXI.Texture.from(canvas));
+            let sprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
+            sprite.anchor.set(0.5, 0.5);
+
+            base = sprite;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let tex: PIXI.Texture;
-            if (this.options.type === HitCirclePrimitiveType.HitCircle) {
-                tex = currentSkin.textures["hitCircle"].getDynamic(circleDiameter);
-            } else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-                tex = currentSkin.textures["sliderStartCircle"].getDynamic(circleDiameter) || currentSkin.textures["hitCircle"].getDynamic(circleDiameter);
+            let osuTexture = currentSkin.textures["hitCircle"];
+
+            if (this.options.type === HitCirclePrimitiveType.SliderHead) {
+                let startTex = currentSkin.textures["sliderStartCircle"];
+                if (!startTex.isEmpty()) osuTexture = startTex;
             } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-                tex = currentSkin.textures["sliderEndCircle"].getDynamic(circleDiameter) || currentSkin.textures["hitCircle"].getDynamic(circleDiameter);
+                let endTex = currentSkin.textures["sliderEndCircle"];
+                if (!endTex.isEmpty()) osuTexture = endTex;
             }
 
-            base = new PIXI.Sprite(tex);
-            base.tint = colorToHexNumber(this.options.comboInfo.color);
-        }
+            let factor = circleDiameter / 128;
+            let width = osuTexture.getWidth() * factor;
+            let height = osuTexture.getHeight() * factor;
 
-        base.pivot.x = base.width / 2;
-        base.pivot.y = base.height / 2;
-        base.width = circleDiameter;
-        base.height = circleDiameter;
+            let sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
+            sprite.width = width;
+            sprite.height = height;
+            sprite.tint = colorToHexNumber(this.options.comboInfo.color);
+            sprite.anchor.set(0.5, 0.5);
+
+            let wrapper = new PIXI.Container();
+            wrapper.addChild(sprite);
+
+            base = wrapper;
+        }
 
         this.base = base;
 
         let overlay: PIXI.Container;
         if (DRAWING_MODE === DrawingMode.Skin) {
-            let tex: PIXI.Texture;
+            let osuTexture: OsuTexture = null;
+
             if (this.options.type === HitCirclePrimitiveType.HitCircle) {
-                tex = currentSkin.textures["hitCircleOverlay"].getDynamic(circleDiameter);
+                osuTexture = currentSkin.textures["hitCircleOverlay"];
             } else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-                let baseTex = currentSkin.textures["sliderStartCircle"].getBest();
-                if (baseTex) {
-                    let overlayTex = currentSkin.textures["sliderStartCircleOverlay"].getDynamic(circleDiameter);
-                    if (overlayTex) tex = overlayTex;
-                    else tex = PIXI.Texture.EMPTY;
-                } else tex = currentSkin.textures["hitCircleOverlay"].getDynamic(circleDiameter); // Fall back to regular hitcircle's overlay
+                let baseTex = currentSkin.textures["sliderStartCircle"];
+
+                if (!baseTex.isEmpty()) {
+                    let overlayTex = currentSkin.textures["sliderStartCircleOverlay"];
+                    if (!overlayTex.isEmpty()) osuTexture = overlayTex;
+                } else {
+                    osuTexture = currentSkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+                }
             } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-                let baseTex = currentSkin.textures["sliderEndCircle"].getBest();
-                if (baseTex) {
-                    let overlayTex = currentSkin.textures["sliderEndCircleOverlay"].getDynamic(circleDiameter);
-                    if (overlayTex) tex = overlayTex;
-                    else tex = PIXI.Texture.EMPTY;
-                } else tex = currentSkin.textures["hitCircleOverlay"].getDynamic(circleDiameter); // Fall back to regular hitcircle's overlay
+                let baseTex = currentSkin.textures["sliderEndCircle"];
+
+                if (!baseTex.isEmpty()) {
+                    let overlayTex = currentSkin.textures["sliderEndCircleOverlay"];
+                    if (!overlayTex.isEmpty()) osuTexture = overlayTex;
+                } else {
+                    osuTexture = currentSkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+                }
             }
 
-            overlay = new PIXI.Sprite(tex);
+            let sprite: PIXI.Sprite;
 
-            overlay.pivot.x = overlay.width / 2;
-            overlay.pivot.y = overlay.height / 2;
-            overlay.width = circleDiameter;
-            overlay.height = circleDiameter;
+            if (osuTexture) {
+                let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * factor;
+                let height = osuTexture.getHeight() * factor;
+    
+                sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
+                sprite.anchor.set(0.5, 0.5);
+                sprite.width = width;
+                sprite.height = height;
 
-            this.overlay = overlay;
+            } else {
+                sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+            }
+
+            let wrapper = new PIXI.Container();
+            wrapper.addChild(sprite);
+
+            overlay = wrapper;
         }
+
+        this.overlay = overlay;
 
         let number: PIXI.Container;
         if (this.options.hasNumber) {
@@ -139,28 +168,29 @@ export class HitCirclePrimitive {
             }
         }
 
-        let reverseArrow: PIXI.Container;
+        let reverseArrow: PIXI.Container = null;
         if (this.options.reverseArrowAngle !== undefined) {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = currentSkin.textures["reverseArrow"];
 
-                let diameter = circleDiameter * osuTexture.getBiggestDimension() / 128;
+                let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * factor;
+                let height = osuTexture.getHeight() * factor;
 
-                reverseArrow = new PIXI.Sprite(osuTexture.getDynamic(diameter));
-
-                let dimensions = osuTexture.getDownsizedDimensions(diameter);
-                reverseArrow.pivot.x = reverseArrow.width/2;
-                reverseArrow.pivot.y = reverseArrow.height/2;
-                reverseArrow.width = dimensions.width;
-                reverseArrow.height = dimensions.height;
-                reverseArrow.rotation = this.options.reverseArrowAngle;
+                let sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
+                sprite.width = width;
+                sprite.height = height;
+                sprite.anchor.set(0.5, 0.5);
+                sprite.rotation = this.options.reverseArrowAngle;
 
                 let wrapper = new PIXI.Container();
-                wrapper.addChild(reverseArrow);
+                wrapper.addChild(sprite);
 
-                this.reverseArrow = wrapper;
+                reverseArrow = wrapper;
             }
         }
+
+        this.reverseArrow = reverseArrow;
 
         if (this.options.hasApproachCircle) {
             if (DRAWING_MODE === DrawingMode.Procedural) {
@@ -172,14 +202,15 @@ export class HitCirclePrimitive {
                 this.approachCircle = approachCircle;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = currentSkin.textures["approachCircle"];
-                let approachCircle = new PIXI.Sprite(osuTexture.getBest());
 
-                let diameter = circleDiameter * (osuTexture.getBiggestDimension() / 128);
-                let dimensions = osuTexture.getDownsizedDimensions(diameter);
-                approachCircle.pivot.x = approachCircle.width / 2;
-                approachCircle.pivot.y = approachCircle.height / 2;
-                approachCircle.width = dimensions.width;
-                approachCircle.height = dimensions.height;
+                let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * factor;
+                let height = osuTexture.getHeight() * factor;
+
+                let approachCircle = new PIXI.Sprite(osuTexture.getBest());
+                approachCircle.anchor.set(0.5, 0.5);
+                approachCircle.width = width;
+                approachCircle.height = height;
                 approachCircle.tint = colorToHexNumber(this.options.comboInfo.color);
 
                 let wrapper = new PIXI.Container();
@@ -216,8 +247,6 @@ export class HitCirclePrimitive {
                 approachCircleCompletion = MathUtil.clamp(approachCircleCompletion, 0, 1);
 
                 let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0
-                let approachCircleDiameter = circleDiameter * APPROACH_CIRCLE_CS_RATIO * approachCircleFactor;
-                this.approachCircle.width = this.approachCircle.height = approachCircleDiameter;
                 this.approachCircle.scale.set(approachCircleFactor);
     
                 this.approachCircle.alpha = fadeInCompletion;
@@ -242,12 +271,8 @@ export class HitCirclePrimitive {
             if (this.fadeOut.type === HitCirclePrimitiveFadeOutType.ScaleOut) {
                 let scale = 1 + MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion) * 0.5; // Max scale: 1.5
 
-                this.base.width = circleDiameter * scale;
-                this.base.height = circleDiameter * scale;
-                if (this.overlay) {
-                    this.overlay.width = circleDiameter * scale;
-                    this.overlay.height = circleDiameter * scale;
-                }
+                this.base.scale.set(scale);
+                if (this.overlay) this.overlay.scale.set(scale);
 
                 if (this.reverseArrow !== null) {
                     this.reverseArrow.scale.set(scale);

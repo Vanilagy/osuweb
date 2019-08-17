@@ -300,8 +300,7 @@ export class ScorePopup {
                 fill: scorePopupTypeToColor.get(type)
             });
     
-            popup.pivot.x = popup.width / 2;
-            popup.pivot.y = popup.height / 2;
+            popup.anchor.set(0.5, 0.5);
     
             if (HIDE_300s && (
                 type === ScorePopupType.Hit300 ||
@@ -323,15 +322,17 @@ export class ScorePopup {
             }
 
             let osuTexture = currentSkin.textures[name];
-            let texture = osuTexture.getDynamic(circleDiameter, 0);
+
+            let factor = circleDiameter / 128;
+            let width = osuTexture.getWidth() * factor;
+            let height = osuTexture.getHeight() * factor;
+
+            let texture = osuTexture.getDynamic(Math.max(width, height), 0);
             let sprite = new PIXI.Sprite(texture);
 
-            sprite.pivot.x = sprite.width/2;
-            sprite.pivot.y = sprite.height/2;
-
-            let dimensions = osuTexture.getDownsizedDimensions(osuTexture.getBiggestDimension() / 128 * circleDiameter);
-            sprite.width = dimensions.width;
-            sprite.height = dimensions.height;
+            sprite.anchor.set(0.5, 0.5);
+            sprite.width = width;
+            sprite.height = height;
 
             let wrapper = new PIXI.Container();
             wrapper.addChild(sprite);

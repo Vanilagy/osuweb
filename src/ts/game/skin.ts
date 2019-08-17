@@ -129,6 +129,10 @@ export class OsuTexture {
         }
     }
 
+    isEmpty() {
+        return (this.getDeFactoSdBase() || this.getDeFactoHdBase()) === null;
+    }
+
     static async fromFiles(directory: VirtualDirectory, name: string, extension: string, hd = false, animationName: string = null) {
         let newOsuTexture = new OsuTexture();
 

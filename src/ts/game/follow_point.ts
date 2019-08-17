@@ -9,7 +9,6 @@ export const POINT_DISTANCE = 32; // Taken from ppy, this **probably** means how
 export const FOLLOW_POINT_DISTANCE_THRESHOLD = POINT_DISTANCE * 3; // The minimum distance, in osu!pixels, that two objects need to be away from each other in order to create a follow point between them. In regular osu! terms, three follow point images.
 export const FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED = FOLLOW_POINT_DISTANCE_THRESHOLD ** 2;
 export const PRE_EMPT = 450; // In ms
-const FOLLOW_POINT_CS_RATIO = 22/118;
 const FOLLOW_POINT_SCREENTIME = 1200;
 const FOLLOW_POINT_FADE_IN_TIME = 400;
 const FOLLOW_POINT_FADE_OUT_TIME = 400;
@@ -49,14 +48,18 @@ export class FollowPoint {
 
         let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
         let osuTexture = currentSkin.textures["followPoint"];
-        let texture = osuTexture.getBest();
+
+        let factor = circleDiameter / 128;
+        let width = osuTexture.getWidth() * factor;
+        let height = osuTexture.getHeight() * factor;
+
+        let texture = osuTexture.getDynamic(Math.max(width, height));
 
         for (let i = 0; i < partCount; i++) {
             let sprite = new PIXI.Sprite(texture);
-            sprite.anchor.set(0.5, 0.5);
 
-            let height = circleDiameter * FOLLOW_POINT_CS_RATIO * (osuTexture.getHeight() / 22);
-            sprite.width = texture.width/texture.height * height;
+            sprite.anchor.set(0.5, 0.5);
+            sprite.width = width;
             sprite.height = height;
 
             let wrapper = new PIXI.Container();
@@ -128,11 +131,13 @@ export class FollowPoint {
                     frame = Math.floor((1 - fadeOutCompletion) * (frameCount - 1));
                 }
 
-                let texture = osuTexture.getBest(frame);
-                sprite.texture = texture;
+                let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth(frame) * factor;
+                let height = osuTexture.getHeight(frame) * factor;
 
-                let height = circleDiameter * FOLLOW_POINT_CS_RATIO * (osuTexture.getHeight(frame) / 22);
-                sprite.width = texture.width/texture.height * height;
+                let texture = osuTexture.getDynamic(Math.max(width, height), frame);
+                sprite.texture = texture;
+                sprite.width = width;
                 sprite.height = height;
 
                 // The overall container's alpha will be that of the LAST part

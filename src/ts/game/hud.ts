@@ -3,7 +3,7 @@ import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Interpolator } from "../util/graphics_util";
-import { SpriteNumber, USUAL_DIGIT_WIDTH_HEIGHT_RATIO, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
+import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
 import { currentSkin } from "./skin";
 
 export let scoreDisplay: SpriteNumber;
@@ -110,8 +110,7 @@ class ProgressIndicator {
 
         sprite.width = diameter;
         sprite.height = diameter;
-        sprite.pivot.x = sprite.width / 2;
-        sprite.pivot.y = sprite.height / 2;
+        sprite.anchor.set(0.5, 0.5);
 
         this.container = sprite;
 

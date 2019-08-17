@@ -18,9 +18,7 @@ import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveTy
 import { currentSkin } from "./skin";
 import { ComboInfo } from "./processed_beatmap";
 
-const SLIDER_BALL_CS_RATIO = 1; // OLD COMMENT, WHEN THE NUMBER WAS 1.328125: As to how this was determined, I'm not sure, this was taken from the old osu!web source. Back then, I didn't know how toxic magic numbers were.
-export const FOLLOW_CIRCLE_CS_RATIO = 256/118; // Based on the resolution of the images for hit circles and follow circles.
-const SLIDER_TICK_CS_RATIO = 16/118;
+export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
 const FOLLOW_CIRCLE_SCALE_OUT_DURATION = 200;
 const FOLLOW_CIRCLE_PULSE_DURATION = 200;
@@ -192,11 +190,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.followCircle = followCircle;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let followCircle = new PIXI.Sprite(currentSkin.textures["followCircle"].getDynamic(circleDiameter * FOLLOW_CIRCLE_CS_RATIO));
-            followCircle.pivot.x = followCircle.width / 2;
-            followCircle.pivot.y = followCircle.height / 2;
-            followCircle.width = circleDiameter;
-            followCircle.height = circleDiameter;
+            let followCircle = new PIXI.Sprite(currentSkin.textures["followCircle"].getDynamic(circleDiameter * FOLLOW_CIRCLE_HITBOX_CS_RATIO));
+            followCircle.anchor.set(0.5, 0.5);
 
             this.followCircle = followCircle;
         }
@@ -218,14 +213,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 tickElement = graphics;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = currentSkin.textures["sliderTick"];
-                let sprite = new PIXI.Sprite(osuTexture.getBest());
 
+                let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * factor;
+                let height = osuTexture.getHeight() * factor;
+
+                let sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 sprite.anchor.set(0.5, 0.5);
-
-                let dimensions = osuTexture.getDownsizedDimensions(circleDiameter * SLIDER_TICK_CS_RATIO * (osuTexture.getBiggestDimension() / 16));
-
-                sprite.width = dimensions.width;
-                sprite.height = dimensions.height;
+                sprite.width = width;
+                sprite.height = height;
 
                 let wrapper = new PIXI.Container();
                 wrapper.addChild(sprite);
@@ -478,7 +474,14 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 let radians = rolledDistance / 15;
                 let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
 
-                (this.sliderBall.base as PIXI.Sprite).texture = osuTex.getDynamic(circleDiameter * (osuTex.getBiggestDimension() / 128), currentFrame);
+                let sprite = this.sliderBall.base as PIXI.Sprite;
+                let factor = circleDiameter / 128;
+                let width = osuTex.getWidth() * factor;
+                let height = osuTex.getHeight() * factor;
+
+                sprite.texture = osuTex.getDynamic(Math.max(width, height), currentFrame);
+                sprite.width = width;
+                sprite.height = height;
             }
 
             if (currentSkin.config.general.sliderBallFlip) {
@@ -500,7 +503,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         enlargeCompletion = MathUtil.ease(EaseType.EaseOutQuad, enlargeCompletion);
 
         let followCircleSizeFactor = 0;
-        followCircleSizeFactor += (FOLLOW_CIRCLE_CS_RATIO - 1) * enlargeCompletion; // Enlarge to FOLLOW_CIRCLE_CS_RATIO on start
+        followCircleSizeFactor += (2 - 1) * enlargeCompletion; // Enlarge to 2 on start
 
         let biggestCurrentTickCompletion = -Infinity;
         let biggestCurrentRepeatCompletion = -Infinity;
@@ -534,10 +537,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         followCircleSizeFactor *= 1 * (1 - shrinkCompletion) + 0.75 * shrinkCompletion; // Shrink on end, to 1.5x
         followCircleSizeFactor += 1; // Base. Never get smaller than this.
 
-        let followCircleDiameter = gameState.currentPlay.circleDiameter;
-        followCircleDiameter *= followCircleSizeFactor;
-        this.followCircle.width = followCircleDiameter;
-        this.followCircle.height = followCircleDiameter;
+        let followCircleOsuTexture = currentSkin.textures["followCircle"];
+        let factor = circleDiameter / 128 * followCircleSizeFactor / 2;
+        let width = followCircleOsuTexture.getWidth() * factor;
+        let height = followCircleOsuTexture.getHeight() * factor;
+
+        this.followCircle.width = width;
+        this.followCircle.height = height;
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
@@ -616,13 +622,15 @@ class SliderBall {
         } else if (DRAWING_MODE === DrawingMode.Skin) {
             let osuTexture = currentSkin.textures["sliderBall"];
 
-            let diameter = circleDiameter * (osuTexture.getBiggestDimension() / 128); // The texture is always scaled in a way that it fits the slider body. Weird, but that's what's been observed.
+            let factor = circleDiameter / 128;
+            let width = osuTexture.getWidth() * factor;
+            let height = osuTexture.getHeight() * factor;
+            let maxDimension = Math.max(width, height);
 
-            let sliderBall = new PIXI.Sprite(osuTexture.getDynamic(diameter));
-            sliderBall.pivot.x = sliderBall.width / 2;
-            sliderBall.pivot.y = sliderBall.height / 2;
-            sliderBall.width = diameter;
-            sliderBall.height = diameter;
+            let sliderBall = new PIXI.Sprite(osuTexture.getDynamic(maxDimension));
+            sliderBall.anchor.set(0.5, 0.5);
+            sliderBall.width = width;
+            sliderBall.height = height;
 
             if (currentSkin.config.general.allowSliderBallTint) sliderBall.tint = colorToHexNumber(slider.comboInfo.color);
             else sliderBall.tint = colorToHexNumber(currentSkin.config.colors.sliderBall);
@@ -631,13 +639,12 @@ class SliderBall {
 
             if (!osuTexture.hasActualBase()) {
                 let bgTexture = currentSkin.textures["sliderBallBg"];
-                let tex = bgTexture.getDynamic(diameter);
+                let tex = bgTexture.getDynamic(maxDimension);
                 if (tex) {
-                    let sliderBallBg = new PIXI.Sprite(bgTexture.getDynamic(diameter));
-                    sliderBallBg.pivot.x = sliderBallBg.width / 2;
-                    sliderBallBg.pivot.y = sliderBallBg.height / 2;
-                    sliderBallBg.width = diameter;
-                    sliderBallBg.height = diameter;
+                    let sliderBallBg = new PIXI.Sprite(tex);
+                    sliderBallBg.anchor.set(0.5, 0.5);
+                    sliderBallBg.width = width;
+                    sliderBallBg.height = height;
                     sliderBallBg.tint = 0x000000; // Always tinted black.
     
                     this.background = sliderBallBg;
@@ -645,13 +652,12 @@ class SliderBall {
             }
 
             let specTexture = currentSkin.textures["sliderBallSpec"];
-            let tex = specTexture.getDynamic(diameter);
+            let tex = specTexture.getDynamic(maxDimension);
             if (tex) {
-                let sliderBallSpec = new PIXI.Sprite(specTexture.getDynamic(diameter));
-                sliderBallSpec.pivot.x = sliderBallSpec.width / 2;
-                sliderBallSpec.pivot.y = sliderBallSpec.height / 2;
-                sliderBallSpec.width = diameter;
-                sliderBallSpec.height = diameter;
+                let sliderBallSpec = new PIXI.Sprite(tex);
+                sliderBallSpec.anchor.set(0.5, 0.5);
+                sliderBallSpec.width = width;
+                sliderBallSpec.height = height;
                 sliderBallSpec.blendMode = PIXI.BLEND_MODES.ADD;
 
                 this.spec = sliderBallSpec;
