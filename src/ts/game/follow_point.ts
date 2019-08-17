@@ -101,6 +101,8 @@ export class FollowPoint {
 
             let fadeOutBeginning = MathUtil.lerp(this.startTime, this.endTime, x/this.length);
             let fadeInBeginning = fadeOutBeginning - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
+
+            if (frameCount > 1) fadeInBeginning = fadeOutBeginning - 600; // Observed, I guess? Sometimes, I really wonder how ppy's actual code looks like.
             
             let fadeInCompletion = (currentTime - fadeInBeginning) / FOLLOW_POINT_FADE_IN_TIME;
             fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
@@ -112,7 +114,7 @@ export class FollowPoint {
             if (frameCount === 1) {
                 // This animates the follow points in a certain way. Check the default skin for reference.
                 part.x -= (1 - easedFadeInCompletion) * POINT_DISTANCE*2 * pixelRatio;
-                part.scale.set(1 + (1 - easedFadeInCompletion)*0.5);
+                part.scale.set(1 + (1 - easedFadeInCompletion)*0.75);
                 part.alpha = fadeInCompletion;
                 part.alpha -= fadeOutCompletion;
             } else {

@@ -3,7 +3,7 @@ import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Interpolator } from "../util/graphics_util";
-import { SpriteNumber, USUAL_DIGIT_WIDTH_HEIGHT_RATIO } from "../visuals/sprite_number";
+import { SpriteNumber, USUAL_DIGIT_WIDTH_HEIGHT_RATIO, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
 import { currentSkin } from "./skin";
 
 export let scoreDisplay: SpriteNumber;
@@ -18,23 +18,25 @@ const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 
 export async function initHud() {
     let scoreHeight = window.innerHeight * 0.06,
-        comboHeight = window.innerHeight * 0.08,
-        accuracyHeight = window.innerHeight * 0.038;
+        accuracyHeight = window.innerHeight * 0.038,
+        comboHeight = window.innerHeight * 0.08;
 
     scoreDisplay = new SpriteNumber({
-        digitHeight: scoreHeight,
-        digitWidth: scoreHeight * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        scaleFactor: scoreHeight / USUAL_SCORE_DIGIT_HEIGHT,
+        equalWidthDigits: true,
         verticalAlign: "top",
         horizontalAlign: "right",
         overlap: currentSkin.config.fonts.scoreOverlap,
+        overlapAtEnd: true,
         textures: currentSkin.scoreNumberTextures,
         leftPad: 8
     });
-    scoreDisplay.container.x = window.innerWidth - window.innerHeight * 0.01;
+    scoreDisplay.container.x = Math.floor(window.innerWidth - window.innerHeight * 0.01);
+    scoreDisplay.container.x = window.innerWidth;
 
     accuracyDisplay = new SpriteNumber({
-        digitHeight: accuracyHeight,
-        digitWidth: accuracyHeight * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        scaleFactor: accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT,
+        equalWidthDigits: true,
         verticalAlign: "top",
         horizontalAlign: "right",
         overlap: currentSkin.config.fonts.scoreOverlap,
@@ -44,24 +46,22 @@ export async function initHud() {
     });
     accuracyDisplay.setValue(100); // Hacky. TODO.
     accuracyDisplay.container.x = scoreDisplay.container.x;
-    accuracyDisplay.container.y = scoreHeight + window.innerHeight * 0.008;
+    accuracyDisplay.container.y = Math.floor(scoreHeight + window.innerHeight * 0.008);
 
     phantomComboDisplay = new SpriteNumber({
-        digitHeight: comboHeight,
-        //digitWidth: comboSize * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
         verticalAlign: "bottom",
         horizontalAlign: "left",
         overlap: currentSkin.config.fonts.scoreOverlap,
         textures: currentSkin.scoreNumberTextures,
         hasX: true
     });
-    phantomComboDisplay.container.y = window.innerHeight - window.innerHeight * 0.005;
-    phantomComboDisplay.container.x = window.innerHeight * 0.005;
+    phantomComboDisplay.container.y = Math.floor(window.innerHeight - window.innerHeight * 0.005);
+    phantomComboDisplay.container.x = Math.floor(window.innerHeight * 0.005);
     phantomComboDisplay.container.alpha = 0.5;
 
     comboDisplay = new SpriteNumber({
-        digitHeight: comboHeight,
-        //digitWidth: comboSize * USUAL_DIGIT_WIDTH_HEIGHT_RATIO,
+        scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
         verticalAlign: "bottom",
         horizontalAlign: "left",
         overlap: currentSkin.config.fonts.scoreOverlap,
@@ -73,8 +73,8 @@ export async function initHud() {
 
     progressIndicator = new ProgressIndicator(window.innerHeight * 0.05);
     // SO UNCLEAN OMG! TEMP! TODO!!
-    progressIndicator.container.x = accuracyDisplay.container.x - accuracyDisplay.container.width - window.innerHeight * 0.035;
-    progressIndicator.container.y = window.innerHeight * 0.09;
+    progressIndicator.container.x = Math.floor(accuracyDisplay.container.x - accuracyDisplay.container.width - window.innerHeight * 0.04);
+    progressIndicator.container.y = Math.floor(accuracyDisplay.container.y + accuracyDisplay.container.height/2);
 
     accuracyMeter = new AccuracyMeter();
     accuracyMeter.container.x = window.innerWidth / 2;

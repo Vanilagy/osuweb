@@ -106,7 +106,7 @@ export class MediaPlayer {
     private pausedTime: number = null;
     private volume: number = 1;
     private gainNode: GainNode;
-    private playbackRate = 1;
+    private playbackRate = 1.0;
 
     constructor() {
         this.gainNode = audioContext.createGain();

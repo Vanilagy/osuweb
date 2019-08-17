@@ -128,8 +128,8 @@ export class HitCirclePrimitive {
                     textures: currentSkin.hitCircleNumberTextures,
                     horizontalAlign: "center",
                     verticalAlign: "middle",
-                    digitHeight: NUMBER_HEIGHT_CS_RATIO * circleDiameter * 0.8, // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
-                    overlap: currentSkin.config.fonts.hitCircleOverlap
+                    overlap: currentSkin.config.fonts.hitCircleOverlap,
+                    scaleFactor: (circleDiameter / 128) * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
                 });
                 text.setValue(this.options.comboInfo.n);
 

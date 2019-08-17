@@ -407,13 +407,13 @@ export class Play {
     toScreenCoordinatesX(osuCoordinateX: number) {
         let coord = window.innerWidth*0.5 + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
 
-        return Math.round(coord);
+        return coord | 0; // "Cast" to int
     }
 
     toScreenCoordinatesY(osuCoordinateY: number) {
         let coord = window.innerHeight*0.51 + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
 
-        return Math.round(coord);
+        return coord | 0;
     }
 
     // Inverse of toScreenCoordinatesX
