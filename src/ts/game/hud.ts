@@ -94,6 +94,8 @@ class ProgressIndicator {
     private diameter: number;
 
     constructor(diameter: number) {
+        diameter = Math.floor(diameter / 2) * 2;
+
         let sprite = new PIXI.Sprite();
         this.diameter = diameter;
 
