@@ -31,7 +31,6 @@ export async function initHud() {
         textures: currentSkin.scoreNumberTextures,
         leftPad: 8
     });
-    scoreDisplay.container.x = Math.floor(window.innerWidth - window.innerHeight * 0.01);
     scoreDisplay.container.x = window.innerWidth;
 
     accuracyDisplay = new SpriteNumber({
@@ -40,6 +39,7 @@ export async function initHud() {
         verticalAlign: "top",
         horizontalAlign: "right",
         overlap: currentSkin.config.fonts.scoreOverlap,
+        overlapAtEnd: true,
         textures: currentSkin.scoreNumberTextures,
         fixedDecimals: 2,
         hasPercent: true
@@ -127,7 +127,7 @@ class ProgressIndicator {
         let startAngle = -Math.PI / 2; // "North"
         let endAngle = startAngle + Math.PI*2 * completion;
 
-        ctx.strokeStyle = '#AAAAAA';
+        ctx.strokeStyle = '#9a999a';
         if (isPrelude) { // "Invert" the arc
             let temp = startAngle;
             startAngle = endAngle;

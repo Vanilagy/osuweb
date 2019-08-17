@@ -145,11 +145,14 @@ export class ProcessedBeatmap {
                 // O----T----T-O
                 // where O represents the ends, and T is a slider tick, then repeating that slider does NOT change the position of the Ts. It follows that slider ticks don't always "tick" in constant time intervals.
                 for (let tickCompletion = 0; tickCompletion < 1; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.beatmap.difficulty.TR)) / rawHitObject.length) {
-                    let t = Math.round(MathUtil.reflect(tickCompletion) * 10000) / 10000; // Rounding to get fucking actual values that make sense
+                    let t = tickCompletion;
 
-                    if (t > 0 && t < 1) {
-                        sliderTickCompletions.push(tickCompletion);
-                    }
+                    let timeToStart = tickCompletion * rawHitObject.length / timingInfo.sliderVelocity;
+                    let timeToEnd = (1 - tickCompletion) * rawHitObject.length / timingInfo.sliderVelocity;
+
+                    if (timeToStart < 6 || timeToEnd < 6) continue; // Ignore slider ticks temporally close to either slider end
+
+                    sliderTickCompletions.push(t);
                 }
                 
                 // Weird implementation. Can probably be done much easier-ly. This handles the "going back and forth but keep the ticks in the same location" thing. TODO.
