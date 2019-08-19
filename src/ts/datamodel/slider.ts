@@ -19,7 +19,7 @@ export class Slider extends HitObject {
     public length: number;
     public sections: SliderCurveSection[];
     public edgeHitsounds: number[] = [];
-    public edgeAdditions: Sampling[] = [];
+    public edgeSamplings: Sampling[] = [];
 
     constructor(data: string[]) {
         super(data);
@@ -45,7 +45,7 @@ export class Slider extends HitObject {
             for (let i = 0; i < values.length; i++) {
                 let val = values[i].split(':');
 
-                this.edgeAdditions.push({
+                this.edgeSamplings.push({
                     sampleSet: parseInt(val[0]),
                     additionSet: parseInt(val[1])
                 });
@@ -56,8 +56,8 @@ export class Slider extends HitObject {
                 additionSet: 0
             };
 
-            this.edgeAdditions.length = this.repeat + 1;
-            this.edgeAdditions.fill(defaultSampling);
+            this.edgeSamplings.length = this.repeat + 1;
+            this.edgeSamplings.fill(defaultSampling);
         }
 
         this.parseExtras(data[10]);

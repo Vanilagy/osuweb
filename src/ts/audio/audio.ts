@@ -30,6 +30,7 @@ export class SoundEmitter {
     private audioStartTime: number = null;
     private buffer: AudioBuffer = null;
     private offset: number = 0;
+    private loop: boolean = false;
 
     constructor(options: SoundEmitterOptions = {}) {
         if (options.buffer) this.setBuffer(options.buffer);
@@ -51,12 +52,19 @@ export class SoundEmitter {
         this.buffer = buffer;
     }
 
+    setLoopState(state: boolean) {
+        this.loop = state;
+
+        if (this.sourceNode) this.sourceNode.loop = state;
+    }
+ 
     private createSourceNode() {
         if (this.buffer === null) return;
 
         this.sourceNode = audioContext.createBufferSource();
         this.sourceNode.buffer = this.buffer;
         this.sourceNode.playbackRate.value = this.playbackRate;
+        this.sourceNode.loop = this.loop;
         
         this.sourceNode.connect(this.gainNode);
     }
@@ -83,6 +91,12 @@ export class SoundEmitter {
 
         this.sourceNode.start(audioContext.currentTime + delay, (offset < 0)? 0: offset);
         this.audioStartTime = audioContext.currentTime;
+    }
+
+    stop() {
+        if (!this.sourceNode) return;
+
+        this.sourceNode.stop();
     }
 
     getCurrentTime() {

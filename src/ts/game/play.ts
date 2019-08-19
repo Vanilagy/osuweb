@@ -316,6 +316,10 @@ export class Play {
                     hitObject.hitHead(playEvent.time + 0.01); // Add epsilon so hit isn't taken as a barely 50
                 }; break;
                 case PlayEventType.PerfectHeadHit: {
+                    if (playEvent.hitObject instanceof DrawableSlider) {
+                        playEvent.hitObject.beginSliderSlideSound();
+                    }
+
                     if (!AUTOHIT) break;
  
                     let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
@@ -323,6 +327,8 @@ export class Play {
                 }; break;
                 case PlayEventType.SliderEnd: {
                     let slider = playEvent.hitObject as DrawableSlider;
+
+                    slider.stopSliderSlideSound();
 
                     let distance = pointDistance(osuMouseCoordinates, slider.endPoint);
                     if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
@@ -361,7 +367,8 @@ export class Play {
                     if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
                         slider.scoring.ticks++;
                         this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
-                        //normalHitSoundEffect.start(); // TODO: Play tick sound! 
+
+                        currentSkin.playHitSound(playEvent.hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }

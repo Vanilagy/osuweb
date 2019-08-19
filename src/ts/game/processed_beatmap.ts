@@ -11,7 +11,8 @@ import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { IGNORE_BEATMAP_SKIN, currentSkin, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo } from "./skin";
+import { IGNORE_BEATMAP_SKIN, currentSkin, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet } from "./skin";
+import { SoundEmitter } from "../audio/audio";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -124,18 +125,14 @@ export class ProcessedBeatmap {
                 }
             }
 
-            let newObject = null;
-
-            if (rawHitObject instanceof Circle) {
-                newObject = new DrawableCircle(rawHitObject);
-
-                let baseSet = rawHitObject.extras.sampleSet || currentSampleSet || 1;
-                let additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
-                let index = rawHitObject.extras.customIndex || currentSampleIndex || 1;
-                let volume = rawHitObject.extras.sampleVolume || currentVolume;
+            function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, index: number) {
+                baseSet = baseSet || currentSampleSet || 1;
+                additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+                volume = volume || currentVolume;
+                index = index || currentSampleIndex || 1;
 
                 let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
-                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, rawHitObject.hitSound);
+                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, hitSound);
 
                 let info: HitSoundInfo = {
                     base: baseType,
@@ -143,34 +140,44 @@ export class ProcessedBeatmap {
                     volume: volume,
                     index: index
                 };
+                
+                return info;
+            }
 
-                newObject.hitSound = info;
+            let newObject = null;
+
+            if (rawHitObject instanceof Circle) {
+                newObject = new DrawableCircle(rawHitObject);
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
 
                 let hitSounds: HitSoundInfo[] = [];
                 for (let i = 0; i < rawHitObject.edgeHitsounds.length; i++) {
+                    
                     let hitSound = rawHitObject.edgeHitsounds[i];
-                    let sampling = rawHitObject.edgeAdditions[i];
+                    let sampling = rawHitObject.edgeSamplings[i];
 
-                    let baseSet = sampling.sampleSet || currentSampleSet || 1;
-                    let additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
-                    let index = /*rawHitObject.extras.customIndex || */currentSampleIndex || 1; // Custom index support? eh... how? TODO
-                    let volume = /*rawHitObject.extras.sampleVolume || */currentVolume; // Custom volume support? eh... how?
-
-                    let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
-                    let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, hitSound);
-
-                    let info: HitSoundInfo = {
-                        base: baseType,
-                        additions: additionTypes,
-                        volume: volume,
-                        index: index
-                    };
-
+                    let info = generateHitSoundInfo(hitSound, sampling.sampleSet, sampling.additionSet, null, null);
                     hitSounds.push(info);
                 }
                 newObject.hitSounds = hitSounds;
+                newObject.tickSound = {
+                    base: getTickHitSoundTypeFromSampleSet(rawHitObject.extras.sampleSet || currentSampleSet || 1),
+                    volume: rawHitObject.extras.sampleVolume || currentVolume,
+                    index: rawHitObject.extras.customIndex || currentSampleIndex || 1
+                };
+
+                let sliderSlideTypes = getSliderSlideTypesFromSampleSet(rawHitObject.extras.sampleSet || currentSampleSet || 1, rawHitObject.hitSound);
+                let sliderSlideEmitters: SoundEmitter[] = [];
+                for (let i = 0; i < sliderSlideTypes.length; i++) {
+                    let type = sliderSlideTypes[i];
+                    let emitter = currentSkin.sounds[type].getEmitter(rawHitObject.extras.sampleVolume || currentVolume, rawHitObject.extras.customIndex || currentSampleIndex || 1);
+                    if (!emitter) continue;
+
+                    emitter.setLoopState(true);
+                    sliderSlideEmitters.push(emitter);
+                }
+                newObject.slideEmitters = sliderSlideEmitters;
 
                 let sliderVelocityInOsuPixelsPerBeat = 100 * this.beatmap.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
                 let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / (currentMsPerBeat * currentMsPerBeatMultiplier);
@@ -215,23 +222,10 @@ export class ProcessedBeatmap {
                 newObject.sliderTickCompletions = sliderTickCompletions;
             } else if (rawHitObject instanceof Spinner) {
                 newObject = new DrawableSpinner(rawHitObject);
+            }
 
-                let baseSet = rawHitObject.extras.sampleSet || currentSampleSet || 1;
-                let additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
-                let index = rawHitObject.extras.customIndex || currentSampleIndex || 1;
-                let volume = rawHitObject.extras.sampleVolume || currentVolume;
-
-                let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
-                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, rawHitObject.hitSound);
-
-                let info: HitSoundInfo = {
-                    base: baseType,
-                    additions: additionTypes,
-                    volume: volume,
-                    index: index
-                };
-
-                newObject.hitSound = info;
+            if (newObject instanceof DrawableCircle || newObject instanceof DrawableSpinner) {
+                newObject.hitSound = generateHitSoundInfo(rawHitObject.hitSound, rawHitObject.extras.sampleSet, rawHitObject.extras.additionSet, rawHitObject.extras.sampleVolume, rawHitObject.extras.customIndex);
             }
 
             if (newObject !== null) {

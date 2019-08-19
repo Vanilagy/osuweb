@@ -7,7 +7,7 @@ import { charIsDigit } from "../util/misc_util";
 import { SoundEmitter, createAudioBuffer } from "../audio/audio";
 
 // This is all temp:
-let currentSkinPath = "./assets/skins/default";
+let currentSkinPath = "./assets/skins/yugen";
 let currentSkinDirectory = new VirtualDirectory("root");
 currentSkinDirectory.networkFallbackUrl = currentSkinPath;
 
@@ -180,11 +180,13 @@ export interface HitSoundInfo {
     base: HitSoundType,
     additions?: HitSoundType[],
     volume: number,
-    index: number
+    index?: number
 }
 
 export function getHitSoundTypesFromSampleSetAndBitmap(sampleSet: number, bitmap: number) {
     let types: HitSoundType[] = [];
+
+    bitmap |= 1; // Normal sound is always played
 
     if ((bitmap & 1) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalHitNormal);
@@ -206,6 +208,32 @@ export function getHitSoundTypesFromSampleSetAndBitmap(sampleSet: number, bitmap
         else if (sampleSet === 2) types.push(HitSoundType.SoftHitClap);
         else if (sampleSet === 3) types.push(HitSoundType.DrumHitClap);
     }
+
+    return types;
+}
+
+export function getTickHitSoundTypeFromSampleSet(sampleSet: number) {
+    if (sampleSet === 1) return HitSoundType.NormalSliderTick;
+    else if (sampleSet === 2) return HitSoundType.SoftSliderTick;
+    else if (sampleSet === 3) return HitSoundType.DrumSliderTick;
+}
+
+export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitmap: number) {
+    let types: HitSoundType[] = [];
+
+    bitmap |= 1; // Normal sound is always played
+
+    if ((bitmap & 1) !== 0) {
+        if (sampleSet === 1) types.push(HitSoundType.NormalSliderSlide);
+        else if (sampleSet === 2) types.push(HitSoundType.SoftSliderSlide);
+        else if (sampleSet === 3) types.push(HitSoundType.DrumSliderSlide);
+    }
+    if ((bitmap & 2) !== 0) {
+        if (sampleSet === 1) types.push(HitSoundType.NormalSliderWhistle);
+        else if (sampleSet === 2) types.push(HitSoundType.SoftSliderWhistle);
+        else if (sampleSet === 3) types.push(HitSoundType.DrumSliderWhistle);
+    }
+    // Only normal and whistle are supported, so ignore finish and clap.
 
     return types;
 }
@@ -256,13 +284,19 @@ class HitSound {
         }
     }
 
-    play(volume: number, index = 1) {
+    getEmitter(volume: number, index = 1) {
         let buffer = this.audioBuffers[index];
         if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one
-        if (!buffer) return;
+        if (!buffer) return null;
 
         let emitter = new SoundEmitter({buffer, volume: volume/100});
-        emitter.start();
+
+        return emitter;
+    }
+
+    play(volume: number, index = 1) {
+        let emitter = this.getEmitter(volume, index);
+        if (emitter) emitter.start();
     }
 }
 
@@ -325,7 +359,7 @@ export class Skin {
     public scoreNumberTextures: SpriteNumberTextures;
     public comboNumberTextures: SpriteNumberTextures;
     public colors: Color[];
-    public sounds: { [key in keyof typeof HitSoundType]?: HitSound }
+    public sounds: { [key in keyof typeof HitSoundType]?: HitSound };
 
     constructor(directory: VirtualDirectory) {
         this.directory = directory;
@@ -399,6 +433,8 @@ export class Skin {
 
         // Sounds
 
+        console.time("Hit sounds load");
+
         let hitSoundReadyPromises: Promise<void>[] = [];
 
         for (let key in HitSoundType) {
@@ -419,7 +455,7 @@ export class Skin {
 
         await Promise.all(hitSoundReadyPromises);
 
-        console.log(this);
+        console.timeEnd("Hit sounds load");
 
         console.timeEnd("Skin init");
     }
@@ -432,9 +468,11 @@ export class Skin {
         let baseSound = this.sounds[info.base];
         baseSound.play(info.volume, info.index);
 
-        for (let i = 0; i < info.additions.length; i++) {
-            let additionSound = this.sounds[info.additions[i]];
-            additionSound.play(info.volume, info.index);
+        if (info.additions) {
+            for (let i = 0; i < info.additions.length; i++) {
+                let additionSound = this.sounds[info.additions[i]];
+                additionSound.play(info.volume, info.index);
+            }
         }
     }
 }

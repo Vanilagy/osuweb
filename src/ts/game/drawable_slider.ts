@@ -14,8 +14,9 @@ import { assert, last } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { currentSkin, HitSoundInfo } from "./skin";
+import { currentSkin, HitSoundInfo, HitSoundType } from "./skin";
 import { ComboInfo } from "./processed_beatmap";
+import { SoundEmitter } from "../audio/audio";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -55,6 +56,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public sliderTickCompletions: number[];
     public scoring: SliderScoring;
     public hitSounds: HitSoundInfo[];
+    public tickSound: HitSoundInfo;
+    public slideEmitters: SoundEmitter[];
 
     constructor(hitObject: Slider) {
         super(hitObject);
@@ -302,6 +305,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             hitSound: last(this.hitSounds)
         });
 
+        // Add repeats
         if (this.hitObject.repeat > 1) {
             let repeatCycleDuration = (this.endTime - this.startTime) / this.hitObject.repeat;
 
@@ -318,6 +322,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             }
         }
 
+        // Add ticks
         for (let tickCompletion of this.sliderTickCompletions) {
             // Time that the tick should be hit, relative to the slider start time
             let time = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
@@ -327,8 +332,21 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 type: PlayEventType.SliderTick,
                 hitObject: this,
                 time: this.startTime + time,
-                position: position
+                position: position,
+                hitSound: this.tickSound
             });
+        }
+    }
+
+    beginSliderSlideSound() {
+        for (let emitter of this.slideEmitters) {
+            emitter.start();
+        }
+    }
+
+    stopSliderSlideSound() {
+        for (let emitter of this.slideEmitters) {
+            emitter.stop();
         }
     }
 
