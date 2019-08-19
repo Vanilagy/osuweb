@@ -1,4 +1,4 @@
-import { Point } from "./point";
+import { Point, pointDistanceSquared } from "./point";
 
 export enum EaseType {
     Linear,
@@ -24,7 +24,7 @@ export enum EaseType {
 }
 
 export class MathUtil {
-	static coordsOnBezier(pointArray: Point[], t: number): Point {
+	static pointOnBezierCurve(pointArray: Point[], t: number): Point {
         let bx = 0, by = 0, n = pointArray.length - 1; // degree
 
         if (n === 1) { // if linear
@@ -58,7 +58,28 @@ export class MathUtil {
         }
 
         return r;
-	}
+    }
+    static curvatureOfBezierCurve(pointArray: Point[], t: number, middlePoint?: Point) {
+        let a = MathUtil.pointOnBezierCurve(pointArray, t - 0.001),
+            b = middlePoint || MathUtil.pointOnBezierCurve(pointArray, t),
+            c = MathUtil.pointOnBezierCurve(pointArray, t + 0.001);
+
+        let a1 = Math.atan2(b.y - a.y, b.x - a.x),
+            a2 = Math.atan2(c.y - b.y, c.x - b.x);
+
+        return Math.abs(MathUtil.getNormalizedAngleDelta(a1, a2));
+    }
+    static triangleArea(a: Point, b: Point, c: Point) {
+        return 0.5 * ((b.x - a.x)*(c.y - a.y) - (c.x - a.x)*(b.y - a.y));
+    }
+    static circleRadius(p1: Point, p2: Point, p3: Point) {
+        let ds1 = pointDistanceSquared(p1, p2),
+            ds2 = pointDistanceSquared(p2, p3),
+            ds3 = pointDistanceSquared(p1, p3),
+            area = MathUtil.triangleArea(p1, p2, p3);
+
+        return Math.sqrt(ds1 * ds2 * ds3) / (4 * area);
+    }
     static circleCenterPos(p1: Point, p2: Point, p3: Point): Point {
         let yDelta_a = p2.y - p1.y;
         let xDelta_a = p2.x - p1.x;

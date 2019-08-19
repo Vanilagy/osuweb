@@ -10,9 +10,7 @@ import { gameState } from "./game_state";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { last } from "../util/misc_util";
 
-const MAXIMUM_TRACE_POINT_DISTANCE = 3;
-const TOLERANCE = 0.25;
-const DEBUG_PREFIX = "[BEZIER]";
+const MAXIMUM_TRACE_POINT_DISTANCE = 4;
 
 export class SliderCurveBezier extends SliderCurve {
     public tracePoints: Point[];
@@ -22,8 +20,6 @@ export class SliderCurveBezier extends SliderCurve {
         super(drawableSlider);
         this.equalDistancePoints = [];
         this.tracePoints = [];
-
-        let { pixelRatio } = gameState.currentPlay;
 
         if (!speedCalc) {
             this.slider.minX = this.slider.maxX = this.sections[0].values[0].x;
@@ -51,7 +47,6 @@ export class SliderCurveBezier extends SliderCurve {
     }
 
     render(completion: number) {
-        let { pixelRatio } = gameState.currentPlay;
         let actualIndex = completion * (this.equalDistancePoints.length - 1);
         let targetIndex = Math.floor(actualIndex);
 
@@ -62,14 +57,6 @@ export class SliderCurveBezier extends SliderCurve {
         this.slider.baseCtx.moveTo(startPoint.x, startPoint.y);
         for (let i = 1; i < targetIndex + 1; i++) {
             let point = this.equalDistancePoints[i];
-
-            // The fuck is this pointless shit that V8 can't even optimize for? @David in 2017
-            // This part skips points that belong to the same linear segment, in order to draw them in one stroke
-            //if (point.linearSegmentId !== undefined) {
-            //    if (this.equalDistancePoints[i + 1] && this.equalDistancePoints[i + 1].linearSegmentId === point.linearSegmentId) {
-            //        continue;
-            //    }
-            //}
 
             point = this.slider.toCtxCoord(point);
             this.slider.baseCtx.lineTo(point.x, point.y);
@@ -130,9 +117,6 @@ export class SliderCurveBezier extends SliderCurve {
     }
 
     calculateTracePoints(speedCalc: boolean) {
-        let traceDistance = (speedCalc) ? 8 : MAXIMUM_TRACE_POINT_DISTANCE;
-        let tolerance = (speedCalc) ? 1 : TOLERANCE;
-
         for (let i = 0; i < this.sections.length; i++) {
             let points = this.sections[i].values;
 
@@ -140,55 +124,15 @@ export class SliderCurveBezier extends SliderCurve {
                 this.pushTracePoint(points[0]);
                 this.pushTracePoint(points[1]);
             } else {
-                let leftT = 0, rightT = 0.01;
-                let p1 = MathUtil.coordsOnBezier(points, leftT);
-                let p2 = MathUtil.coordsOnBezier(points, rightT);
-                this.pushTracePoint(p1);
+                let t = 0;
 
-                while (leftT < 1) { // Binary segment approximation method
-                    while (true) {
-                        let dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                while (t < 1) {
+                    let point = MathUtil.pointOnBezierCurve(points, t);
+                    let curvature = MathUtil.curvatureOfBezierCurve(points, t, point);
 
-                        if (dist < traceDistance) {
-                            leftT += 0.01;
-                            rightT += 0.01;
+                    this.pushTracePoint(point);
 
-                            if (leftT >= 1) {
-                                break;
-                            }
-
-                            p2 = MathUtil.coordsOnBezier(points, rightT);
-                        } else {
-                            let p3, midT;
-
-                            while (true) {
-                                midT = (leftT + rightT) / 2;
-                                p3 = MathUtil.coordsOnBezier(points, midT);
-                                dist = Math.hypot(p3.x - p1.x, p3.y - p1.y);
-
-                                if (Math.abs(traceDistance - dist) <= tolerance) {
-                                    break;
-                                }
-
-                                if (dist < traceDistance) {
-                                    leftT = midT;
-                                } else {
-                                    rightT = midT;
-                                }
-                            }
-
-                            if (midT < 1) {
-                                this.pushTracePoint(p3);
-                                p1 = p3;
-                            }
-
-                            leftT = midT;
-                            rightT = leftT + 0.01;
-                            p2 = MathUtil.coordsOnBezier(points, rightT);
-
-                            break;
-                        }
-                    }
+                    t += 0.01 / Math.sqrt(curvature * 300); // Move smaller steps based on curvature
                 }
             }
 
