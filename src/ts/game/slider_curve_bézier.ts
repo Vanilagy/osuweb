@@ -12,12 +12,12 @@ import { last } from "../util/misc_util";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 4;
 
-export class SliderCurveBezier extends SliderCurve {
+export class SliderCurveBézier extends SliderCurve {
     public tracePoints: Point[];
     public equalDistancePoints: Point[];
 
     constructor(drawableSlider: DrawableSlider, speedCalc: boolean) {
-        super(drawableSlider);
+        super(drawableSlider); 
         this.equalDistancePoints = [];
         this.tracePoints = [];
 
@@ -127,8 +127,8 @@ export class SliderCurveBezier extends SliderCurve {
                 let t = 0;
 
                 while (t < 1) {
-                    let point = MathUtil.pointOnBezierCurve(points, t);
-                    let curvature = MathUtil.curvatureOfBezierCurve(points, t, point);
+                    let point = MathUtil.pointOnBézierCurve(points, t);
+                    let curvature = MathUtil.curvatureOfBézierCurve(points, t, point);
 
                     this.pushTracePoint(point);
 

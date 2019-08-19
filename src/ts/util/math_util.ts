@@ -24,7 +24,7 @@ export enum EaseType {
 }
 
 export class MathUtil {
-	static pointOnBezierCurve(pointArray: Point[], t: number): Point {
+	static pointOnBézierCurve(pointArray: Point[], t: number): Point {
         let bx = 0, by = 0, n = pointArray.length - 1; // degree
 
         if (n === 1) { // if linear
@@ -59,10 +59,10 @@ export class MathUtil {
 
         return r;
     }
-    static curvatureOfBezierCurve(pointArray: Point[], t: number, middlePoint?: Point) {
-        let a = MathUtil.pointOnBezierCurve(pointArray, t - 0.001),
-            b = middlePoint || MathUtil.pointOnBezierCurve(pointArray, t),
-            c = MathUtil.pointOnBezierCurve(pointArray, t + 0.001);
+    static curvatureOfBézierCurve(pointArray: Point[], t: number, middlePoint?: Point) {
+        let a = MathUtil.pointOnBézierCurve(pointArray, t - 0.001),
+            b = middlePoint || MathUtil.pointOnBézierCurve(pointArray, t),
+            c = MathUtil.pointOnBézierCurve(pointArray, t + 0.001);
 
         let a1 = Math.atan2(b.y - a.y, b.x - a.x),
             a2 = Math.atan2(c.y - b.y, c.x - b.x);

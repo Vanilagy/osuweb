@@ -2,7 +2,7 @@ import { HitObject, Samplings } from "./hit_object";
 import { Point } from "../util/point";
 
 // Use enum here?
-type SliderCurveSectionType = 'unknown' | 'perfect' | 'linear' | 'bezier';
+type SliderCurveSectionType = 'unknown' | 'perfect' | 'linear' | 'bézier';
 
 export interface SliderCurveSection {
     type: SliderCurveSectionType,
@@ -155,7 +155,7 @@ export class Slider extends HitObject {
             sectionType = "linear";
         }
         else {
-            sectionType = "bezier";
+            sectionType = "bézier";
         }
 
         if (sliderSectionPoints.length > 1) sliderSections.push({

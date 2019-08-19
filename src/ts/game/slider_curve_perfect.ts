@@ -1,7 +1,7 @@
 import { SliderCurve } from "./slider_curve";
 //import {GraphicUtil} from "./graphicutil";
 import { MathUtil } from "../util/math_util";
-import { SliderCurveBezier } from "./slider_curve_bezier";
+import { SliderCurveBézier } from "./slider_curve_bézier";
 import { DrawableSlider } from "./drawable_slider";
 import { Point } from "../util/point";
 import { gameState } from "./game_state";
@@ -60,7 +60,7 @@ export class SliderCurvePerfect extends SliderCurve {
             this.sections[0] = {type: "linear", values: [points[0], points[1]]};
             this.sections[1] = {type: "linear", values: [points[1], points[2]]};
 
-            this.slider.curve = new SliderCurveBezier(this.slider, speedCalc);
+            this.slider.curve = new SliderCurveBézier(this.slider, speedCalc);
             return;
         }
 
@@ -73,7 +73,7 @@ export class SliderCurvePerfect extends SliderCurve {
             this.sections[0].values.splice(1,1);
             this.sections[0].type = "linear";
 
-            this.slider.curve = new SliderCurveBezier(this.slider, speedCalc);
+            this.slider.curve = new SliderCurveBézier(this.slider, speedCalc);
             return;
         }
 

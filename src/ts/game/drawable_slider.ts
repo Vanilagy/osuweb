@@ -2,7 +2,7 @@ import { Slider } from "../datamodel/slider";
 import { SliderCurve } from "./slider_curve";
 import { SliderCurveEmpty } from "./slider_curve_empty";
 import { SliderCurvePerfect } from "./slider_curve_perfect";
-import { SliderCurveBezier } from "./slider_curve_bezier";
+import { SliderCurveBézier } from "./slider_curve_bézier";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
@@ -76,7 +76,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             (<SliderCurvePerfect>this.curve).calculateValues(false);
         } else {
-            this.curve = new SliderCurveBezier(this, false);
+            this.curve = new SliderCurveBézier(this, false);
         }
 
         if (this.hitObject.repeat % 2 === 0) {
@@ -385,7 +385,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     getPosFromPercentage(percent: number) : Point {
-        if (this.curve instanceof SliderCurveBezier) {
+        if (this.curve instanceof SliderCurveBézier) {
             return interpolatePointInPointArray(this.curve.equalDistancePoints, percent);
         } else if (this.curve instanceof SliderCurvePerfect) {
             let angle = this.curve.startingAngle + this.curve.angleDifference * percent;
