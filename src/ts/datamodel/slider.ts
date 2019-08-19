@@ -1,8 +1,13 @@
-import { HitObject, Samplings } from "./hit_object";
+import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 
 // Use enum here?
 type SliderCurveSectionType = 'unknown' | 'perfect' | 'linear' | 'bézier';
+
+interface Sampling {
+    sampleSet: number,
+    additionSet: number
+}
 
 export interface SliderCurveSection {
     type: SliderCurveSectionType,
@@ -13,9 +18,8 @@ export class Slider extends HitObject {
     public repeat: number;
     public length: number;
     public sections: SliderCurveSection[];
-    public additions: number[] = [];
-    public edgeSamplings: Samplings[] = [];
-    public bodySamplings: Samplings;
+    public edgeHitsounds: number[] = [];
+    public edgeAdditions: Sampling[] = [];
 
     constructor(data: string[]) {
         super(data);
@@ -24,85 +28,39 @@ export class Slider extends HitObject {
         this.repeat = parseInt(data[6]);
         this.length = parseFloat(data[7]);
 
-        //region edgeAdditions
-        if (data[8] !== null && data[8] !== undefined) {
-            let additionsValuesRaw = data[8].split('|');
+        if (data[8]) {
+            let values = data[8].split('|');
 
-            let additions = [];
-
-            for (let j = 0; j < additionsValuesRaw.length; j++) {
-                additions.push(parseInt(additionsValuesRaw[j], 10));
+            for (let i = 0; i < values.length; i++) {
+                this.edgeHitsounds.push(parseInt(values[i]));
             }
-
-            this.additions = additions;
+        } else {
+            this.edgeHitsounds.length = this.repeat + 1;
+            this.edgeHitsounds.fill(0); // TODO. Does this default to 0?
         }
-        else {
-            let additions = [];
 
-            for (let j = 0; j < this.repeat + 1; j++) {
-                additions.push(0);
-            }
+        if (data[9]) {
+            let values = data[9].split('|');
 
-            this.additions = additions;
-        }
-        //endregion
+            for (let i = 0; i < values.length; i++) {
+                let val = values[i].split(':');
 
-        //region edgeSamplings
-        if (data[9] !== null && data[9] !== undefined) {
-            let edgeSamplings: Samplings[] = [];
-
-            let splitEdgeSampleSetsRaw = data[9].split('|');
-
-            for (let j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
-                let val = splitEdgeSampleSetsRaw[j].split(':');
-
-                edgeSamplings.push({
-                    sampleSet: parseInt(val[0], 10),
-                    sampleSetAddition: parseInt(val[1], 10)
+                this.edgeAdditions.push({
+                    sampleSet: parseInt(val[0]),
+                    additionSet: parseInt(val[1])
                 });
             }
-            this.edgeSamplings = edgeSamplings;
-        }
-        else {
-            let edgeSamplings: Samplings[] = [];
-
-            let splitEdgeSampleSetsRaw = [];
-
-            for (let j = 0; j < this.repeat + 1; j++) splitEdgeSampleSetsRaw.push("0:0");
-
-            for (let j = 0; j < splitEdgeSampleSetsRaw.length; j++) {
-                let val = splitEdgeSampleSetsRaw[j].split(':');
-
-                edgeSamplings.push({
-                    sampleSet: parseInt(val[0], 10),
-                    sampleSetAddition: parseInt(val[1], 10)
-                });
-            }
-
-            this.edgeSamplings = edgeSamplings;
-        }
-        //endregion
-
-        //region bodySamplings
-        if (data[10] !== null && data[10] !== undefined) {
-            let sliderBodySamplingValues = ["0", "0"];
-
-            if (data[10] !== undefined) {
-                sliderBodySamplingValues = data[10].split(':');
-            }
-            else {
-
-            }
-
-            this.bodySamplings = {
-                sampleSet: parseInt(sliderBodySamplingValues[0], 10),
-                sampleSetAddition: parseInt(sliderBodySamplingValues[1], 10)
+        } else {
+            let defaultSampling: Sampling = {
+                sampleSet: 0,
+                additionSet: 0
             };
+
+            this.edgeAdditions.length = this.repeat + 1;
+            this.edgeAdditions.fill(defaultSampling);
         }
-        else {
-            this.bodySamplings = {sampleSet: 0, sampleSetAddition: 0};
-        }
-        //endregion
+
+        this.parseExtras(data[10]);
     }
 
     parseSections(data: string[]) {
@@ -113,8 +71,8 @@ export class Slider extends HitObject {
         let sliderSections: SliderCurveSection[] = [];
 
         let sliderSectionPoints: Point[] = [{
-            x: parseInt(data[0], 10),
-            y: parseInt(data[1], 10)
+            x: parseInt(data[0]),
+            y: parseInt(data[1])
         }];
 
         let lastPoint = null;
@@ -123,8 +81,8 @@ export class Slider extends HitObject {
             let coords = sliderPoints[j].split(':');
 
             let nextPoint: Point = {
-                x: parseInt(coords[0], 10),
-                y: parseInt(coords[1], 10)
+                x: parseInt(coords[0]),
+                y: parseInt(coords[1])
             };
 
             // end section if same point appears twice and start a new one if end is not reached
@@ -137,7 +95,7 @@ export class Slider extends HitObject {
 
             sliderSectionPoints.push(nextPoint);
 
-            if(j + 1 === sliderPoints.length) this.finishSection(sliderSectionPoints, sliderType, sliderSections);
+            if (j + 1 === sliderPoints.length) this.finishSection(sliderSectionPoints, sliderType, sliderSections);
 
             lastPoint = nextPoint;
         }
@@ -150,11 +108,9 @@ export class Slider extends HitObject {
 
         if (sliderSectionPoints.length === 3 && sliderType === "P") {
             sectionType = "perfect";
-        }
-        else if (sliderSectionPoints.length === 2) {
+        } else if (sliderSectionPoints.length === 2) {
             sectionType = "linear";
-        }
-        else {
+        } else {
             sectionType = "bézier";
         }
 

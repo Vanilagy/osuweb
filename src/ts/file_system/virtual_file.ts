@@ -1,4 +1,5 @@
 import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
+import { getFileNameWithoutExtension } from "../util/file_util";
 
 export class VirtualFile extends VirtualFileSystemEntry {
     private resource: Blob | File | string;
@@ -51,6 +52,10 @@ export class VirtualFile extends VirtualFileSystemEntry {
     getLastModifiedDate() {
         if (this.resource instanceof File) return new Date(this.resource.lastModified);
         return null;
+    }
+
+    getNameWithoutExtension() {
+        return getFileNameWithoutExtension(this.name);
     }
 
     static fromUrl(url: string, resourceName: string) {

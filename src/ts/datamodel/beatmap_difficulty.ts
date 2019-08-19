@@ -59,4 +59,56 @@ export class BeatmapDifficulty {
     getCirclePixelSize() : number {
         return BeatmapDifficulty.getCirclePixelSize(this.CS);
     }
+
+    calculateDifficultyMultiplier() {
+        // Based on: https://osu.ppy.sh/help/wiki/Score/
+
+        /*
+
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+
+        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
+        It will only account for original values only.
+        v
+        TODO
+        */
+
+        // Using the algorithm found in McOsu:
+        /*
+        let breakTime = this.getTotalBreakTime();
+        let playableLength = this.getPlayableLength();
+        let drainLength = Math.max(playableLength - Math.min(breakTime, playableLength), 1000) / 1000;
+        let difficultyPoints = ((this.beatmap.difficulty.CS + this.beatmap.difficulty.HP + this.beatmap.difficulty.OD + MathUtil.clamp(this.hitObjects.length / drainLength * 8, 0, 16)) / 38.0 * 5.0);
+
+        console.log(this.beatmap.difficulty.CS + this.beatmap.difficulty.HP + this.beatmap.difficulty.OD, difficultyPoints, MathUtil.clamp(this.hitObjects.length / drainLength * 8, 0, 16));*/
+
+        let accumulatedDifficultyPoints = this.CS + this.HP + this.OD;
+        
+        // Determined emperically. These differ from what's listed on the official osu website, however these values seem to be the correct ones. UwU
+        if (accumulatedDifficultyPoints <= 3) return 2;
+        else if (accumulatedDifficultyPoints <= 10) return 3;
+        else if (accumulatedDifficultyPoints <= 18) return 4;
+        else if (accumulatedDifficultyPoints <= 25) return 5;
+        return 6;
+
+        //return difficultyPoints;
+    }
 }

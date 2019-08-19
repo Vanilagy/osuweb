@@ -18,10 +18,8 @@ interface SoundEmitterOptions {
     playbackRate?: number
 }
 
-export function getAudioBuffer(arrayBuffer: ArrayBuffer) {
-    return new Promise<AudioBuffer>((resolve) => {
-        audioContext.decodeAudioData(arrayBuffer, (audioBuffer) => resolve(audioBuffer));
-    });
+export function createAudioBuffer(arrayBuffer: ArrayBuffer) {
+    return audioContext.decodeAudioData(arrayBuffer);
 }
 
 export class SoundEmitter {
@@ -247,13 +245,3 @@ export class MediaPlayer {
 }
 
 export let mainMusicMediaPlayer = new MediaPlayer();
-(window as any).musicPlayer = mainMusicMediaPlayer; // TODO: Remove. Dis for debug.
-
-export let normalHitSoundEffect = new SoundEmitter();
-normalHitSoundEffect.setVolume(1);
-
-async function initHitSound() {
-    let buffer = await fetchAsArrayBuffer('./assets/sound/normal-hitnormal.wav');
-    normalHitSoundEffect.setBuffer(await getAudioBuffer(buffer));    
-}
-initHitSound();

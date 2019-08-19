@@ -84,7 +84,7 @@ export class ScoreCounter {
         this.totalNumberOfHits = 0;
         this.totalValueOfHits = 0;
 
-        this.difficultyMultiplier = this.processedBeatmap.calculateDifficultyMultiplier();
+        this.difficultyMultiplier = this.processedBeatmap.beatmap.difficulty.calculateDifficultyMultiplier();
         this.modMultiplier = 1;
 
         this.resetGekiAndKatu();

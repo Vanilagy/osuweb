@@ -10,5 +10,7 @@ export class Spinner extends HitObject {
         this.x = PLAYFIELD_DIMENSIONS.width/2;
         this.y = PLAYFIELD_DIMENSIONS.height/2;
         this.endTime = parseInt(data[5]);
+
+        this.parseExtras(data[6]);
     }
 }

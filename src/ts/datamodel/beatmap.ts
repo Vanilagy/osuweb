@@ -20,8 +20,8 @@ interface TimingPoint {
     msPerBeat: number,
     BPM: number,
     meter: number,
-    sampleType: number,
     sampleSet: number,
+    sampleIndex: number,
     volume: number,
     inherited: boolean,
     kiai: boolean
@@ -87,6 +87,8 @@ export class Beatmap {
         console.time("Beatmap parse");
         this.parseBeatmap(options.text);
         console.timeEnd("Beatmap parse");
+
+        console.log(this);
     }
 
     getAudioFile() {
@@ -128,36 +130,30 @@ export class Beatmap {
                 //Console.verbose("Beatmap version: "+this.version);
 
                 //if(!line.endsWith("14")) Console.warn("The beatmap version seems to be older than supported. We could run into issue here!");
-            }
-            else if(line.startsWith("[") && line.endsWith("]")) {
+            } else if(line.startsWith("[") && line.endsWith("]")) {
                 section = line.substr(1,line.length-2).toLowerCase();
 
                 //Console.verbose("Reading new section: "+line);
-            }
-            else if (section === "colours") {
+            } else if (section === "colours") {
                 this.parseComboColor(line);
-            }
-            else if (section === "timingpoints") {
+            } else if (section === "timingpoints") {
                 this.parseTimingPoint(line);
-            }
-            else if (section === "events") {
+            } else if (section === "events") {
                 if (line.startsWith("//")) continue;
 
                 this.parseEvent(line);
-            }
-            else if (section === "hitobjects") {
+            } else if (section === "hitobjects") {
                 this.parseHitObject(line);
-            }
-            else {
+            } else {
                 if (line.startsWith("AudioFilename")) this.audioFilename = line.split(':')[1].trim();
-                else if (line.startsWith("AudioLeadIn")) this.audioLeadIn = parseInt(line.split(':')[1].trim(), 10);
-                else if (line.startsWith("PreviewTime")) this.previewTime = parseInt(line.split(':')[1].trim(), 10);
-                else if (line.startsWith("Countdown")) this.countdown = parseInt(line.split(':')[1].trim(), 10);
-                else if (line.startsWith("SampleSet")) this.sampleSet = parseInt(line.split(':')[1].trim(), 10);
+                else if (line.startsWith("AudioLeadIn")) this.audioLeadIn = parseInt(line.split(':')[1].trim());
+                else if (line.startsWith("PreviewTime")) this.previewTime = parseInt(line.split(':')[1].trim());
+                else if (line.startsWith("Countdown")) this.countdown = parseInt(line.split(':')[1].trim());
+                else if (line.startsWith("SampleSet")) this.sampleSet = parseInt(line.split(':')[1].trim());
                 else if (line.startsWith("StackLeniency")) this.difficulty.SL = parseFloat(line.split(':')[1].trim());
-                else if (line.startsWith("Mode")) this.mode = parseInt(line.split(':')[1].trim(), 10);
-                else if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = parseInt(line.split(':')[1].trim(), 10);
-                else if (line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard = parseInt(line.split(':')[1].trim(), 10);
+                else if (line.startsWith("Mode")) this.mode = parseInt(line.split(':')[1].trim());
+                else if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = parseInt(line.split(':')[1].trim());
+                else if (line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard = parseInt(line.split(':')[1].trim());
 
                 else if (line.startsWith("Title:")) this.title = line.split(':')[1].trim();
                 else if (line.startsWith("TitleUnicode")) this.titleUnicode = line.split(':')[1].trim();
@@ -167,8 +163,8 @@ export class Beatmap {
                 else if (line.startsWith("Version")) this.version = line.split(':')[1].trim();
                 else if (line.startsWith("Source")) this.source = line.split(':')[1].trim();
                 else if (line.startsWith("Tags")) this.tags = line.split(':')[1].trim();
-                else if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim(), 10);
-                else if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim(), 10);
+                else if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim());
+                else if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim());
 
                 else if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(line.split(':')[1].trim());
                 else if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(line.split(':')[1].trim());
@@ -181,7 +177,7 @@ export class Beatmap {
             }
         }
 
-        if(!this.ARFound) this.difficulty.AR = this.difficulty.OD;
+        if (!this.ARFound) this.difficulty.AR = this.difficulty.OD;
 
         //Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
         //Console.verbose("--- BEATMAP LOADING FINISHED ---");
@@ -193,9 +189,9 @@ export class Beatmap {
         let col = line.split(':')[1].trim().split(',');
 
         this.colors.push({
-            r: parseInt(col[0], 10),
-            g: parseInt(col[1], 10),
-            b: parseInt(col[2], 10),
+            r: parseInt(col[0]),
+            g: parseInt(col[1]),
+            b: parseInt(col[2]),
         });
 
         //Console.verbose("Added color #" + this.colors.length + ": " + col);
@@ -205,21 +201,23 @@ export class Beatmap {
     parseTimingPoint(line: string) {
         let values = line.split(',');
 
-        let offset = parseInt(values[0], 10);
+        let offset = parseInt(values[0]);
         if (this.timingPoints.length === 0) offset = 0;
         // From the osu! website: The offset is an integral number of milliseconds, from the start of the song. It defines when the timing point starts. A timing point ends when the next one starts. The first timing point starts at 0, disregarding its offset.
 
+        let msPerBeat = parseFloat(values[1]);
+
         this.timingPoints.push({
             index: this.timingPoints.length,
-            offset: parseInt(values[0], 10),
-            msPerBeat: parseFloat(values[1]),
-            BPM: parseFloat(values[1]) > 0 ? 60000 / Number(values[1]) : -1,
-            meter: parseInt(values[2], 10),
-            sampleType: parseInt(values[3], 10),
-            sampleSet: parseInt(values[4], 10),
-            volume: parseInt(values[5], 10),
-            inherited: parseFloat(values[1]) < 0,
-            kiai: Boolean(parseInt(values[7], 10)),
+            offset: offset,
+            msPerBeat: msPerBeat,
+            BPM: msPerBeat > 0 ? 60000 / Number(values[1]) : -1,
+            meter: parseInt(values[2]),
+            sampleSet: parseInt(values[3]),
+            sampleIndex: parseInt(values[4]),
+            volume: parseInt(values[5]),
+            inherited: msPerBeat < 0,
+            kiai: Boolean(parseInt(values[7])),
         });
 
         //Console.verbose("Added timing point #" + this.timingPoints.length + ": " + JSON.stringify(this.timingPoints[this.timingPoints.length - 1]));
@@ -228,7 +226,7 @@ export class Beatmap {
     parseHitObject(line: string) {
         let values = line.split(',');
 
-        let hitObjectData = parseInt(values[3], 10) % 16;
+        let hitObjectData = parseInt(values[3]) % 16;
 
         if (hitObjectData === 1 || hitObjectData === 5) {
             if (!this.loadFlat) {
@@ -236,22 +234,19 @@ export class Beatmap {
                 //Console.verbose("Circle added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.circleCount++;
-        }
-        else if (hitObjectData === 2 || hitObjectData === 6) {
+        } else if (hitObjectData === 2 || hitObjectData === 6) {
             if (!this.loadFlat) {
                 this.hitObjects.push(new Slider(values));
                 //Console.verbose("Slider added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.sliderCount++;
-        }
-        else if (hitObjectData === 8 || hitObjectData === 12) {
+        } else if (hitObjectData === 8 || hitObjectData === 12) {
             if (!this.loadFlat) {
                 this.hitObjects.push(new Spinner(values));
                 //Console.verbose("Spinner added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.spinnerCount++;
-        }
-        else {
+        } else {
             //Console.verbose("Unrecognized HitObject-type! (peppy plz)");
         }
     }
@@ -261,12 +256,12 @@ export class Beatmap {
 
         switch (values[0]) {
             case "0": {
-                let x = parseInt(values[3], 10),
-                    y = parseInt(values[4], 10);
+                let x = parseInt(values[3]),
+                    y = parseInt(values[4]);
 
                 let event: BeatmapEventImage = {
                     type: "image",
-                    time: parseInt(values[1], 10),
+                    time: parseInt(values[1]),
                     file: values[2].substring(1, values[2].length - 1),
                     position: {x, y}
                 };
@@ -276,8 +271,8 @@ export class Beatmap {
             case "2": {
                 let event: BeatmapEventBreak = {
                     type: "break",
-                    start: parseInt(values[1], 10),
-                    end: parseInt(values[2], 10)
+                    start: parseInt(values[1]),
+                    end: parseInt(values[2])
                 };
 
                 this.events.push(event);

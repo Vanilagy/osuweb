@@ -34,6 +34,12 @@ export function getFileExtension(fileName: string) {
     return '';
 }
 
+export function getFileNameWithoutExtension(fileName: string) {
+    let lastDotIndex = fileName.lastIndexOf('.');
+    if (lastDotIndex !== -1) return fileName.slice(0, lastDotIndex);
+    return fileName;
+}
+
 export function isAudioFile(fileName: string) {
     let extension = getFileExtension(fileName);
     return AUDIO_FILE_EXTENSIONS.includes(extension);

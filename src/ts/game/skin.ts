@@ -3,9 +3,11 @@ import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../datamodel/skin_configuration";
 import { Dimensions, Color } from "../util/graphics_util";
+import { charIsDigit } from "../util/misc_util";
+import { SoundEmitter, createAudioBuffer } from "../audio/audio";
 
 // This is all temp:
-let currentSkinPath = "./assets/skins/yugen";
+let currentSkinPath = "./assets/skins/default";
 let currentSkinDirectory = new VirtualDirectory("root");
 currentSkinDirectory.networkFallbackUrl = currentSkinPath;
 
@@ -174,6 +176,147 @@ export class OsuTexture {
     }
 }
 
+export interface HitSoundInfo {
+    base: HitSoundType,
+    additions?: HitSoundType[],
+    volume: number,
+    index: number
+}
+
+export function getHitSoundTypesFromSampleSetAndBitmap(sampleSet: number, bitmap: number) {
+    let types: HitSoundType[] = [];
+
+    if ((bitmap & 1) !== 0) {
+        if (sampleSet === 1) types.push(HitSoundType.NormalHitNormal);
+        else if (sampleSet === 2) types.push(HitSoundType.SoftHitNormal);
+        else if (sampleSet === 3) types.push(HitSoundType.DrumHitNormal);
+    }
+    if ((bitmap & 2) !== 0) {
+        if (sampleSet === 1) types.push(HitSoundType.NormalHitWhistle);
+        else if (sampleSet === 2) types.push(HitSoundType.SoftHitWhistle);
+        else if (sampleSet === 3) types.push(HitSoundType.DrumHitWhistle);
+    }
+    if ((bitmap & 4) !== 0) {
+        if (sampleSet === 1) types.push(HitSoundType.NormalHitFinish);
+        else if (sampleSet === 2) types.push(HitSoundType.SoftHitFinish);
+        else if (sampleSet === 3) types.push(HitSoundType.DrumHitFinish);
+    }
+    if ((bitmap & 8) !== 0) {
+        if (sampleSet === 1) types.push(HitSoundType.NormalHitClap);
+        else if (sampleSet === 2) types.push(HitSoundType.SoftHitClap);
+        else if (sampleSet === 3) types.push(HitSoundType.DrumHitClap);
+    }
+
+    return types;
+}
+
+class HitSound {
+    private files: { [index: number]: VirtualFile };
+    private audioBuffers: { [index: number]: AudioBuffer };
+
+    constructor(directory: VirtualDirectory, fileName: string) {
+        this.files = {};
+        this.audioBuffers = {};
+
+        directory.forEachFile((file) => {
+            if (!file.name.startsWith(fileName)) return;
+
+            let rawName = file.getNameWithoutExtension();
+            let endIndex = rawName.length;
+
+            while (endIndex > 0) {
+                let char = rawName.charAt(endIndex - 1);
+                if (charIsDigit(char)) endIndex--;
+                else break;
+            }
+
+            let indexString = rawName.slice(endIndex);
+            let index = 1;
+            if (indexString) {
+                index = Number(indexString);
+            }
+
+            this.files[index] = file;
+        });
+    }
+
+    async ready() {
+        for (let key in this.files) {
+            let index = Number(key);
+            let file = this.files[index];
+            let arrayBuffer = await file.readAsArrayBuffer();
+
+            try {
+                let audioBuffer = await createAudioBuffer(arrayBuffer);
+
+                this.audioBuffers[index] = audioBuffer;
+            } catch(e) {
+                // Audio wasn't able to be decoded. Add no emitter.
+            }
+        }
+    }
+
+    play(volume: number, index = 1) {
+        let buffer = this.audioBuffers[index];
+        if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one
+        if (!buffer) return;
+
+        let emitter = new SoundEmitter({buffer, volume: volume/100});
+        emitter.start();
+    }
+}
+
+export enum HitSoundType {
+    NormalHitNormal,
+    NormalHitWhistle,
+    NormalHitFinish,
+    NormalHitClap,
+    NormalSliderSlide,
+    NormalSliderWhistle,
+    NormalSliderTick,
+
+    SoftHitNormal,
+    SoftHitWhistle,
+    SoftHitFinish,
+    SoftHitClap,
+    SoftSliderSlide,
+    SoftSliderWhistle,
+    SoftSliderTick,
+
+    DrumHitNormal,
+    DrumHitWhistle,
+    DrumHitFinish,
+    DrumHitClap,
+    DrumSliderSlide,
+    DrumSliderWhistle,
+    DrumSliderTick
+}
+
+let hitSoundFileNames: Map<HitSoundType, string> = new Map();
+hitSoundFileNames.set(HitSoundType.NormalHitNormal, "normal-hitnormal");
+hitSoundFileNames.set(HitSoundType.NormalHitWhistle, "normal-hitwhistle");
+hitSoundFileNames.set(HitSoundType.NormalHitFinish, "normal-hitfinish");
+hitSoundFileNames.set(HitSoundType.NormalHitClap, "normal-hitclap");
+hitSoundFileNames.set(HitSoundType.NormalSliderSlide, "normal-sliderslide");
+hitSoundFileNames.set(HitSoundType.NormalSliderWhistle, "normal-sliderwhistle");
+hitSoundFileNames.set(HitSoundType.NormalSliderTick, "normal-slidertick");
+//
+hitSoundFileNames.set(HitSoundType.SoftHitNormal, "soft-hitnormal");
+hitSoundFileNames.set(HitSoundType.SoftHitWhistle, "soft-hitwhistle");
+hitSoundFileNames.set(HitSoundType.SoftHitFinish, "soft-hitfinish");
+hitSoundFileNames.set(HitSoundType.SoftHitClap, "soft-hitclap");
+hitSoundFileNames.set(HitSoundType.SoftSliderSlide, "soft-sliderslide");
+hitSoundFileNames.set(HitSoundType.SoftSliderWhistle, "soft-sliderwhistle");
+hitSoundFileNames.set(HitSoundType.SoftSliderTick, "soft-slidertick");
+//
+hitSoundFileNames.set(HitSoundType.DrumHitNormal, "drum-hitnormal");
+hitSoundFileNames.set(HitSoundType.DrumHitWhistle, "drum-hitwhistle");
+hitSoundFileNames.set(HitSoundType.DrumHitFinish, "drum-hitfinish");
+hitSoundFileNames.set(HitSoundType.DrumHitClap, "drum-hitclap");
+hitSoundFileNames.set(HitSoundType.DrumSliderSlide, "drum-sliderslide");
+hitSoundFileNames.set(HitSoundType.DrumSliderWhistle, "drum-sliderwhistle");
+hitSoundFileNames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
+
 export class Skin {
     private directory: VirtualDirectory;
     public config: SkinConfiguration = DEFAULT_SKIN_CONFIG;
@@ -182,6 +325,7 @@ export class Skin {
     public scoreNumberTextures: SpriteNumberTextures;
     public comboNumberTextures: SpriteNumberTextures;
     public colors: Color[];
+    public sounds: { [key in keyof typeof HitSoundType]?: HitSound }
 
     constructor(directory: VirtualDirectory) {
         this.directory = directory;
@@ -190,6 +334,7 @@ export class Skin {
         this.scoreNumberTextures = null;
         this.comboNumberTextures = null;
         this.colors = [];
+        this.sounds = {};
     }
 
     async init() {
@@ -252,11 +397,45 @@ export class Skin {
         }
         this.comboNumberTextures = tempObj;
 
+        // Sounds
+
+        let hitSoundReadyPromises: Promise<void>[] = [];
+
+        for (let key in HitSoundType) {
+            if (isNaN(Number(key))) continue;
+
+            let type = Number(key) as HitSoundType;
+            let fileName = hitSoundFileNames.get(type);
+
+            if (this.directory.networkFallbackUrl) {
+                await this.directory.getFileByName(fileName + '.wav');
+            }
+
+            let hitSound = new HitSound(this.directory, fileName);
+            hitSoundReadyPromises.push(hitSound.ready());
+
+            this.sounds[key] = hitSound;
+        }
+
+        await Promise.all(hitSoundReadyPromises);
+
+        console.log(this);
+
         console.timeEnd("Skin init");
     }
 
     async load() {
         await this.directory.loadShallow();
+    }
+
+    playHitSound(info: HitSoundInfo) {
+        let baseSound = this.sounds[info.base];
+        baseSound.play(info.volume, info.index);
+
+        for (let i = 0; i < info.additions.length; i++) {
+            let additionSound = this.sounds[info.additions[i]];
+            additionSound.play(info.volume, info.index);
+        }
     }
 }
 

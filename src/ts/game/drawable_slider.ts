@@ -9,13 +9,12 @@ import { gameState } from "./game_state";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
-import { normalHitSoundEffect } from "../audio/audio";
 import { ScoringValue } from "./score";
-import { assert } from "../util/misc_util";
+import { assert, last } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { currentSkin } from "./skin";
+import { currentSkin, HitSoundInfo } from "./skin";
 import { ComboInfo } from "./processed_beatmap";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
@@ -55,6 +54,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public hitObject: Slider;
     public sliderTickCompletions: number[];
     public scoring: SliderScoring;
+    public hitSounds: HitSoundInfo[];
 
     constructor(hitObject: Slider) {
         super(hitObject);
@@ -298,7 +298,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         playEventArray.push({
             type: PlayEventType.SliderEnd,
             hitObject: this,
-            time: this.endTime
+            time: this.endTime,
+            hitSound: last(this.hitSounds)
         });
 
         if (this.hitObject.repeat > 1) {
@@ -311,7 +312,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                     type: PlayEventType.SliderRepeat,
                     hitObject: this,
                     time: this.startTime + i * repeatCycleDuration,
-                    position: position
+                    position: position,
+                    hitSound: this.hitSounds[i]
                 });
             }
         }
@@ -368,7 +370,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, time);
         if (judgement !== 0) {
-            normalHitSoundEffect.start();
+            currentSkin.playHitSound(this.hitSounds[0]);
 
             this.head.setFadeOut({
                 type: HitCirclePrimitiveFadeOutType.ScaleOut,

@@ -10,7 +10,7 @@ import { gameState } from "./game_state";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { last } from "../util/misc_util";
 
-const MAXIMUM_TRACE_POINT_DISTANCE = 4;
+const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
 export class SliderCurveBézier extends SliderCurve {
     public tracePoints: Point[];

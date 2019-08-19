@@ -7,8 +7,6 @@ import { Point } from "../util/point";
 import { gameState } from "./game_state";
 //import {Console} from "../console";
 
-const MAXIMUM_TRACE_POINT_DISTANCE = 3;
-
 export class SliderCurvePerfect extends SliderCurve {
     public centerPos: Point = {x: 0, y: 0};
     public angleDifference: number = 0;

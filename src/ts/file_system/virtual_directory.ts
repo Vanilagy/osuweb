@@ -56,6 +56,15 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
         }
     }
 
+    forEachFile(func: (entry: VirtualFile) => any) {
+        for (let key in this.entries) {
+            let entry = this.entries[key];
+            if (!(entry instanceof VirtualFile)) continue;
+
+            func(entry);
+        }
+    }
+
     /** Load all files in this directory. */
     loadShallow() {
         let arr: Promise<void>[] = [];

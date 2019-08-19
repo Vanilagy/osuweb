@@ -1,7 +1,18 @@
-export interface Samplings {
+interface Extras {
     sampleSet: number,
-    sampleSetAddition: number
+    additionSet: number,
+    customIndex: number,
+    sampleVolume: number,
+    fileName: string
 }
+
+const DEFAULT_EXTRAS: Extras = {
+    sampleSet: 0,
+    additionSet: 0,
+    customIndex: 0,
+    sampleVolume: 0,
+    fileName: ""
+};
 
 export abstract class HitObject {
     public newCombo: number;
@@ -9,7 +20,7 @@ export abstract class HitObject {
     public y: number;
     public time: number;
     public hitSound: number;
-    public samplings: Samplings;
+    public extras: Extras;
 
     constructor(data: string[]) {
         let comboSkip = HitObject.getComboSkipsFromType(Number(data[3]));
@@ -21,17 +32,22 @@ export abstract class HitObject {
         this.y = parseInt(data[1]);
         this.time = parseInt(data[2]);
         this.hitSound = parseInt(data[4]);
+    }
 
-        let samplingValues = ["0", "0"];
+    parseExtras(data: string) {
+        if (data) {
+            let values = data.split(":");
 
-        if (data[5] !== undefined) {
-            samplingValues = data[5].split(':');
+            this.extras = {
+                sampleSet: parseInt(values[0]),
+                additionSet: parseInt(values[1]),
+                customIndex: parseInt(values[2]),
+                sampleVolume: parseInt(values[3]),
+                fileName: values[4]
+            };
+        } else {
+            this.extras = DEFAULT_EXTRAS;
         }
-
-        this.samplings = {
-            sampleSet: parseInt(samplingValues[0], 10),
-            sampleSetAddition: parseInt(samplingValues[1], 10)
-        };
     }
 
     static getComboSkipsFromType(hitObjectType: number) {

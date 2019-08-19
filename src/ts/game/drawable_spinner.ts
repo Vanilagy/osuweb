@@ -7,8 +7,8 @@ import { MathUtil, EaseType } from "../util/math_util";
 import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
-import { normalHitSoundEffect } from "../audio/audio";
 import { Interpolator } from "../util/graphics_util";
+import { HitSoundInfo, currentSkin } from "./skin";
 
 const SPINNER_CENTER_CIRCLE_RADIUS = 5;
 const SPINNER_SPINNY_THING_RADIUS = 30;
@@ -18,6 +18,7 @@ const SPINNER_FADE_OUT_TIME = 200; // In ms
 
 export class DrawableSpinner extends DrawableHitObject {
     public hitObject: Spinner;
+    public hitSound: HitSoundInfo;
     private componentContainer: PIXI.Container;
     private centerCircle: PIXI.Container;
     private approachCircle: PIXI.Container;
@@ -190,7 +191,7 @@ export class DrawableSpinner extends DrawableHitObject {
             })();
 
             currentPlay.scoreCounter.add(judgement, false, true, true, this, this.endTime);
-            if (judgement !== 0) normalHitSoundEffect.start();
+            if (judgement !== 0) currentSkin.playHitSound(this.hitSound);
         }
     }
 

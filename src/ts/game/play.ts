@@ -2,7 +2,7 @@ import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { mainMusicMediaPlayer, normalHitSoundEffect } from "../audio/audio";
+import { mainMusicMediaPlayer } from "../audio/audio";
 import { mainRender, followPointContainer, scorePopupContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
@@ -21,6 +21,7 @@ import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
+import { currentSkin } from "./skin";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -327,7 +328,8 @@ export class Play {
                     if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
                         slider.scoring.end = true;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
-                        normalHitSoundEffect.start();
+
+                        currentSkin.playHitSound(playEvent.hitSound);
                     }
 
                     if (slider.scoring.head.hit === ScoringValue.NotHit) {
@@ -346,7 +348,8 @@ export class Play {
                     if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
                         slider.scoring.repeats++;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
-                        normalHitSoundEffect.start();
+
+                        currentSkin.playHitSound(playEvent.hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }

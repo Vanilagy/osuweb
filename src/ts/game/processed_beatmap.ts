@@ -11,7 +11,7 @@ import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { IGNORE_BEATMAP_SKIN, currentSkin, DEFAULT_COLORS } from "./skin";
+import { IGNORE_BEATMAP_SKIN, currentSkin, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo } from "./skin";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -69,6 +69,7 @@ export class ProcessedBeatmap {
         let currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
         let currentMsPerBeatMultiplier = 1;
         let currentSampleSet = this.beatmap.timingPoints[0].sampleSet;
+        let currentSampleIndex = this.beatmap.timingPoints[0].sampleIndex;
         let currentVolume = this.beatmap.timingPoints[0].volume;
 
         for (let i = 0; i < this.beatmap.hitObjects.length; i++) {
@@ -112,6 +113,7 @@ export class ProcessedBeatmap {
                     }
 
                     currentSampleSet = timingPoint.sampleSet;
+                    currentSampleIndex = timingPoint.sampleIndex;
                     currentVolume = timingPoint.volume;
 
                     currentTimingPoint++;
@@ -126,8 +128,49 @@ export class ProcessedBeatmap {
 
             if (rawHitObject instanceof Circle) {
                 newObject = new DrawableCircle(rawHitObject);
+
+                let baseSet = rawHitObject.extras.sampleSet || currentSampleSet || 1;
+                let additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+                let index = rawHitObject.extras.customIndex || currentSampleIndex || 1;
+                let volume = rawHitObject.extras.sampleVolume || currentVolume;
+
+                let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
+                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, rawHitObject.hitSound);
+
+                let info: HitSoundInfo = {
+                    base: baseType,
+                    additions: additionTypes,
+                    volume: volume,
+                    index: index
+                };
+
+                newObject.hitSound = info;
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
+
+                let hitSounds: HitSoundInfo[] = [];
+                for (let i = 0; i < rawHitObject.edgeHitsounds.length; i++) {
+                    let hitSound = rawHitObject.edgeHitsounds[i];
+                    let sampling = rawHitObject.edgeAdditions[i];
+
+                    let baseSet = sampling.sampleSet || currentSampleSet || 1;
+                    let additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+                    let index = /*rawHitObject.extras.customIndex || */currentSampleIndex || 1; // Custom index support? eh... how? TODO
+                    let volume = /*rawHitObject.extras.sampleVolume || */currentVolume; // Custom volume support? eh... how?
+
+                    let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
+                    let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, hitSound);
+
+                    let info: HitSoundInfo = {
+                        base: baseType,
+                        additions: additionTypes,
+                        volume: volume,
+                        index: index
+                    };
+
+                    hitSounds.push(info);
+                }
+                newObject.hitSounds = hitSounds;
 
                 let sliderVelocityInOsuPixelsPerBeat = 100 * this.beatmap.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
                 let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / (currentMsPerBeat * currentMsPerBeatMultiplier);
@@ -172,6 +215,23 @@ export class ProcessedBeatmap {
                 newObject.sliderTickCompletions = sliderTickCompletions;
             } else if (rawHitObject instanceof Spinner) {
                 newObject = new DrawableSpinner(rawHitObject);
+
+                let baseSet = rawHitObject.extras.sampleSet || currentSampleSet || 1;
+                let additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+                let index = rawHitObject.extras.customIndex || currentSampleIndex || 1;
+                let volume = rawHitObject.extras.sampleVolume || currentVolume;
+
+                let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
+                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, rawHitObject.hitSound);
+
+                let info: HitSoundInfo = {
+                    base: baseType,
+                    additions: additionTypes,
+                    volume: volume,
+                    index: index
+                };
+
+                newObject.hitSound = info;
             }
 
             if (newObject !== null) {
@@ -401,57 +461,5 @@ export class ProcessedBeatmap {
         }
 
         return total;
-    }
-
-    calculateDifficultyMultiplier() {
-        // Based on: https://osu.ppy.sh/help/wiki/Score/
-
-        /*
-
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-
-        Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier.
-        It will only account for original values only.
-        v
-        TODO
-        */
-
-        // Using the algorithm found in McOsu:
-        /*
-        let breakTime = this.getTotalBreakTime();
-        let playableLength = this.getPlayableLength();
-        let drainLength = Math.max(playableLength - Math.min(breakTime, playableLength), 1000) / 1000;
-        let difficultyPoints = ((this.beatmap.difficulty.CS + this.beatmap.difficulty.HP + this.beatmap.difficulty.OD + MathUtil.clamp(this.hitObjects.length / drainLength * 8, 0, 16)) / 38.0 * 5.0);
-
-        console.log(this.beatmap.difficulty.CS + this.beatmap.difficulty.HP + this.beatmap.difficulty.OD, difficultyPoints, MathUtil.clamp(this.hitObjects.length / drainLength * 8, 0, 16));*/
-
-        let accumulatedDifficultyPoints = this.beatmap.difficulty.CS + this.beatmap.difficulty.HP + this.beatmap.difficulty.OD;
-        
-        // Determined emperically. These differ from what's listed on the official osu website, however these values seem to be the correct ones. UwU
-        if (accumulatedDifficultyPoints <= 3) return 2;
-        else if (accumulatedDifficultyPoints <= 10) return 3;
-        else if (accumulatedDifficultyPoints <= 18) return 4;
-        else if (accumulatedDifficultyPoints <= 25) return 5;
-        return 6;
-
-        //return difficultyPoints;
     }
 }
