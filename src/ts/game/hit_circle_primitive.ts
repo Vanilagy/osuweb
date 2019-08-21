@@ -4,7 +4,7 @@ import { DRAWING_MODE, DrawingMode, PROCEDURAL_HEAD_INNER_TYPE, CIRCLE_BORDER_WI
 import { colorToHexNumber } from "../util/graphics_util";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { MathUtil, EaseType } from "../util/math_util";
-import { currentSkin, OsuTexture } from "./skin";
+import { OsuTexture } from "./skin";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
 const REVERSE_ARROW_PULSE_DURATION = 300;
@@ -72,13 +72,13 @@ export class HitCirclePrimitive {
 
             base = sprite;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let osuTexture = currentSkin.textures["hitCircle"];
+            let osuTexture = gameState.currentGameplaySkin.textures["hitCircle"];
 
             if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-                let startTex = currentSkin.textures["sliderStartCircle"];
+                let startTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
                 if (!startTex.isEmpty()) osuTexture = startTex;
             } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-                let endTex = currentSkin.textures["sliderEndCircle"];
+                let endTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
                 if (!endTex.isEmpty()) osuTexture = endTex;
             }
 
@@ -105,24 +105,24 @@ export class HitCirclePrimitive {
             let osuTexture: OsuTexture = null;
 
             if (this.options.type === HitCirclePrimitiveType.HitCircle) {
-                osuTexture = currentSkin.textures["hitCircleOverlay"];
+                osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"];
             } else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-                let baseTex = currentSkin.textures["sliderStartCircle"];
+                let baseTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
 
                 if (!baseTex.isEmpty()) {
-                    let overlayTex = currentSkin.textures["sliderStartCircleOverlay"];
+                    let overlayTex = gameState.currentGameplaySkin.textures["sliderStartCircleOverlay"];
                     if (!overlayTex.isEmpty()) osuTexture = overlayTex;
                 } else {
-                    osuTexture = currentSkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+                    osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
                 }
             } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-                let baseTex = currentSkin.textures["sliderEndCircle"];
+                let baseTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
 
                 if (!baseTex.isEmpty()) {
-                    let overlayTex = currentSkin.textures["sliderEndCircleOverlay"];
+                    let overlayTex = gameState.currentGameplaySkin.textures["sliderEndCircleOverlay"];
                     if (!overlayTex.isEmpty()) osuTexture = overlayTex;
                 } else {
-                    osuTexture = currentSkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+                    osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
                 }
             }
 
@@ -154,10 +154,10 @@ export class HitCirclePrimitive {
         if (this.options.hasNumber) {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let text = new SpriteNumber({
-                    textures: currentSkin.hitCircleNumberTextures,
+                    textures: gameState.currentGameplaySkin.hitCircleNumberTextures,
                     horizontalAlign: "center",
                     verticalAlign: "middle",
-                    overlap: currentSkin.config.fonts.hitCircleOverlap,
+                    overlap: gameState.currentGameplaySkin.config.fonts.hitCircleOverlap,
                     scaleFactor: (circleDiameter / 128) * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
                 });
                 text.setValue(this.options.comboInfo.n);
@@ -171,7 +171,7 @@ export class HitCirclePrimitive {
         let reverseArrow: PIXI.Container = null;
         if (this.options.reverseArrowAngle !== undefined) {
             if (DRAWING_MODE === DrawingMode.Skin) {
-                let osuTexture = currentSkin.textures["reverseArrow"];
+                let osuTexture = gameState.currentGameplaySkin.textures["reverseArrow"];
 
                 let factor = circleDiameter / 128;
                 let width = osuTexture.getWidth() * factor;
@@ -201,7 +201,7 @@ export class HitCirclePrimitive {
     
                 this.approachCircle = approachCircle;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let osuTexture = currentSkin.textures["approachCircle"];
+                let osuTexture = gameState.currentGameplaySkin.textures["approachCircle"];
 
                 let factor = circleDiameter / 128;
                 let width = osuTexture.getWidth() * factor;
@@ -223,7 +223,7 @@ export class HitCirclePrimitive {
         let container = new PIXI.Container();
         container.addChild(base);
 
-        if (currentSkin.config.general.hitCircleOverlayAboveNumber) {
+        if (gameState.currentGameplaySkin.config.general.hitCircleOverlayAboveNumber) {
             if (number) container.addChild(number);
             if (overlay) container.addChild(overlay);
         } else {

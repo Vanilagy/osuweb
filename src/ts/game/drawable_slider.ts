@@ -14,7 +14,7 @@ import { assert, last } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { currentSkin, HitSoundInfo, HitSoundType } from "./skin";
+import { HitSoundInfo } from "./skin";
 import { ComboInfo } from "./processed_beatmap";
 import { SoundEmitter } from "../audio/audio";
 
@@ -56,7 +56,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public sliderTickCompletions: number[];
     public scoring: SliderScoring;
     public hitSounds: HitSoundInfo[];
-    public tickSound: HitSoundInfo;
+    public tickSounds: HitSoundInfo[];
     public slideEmitters: SoundEmitter[];
 
     constructor(hitObject: Slider) {
@@ -193,7 +193,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.followCircle = followCircle;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let followCircle = new PIXI.Sprite(currentSkin.textures["followCircle"].getDynamic(circleDiameter * FOLLOW_CIRCLE_HITBOX_CS_RATIO));
+            let followCircle = new PIXI.Sprite(gameState.currentGameplaySkin.textures["followCircle"].getDynamic(circleDiameter * FOLLOW_CIRCLE_HITBOX_CS_RATIO));
             followCircle.anchor.set(0.5, 0.5);
 
             this.followCircle = followCircle;
@@ -215,7 +215,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
                 tickElement = graphics;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let osuTexture = currentSkin.textures["sliderTick"];
+                let osuTexture = gameState.currentGameplaySkin.textures["sliderTick"];
 
                 let factor = circleDiameter / 128;
                 let width = osuTexture.getWidth() * factor;
@@ -323,7 +323,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
 
         // Add ticks
-        for (let tickCompletion of this.sliderTickCompletions) {
+        for (let i = 0; i < this.sliderTickCompletions.length; i++) {
+            let tickCompletion = this.sliderTickCompletions[i];
+
             // Time that the tick should be hit, relative to the slider start time
             let time = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
             let position = this.getPosFromPercentage(MathUtil.reflect(tickCompletion));
@@ -333,7 +335,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 hitObject: this,
                 time: this.startTime + time,
                 position: position,
-                hitSound: this.tickSound
+                hitSound: this.tickSounds[i]
             });
         }
     }
@@ -388,7 +390,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, time);
         if (judgement !== 0) {
-            currentSkin.playHitSound(this.hitSounds[0]);
+            gameState.currentGameplaySkin.playHitSound(this.hitSounds[0]);
 
             this.head.setFadeOut({
                 type: HitCirclePrimitiveFadeOutType.ScaleOut,
@@ -486,7 +488,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.sliderBall.container.y = sliderBallPos.y;
             this.sliderBall.base.rotation = this.curve.getAngleFromPercentage(MathUtil.reflect(completion));
 
-            let osuTex = currentSkin.textures["sliderBall"];
+            let osuTex = gameState.currentGameplaySkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();
             if (frameCount > 1) {
                 let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.timingInfo.sliderVelocity);
@@ -504,7 +506,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 sprite.height = height;
             }
 
-            if (currentSkin.config.general.sliderBallFlip) {
+            if (gameState.currentGameplaySkin.config.general.sliderBallFlip) {
                 // Flip the scale when necessary
                 if      (completion % 2 <= 1 && this.sliderBall.base.scale.x < 0) this.sliderBall.base.scale.x *= -1;
                 else if (completion % 2 > 1  && this.sliderBall.base.scale.x > 0) this.sliderBall.base.scale.x *= -1;
@@ -557,7 +559,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         followCircleSizeFactor *= 1 * (1 - shrinkCompletion) + 0.75 * shrinkCompletion; // Shrink on end, to 1.5x
         followCircleSizeFactor += 1; // Base. Never get smaller than this.
 
-        let followCircleOsuTexture = currentSkin.textures["followCircle"];
+        let followCircleOsuTexture = gameState.currentGameplaySkin.textures["followCircle"];
         let factor = circleDiameter / 128 * followCircleSizeFactor / 2;
         let width = followCircleOsuTexture.getWidth() * factor;
         let height = followCircleOsuTexture.getHeight() * factor;
@@ -640,7 +642,7 @@ class SliderBall {
 
             this.base = sliderBall;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let osuTexture = currentSkin.textures["sliderBall"];
+            let osuTexture = gameState.currentGameplaySkin.textures["sliderBall"];
 
             let factor = circleDiameter / 128;
             let width = osuTexture.getWidth() * factor;
@@ -652,13 +654,13 @@ class SliderBall {
             sliderBall.width = width;
             sliderBall.height = height;
 
-            if (currentSkin.config.general.allowSliderBallTint) sliderBall.tint = colorToHexNumber(slider.comboInfo.color);
-            else sliderBall.tint = colorToHexNumber(currentSkin.config.colors.sliderBall);
+            if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) sliderBall.tint = colorToHexNumber(slider.comboInfo.color);
+            else sliderBall.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.sliderBall);
 
             this.base = sliderBall;
 
             if (!osuTexture.hasActualBase()) {
-                let bgTexture = currentSkin.textures["sliderBallBg"];
+                let bgTexture = gameState.currentGameplaySkin.textures["sliderBallBg"];
                 let tex = bgTexture.getDynamic(maxDimension);
                 if (tex) {
                     let sliderBallBg = new PIXI.Sprite(tex);
@@ -671,7 +673,7 @@ class SliderBall {
                 }
             }
 
-            let specTexture = currentSkin.textures["sliderBallSpec"];
+            let specTexture = gameState.currentGameplaySkin.textures["sliderBallSpec"];
             let tex = specTexture.getDynamic(maxDimension);
             if (tex) {
                 let sliderBallSpec = new PIXI.Sprite(tex);

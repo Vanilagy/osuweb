@@ -21,7 +21,7 @@ import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { currentSkin } from "./skin";
+import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN } from "./skin";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -67,7 +67,7 @@ export class Play {
         this.ARMs = this.processedBeatmap.beatmap.difficulty.getApproachTime();
     }
     
-    init() {
+    async init() {
         let screenHeight = window.innerHeight * 1; // The factor was determined through experimentation. Makes sense it's 1.
         let screenWidth = screenHeight * (STANDARD_SCREEN_DIMENSIONS.width / STANDARD_SCREEN_DIMENSIONS.height);
         this.pixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
@@ -76,6 +76,13 @@ export class Play {
         this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
         this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
         this.circleRadius = this.circleDiameter / 2;
+
+        if (IGNORE_BEATMAP_SKIN) {
+            gameState.currentGameplaySkin = baseSkin;
+        } else {
+            let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
+            gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin]);
+        }
 
         console.time("Beatmap process");
         this.processedBeatmap.init();
@@ -335,7 +342,7 @@ export class Play {
                         slider.scoring.end = true;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
 
-                        currentSkin.playHitSound(playEvent.hitSound);
+                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
                     }
 
                     if (slider.scoring.head.hit === ScoringValue.NotHit) {
@@ -355,7 +362,7 @@ export class Play {
                         slider.scoring.repeats++;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
 
-                        currentSkin.playHitSound(playEvent.hitSound);
+                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }
@@ -368,7 +375,7 @@ export class Play {
                         slider.scoring.ticks++;
                         this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
 
-                        currentSkin.playHitSound(playEvent.hitSound);
+                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }
@@ -449,10 +456,10 @@ export class Play {
     }
 }
 
-export function startPlay(beatmap: Beatmap) {
+export async function startPlay(beatmap: Beatmap) {
     let newPlay = new Play(beatmap);
     gameState.currentPlay = newPlay;
 
-    newPlay.init();
-    newPlay.start();
+    await newPlay.init();
+    await newPlay.start();
 }

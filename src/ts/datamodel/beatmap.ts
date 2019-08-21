@@ -14,7 +14,7 @@ class BeatmapCreationOptions {
     loadFlat?: boolean = false
 }
 
-interface TimingPoint {
+export interface TimingPoint {
     index: number,
     offset: number,
     msPerBeat: number,

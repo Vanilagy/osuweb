@@ -1,5 +1,7 @@
 import { Play } from "./play";
+import { Skin } from "./skin";
 
 export let gameState = {
-    currentPlay: <Play> null
+    currentPlay: null as Play,
+    currentGameplaySkin: null as Skin
 };

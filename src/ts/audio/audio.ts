@@ -12,7 +12,16 @@ let masterGain = audioContext.createGain();
 masterGain.gain.value = DEFAULT_MASTER_GAIN_VALUME;
 masterGain.connect(audioContext.destination);
 
+export let mediaAudioNode = audioContext.createGain();
+mediaAudioNode.gain.value = 1.0;
+mediaAudioNode.connect(masterGain);
+
+export let soundEffectsNode = audioContext.createGain();
+soundEffectsNode.gain.value = 0.6;
+soundEffectsNode.connect(masterGain);
+
 interface SoundEmitterOptions {
+    destination: AudioNode,
     buffer?: AudioBuffer,
     volume?: number,
     playbackRate?: number
@@ -32,7 +41,7 @@ export class SoundEmitter {
     private offset: number = 0;
     private loop: boolean = false;
 
-    constructor(options: SoundEmitterOptions = {}) {
+    constructor(options: SoundEmitterOptions) {
         if (options.buffer) this.setBuffer(options.buffer);
         if (options.volume) this.volume = options.volume;
         if (options.playbackRate) this.playbackRate = options.playbackRate;
@@ -40,7 +49,7 @@ export class SoundEmitter {
         this.gainNode = audioContext.createGain();
         this.setVolume(this.volume);
 
-        this.gainNode.connect(masterGain);
+        this.gainNode.connect(options.destination);
     }
 
     setVolume(newVolume: number) {
@@ -50,6 +59,10 @@ export class SoundEmitter {
 
     setBuffer(buffer: AudioBuffer) {
         this.buffer = buffer;
+    }
+
+    getBuffer() {
+        return this.buffer;
     }
 
     setLoopState(state: boolean) {
@@ -120,11 +133,11 @@ export class MediaPlayer {
     private gainNode: GainNode;
     private playbackRate = 1.0;
 
-    constructor() {
+    constructor(destination: AudioNode) {
         this.gainNode = audioContext.createGain();
         this.setVolume(this.volume);
 
-        this.gainNode.connect(masterGain);
+        this.gainNode.connect(destination);
     }
 
     setVolume(newVolume: number) {
@@ -258,4 +271,4 @@ export class MediaPlayer {
     }
 }
 
-export let mainMusicMediaPlayer = new MediaPlayer();
+export let mainMusicMediaPlayer = new MediaPlayer(mediaAudioNode);

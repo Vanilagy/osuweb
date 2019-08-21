@@ -5,7 +5,7 @@ import { ScoringValue } from "./score";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { currentSkin, HitSoundType, HitSoundInfo } from "./skin";
+import { HitSoundInfo } from "./skin";
 
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;
@@ -93,7 +93,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         this.score(time, judgement);
         if (judgement !== 0) {
             //normalHitSoundEffect.start();
-            currentSkin.playHitSound(this.hitSound);
+            gameState.currentGameplaySkin.playHitSound(this.hitSound);
         }
 
         accuracyMeter.addAccuracyLine(timeInaccuracy, time);

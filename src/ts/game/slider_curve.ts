@@ -4,7 +4,6 @@ import { SliderCurveSection } from "../datamodel/slider";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { Point } from "../util/point";
 import { colorToHexStirng, Color } from "../util/graphics_util";
-import { currentSkin } from "./skin";
 import { MathUtil } from "../util/math_util";
 
 export abstract class SliderCurve {
@@ -35,15 +34,15 @@ export abstract class SliderCurve {
 
         // "Border"
         this.slider.baseCtx.lineWidth = circleDiameter * this.slider.reductionFactor;
-        this.slider.baseCtx.strokeStyle = colorToHexStirng(currentSkin.config.colors.sliderBorder);
+        this.slider.baseCtx.strokeStyle = colorToHexStirng(gameState.currentGameplaySkin.config.colors.sliderBorder);
         this.slider.baseCtx.lineCap = "round";
         this.slider.baseCtx.lineJoin = "round";
         this.slider.baseCtx.globalCompositeOperation = "source-over";
         if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();
 
         let color: Color;
-        if (currentSkin.config.colors.sliderTrackOverride) {
-            color = currentSkin.config.colors.sliderTrackOverride;
+        if (gameState.currentGameplaySkin.config.colors.sliderTrackOverride) {
+            color = gameState.currentGameplaySkin.config.colors.sliderTrackOverride;
         } else {
             color = this.slider.comboInfo.color;
         }

@@ -33,5 +33,5 @@ beatmapFileSelect.addEventListener('change', async (e) => {
         text: await selectedOsuFile.readAsText(),
         beatmapSet: beatmapSet
     });
-    startPlay(beatmap);
+    await startPlay(beatmap);
 });

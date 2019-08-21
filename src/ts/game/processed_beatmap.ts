@@ -1,4 +1,4 @@
-import { Beatmap, BeatmapEventBreak } from "../datamodel/beatmap";
+import { Beatmap, BeatmapEventBreak, TimingPoint } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider, SliderTimingInfo } from "./drawable_slider";
 import { Circle } from "../datamodel/circle";
@@ -11,8 +11,9 @@ import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { IGNORE_BEATMAP_SKIN, currentSkin, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet } from "./skin";
+import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet } from "./skin";
 import { SoundEmitter } from "../audio/audio";
+import { gameState } from "./game_state";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -58,20 +59,18 @@ export class ProcessedBeatmap {
 
         let colorArray: Color[];
         if (IGNORE_BEATMAP_SKIN) {
-            colorArray = currentSkin.colors;
+            colorArray = gameState.currentGameplaySkin.colors;
             if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
         } else {
             colorArray = this.beatmap.colors;
-            if (colorArray.length === 0) colorArray = currentSkin.colors;
+            if (colorArray.length === 0) colorArray = gameState.currentGameplaySkin.colors;
             if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
         }
 
-        let currentTimingPoint = 1;
-        let currentMsPerBeat = this.beatmap.timingPoints[0].msPerBeat;
+        let currentTimingPointIndex = 1;
+        let currentTimingPoint = this.beatmap.timingPoints[0];
+        let currentMsPerBeat = currentTimingPoint.msPerBeat;
         let currentMsPerBeatMultiplier = 1;
-        let currentSampleSet = this.beatmap.timingPoints[0].sampleSet;
-        let currentSampleIndex = this.beatmap.timingPoints[0].sampleIndex;
-        let currentVolume = this.beatmap.timingPoints[0].volume;
 
         for (let i = 0; i < this.beatmap.hitObjects.length; i++) {
             let rawHitObject = this.beatmap.hitObjects[i];
@@ -96,9 +95,9 @@ export class ProcessedBeatmap {
                 colorIndex: currentCombo % colorArray.length
             };
 
-            if (currentTimingPoint < this.beatmap.timingPoints.length) {
-                while (this.beatmap.timingPoints[currentTimingPoint].offset <= rawHitObject.time) {
-                    let timingPoint = this.beatmap.timingPoints[currentTimingPoint];
+            if (currentTimingPointIndex < this.beatmap.timingPoints.length) {
+                while (this.beatmap.timingPoints[currentTimingPointIndex].offset <= rawHitObject.time) {
+                    let timingPoint = this.beatmap.timingPoints[currentTimingPointIndex];
 
                     if (timingPoint.inherited) {
                         // Implies timingPoint.msPerBeat is negative. An exaplanation pulled from the osu website:
@@ -113,26 +112,34 @@ export class ProcessedBeatmap {
                         currentMsPerBeat = timingPoint.msPerBeat;
                     }
 
-                    currentSampleSet = timingPoint.sampleSet;
-                    currentSampleIndex = timingPoint.sampleIndex;
-                    currentVolume = timingPoint.volume;
+                    currentTimingPoint = timingPoint;
+                    currentTimingPointIndex++;
 
-                    currentTimingPoint++;
-
-                    if (currentTimingPoint === this.beatmap.timingPoints.length) {
+                    if (currentTimingPointIndex === this.beatmap.timingPoints.length) {
                         break;
                     }
                 }
             }
 
-            function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, index: number) {
-                baseSet = baseSet || currentSampleSet || 1;
-                additionSet = baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
-                volume = volume || currentVolume;
-                index = index || currentSampleIndex || 1;
+            const getClosestTimingPointTo = (time: number) => {
+                time = Math.round(time);
+
+                for (let i = currentTimingPointIndex; i < this.beatmap.timingPoints.length; i++) {
+                    let timingPoint = this.beatmap.timingPoints[i];
+                    if (timingPoint.offset > time) return this.beatmap.timingPoints[i-1];
+                }
+
+                return last(this.beatmap.timingPoints);
+            };
+
+            function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, index: number, timingPoint: TimingPoint) {
+                baseSet = baseSet || timingPoint.sampleSet || 1;
+                additionSet = additionSet || baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+                volume = volume || timingPoint.volume;
+                index = index || timingPoint.sampleIndex || 1;
 
                 let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
-                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, hitSound);
+                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, hitSound & ~1);
 
                 let info: HitSoundInfo = {
                     base: baseType,
@@ -150,34 +157,6 @@ export class ProcessedBeatmap {
                 newObject = new DrawableCircle(rawHitObject);
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
-
-                let hitSounds: HitSoundInfo[] = [];
-                for (let i = 0; i < rawHitObject.edgeHitsounds.length; i++) {
-                    
-                    let hitSound = rawHitObject.edgeHitsounds[i];
-                    let sampling = rawHitObject.edgeSamplings[i];
-
-                    let info = generateHitSoundInfo(hitSound, sampling.sampleSet, sampling.additionSet, null, null);
-                    hitSounds.push(info);
-                }
-                newObject.hitSounds = hitSounds;
-                newObject.tickSound = {
-                    base: getTickHitSoundTypeFromSampleSet(rawHitObject.extras.sampleSet || currentSampleSet || 1),
-                    volume: rawHitObject.extras.sampleVolume || currentVolume,
-                    index: rawHitObject.extras.customIndex || currentSampleIndex || 1
-                };
-
-                let sliderSlideTypes = getSliderSlideTypesFromSampleSet(rawHitObject.extras.sampleSet || currentSampleSet || 1, rawHitObject.hitSound);
-                let sliderSlideEmitters: SoundEmitter[] = [];
-                for (let i = 0; i < sliderSlideTypes.length; i++) {
-                    let type = sliderSlideTypes[i];
-                    let emitter = currentSkin.sounds[type].getEmitter(rawHitObject.extras.sampleVolume || currentVolume, rawHitObject.extras.customIndex || currentSampleIndex || 1);
-                    if (!emitter) continue;
-
-                    emitter.setLoopState(true);
-                    sliderSlideEmitters.push(emitter);
-                }
-                newObject.slideEmitters = sliderSlideEmitters;
 
                 let sliderVelocityInOsuPixelsPerBeat = 100 * this.beatmap.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
                 let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / (currentMsPerBeat * currentMsPerBeatMultiplier);
@@ -220,12 +199,63 @@ export class ProcessedBeatmap {
                 }
 
                 newObject.sliderTickCompletions = sliderTickCompletions;
+
+                /* Init hit sounds */
+                {
+                    let sampleSet = rawHitObject.extras.sampleSet || currentTimingPoint.sampleSet || 1,
+                        volume = rawHitObject.extras.sampleVolume || currentTimingPoint.volume,
+                        index = rawHitObject.extras.customIndex || currentTimingPoint.sampleIndex || 1;
+
+                    // Init hit sounds for slider head, repeats and end
+                    let hitSounds: HitSoundInfo[] = [];
+                    for (let i = 0; i < rawHitObject.edgeHitsounds.length; i++) {
+                        
+                        let time = rawHitObject.time + rawHitObject.length/timingInfo.sliderVelocity * i;
+                        let timingPoint = getClosestTimingPointTo(time);
+                        let hitSound = rawHitObject.edgeHitsounds[i];
+                        let sampling = rawHitObject.edgeSamplings[i];
+
+                        let info = generateHitSoundInfo(hitSound, sampling.sampleSet, sampling.additionSet, null, null, timingPoint);
+                        hitSounds.push(info);
+                    }
+                    newObject.hitSounds = hitSounds;
+
+                    // TODO: Different tick sounds based on the timing point at that time.
+                    // Tick sound
+                    let tickSounds: HitSoundInfo[] = [];
+                    for (let i = 0; i < newObject.sliderTickCompletions.length; i++) {
+                        let completion = newObject.sliderTickCompletions[i];
+                        let time = rawHitObject.time + rawHitObject.length/timingInfo.sliderVelocity * completion;
+                        let timingPoint = getClosestTimingPointTo(time);
+
+                        let info: HitSoundInfo = {
+                            base: getTickHitSoundTypeFromSampleSet(rawHitObject.extras.sampleSet || timingPoint.sampleSet || 1),
+                            volume: rawHitObject.extras.sampleVolume || timingPoint.volume,
+                            index: rawHitObject.extras.customIndex || timingPoint.index || 1
+                        };
+                        tickSounds.push(info);
+                    }
+                    newObject.tickSounds = tickSounds;
+
+                    // Slider slide sound
+                    let sliderSlideTypes = getSliderSlideTypesFromSampleSet(sampleSet, rawHitObject.hitSound);
+                    let sliderSlideEmitters: SoundEmitter[] = [];
+                    for (let i = 0; i < sliderSlideTypes.length; i++) {
+                        let type = sliderSlideTypes[i];
+                        let emitter = gameState.currentGameplaySkin.sounds[type].getEmitter(volume, index);
+                        if (!emitter || emitter.getBuffer().duration < 0.01) continue;
+
+                        emitter.setLoopState(true);
+                        sliderSlideEmitters.push(emitter);
+                    }
+                    newObject.slideEmitters = sliderSlideEmitters;
+                }
             } else if (rawHitObject instanceof Spinner) {
                 newObject = new DrawableSpinner(rawHitObject);
             }
 
             if (newObject instanceof DrawableCircle || newObject instanceof DrawableSpinner) {
-                newObject.hitSound = generateHitSoundInfo(rawHitObject.hitSound, rawHitObject.extras.sampleSet, rawHitObject.extras.additionSet, rawHitObject.extras.sampleVolume, rawHitObject.extras.customIndex);
+                newObject.hitSound = generateHitSoundInfo(rawHitObject.hitSound, rawHitObject.extras.sampleSet, rawHitObject.extras.additionSet, rawHitObject.extras.sampleVolume, rawHitObject.extras.customIndex, currentTimingPoint);
             }
 
             if (newObject !== null) {

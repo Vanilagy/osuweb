@@ -8,7 +8,7 @@ import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 import { Interpolator } from "../util/graphics_util";
-import { HitSoundInfo, currentSkin } from "./skin";
+import { HitSoundInfo } from "./skin";
 
 const SPINNER_CENTER_CIRCLE_RADIUS = 5;
 const SPINNER_SPINNY_THING_RADIUS = 30;
@@ -191,7 +191,7 @@ export class DrawableSpinner extends DrawableHitObject {
             })();
 
             currentPlay.scoreCounter.add(judgement, false, true, true, this, this.endTime);
-            if (judgement !== 0) currentSkin.playHitSound(this.hitSound);
+            if (judgement !== 0) gameState.currentGameplaySkin.playHitSound(this.hitSound);
         }
     }
 

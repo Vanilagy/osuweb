@@ -3,13 +3,13 @@ import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../datamodel/skin_configuration";
 import { Dimensions, Color } from "../util/graphics_util";
-import { charIsDigit } from "../util/misc_util";
-import { SoundEmitter, createAudioBuffer } from "../audio/audio";
+import { charIsDigit, promiseAllSettled, assert, jsonClone, shallowObjectClone } from "../util/misc_util";
+import { SoundEmitter, createAudioBuffer, soundEffectsNode } from "../audio/audio";
 
 // This is all temp:
-let currentSkinPath = "./assets/skins/yugen";
-let currentSkinDirectory = new VirtualDirectory("root");
-currentSkinDirectory.networkFallbackUrl = currentSkinPath;
+let baseSkinPath = "./assets/skins/default";
+let baseSkinDirectory = new VirtualDirectory("root");
+baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
 export const IGNORE_BEATMAP_SKIN = true;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -186,8 +186,6 @@ export interface HitSoundInfo {
 export function getHitSoundTypesFromSampleSetAndBitmap(sampleSet: number, bitmap: number) {
     let types: HitSoundType[] = [];
 
-    bitmap |= 1; // Normal sound is always played
-
     if ((bitmap & 1) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalHitNormal);
         else if (sampleSet === 2) types.push(HitSoundType.SoftHitNormal);
@@ -268,17 +266,38 @@ class HitSound {
         });
     }
 
+    isEmpty() { // TODO. Eh. Is this fine?
+        return Object.keys(this.files).length === 0;
+    }
+
     async ready() {
+        let audioBufferPromises: Promise<AudioBuffer>[] = [];
+
         for (let key in this.files) {
             let index = Number(key);
             let file = this.files[index];
             let arrayBuffer = await file.readAsArrayBuffer();
 
+            audioBufferPromises.push(createAudioBuffer(arrayBuffer));
+
+            /*
             try {
                 let audioBuffer = await createAudioBuffer(arrayBuffer);
 
                 this.audioBuffers[index] = audioBuffer;
             } catch(e) {
+                // Audio wasn't able to be decoded. Add no emitter.
+            }*/
+        }
+
+        let audioBuffers = await promiseAllSettled(audioBufferPromises);
+        for (let key in this.files) {
+            let index = Number(key);
+            let elem = audioBuffers.shift();
+
+            if (elem.status === "fulfilled") {
+                this.audioBuffers[index] = elem.value;
+            } else {
                 // Audio wasn't able to be decoded. Add no emitter.
             }
         }
@@ -289,7 +308,11 @@ class HitSound {
         if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one
         if (!buffer) return null;
 
-        let emitter = new SoundEmitter({buffer, volume: volume/100});
+        let emitter = new SoundEmitter({
+            destination: soundEffectsNode,
+            buffer: buffer,
+            volume: volume/100
+        });
 
         return emitter;
     }
@@ -353,7 +376,8 @@ hitSoundFileNames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
 
 export class Skin {
     private directory: VirtualDirectory;
-    public config: SkinConfiguration = DEFAULT_SKIN_CONFIG;
+    public config: SkinConfiguration;
+    public hasDefaultConfig: boolean;
     public textures: { [name: string]: OsuTexture };
     public hitCircleNumberTextures: SpriteNumberTextures;
     public scoreNumberTextures: SpriteNumberTextures;
@@ -377,8 +401,11 @@ export class Skin {
         let skinConfigurationFile = await this.directory.getFileByName("skin.ini") || await this.directory.getFileByName("Skin.ini");
         if (skinConfigurationFile) {
             this.config = parseSkinConfiguration(await skinConfigurationFile.readAsText());
+            this.hasDefaultConfig = false;
         } else {
+            this.config = jsonClone(DEFAULT_SKIN_CONFIG);
             this.config.general.version = "latest"; // If the skin.ini file is not present, latest will be used instead.
+            this.hasDefaultConfig = true;
         }
 
         for (let i = 1; i <= 8; i++) {
@@ -475,6 +502,72 @@ export class Skin {
             }
         }
     }
+
+    clone() {
+        let newSkin = new Skin(this.directory);
+
+        newSkin.config = this.config;
+        newSkin.textures = shallowObjectClone(this.textures);
+        newSkin.hitCircleNumberTextures = shallowObjectClone(this.hitCircleNumberTextures);
+        newSkin.scoreNumberTextures = shallowObjectClone(this.scoreNumberTextures);
+        newSkin.comboNumberTextures = shallowObjectClone(this.comboNumberTextures);
+        newSkin.colors = this.colors.slice(0);
+        newSkin.sounds = shallowObjectClone(this.sounds);
+
+        return newSkin;
+    }
 }
 
-export let currentSkin = new Skin(currentSkinDirectory);
+export let baseSkin = new Skin(baseSkinDirectory);
+
+export function joinSkins(skins: Skin[]) {
+    assert(skins.length > 0);
+
+    let baseSkin = skins[0].clone();
+
+    for (let i = 1; i < skins.length; i++) {
+        let skin = skins[i];
+
+        for (let key in skin.textures) {
+            let tex = skin.textures[key];
+            if (tex.isEmpty()) continue;
+
+            baseSkin.textures[key] = tex;
+        }
+        for (let k in skin.hitCircleNumberTextures) {
+            let key = k as keyof SpriteNumberTextures;
+
+            let tex = skin.hitCircleNumberTextures[key];
+            if (tex.isEmpty()) continue;
+
+            baseSkin.hitCircleNumberTextures[key] = tex;
+        }
+        for (let k in skin.scoreNumberTextures) {
+            let key = k as keyof SpriteNumberTextures;
+
+            let tex = skin.scoreNumberTextures[key];
+            if (tex.isEmpty()) continue;
+
+            baseSkin.scoreNumberTextures[key] = tex;
+        }
+        for (let k in skin.comboNumberTextures) {
+            let key = k as keyof SpriteNumberTextures;
+
+            let tex = skin.comboNumberTextures[key];
+            if (tex.isEmpty()) continue;
+
+            baseSkin.comboNumberTextures[key] = tex;
+        }
+
+        if (!skin.hasDefaultConfig) baseSkin.colors = skin.colors.slice(0);
+
+        for (let key in skin.sounds) {
+            let sound = skin.sounds[key];
+            if (sound.isEmpty()) continue;
+
+            baseSkin.sounds[key] = sound;
+        }
+    }
+
+    return baseSkin;
+}

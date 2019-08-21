@@ -3,7 +3,6 @@ import { Point, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { followPointContainer } from "../visuals/rendering";
-import { currentSkin } from "./skin";
 
 export const POINT_DISTANCE = 32; // Taken from ppy, this **probably** means how many osu!pixels follow point images are apart.
 export const FOLLOW_POINT_DISTANCE_THRESHOLD = POINT_DISTANCE * 3; // The minimum distance, in osu!pixels, that two objects need to be away from each other in order to create a follow point between them. In regular osu! terms, three follow point images.
@@ -47,7 +46,7 @@ export class FollowPoint {
         this.container.rotation = angle;
 
         let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
-        let osuTexture = currentSkin.textures["followPoint"];
+        let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
 
         let factor = circleDiameter / 128;
         let width = osuTexture.getWidth() * factor;
@@ -93,7 +92,7 @@ export class FollowPoint {
 
         let { circleDiameter, pixelRatio } = gameState.currentPlay;
 
-        let osuTexture = currentSkin.textures["followPoint"];
+        let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
         let frameCount = osuTexture.getAnimationFrameCount();
 
         for (let i = 0; i < this.parts.length; i++) {

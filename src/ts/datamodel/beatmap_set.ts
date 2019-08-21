@@ -1,6 +1,7 @@
 import { isOsuBeatmapFile, isAudioFile, isImageFile } from "../util/file_util";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
+import { Skin } from "../game/skin";
 
 export class BeatmapSet {
     public directory: VirtualDirectory;
@@ -17,5 +18,12 @@ export class BeatmapSet {
         });
 
         return arr;
+    }
+
+    async getBeatmapSkin() {
+        let skin = new Skin(this.directory);
+        await skin.init();
+
+        return skin;
     }
 }

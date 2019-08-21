@@ -8,7 +8,6 @@ import { Point } from "../util/point";
 import { scorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { DRAWING_MODE, DrawingMode } from "../util/constants";
-import { currentSkin } from "./skin";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -321,7 +320,7 @@ export class ScorePopup {
                 case ScorePopupType.Geki: name = "hit300g"; break;
             }
 
-            let osuTexture = currentSkin.textures[name];
+            let osuTexture = gameState.currentGameplaySkin.textures[name];
 
             let factor = circleDiameter / 128;
             let width = osuTexture.getWidth() * factor;

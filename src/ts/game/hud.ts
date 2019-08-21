@@ -4,7 +4,7 @@ import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Interpolator } from "../util/graphics_util";
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
-import { currentSkin } from "./skin";
+import { baseSkin } from "./skin";
 
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;
@@ -26,9 +26,9 @@ export async function initHud() {
         equalWidthDigits: true,
         verticalAlign: "top",
         horizontalAlign: "right",
-        overlap: currentSkin.config.fonts.scoreOverlap,
+        overlap: baseSkin.config.fonts.scoreOverlap,
         overlapAtEnd: true,
-        textures: currentSkin.scoreNumberTextures,
+        textures: baseSkin.scoreNumberTextures,
         leftPad: 8
     });
     scoreDisplay.container.x = window.innerWidth;
@@ -38,9 +38,9 @@ export async function initHud() {
         equalWidthDigits: true,
         verticalAlign: "top",
         horizontalAlign: "right",
-        overlap: currentSkin.config.fonts.scoreOverlap,
+        overlap: baseSkin.config.fonts.scoreOverlap,
         overlapAtEnd: true,
-        textures: currentSkin.scoreNumberTextures,
+        textures: baseSkin.scoreNumberTextures,
         fixedDecimals: 2,
         hasPercent: true
     });
@@ -52,8 +52,8 @@ export async function initHud() {
         scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
         verticalAlign: "bottom",
         horizontalAlign: "left",
-        overlap: currentSkin.config.fonts.scoreOverlap,
-        textures: currentSkin.scoreNumberTextures,
+        overlap: baseSkin.config.fonts.scoreOverlap,
+        textures: baseSkin.scoreNumberTextures,
         hasX: true
     });
     phantomComboDisplay.container.y = Math.floor(window.innerHeight - window.innerHeight * 0.005);
@@ -64,8 +64,8 @@ export async function initHud() {
         scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
         verticalAlign: "bottom",
         horizontalAlign: "left",
-        overlap: currentSkin.config.fonts.scoreOverlap,
-        textures: currentSkin.scoreNumberTextures,
+        overlap: baseSkin.config.fonts.scoreOverlap,
+        textures: baseSkin.scoreNumberTextures,
         hasX: true
     });
     comboDisplay.container.y = phantomComboDisplay.container.y;

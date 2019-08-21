@@ -33,6 +33,16 @@ export function last<T>(arr: T[]): T {
     return arr[arr.length - 1];
 }
 
+export function shallowObjectClone<T extends object>(obj: T) {
+    let newObj: any = {};
+
+    for (let key in obj) {
+        newObj[key] = obj[key];
+    }
+
+    return newObj as T;
+}
+
 export function jsonClone<T>(obj: T) {
     return JSON.parse(JSON.stringify(obj)) as T;
 }
@@ -40,4 +50,20 @@ export function jsonClone<T>(obj: T) {
 // https://stackoverflow.com/questions/8935632/check-if-character-is-number
 export function charIsDigit(c: string) {
     return c >= '0' && c <= '9';
+}
+
+/** In contrast to Promise.all, this doesn't stop on the first rejection. */
+export function promiseAllSettled<T>(values: Promise<T>[]) {
+    let newValues = values.map((a) => {
+        if (a instanceof Promise) {
+            return a.then(
+                (value) => ({ value, status: 'fulfilled' } as const),
+                (reason) => ({ reason, status: 'rejected' } as const)
+            );
+        } else {
+            return { value: a, status: 'fulfilled' } as const;
+        }
+    });
+
+    return Promise.all(newValues);
 }
