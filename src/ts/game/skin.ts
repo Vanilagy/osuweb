@@ -4,14 +4,16 @@ import { VirtualFile } from "../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../datamodel/skin_configuration";
 import { Dimensions, Color } from "../util/graphics_util";
 import { charIsDigit, promiseAllSettled, assert, jsonClone, shallowObjectClone } from "../util/misc_util";
-import { SoundEmitter, createAudioBuffer, soundEffectsNode } from "../audio/audio";
+import { createAudioBuffer, soundEffectsNode } from "../audio/audio";
+import { SoundEmitter } from "../audio/sound_emitter";
 
 // This is all temp:
 let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
-export const IGNORE_BEATMAP_SKIN = false;
+export const IGNORE_BEATMAP_SKIN = true;
+export const IGNORE_BEATMAP_HIT_SOUNDS = false;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
@@ -520,7 +522,7 @@ export class Skin {
 
 export let baseSkin = new Skin(baseSkinDirectory);
 
-export function joinSkins(skins: Skin[]) {
+export function joinSkins(skins: Skin[], joinTextures = true, joinHitsounds = true) {
     assert(skins.length > 0);
 
     let baseSkin = skins[0].clone();
@@ -528,44 +530,48 @@ export function joinSkins(skins: Skin[]) {
     for (let i = 1; i < skins.length; i++) {
         let skin = skins[i];
 
-        for (let key in skin.textures) {
-            let tex = skin.textures[key];
-            if (tex.isEmpty()) continue;
-
-            baseSkin.textures[key] = tex;
+        if (joinTextures) {
+            for (let key in skin.textures) {
+                let tex = skin.textures[key];
+                if (tex.isEmpty()) continue;
+    
+                baseSkin.textures[key] = tex;
+            }
+            for (let k in skin.hitCircleNumberTextures) {
+                let key = k as keyof SpriteNumberTextures;
+    
+                let tex = skin.hitCircleNumberTextures[key];
+                if (tex.isEmpty()) continue;
+    
+                baseSkin.hitCircleNumberTextures[key] = tex;
+            }
+            for (let k in skin.scoreNumberTextures) {
+                let key = k as keyof SpriteNumberTextures;
+    
+                let tex = skin.scoreNumberTextures[key];
+                if (tex.isEmpty()) continue;
+    
+                baseSkin.scoreNumberTextures[key] = tex;
+            }
+            for (let k in skin.comboNumberTextures) {
+                let key = k as keyof SpriteNumberTextures;
+    
+                let tex = skin.comboNumberTextures[key];
+                if (tex.isEmpty()) continue;
+    
+                baseSkin.comboNumberTextures[key] = tex;
+            }
+    
+            if (!skin.hasDefaultConfig) baseSkin.colors = skin.colors.slice(0);
         }
-        for (let k in skin.hitCircleNumberTextures) {
-            let key = k as keyof SpriteNumberTextures;
 
-            let tex = skin.hitCircleNumberTextures[key];
-            if (tex.isEmpty()) continue;
-
-            baseSkin.hitCircleNumberTextures[key] = tex;
-        }
-        for (let k in skin.scoreNumberTextures) {
-            let key = k as keyof SpriteNumberTextures;
-
-            let tex = skin.scoreNumberTextures[key];
-            if (tex.isEmpty()) continue;
-
-            baseSkin.scoreNumberTextures[key] = tex;
-        }
-        for (let k in skin.comboNumberTextures) {
-            let key = k as keyof SpriteNumberTextures;
-
-            let tex = skin.comboNumberTextures[key];
-            if (tex.isEmpty()) continue;
-
-            baseSkin.comboNumberTextures[key] = tex;
-        }
-
-        if (!skin.hasDefaultConfig) baseSkin.colors = skin.colors.slice(0);
-
-        for (let key in skin.sounds) {
-            let sound = skin.sounds[key];
-            if (sound.isEmpty()) continue;
-
-            baseSkin.sounds[key] = sound;
+        if (joinHitsounds) {
+            for (let key in skin.sounds) {
+                let sound = skin.sounds[key];
+                if (sound.isEmpty()) continue;
+    
+                baseSkin.sounds[key] = sound;
+            }
         }
     }
 

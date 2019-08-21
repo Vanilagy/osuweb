@@ -12,8 +12,8 @@ import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet } from "./skin";
-import { SoundEmitter } from "../audio/audio";
 import { gameState } from "./game_state";
+import { SoundEmitter } from "../audio/sound_emitter";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 1500; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.

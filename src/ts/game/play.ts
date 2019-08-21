@@ -2,7 +2,6 @@ import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { mainMusicMediaPlayer } from "../audio/audio";
 import { mainRender, followPointContainer, scorePopupContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
@@ -21,7 +20,8 @@ import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN } from "./skin";
+import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin";
+import { mainMusicMediaPlayer } from "../audio/media_player";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -77,11 +77,11 @@ export class Play {
         this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
         this.circleRadius = this.circleDiameter / 2;
 
-        if (IGNORE_BEATMAP_SKIN) {
+        if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
             gameState.currentGameplaySkin = baseSkin;
         } else {
             let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-            gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin]);
+            gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
         }
 
         console.time("Beatmap process");
