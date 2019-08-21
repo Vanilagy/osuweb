@@ -198,7 +198,6 @@ export class MediaPlayer {
             this.audioElement.currentTime = this.offset;
             this.audioElement.play();
             this.audioElement.playbackRate = this.playbackRate;
-            
         } else {
             // Any inaccuracies in this timeout (+-2ms) will be ironed out by the nudging algorithm in getCurrentTime
             this.timeout = setTimeout(() => {

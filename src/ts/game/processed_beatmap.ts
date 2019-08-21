@@ -77,20 +77,16 @@ export class ProcessedBeatmap {
 
             let comboInfo: ComboInfo = null;
 
-            if (rawHitObject.newCombo !== null) {
-                if (rawHitObject.newCombo === -1) {
-                    currentCombo++;
-                } else {
-                    if (IGNORE_BEATMAP_SKIN) currentCombo++; // No color skipping with this option enabled!
-                    else currentCombo += rawHitObject.newCombo + 1;
-                }
+            if (rawHitObject.comboSkips !== 0) {
+                if (IGNORE_BEATMAP_SKIN) currentCombo++; // No color skipping with this option enabled!
+                else currentCombo += rawHitObject.comboSkips;
 
                 comboCount = 1;
             }
             comboInfo = {
                 comboNum: currentCombo,
                 n: comboCount++,
-                isLast: (this.beatmap.hitObjects[i + 1])? this.beatmap.hitObjects[i + 1].newCombo !== null : true,
+                isLast: (this.beatmap.hitObjects[i + 1])? this.beatmap.hitObjects[i + 1].comboSkips !== 0 : true,
                 color: colorArray[currentCombo % colorArray.length],
                 colorIndex: currentCombo % colorArray.length
             };

@@ -226,21 +226,21 @@ export class Beatmap {
     parseHitObject(line: string) {
         let values = line.split(',');
 
-        let hitObjectData = parseInt(values[3]) % 16;
+        let hitObjectData = parseInt(values[3]);
 
-        if (hitObjectData === 1 || hitObjectData === 5) {
+        if ((hitObjectData & 1) !== 0) { // It's a circle if the 1 bit is set
             if (!this.loadFlat) {
                 this.hitObjects.push(new Circle(values));
                 //Console.verbose("Circle added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.circleCount++;
-        } else if (hitObjectData === 2 || hitObjectData === 6) {
+        } else if ((hitObjectData & 2) !== 0) { // It's a slider if the 2 bit is set
             if (!this.loadFlat) {
                 this.hitObjects.push(new Slider(values));
                 //Console.verbose("Slider added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.sliderCount++;
-        } else if (hitObjectData === 8 || hitObjectData === 12) {
+        } else if ((hitObjectData & 8) !== 0) { // It's a spinner if the 8 bit is set (not 4)
             if (!this.loadFlat) {
                 this.hitObjects.push(new Spinner(values));
                 //Console.verbose("Spinner added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
