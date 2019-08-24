@@ -15,6 +15,23 @@ export function colorToHexStirng(color: Color) {
     return '#' + ('000000' + colorToHexNumber(color).toString(16)).slice(-6);
 }
 
+export function lerpColors(c1: Color, c2: Color, t: number) {
+    return {
+        r: MathUtil.lerp(c1.r, c2.r, t) | 0,
+        g: MathUtil.lerp(c1.g, c2.g, t) | 0,
+        b: MathUtil.lerp(c1.b, c2.b, t) | 0
+    };
+}
+
+export const Colors: { [name: string]: Color } = {
+    White: {r: 255, g: 255, b: 255},
+    Black: {r: 0, g: 0, b: 0},
+    Red: {r: 255, g: 0, b: 0},
+    Green: {r: 0, g: 255, b: 0},
+    Blue: {r: 0, g: 0, b: 255},
+    Yellow: {r: 255, g: 255, b: 0}
+};
+
 type InterpolatedCounterDurationCallback = (distanceToGoal: number) => number;
 
 interface InterpolatedCounterOptions {
@@ -79,7 +96,8 @@ interface InterpolatorOptions {
     ease: EaseType,
     duration: number,
     from: number,
-    to: number
+    to: number,
+    invertDefault?: boolean
 }
 
 export class Interpolator {
@@ -88,6 +106,8 @@ export class Interpolator {
 
     constructor(options: InterpolatorOptions) {
         this.options = options;
+
+        if (this.options.invertDefault) this.startTime = Infinity;
     }
 
     /**

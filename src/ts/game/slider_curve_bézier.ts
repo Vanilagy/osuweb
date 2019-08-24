@@ -132,7 +132,7 @@ export class SliderCurveBézier extends SliderCurve {
 
                     this.pushTracePoint(point);
 
-                    t += 0.01 / Math.sqrt(curvature * 300); // Move smaller steps based on curvature
+                    t += Math.min(0.25, 0.01 / Math.sqrt(curvature * 300)); // Move smaller steps based on curvature
                 }
             }
 

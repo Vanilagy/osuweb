@@ -387,7 +387,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.scoring.head.hit = judgement;
         this.scoring.head.time = time;
 
-        scoreCounter.add(ScoringValue.SliderHead, true, true, false, this, time);
+        let score = (judgement === ScoringValue.Miss)? 0 : ScoringValue.SliderHead;
+
+        scoreCounter.add(score, true, true, false, this, time);
         if (judgement !== 0) {
             gameState.currentGameplaySkin.playHitSound(this.hitSounds[0]);
 
@@ -610,7 +612,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             animationCompletion = MathUtil.clamp(animationCompletion, 0, 1);
 
             // Creates a bouncing scaling effect.
-            let parabola = (-2.381 * animationCompletion * animationCompletion + 3.381 * animationCompletion);
+            let parabola = (-1.875 * animationCompletion*animationCompletion + 2.875 * animationCompletion);
 
             if (animationCompletion === 0) parabola = 0;
             if (animationCompletion >= 1) parabola = 1;

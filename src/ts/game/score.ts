@@ -343,7 +343,7 @@ export class ScorePopup {
         this.container.y = currentPlay.toScreenCoordinatesY(osuPosition.y);
 
         if (type === ScorePopupType.Miss) {
-            this.container.rotation = (2 * (Math.random() - 0.5)) * Math.PI * 0.1; // Random tilt for miss popup
+            this.container.rotation = (2 * (Math.random() - 0.5)) * Math.PI * 0.05; // Random tilt for miss popup
         }
     }
 
