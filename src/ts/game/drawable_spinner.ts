@@ -11,9 +11,6 @@ import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../ut
 import { HitSoundInfo } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
 
-const SPINNER_CENTER_CIRCLE_RADIUS = 5;
-const SPINNER_SPINNY_THING_RADIUS = 30;
-const SPINNER_SPINNY_THING_LINE_WIDTH = 5;
 const SPINNER_FADE_IN_TIME = HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
 const SPIN_TEXT_FADE_IN_TIME = 200; // In ms
@@ -32,23 +29,27 @@ export class DrawableSpinner extends DrawableHitObject {
 
     private isNewStyle: boolean;
 
+    // New-style elements:
     private spinnerGlow: PIXI.Container;
     private spinnerBottom: PIXI.Container;
     private spinnerTop: PIXI.Container;
     // The following shitty nomenclature is taken from skin file names. Despite being named "middle", they're visually above "top".
     private spinnerMiddle2: PIXI.Container;
     private spinnerMiddle: PIXI.Container
-    private spinnerSpin: PIXI.Container;
-    private spinnerClear: PIXI.Container;
-    private spinnerBonus: SpriteNumber;
     private scalablePart: PIXI.Container;
-    private spinnerSpinFadeOutStart: number = null;
 
+    // Old-style elements:
     private spinnerBackground: PIXI.Container;
     private spinnerMeter: PIXI.Container;
     private spinnerMeterMask: PIXI.Graphics;
     private spinnerCircle: PIXI.Container;
     private spinnerApproachCircle: PIXI.Container;
+
+    // Informative elements for both styles
+    private spinnerSpin: PIXI.Container;
+    private spinnerClear: PIXI.Container;
+    private spinnerBonus: SpriteNumber;
+    private spinnerSpinFadeOutStart: number = null;
 
     private duration: number;
     private lastSpinPosition: Point = null;
@@ -101,13 +102,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     draw() {
-        let { pixelRatio, circleDiameter } = gameState.currentPlay;
-
-        /*
-        let approachCircle = new PIXI.Graphics();
-        approachCircle.lineStyle(5 * pixelRatio, 0xFFFFFF);
-        approachCircle.arc(0, 0, 200 * pixelRatio, 0, Math.PI*2);
-        this.approachCircle = approachCircle;*/
+        let { circleDiameter } = gameState.currentPlay;
 
         let backgroundTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];
         this.isNewStyle = backgroundTexture.isEmpty();

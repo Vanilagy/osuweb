@@ -435,7 +435,6 @@ export class Skin {
         this.textures["sliderTick"] = await OsuTexture.fromFiles(this.directory, "sliderscorepoint", "png", true);
 
         // Spinners
-        this.textures["spinnerApproachCircle"] = await OsuTexture.fromFiles(this.directory, "spinner-approachcircle", "png", true);
         this.textures["spinnerGlow"] = await OsuTexture.fromFiles(this.directory, "spinner-glow", "png", true);
         this.textures["spinnerBottom"] = await OsuTexture.fromFiles(this.directory, "spinner-bottom", "png", true);
         this.textures["spinnerTop"] = await OsuTexture.fromFiles(this.directory, "spinner-top", "png", true);
@@ -446,6 +445,7 @@ export class Skin {
         this.textures["spinnerBackground"] = await OsuTexture.fromFiles(this.directory, "spinner-background", "png", true);
         this.textures["spinnerMeter"] = await OsuTexture.fromFiles(this.directory, "spinner-metre", "png", true);
         this.textures["spinnerCircle"] = await OsuTexture.fromFiles(this.directory, "spinner-circle", "png", true);
+        this.textures["spinnerApproachCircle"] = await OsuTexture.fromFiles(this.directory, "spinner-approachcircle", "png", true);
 
         // Follow points
         this.textures["followPoint"] = await OsuTexture.fromFiles(this.directory, "followpoint", "png", true, "followpoint-{n}");
