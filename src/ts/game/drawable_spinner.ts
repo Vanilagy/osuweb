@@ -8,8 +8,9 @@ import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
 import { PLAYFIELD_DIMENSIONS, DrawingMode, DRAWING_MODE, HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
 import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../util/graphics_util";
-import { HitSoundInfo } from "./skin";
+import { HitSoundInfo, HitSoundType, HitSound } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
+import { SoundEmitter } from "../audio/sound_emitter";
 
 const SPINNER_FADE_IN_TIME = HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -60,6 +61,10 @@ export class DrawableSpinner extends DrawableHitObject {
     private cleared: boolean;
     private bonusSpins: number;
 
+    public spinSoundEmitter: SoundEmitter = null;
+    // TODO: Clean this up. Ergh. Disgusting.
+    public bonusSoundVolume: number;
+
     constructor(hitObject: Spinner) {
         super(hitObject);
     }
@@ -99,6 +104,10 @@ export class DrawableSpinner extends DrawableHitObject {
         });
 
         this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
+
+        if (this.spinSoundEmitter) {
+            this.spinSoundEmitter.setLoopState(true);
+        }
     }
 
     draw() {
@@ -207,6 +216,7 @@ export class DrawableSpinner extends DrawableHitObject {
                 spinnerBackground.anchor.set(0.5, 0.5);
                 spinnerBackground.width = width;
                 spinnerBackground.height = height;
+                spinnerBackground.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.spinnerBackground);
     
                 this.spinnerBackground = spinnerBackground;
             }
@@ -374,7 +384,7 @@ export class DrawableSpinner extends DrawableHitObject {
             let glowCompletion = this.glowInterpolator.getCurrentValue(currentTime);
             (this.spinnerGlow as PIXI.Sprite).tint = colorToHexNumber(lerpColors(Colors.White, SPINNER_GLOW_TINT, glowCompletion));
         } else {
-            this.spinnerApproachCircle.scale.set(MathUtil.lerp(2, 0.1, completion)); // Quote Google docs: "starts at 200% of its size and shrinks down to 10%"
+            this.spinnerApproachCircle.scale.set(MathUtil.lerp(2.0, 0.1, completion)); // Quote Google docs: "starts at 200% of its size and shrinks down to 10%"
 
             this.spinnerCircle.rotation = this.spinnerAngle;
 
@@ -402,6 +412,10 @@ export class DrawableSpinner extends DrawableHitObject {
         let bonusSpinsCompletion = this.bonusSpinsInterpolator.getCurrentValue(currentTime);
         this.spinnerBonus.container.scale.set(MathUtil.lerp(1.0, 0.666, bonusSpinsCompletion));
         this.spinnerBonus.container.alpha = 1 - bonusSpinsCompletion;
+
+        if (this.spinSoundEmitter && this.lastInputTime !== null && (currentTime - this.lastInputTime) >= 100) { // After 100ms of receiving no input, stop the spinning sound.
+            this.spinSoundEmitter.stop();
+        }
     }
 
     score() {
@@ -424,6 +438,8 @@ export class DrawableSpinner extends DrawableHitObject {
             currentPlay.scoreCounter.add(judgement, false, true, true, this, this.endTime);
             if (judgement !== 0) gameState.currentGameplaySkin.playHitSound(this.hitSound);
         }
+
+        if (this.spinSoundEmitter) this.spinSoundEmitter.stop();
     }
 
     getSpinsSpun() {
@@ -543,11 +559,19 @@ export class DrawableSpinner extends DrawableHitObject {
             this.spinnerBonus.setValue(this.bonusSpins * 1000);
             this.bonusSpinsInterpolator.start(currentTime);
             this.glowInterpolator.start(currentTime);
+
+            gameState.currentGameplaySkin.sounds[HitSoundType.SpinnerBonus].play(this.bonusSoundVolume);
         }
 
         let spinCompletion = spinsSpunNow / this.requiredSpins;
         if (spinCompletion >= 0.25 && this.spinnerSpinFadeOutStart === null) {
             this.spinnerSpinFadeOutStart = currentTime;
+        }
+
+        if (this.spinSoundEmitter) {
+            if (!this.spinSoundEmitter.isPlaying()) this.spinSoundEmitter.start();
+
+            this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.75 + 0.5));
         }
 
         this.lastInputTime = currentTime;

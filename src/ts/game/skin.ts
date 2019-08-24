@@ -238,7 +238,7 @@ export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitmap: numb
     return types;
 }
 
-class HitSound {
+export class HitSound {
     private files: { [index: number]: VirtualFile };
     private audioBuffers: { [index: number]: AudioBuffer };
 
@@ -348,7 +348,10 @@ export enum HitSoundType {
     DrumHitClap,
     DrumSliderSlide,
     DrumSliderWhistle,
-    DrumSliderTick
+    DrumSliderTick,
+
+    SpinnerSpin,
+    SpinnerBonus
 }
 
 let hitSoundFileNames: Map<HitSoundType, string> = new Map();
@@ -375,6 +378,9 @@ hitSoundFileNames.set(HitSoundType.DrumHitClap, "drum-hitclap");
 hitSoundFileNames.set(HitSoundType.DrumSliderSlide, "drum-sliderslide");
 hitSoundFileNames.set(HitSoundType.DrumSliderWhistle, "drum-sliderwhistle");
 hitSoundFileNames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
+//
+hitSoundFileNames.set(HitSoundType.SpinnerSpin, "spinnerspin");
+hitSoundFileNames.set(HitSoundType.SpinnerBonus, "spinnerbonus");
 
 export class Skin {
     private directory: VirtualDirectory;

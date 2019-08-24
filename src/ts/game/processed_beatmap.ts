@@ -11,7 +11,7 @@ import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet } from "./skin";
+import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, HitSoundType } from "./skin";
 import { gameState } from "./game_state";
 import { SoundEmitter } from "../audio/sound_emitter";
 
@@ -248,6 +248,14 @@ export class ProcessedBeatmap {
                 }
             } else if (rawHitObject instanceof Spinner) {
                 newObject = new DrawableSpinner(rawHitObject);
+
+                let volume = rawHitObject.extras.sampleVolume || currentTimingPoint.volume,
+                    index = rawHitObject.extras.customIndex || currentTimingPoint.sampleIndex || 1;
+
+                let emitter = gameState.currentGameplaySkin.sounds[HitSoundType.SpinnerSpin].getEmitter(volume, index);
+                if (emitter && emitter.getBuffer().duration >= 0.01) newObject.spinSoundEmitter = emitter;
+                
+                newObject.bonusSoundVolume = volume;
             }
 
             if (newObject instanceof DrawableCircle || newObject instanceof DrawableSpinner) {
