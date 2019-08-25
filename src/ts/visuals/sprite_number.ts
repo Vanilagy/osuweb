@@ -110,7 +110,7 @@ export class SpriteNumber {
         let totalWidth = 0;
         let totalHeight = 0;
         let currentX = 0;
-        let overlapX = this.options.overlap / 2;
+        let overlapX = this.options.overlap / 2 * 2; // Ah, yes. Enslaved *1.
 
         for (let i = 0; i < osuTextures.length; i++) {
             let isDigit = charIsDigit(str.charAt(i));
@@ -141,7 +141,9 @@ export class SpriteNumber {
             currentX = Math.floor(currentX);
         }
 
-        totalWidth -= (str.length - 1 + (this.options.overlapAtEnd? 1 : 0)) * overlapX * this.options.scaleFactor;
+        totalWidth -= (str.length - 1) * overlapX * this.options.scaleFactor;
+        // If negative overlap (which means "push digits away from each other"), add it to totalWidth
+        if (this.options.overlapAtEnd && overlapX < 0) totalWidth += -overlapX * this.options.scaleFactor;
 
         switch (this.options.horizontalAlign) {
             case "left": {

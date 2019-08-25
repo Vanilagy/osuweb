@@ -254,7 +254,7 @@ export class ProcessedBeatmap {
 
                 let emitter = gameState.currentGameplaySkin.sounds[HitSoundType.SpinnerSpin].getEmitter(volume, index);
                 if (emitter && emitter.getBuffer().duration >= 0.01) newObject.spinSoundEmitter = emitter;
-                
+
                 newObject.bonusSoundVolume = volume;
             }
 

@@ -18,7 +18,7 @@ const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 
 export async function initHud() {
     let scoreHeight = window.innerHeight * 0.06,
-        accuracyHeight = window.innerHeight * 0.038,
+        accuracyHeight = window.innerHeight * 0.036,
         comboHeight = window.innerHeight * 0.08;
 
     scoreDisplay = new SpriteNumber({
@@ -52,7 +52,7 @@ export async function initHud() {
         scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
         verticalAlign: "bottom",
         horizontalAlign: "left",
-        overlap: baseSkin.config.fonts.scoreOverlap,
+        overlap: baseSkin.config.fonts.comboOverlap,
         textures: baseSkin.scoreNumberTextures,
         hasX: true
     });
@@ -64,17 +64,17 @@ export async function initHud() {
         scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
         verticalAlign: "bottom",
         horizontalAlign: "left",
-        overlap: baseSkin.config.fonts.scoreOverlap,
+        overlap: baseSkin.config.fonts.comboOverlap,
         textures: baseSkin.scoreNumberTextures,
         hasX: true
     });
     comboDisplay.container.y = phantomComboDisplay.container.y;
     comboDisplay.container.x = phantomComboDisplay.container.x;
 
-    progressIndicator = new ProgressIndicator(window.innerHeight * 0.05);
+    progressIndicator = new ProgressIndicator(window.innerHeight * 0.045);
     // SO UNCLEAN OMG! TEMP! TODO!!
     progressIndicator.container.x = Math.floor(accuracyDisplay.container.x - accuracyDisplay.container.width - window.innerHeight * 0.04);
-    progressIndicator.container.y = Math.floor(accuracyDisplay.container.y + accuracyDisplay.container.height/2);
+    progressIndicator.container.y = Math.floor(accuracyDisplay.container.y + accuracyHeight/2);
 
     accuracyMeter = new AccuracyMeter();
     accuracyMeter.container.x = window.innerWidth / 2;

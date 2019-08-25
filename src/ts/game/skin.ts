@@ -8,7 +8,7 @@ import { createAudioBuffer, soundEffectsNode } from "../audio/audio";
 import { SoundEmitter } from "../audio/sound_emitter";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/default";
+let baseSkinPath = "./assets/skins/seoul";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -446,12 +446,13 @@ export class Skin {
         this.textures["spinnerTop"] = await OsuTexture.fromFiles(this.directory, "spinner-top", "png", true);
         this.textures["spinnerMiddle2"] = await OsuTexture.fromFiles(this.directory, "spinner-middle2", "png", true);
         this.textures["spinnerMiddle"] = await OsuTexture.fromFiles(this.directory, "spinner-middle", "png", true);
-        this.textures["spinnerSpin"] = await OsuTexture.fromFiles(this.directory, "spinner-spin", "png", true);
-        this.textures["spinnerClear"] = await OsuTexture.fromFiles(this.directory, "spinner-clear", "png", true);
         this.textures["spinnerBackground"] = await OsuTexture.fromFiles(this.directory, "spinner-background", "png", true);
         this.textures["spinnerMeter"] = await OsuTexture.fromFiles(this.directory, "spinner-metre", "png", true);
         this.textures["spinnerCircle"] = await OsuTexture.fromFiles(this.directory, "spinner-circle", "png", true);
         this.textures["spinnerApproachCircle"] = await OsuTexture.fromFiles(this.directory, "spinner-approachcircle", "png", true);
+        this.textures["spinnerRpm"] = await OsuTexture.fromFiles(this.directory, "spinner-rpm", "png", true);
+        this.textures["spinnerSpin"] = await OsuTexture.fromFiles(this.directory, "spinner-spin", "png", true);
+        this.textures["spinnerClear"] = await OsuTexture.fromFiles(this.directory, "spinner-clear", "png", true);
 
         // Follow points
         this.textures["followPoint"] = await OsuTexture.fromFiles(this.directory, "followpoint", "png", true, "followpoint-{n}");
@@ -500,6 +501,7 @@ export class Skin {
 
             if (this.directory.networkFallbackUrl) {
                 await this.directory.getFileByName(fileName + '.wav');
+                await this.directory.getFileByName(fileName + '.mp3');
             }
 
             let hitSound = new HitSound(this.directory, fileName);

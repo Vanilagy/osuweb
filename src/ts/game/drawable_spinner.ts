@@ -18,11 +18,13 @@ const SPIN_TEXT_FADE_IN_TIME = 200; // In ms
 const SPIN_TEXT_FADE_OUT_TIME = 200; // In ms
 const SPINNER_GLOW_TINT: Color = {r: 2, g: 170, b: 255}; // Same color as default slider ball tint
 const SPINNER_METER_STEPS = 10;
+const SPINNER_METER_STEP_HEIGHT = 69; // ( ͡° ͜ʖ ͡°)
 
 export class DrawableSpinner extends DrawableHitObject {
     public hitObject: Spinner;
     public hitSound: HitSoundInfo;
     private componentContainer: PIXI.Container;
+    private componentContainer2: PIXI.Container; // It's like 1, but better
 
     private clearTextInterpolator: Interpolator;
     private bonusSpinsInterpolator: Interpolator;
@@ -47,6 +49,8 @@ export class DrawableSpinner extends DrawableHitObject {
     private spinnerApproachCircle: PIXI.Container;
 
     // Informative elements for both styles
+    private spinnerRpm: PIXI.Container;
+    private spinnerRpmNumber: SpriteNumber;
     private spinnerSpin: PIXI.Container;
     private spinnerClear: PIXI.Container;
     private spinnerBonus: SpriteNumber;
@@ -82,7 +86,18 @@ export class DrawableSpinner extends DrawableHitObject {
         this.cleared = false;
         this.bonusSpins = 0;
 
+        this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
+
+        if (this.spinSoundEmitter) {
+            this.spinSoundEmitter.setLoopState(true);
+        }
+    }
+
+    draw() {
+        let { spinnerPixelRatio } = gameState.currentPlay;
+
         this.componentContainer = new PIXI.Container();
+        this.componentContainer2 = new PIXI.Container();
         this.clearTextInterpolator = new Interpolator({
             from: 0,
             to: 1,
@@ -103,27 +118,17 @@ export class DrawableSpinner extends DrawableHitObject {
             duration: 333
         });
 
-        this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
-
-        if (this.spinSoundEmitter) {
-            this.spinSoundEmitter.setLoopState(true);
-        }
-    }
-
-    draw() {
-        let { circleDiameter } = gameState.currentPlay;
-
         let backgroundTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];
         this.isNewStyle = backgroundTexture.isEmpty();
 
         if (this.isNewStyle) {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerGlow"];
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                //let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerGlow = new PIXI.Sprite(osuTexture.getBest());
+                let spinnerGlow = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 spinnerGlow.anchor.set(0.5, 0.5);
                 spinnerGlow.width = width;
                 spinnerGlow.height = height;
@@ -135,11 +140,11 @@ export class DrawableSpinner extends DrawableHitObject {
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerBottom"];
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                //let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerBottom = new PIXI.Sprite(osuTexture.getBest());
+                let spinnerBottom = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 spinnerBottom.anchor.set(0.5, 0.5);
                 spinnerBottom.width = width;
                 spinnerBottom.height = height;
@@ -149,11 +154,11 @@ export class DrawableSpinner extends DrawableHitObject {
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerTop"];
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                //let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerTop = new PIXI.Sprite(osuTexture.getBest());
+                let spinnerTop = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 spinnerTop.anchor.set(0.5, 0.5);
                 spinnerTop.width = width;
                 spinnerTop.height = height;
@@ -163,11 +168,11 @@ export class DrawableSpinner extends DrawableHitObject {
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle2"];
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                //let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerMiddle2 = new PIXI.Sprite(osuTexture.getBest());
+                let spinnerMiddle2 = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 spinnerMiddle2.anchor.set(0.5, 0.5);
                 spinnerMiddle2.width = width;
                 spinnerMiddle2.height = height;
@@ -177,11 +182,11 @@ export class DrawableSpinner extends DrawableHitObject {
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle"];
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                //let factor = circleDiameter / 128;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerMiddle = new PIXI.Sprite(osuTexture.getBest());
+                let spinnerMiddle = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 spinnerMiddle.anchor.set(0.5, 0.5);
                 spinnerMiddle.width = width;
                 spinnerMiddle.height = height;
@@ -191,11 +196,11 @@ export class DrawableSpinner extends DrawableHitObject {
         } else {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerApproachCircle"];
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let maxSize = Math.max(width*2, height*2);
     
-                let approachCircle = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
+                let approachCircle = new PIXI.Sprite(osuTexture.getDynamic(maxSize));
                 approachCircle.anchor.set(0.5, 0.5);
                 approachCircle.width = width;
                 approachCircle.height = height;
@@ -208,14 +213,19 @@ export class DrawableSpinner extends DrawableHitObject {
 
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];
-                let factor = circleDiameter / 128 * 1.07;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerBackground = new PIXI.Sprite(osuTexture.getBest());
+                let spinnerBackground = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 spinnerBackground.anchor.set(0.5, 0.5);
                 spinnerBackground.width = width;
                 spinnerBackground.height = height;
+                //spinnerBackground.x = window.innerWidth/2;
+                //spinnerBackground.y = 46 * spinnerPixelRatio;
+                //spinnerBackground.y = window.innerHeight/2;
+                //spinnerBackground.y = -6933/2 * spinnerPixelRatio;
+                spinnerBackground.y = 5 * spinnerPixelRatio; // TODO: Where does this come from?
+                
                 spinnerBackground.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.spinnerBackground);
     
                 this.spinnerBackground = spinnerBackground;
@@ -224,14 +234,15 @@ export class DrawableSpinner extends DrawableHitObject {
             this.spinnerMeterMask = new PIXI.Graphics();
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMeter"];
-                let factor = circleDiameter / 128 * 1.07;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerMeter = new PIXI.Sprite(osuTexture.getBest());
-                spinnerMeter.anchor.set(0.5, 0.5);
+                let spinnerMeter = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
+                spinnerMeter.anchor.set(0.0, 0.0);
                 spinnerMeter.width = width;
                 spinnerMeter.height = height;
+                spinnerMeter.x = window.innerWidth/2 - 512 * spinnerPixelRatio;
+                spinnerMeter.y = 46 * spinnerPixelRatio;
                 spinnerMeter.mask = this.spinnerMeterMask;
     
                 this.spinnerMeter = spinnerMeter;
@@ -239,11 +250,10 @@ export class DrawableSpinner extends DrawableHitObject {
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerCircle"];
-                let factor = circleDiameter / 128 * 1.07;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
+                let width = osuTexture.getWidth() * spinnerPixelRatio;
+                let height = osuTexture.getHeight() * spinnerPixelRatio;
     
-                let spinnerCircle = new PIXI.Sprite(osuTexture.getBest());
+                let spinnerCircle = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
                 spinnerCircle.anchor.set(0.5, 0.5);
                 spinnerCircle.width = width;
                 spinnerCircle.height = height;
@@ -253,47 +263,81 @@ export class DrawableSpinner extends DrawableHitObject {
         }
 
         if (DRAWING_MODE === DrawingMode.Skin) {
-            let osuTexture = gameState.currentGameplaySkin.textures["spinnerSpin"];
-            let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
-            let width = osuTexture.getWidth() * factor;
-            let height = osuTexture.getHeight() * factor;
+            let osuTexture = gameState.currentGameplaySkin.textures["spinnerRpm"];
+            //let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
+            let width = osuTexture.getWidth() * spinnerPixelRatio;
+            let height = osuTexture.getHeight() * spinnerPixelRatio;
 
-            let spinnerSpin = new PIXI.Sprite(osuTexture.getBest());
+            let spinnerRpm = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
+            spinnerRpm.anchor.set(0.0, 0.0);
+            spinnerRpm.width = width;
+            spinnerRpm.height = height;
+            spinnerRpm.y = window.innerHeight - 56 * spinnerPixelRatio;
+            spinnerRpm.x = window.innerWidth/2 - 139 * spinnerPixelRatio;
+
+            this.spinnerRpm = spinnerRpm;
+        }
+
+        let spinnerRpmNumber = new SpriteNumber({
+            textures: gameState.currentGameplaySkin.scoreNumberTextures,
+            scaleFactor: spinnerPixelRatio * 0.85,
+            horizontalAlign: "right",
+            verticalAlign: "top",
+            overlap: gameState.currentGameplaySkin.config.fonts.scoreOverlap,
+            overlapAtEnd: false
+        });
+        spinnerRpmNumber.container.x = window.innerWidth/2 + 122 * spinnerPixelRatio;
+        spinnerRpmNumber.container.y = window.innerHeight - 50 * spinnerPixelRatio;
+        spinnerRpmNumber.container.visible = false;
+        spinnerRpmNumber.setValue(0);
+        this.spinnerRpmNumber = spinnerRpmNumber;
+
+        if (DRAWING_MODE === DrawingMode.Skin) {
+            let osuTexture = gameState.currentGameplaySkin.textures["spinnerSpin"];
+            //let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
+            let width = osuTexture.getWidth() * spinnerPixelRatio;
+            let height = osuTexture.getHeight() * spinnerPixelRatio;
+
+            let spinnerSpin = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
             spinnerSpin.anchor.set(0.5, 0.5);
             spinnerSpin.width = width;
             spinnerSpin.height = height;
-            spinnerSpin.y = 198 * factor;
+            spinnerSpin.y = 198 * spinnerPixelRatio;
 
             this.spinnerSpin = spinnerSpin;
         }
 
         if (DRAWING_MODE === DrawingMode.Skin) {
             let osuTexture = gameState.currentGameplaySkin.textures["spinnerClear"];
-            let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
-            let width = osuTexture.getWidth() * factor;
-            let height = osuTexture.getHeight() * factor;
+            //let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
+            let width = osuTexture.getWidth() * spinnerPixelRatio;
+            let height = osuTexture.getHeight() * spinnerPixelRatio;
 
-            let spinnerClear = new PIXI.Sprite(osuTexture.getBest());
+            let spinnerClear = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
             spinnerClear.anchor.set(0.5, 0.5);
             spinnerClear.width = width;
             spinnerClear.height = height;
 
             let wrapper = new PIXI.Container();
             wrapper.addChild(spinnerClear);
-            wrapper.y = -154 * factor;
+            wrapper.y = -164 * spinnerPixelRatio;
 
             this.spinnerClear = wrapper;
         }
 
         let spinnerBonus = new SpriteNumber({
             textures: gameState.currentGameplaySkin.scoreNumberTextures,
-            scaleFactor: circleDiameter / 128 * 2,
+            scaleFactor: spinnerPixelRatio * 2,
             horizontalAlign: "center",
             verticalAlign: "middle",
             overlap: gameState.currentGameplaySkin.config.fonts.scoreOverlap
         });
-        spinnerBonus.container.y = circleDiameter / 128 * 1.2 * 198;
+        spinnerBonus.container.y = 128 * spinnerPixelRatio;
         this.spinnerBonus = spinnerBonus;
+
+        /** Add all elements */
+
+        this.container.addChild(this.componentContainer);
 
         if (this.isNewStyle) {
             this.scalablePart = new PIXI.Container();
@@ -303,20 +347,22 @@ export class DrawableSpinner extends DrawableHitObject {
             this.scalablePart.addChild(this.spinnerMiddle2);
             this.scalablePart.addChild(this.spinnerMiddle);
 
-            this.componentContainer.addChild(this.scalablePart);
+            this.componentContainer2.addChild(this.scalablePart);
         } else {
             this.componentContainer.addChild(this.spinnerBackground);
-            this.componentContainer.addChild(this.spinnerMeter);
-            this.componentContainer.addChild(this.spinnerMeterMask);
-            this.componentContainer.addChild(this.spinnerCircle);
-            this.componentContainer.addChild(this.spinnerApproachCircle);
+            this.container.addChild(this.spinnerMeter);
+            this.container.addChild(this.spinnerMeterMask);
+            this.componentContainer2.addChild(this.spinnerCircle);
+            this.componentContainer2.addChild(this.spinnerApproachCircle);
         }
         
-        this.componentContainer.addChild(this.spinnerSpin);
-        this.componentContainer.addChild(this.spinnerClear);
-        this.componentContainer.addChild(this.spinnerBonus.container);
-
-        this.container.addChild(this.componentContainer);
+        this.componentContainer2.addChild(this.spinnerSpin);
+        this.componentContainer2.addChild(this.spinnerClear);
+        this.componentContainer2.addChild(this.spinnerBonus.container);
+        
+        this.container.addChild(this.spinnerRpm);
+        this.container.addChild(this.componentContainer2);
+        this.container.addChild(this.spinnerRpmNumber.container); // Above all other elements
     }
 
     show(currentTime: number) {
@@ -330,9 +376,12 @@ export class DrawableSpinner extends DrawableHitObject {
         // Position it in the center
         this.componentContainer.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
         this.componentContainer.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        this.componentContainer2.position.copyFrom(this.componentContainer.position);
     }
 
     update(currentTime: number) {
+        let { spinnerPixelRatio } = gameState.currentPlay;
+
         if (currentTime >= this.endTime + SPINNER_FADE_OUT_TIME) {
             this.renderFinished = true;
             return;
@@ -346,13 +395,15 @@ export class DrawableSpinner extends DrawableHitObject {
             let spinTextFadeInCompletion = (currentTime - (this.startTime - SPIN_TEXT_FADE_IN_TIME)) / SPIN_TEXT_FADE_IN_TIME;
             spinTextFadeInCompletion = MathUtil.clamp(spinTextFadeInCompletion, 0, 1);
             this.spinnerSpin.alpha = spinTextFadeInCompletion;
-        } else if (currentTime >= this.endTime) {
-            let fadeOutCompletion = (currentTime - this.endTime) / SPINNER_FADE_OUT_TIME;
-            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            this.container.alpha = 1 - fadeOutCompletion;
+
+            this.spinnerRpm.y = MathUtil.lerp(window.innerHeight, window.innerHeight - 56 * spinnerPixelRatio, fadeInCompletion);
         } else {
             this.container.alpha = 1;
-            // Here we're currently in the active part of the spinner
+            if (currentTime >= this.endTime) {
+                let fadeOutCompletion = (currentTime - this.endTime) / SPINNER_FADE_OUT_TIME;
+                fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+                this.container.alpha = 1 - fadeOutCompletion;
+            }
 
             let spinnerSpinAlpha = 1;
             if (this.spinnerSpinFadeOutStart !== null) {
@@ -362,6 +413,9 @@ export class DrawableSpinner extends DrawableHitObject {
             }
 
             this.spinnerSpin.alpha = spinnerSpinAlpha;
+
+            this.spinnerRpmNumber.container.visible = true;
+            this.spinnerRpm.y = window.innerHeight - 56 * spinnerPixelRatio;
         }
     
         let completion = (currentTime - this.startTime) / this.duration;
@@ -378,13 +432,13 @@ export class DrawableSpinner extends DrawableHitObject {
 
             this.spinnerGlow.alpha = clearCompletion;
 
-            let totalScale = MathUtil.lerp(1, 1.25, MathUtil.ease(EaseType.EaseOutQuad, clearCompletion));
+            let totalScale = MathUtil.lerp(0.82, 1.0, MathUtil.ease(EaseType.EaseOutQuad, clearCompletion));
             this.scalablePart.scale.set(totalScale);
 
             let glowCompletion = this.glowInterpolator.getCurrentValue(currentTime);
             (this.spinnerGlow as PIXI.Sprite).tint = colorToHexNumber(lerpColors(Colors.White, SPINNER_GLOW_TINT, glowCompletion));
         } else {
-            this.spinnerApproachCircle.scale.set(MathUtil.lerp(2.0, 0.1, completion)); // Quote Google docs: "starts at 200% of its size and shrinks down to 10%"
+            this.spinnerApproachCircle.scale.set(MathUtil.lerp(1.85, 0.1, completion)); // Quote Google docs: "starts at 200% of its size and shrinks down to 10%". Changed to 185% 'cause I have eyes.
 
             this.spinnerCircle.rotation = this.spinnerAngle;
 
@@ -392,15 +446,26 @@ export class DrawableSpinner extends DrawableHitObject {
             {
                 let mask = this.spinnerMeterMask;
 
-                let meterWidth = this.spinnerMeter.width;
-                let meterHeight = this.spinnerMeter.height;
+                let completedSteps = Math.floor(clearCompletion * SPINNER_METER_STEPS);
+                let completion = completedSteps / SPINNER_METER_STEPS; // Quantize this shit
 
-                let completion = Math.floor(clearCompletion * SPINNER_METER_STEPS) / SPINNER_METER_STEPS; // Quantize this shit
+                // For a lack of better names:
+                let a = Math.max(0, completedSteps-1);
+                let b = a / SPINNER_METER_STEPS;
 
+                // Draw all steps below the top step:
                 mask.clear();
-                mask.beginFill(0xFF3300);
-                mask.drawRect(-meterWidth/2, -meterHeight/2 + (1 - completion)*meterHeight, meterWidth, completion * meterHeight);
+                mask.beginFill(0xFF0000);
+                mask.drawRect(0, (49 + (1-b)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * spinnerPixelRatio, window.innerWidth, b*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS * spinnerPixelRatio);
                 mask.endFill();
+
+                // Using the noise, create the 'flicker' effect.
+                if (completedSteps > 0 && ((completedSteps === SPINNER_METER_STEPS && gameState.currentGameplaySkin.config.general.spinnerNoBlink) || MathUtil.simplexNoise1D(currentTime / 85) < 0.5)) {
+                    // Draw the top step:
+                    mask.beginFill(0xFF0000);
+                    mask.drawRect(0, (49 + (1-completion)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * spinnerPixelRatio, window.innerWidth, SPINNER_METER_STEP_HEIGHT * spinnerPixelRatio);
+                    mask.endFill();
+                }
             }
         }
 
@@ -413,8 +478,9 @@ export class DrawableSpinner extends DrawableHitObject {
         this.spinnerBonus.container.scale.set(MathUtil.lerp(1.0, 0.666, bonusSpinsCompletion));
         this.spinnerBonus.container.alpha = 1 - bonusSpinsCompletion;
 
-        if (this.spinSoundEmitter && this.lastInputTime !== null && (currentTime - this.lastInputTime) >= 100) { // After 100ms of receiving no input, stop the spinning sound.
-            this.spinSoundEmitter.stop();
+        if (this.lastInputTime === null || (currentTime - this.lastInputTime) >= 100) {
+            if (this.spinSoundEmitter) this.spinSoundEmitter.stop(); // After 100ms of receiving no input, stop the spinning sound.
+            if (currentTime < this.endTime) this.spinnerRpmNumber.setValue(0);
         }
     }
 
@@ -533,6 +599,8 @@ export class DrawableSpinner extends DrawableHitObject {
         if (timeDif <= 0) return;
         
         let angle = Math.sign(radians) * Math.min(Math.abs(radians), 0.05 * timeDif); // MAX 0.05 radians / ms, 'cause 477 limit!
+        let spinsPerMinute = Math.abs(angle) / timeDif * 1000 * 60 / (Math.PI*2);
+        this.spinnerRpmNumber.setValue(spinsPerMinute | 0);
         
         let prevSpinsSpun = this.getSpinsSpun();
 
@@ -571,7 +639,7 @@ export class DrawableSpinner extends DrawableHitObject {
         if (this.spinSoundEmitter) {
             if (!this.spinSoundEmitter.isPlaying()) this.spinSoundEmitter.start();
 
-            this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.75 + 0.5));
+            if (gameState.currentGameplaySkin.config.general.spinnerFrequencyModulate) this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
         }
 
         this.lastInputTime = currentTime;
