@@ -6,6 +6,7 @@ import { Dimensions, Color } from "../util/graphics_util";
 import { charIsDigit, promiseAllSettled, assert, jsonClone, shallowObjectClone } from "../util/misc_util";
 import { createAudioBuffer, soundEffectsNode } from "../audio/audio";
 import { SoundEmitter } from "../audio/sound_emitter";
+import { uploadTexture } from "../visuals/rendering";
 
 // This is all temp:
 let baseSkinPath = "./assets/skins/seoul";
@@ -135,6 +136,13 @@ export class OsuTexture {
 
     isEmpty() {
         return (this.getDeFactoSdBase() || this.getDeFactoHdBase()) === null;
+    }
+
+    uploadToGpu() {
+        if (this.sdBase) uploadTexture(this.sdBase);
+        if (this.hdBase) uploadTexture(this.hdBase);
+        for (let tex of this.sd) uploadTexture(tex);
+        for (let tex of this.hd) uploadTexture(tex);
     }
 
     static async fromFiles(directory: VirtualDirectory, name: string, extension: string, hd = false, animationName: string = null) {
@@ -513,6 +521,13 @@ export class Skin {
         await Promise.all(hitSoundReadyPromises);
 
         console.timeEnd("Hit sounds load");
+
+        // All texture resources should have loaded now, so let's push them into VRAM:
+        console.time("Texture upload to GPU");
+        for (let key in this.textures) {
+            this.textures[key].uploadToGpu();
+        }
+        console.timeEnd("Texture upload to GPU");
 
         console.timeEnd("Skin init");
     }

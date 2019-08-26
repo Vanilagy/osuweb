@@ -8,7 +8,7 @@ import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
 import { PLAYFIELD_DIMENSIONS, DrawingMode, DRAWING_MODE, HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
 import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../util/graphics_util";
-import { HitSoundInfo, HitSoundType, HitSound } from "./skin";
+import { HitSoundInfo, HitSoundType } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { SoundEmitter } from "../audio/sound_emitter";
 

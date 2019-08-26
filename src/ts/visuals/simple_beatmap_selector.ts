@@ -5,6 +5,7 @@ import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 
 const beatmapFileSelect = document.querySelector('#beatmapSelect') as HTMLInputElement;
+beatmapFileSelect.style.display = 'none';
 
 beatmapFileSelect.addEventListener('change', async (e) => {
     let directory = VirtualDirectory.fromFileList(beatmapFileSelect.files);
@@ -35,3 +36,7 @@ beatmapFileSelect.addEventListener('change', async (e) => {
     });
     await startPlay(beatmap);
 });
+
+export function showChooseFile() {
+    beatmapFileSelect.style.display = 'block';
+}

@@ -1,4 +1,4 @@
-const DEFAULT_MASTER_GAIN_VALUME = 0.05;
+const DEFAULT_MASTER_GAIN_VALUME = 0.10;
 
 export let audioContext = new AudioContext();
 if (audioContext.state === "suspended") console.warn("AUDIO CONTEXT IS SUSPENDED. MAKE SURE TO RESUME IT BEFORE ANYTHING IMPORTANT!");
