@@ -343,7 +343,7 @@ export class Play {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
+                    if ((anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
                         slider.scoring.end = true;
                     } else {
                         slider.scoring.end = false;
@@ -382,7 +382,7 @@ export class Play {
                         hit = slider.scoring.end;
                     } else {
                         let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                        hit = (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
+                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
                     }
 
                     if (hit) {
@@ -406,7 +406,7 @@ export class Play {
                         hit = slider.scoring.end;
                     } else {
                         let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                        hit = (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
+                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
                     }
 
                     if (hit) {

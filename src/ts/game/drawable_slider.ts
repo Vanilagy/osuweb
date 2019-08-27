@@ -40,6 +40,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public hitCirclePrimitiveContainer: PIXI.Container;
     public reverseArrowContainer: PIXI.Container;
 
+    /** The "visual other end" of the slider. Not necesarrily where the slider ends (because of repeats); for that, refer to endPoint instead. */
+    public tailPoint: Point;
     public duration: number;
     public complete: boolean;
     public reductionFactor: number;
@@ -54,6 +56,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public timingInfo: SliderTimingInfo;
     public hitObject: Slider;
     public sliderTickCompletions: number[];
+    public sliderTickElements: (PIXI.Container | null)[];
     public scoring: SliderScoring;
     public hitSounds: HitSoundInfo[];
     public tickSounds: HitSoundInfo[];
@@ -83,10 +86,12 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.curve = new SliderCurveBézier(this, false);
         }
 
+        this.tailPoint = this.getPosFromPercentage(1);
+
         if (this.hitObject.repeat % 2 === 0) {
             this.endPoint = this.startPoint;
         } else {
-            this.endPoint = this.getPosFromPercentage(1) as Point;
+            this.endPoint = this.tailPoint;
         }
 
         this.scoring = getDefaultSliderScoring();
@@ -104,7 +109,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     draw() {
         super.draw();
 
-        let { circleDiameter, pixelRatio, ARMs } = gameState.currentPlay;
+        let { circleDiameter, pixelRatio, ARMs, circleRadiusOsuPx } = gameState.currentPlay;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - ARMs,
@@ -115,8 +120,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         });
 
         let ctxStartPos = this.toCtxCoord({x: this.startPoint.x, y: this.startPoint.y});
-        let otherPoint = this.getPosFromPercentage(1);
-        let ctxEndPos = this.toCtxCoord({x: otherPoint.x, y: otherPoint.y});
+        let ctxEndPos = this.toCtxCoord({x: this.tailPoint.x, y: this.tailPoint.y});
 
         this.head.container.x = ctxStartPos.x;
         this.head.container.y = ctxStartPos.y;
@@ -202,9 +206,20 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.followCircle.visible = false;
 
         this.sliderTickContainer = new PIXI.Container();
+        this.sliderTickElements = [];
+
         for (let i = 0; i < this.sliderTickCompletions.length; i++) {
             let completion = this.sliderTickCompletions[i];
             if (completion >= 1) break;
+
+            let sliderTickPos = this.getPosFromPercentage(MathUtil.reflect(completion));
+
+            // Check if the tick overlaps with either slider end
+            if (pointDistance(sliderTickPos, this.startPoint) <= circleRadiusOsuPx || pointDistance(sliderTickPos, this.tailPoint) <= circleRadiusOsuPx) {
+                // If it does, hide it.
+                this.sliderTickElements.push(null);
+                continue;
+            }
 
             let tickElement: PIXI.Container;
             if (DRAWING_MODE === DrawingMode.Procedural) {
@@ -233,12 +248,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 tickElement = wrapper;
             }
 
-            let sliderTickPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
+            let ctxPos = this.toCtxCoord(sliderTickPos);
 
-            tickElement.x = sliderTickPos.x;
-            tickElement.y = sliderTickPos.y;
+            tickElement.x = ctxPos.x;
+            tickElement.y = ctxPos.y;
 
             this.sliderTickContainer.addChild(tickElement);
+            this.sliderTickElements.push(tickElement);
         }
 
         this.overlayContainer = new PIXI.Container();
@@ -572,19 +588,20 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
-        let { ARMs, circleDiameter } = gameState.currentPlay;
+        let { ARMs } = gameState.currentPlay;
 
         let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
         let currentCycle = Math.floor(completion);
 
-        for (let i = 0; i < this.sliderTickContainer.children.length; i++) {
-            let tickElement = this.sliderTickContainer.children[i] as PIXI.Container;
+        for (let i = 0; i < this.sliderTickElements.length; i++) {
+            let tickElement = this.sliderTickElements[i];
+            if (tickElement === null) continue; // Meaning: The tick is hidden
 
-            let tickCompletionIndex = this.sliderTickContainer.children.length * currentCycle;
+            let tickCompletionIndex = this.sliderTickElements.length * currentCycle;
             if (currentCycle % 2 === 0) {
                 tickCompletionIndex += i;
             } else {
-                tickCompletionIndex += this.sliderTickContainer.children.length - 1 - i;
+                tickCompletionIndex += this.sliderTickElements.length - 1 - i;
             }
             let tickCompletion = this.sliderTickCompletions[tickCompletionIndex];
 
