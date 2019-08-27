@@ -9,7 +9,7 @@ import { SoundEmitter } from "../audio/sound_emitter";
 import { uploadTexture } from "../visuals/rendering";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/yugen";
+let baseSkinPath = "./assets/skins/seoul";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 

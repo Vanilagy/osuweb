@@ -313,7 +313,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             type: PlayEventType.SliderEnd,
             hitObject: this,
             time: this.endTime,
-            hitSound: last(this.hitSounds)
+            hitSound: last(this.hitSounds),
+            i: this.sliderEnds.length-1
         });
 
         // Add repeats
@@ -328,7 +329,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                     hitObject: this,
                     time: this.startTime + i * repeatCycleDuration,
                     position: position,
-                    hitSound: this.hitSounds[i]
+                    hitSound: this.hitSounds[i],
+                    i: i-1
                 });
             }
         }
@@ -387,14 +389,20 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true, this, this.endTime);
     }
 
-    hitHead(time: number) {
+    hitHead(time: number, judgementOverride?: number) {
         if (this.scoring.head.hit !== ScoringValue.NotHit) return;
         
         let { processedBeatmap, scoreCounter } = gameState.currentPlay;
 
         let timeInaccuracy = time - this.startTime;
-        let hitDelta = Math.abs(timeInaccuracy);
-        let judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
+        let judgement: number;
+
+        if (judgementOverride !== undefined) {
+            judgement = judgementOverride;
+        } else {
+            let hitDelta = Math.abs(timeInaccuracy);
+            judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
+        }
 
         this.scoring.head.hit = judgement;
         this.scoring.head.time = time;
@@ -404,19 +412,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         scoreCounter.add(score, true, true, false, this, time);
         if (judgement !== 0) {
             gameState.currentGameplaySkin.playHitSound(this.hitSounds[0]);
-
-            this.head.setFadeOut({
-                type: HitCirclePrimitiveFadeOutType.ScaleOut,
-                time: time
-            });
-        } else {
-            this.head.setFadeOut({
-                type: HitCirclePrimitiveFadeOutType.FadeOut,
-                time: time
-            });
+            accuracyMeter.addAccuracyLine(timeInaccuracy, time);
         }
-
-        accuracyMeter.addAccuracyLine(timeInaccuracy, time);
+        HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
     }
 
     getPosFromPercentage(percent: number) : Point {
@@ -466,23 +464,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length;
         completion = MathUtil.clamp(completion, 0, this.hitObject.repeat);
 
-        this.renderSliderEnds(completion, currentTime);
+        this.renderSliderEnds(currentTime);
         this.renderSliderBall(completion, currentTime, currentSliderTime);
         if (this.sliderTickCompletions.length > 0) this.renderSliderTicks(completion, currentSliderTime);
     }
 
-    private renderSliderEnds(completion: number, currentTime: number) {
+    private renderSliderEnds(currentTime: number) {
         for (let i = 0; i < this.sliderEnds.length; i++) {
             let sliderEnd = this.sliderEnds[i];
-
-            if (completion >= (i+1) && !sliderEnd.isFadingOut()) {
-                let time = this.startTime + (i+1) * this.hitObject.length / this.timingInfo.sliderVelocity;
-
-                sliderEnd.setFadeOut({
-                    type: HitCirclePrimitiveFadeOutType.ScaleOut,
-                    time: time
-                });
-            } 
+            if (sliderEnd.renderFinished) continue;
 
             sliderEnd.update(currentTime);
         }

@@ -86,7 +86,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
         approachCircleContainer.removeChild(this.head.approachCircle);
     }
 
-    abstract hitHead(time: number): void;
+    abstract hitHead(time: number, judgementOverride?: number): void;
     
     handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
         let { circleRadiusOsuPx } = gameState.currentPlay;

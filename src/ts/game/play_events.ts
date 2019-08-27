@@ -18,5 +18,6 @@ export interface PlayEvent {
     hitObject: DrawableHitObject,
     time: number,
     position?: Point, // Where the event takes place, for example slider ticks.
-    hitSound?: HitSoundInfo // For slider ends
+    hitSound?: HitSoundInfo, // For slider ends
+    i?: number // An index for general use
 }

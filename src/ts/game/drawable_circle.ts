@@ -52,7 +52,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
     }
 
     update(currentTime: number) {
-        if (this.scoring.head.time !== null && currentTime >= this.scoring.head.time + HIT_OBJECT_FADE_OUT_TIME) {
+        if (this.head.renderFinished) {
             this.renderFinished = true;
             return;
         }
@@ -66,36 +66,29 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         this.scoring.head.time = time;
         this.scoring.head.hit = judgement;
 
-        if (judgement !== 0) {
-            this.head.setFadeOut({
-                type: HitCirclePrimitiveFadeOutType.ScaleOut,
-                time: time
-            });
-        } else {
-            this.head.setFadeOut({
-                type: HitCirclePrimitiveFadeOutType.FadeOut,
-                time: time
-            });
-        }
-
+        HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
         scoreCounter.add(judgement, false, true, true, this, time);
     }
 
-    hitHead(time: number) {
+    hitHead(time: number, judgementOverride?: number) {
         if (this.scoring.head.hit !== ScoringValue.NotHit) return;
 
         let { processedBeatmap } = gameState.currentPlay;
 
         let timeInaccuracy = time - this.startTime;
-        let hitDelta = Math.abs(timeInaccuracy);
-        let judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
+        let judgement: number;
+
+        if (judgementOverride !== undefined) {
+            judgement = judgementOverride;
+        } else {
+            let hitDelta = Math.abs(timeInaccuracy);
+            judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
+        }
 
         this.score(time, judgement);
         if (judgement !== 0) {
-            //normalHitSoundEffect.start();
             gameState.currentGameplaySkin.playHitSound(this.hitSound);
+            accuracyMeter.addAccuracyLine(timeInaccuracy, time);
         }
-
-        accuracyMeter.addAccuracyLine(timeInaccuracy, time);
     }
 }

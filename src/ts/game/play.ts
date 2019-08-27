@@ -22,10 +22,11 @@ import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
+import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_primitive";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
-const AUTOHIT = true; // Just hits everything perfectly. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
+const AUTOHIT = false; // Just hits everything perfectly. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
@@ -142,12 +143,15 @@ export class Play {
         console.timeEnd("Audio load");
 
         this.render();
-        this.gameLoop();
+        setInterval(this.tick.bind(this), 0);
     }
 
     render() {
         let startTime = performance.now();
         let currentTime = this.getCurrentSongTime();
+
+        // Run a game tick right before rendering
+        this.tick(currentTime);
 
         // Update hit objects on screen, or remove them if necessary
         for (let id in this.onscreenObjects) {
@@ -310,8 +314,8 @@ export class Play {
         }
     }
 
-    gameLoop() {
-        let currentTime = this.getCurrentSongTime();
+    tick(currentTimeOverride?: number) {
+        let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
         
         for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
@@ -323,7 +327,7 @@ export class Play {
                     let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
                     if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
 
-                    hitObject.hitHead(playEvent.time + 0.01); // Add epsilon so hit isn't taken as a barely 50
+                    hitObject.hitHead(playEvent.time, 0);
                 }; break;
                 case PlayEventType.PerfectHeadHit: {
                     if (playEvent.hitObject instanceof DrawableSlider) {
@@ -347,8 +351,7 @@ export class Play {
 
                     if (slider.scoring.head.hit === ScoringValue.NotHit) {
                         // If the slider ended before the player managed to click its head, the head is automatically "missed".
-                        slider.scoring.head.hit = ScoringValue.Miss;
-                        slider.scoring.head.time = playEvent.time;
+                        slider.hitHead(playEvent.time, 0);
                     }
                 }; break;
                 case PlayEventType.SliderEnd: {
@@ -357,11 +360,15 @@ export class Play {
                     slider.stopSliderSlideSound();
 
                     // If the slider end was hit, score it now.
-                    if (slider.scoring.end === true) {
+                    let hit = slider.scoring.end === true;
+                    if (hit) {
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
 
                         gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
                     }
+
+                    let primitive = slider.sliderEnds[playEvent.i];
+                    HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
 
                     // Score the slider, no matter if the end was hit or not (obviously) 
                     slider.score();
@@ -386,6 +393,9 @@ export class Play {
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                     }
+
+                    let primitive = slider.sliderEnds[playEvent.i];
+                    HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
                 }; break;
                 case PlayEventType.SliderTick: {
                     let slider = playEvent.hitObject as DrawableSlider;
@@ -415,8 +425,6 @@ export class Play {
                 }; break;
             }
         }
-
-        setTimeout(this.gameLoop.bind(this), 0);
     }
 
     handleButtonPress() {
