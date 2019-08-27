@@ -7,7 +7,9 @@ import { MathUtil, EaseType } from "../util/math_util";
 import { OsuTexture } from "./skin";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
+const HIT_CIRCLE_FADE_OUT_TIME_ON_MISS = 75;
 const REVERSE_ARROW_PULSE_DURATION = 300;
+const SHAKE_DURATION = 200;
 
 interface HitCirclePrimitiveOptions {
     fadeInStart: number,
@@ -26,7 +28,7 @@ export enum HitCirclePrimitiveType {
 
 export enum HitCirclePrimitiveFadeOutType {
     ScaleOut,
-    Disappear
+    FadeOut
 }
 
 interface HitCirclePrimitiveFadeOutOptions {
@@ -45,7 +47,7 @@ export class HitCirclePrimitive {
     private number: PIXI.Container;
     public approachCircle: PIXI.Container;
     public reverseArrow: PIXI.Container;
-    private lastReverseArrowScale: number;
+    private shakeStartTime: number = -Infinity;
     public renderFinished: boolean;
 
     constructor(options: HitCirclePrimitiveOptions) {
@@ -237,40 +239,43 @@ export class HitCirclePrimitive {
     }
 
     update(currentTime: number) {
-        let { ARMs } = gameState.currentPlay;
+        let { ARMs, circleDiameter } = gameState.currentPlay;
 
-        let fadeInCompletion = this.getFadeInCompletion(currentTime);
-
-        // Run the approach circle code always. (it used to be in the 'if')
-        if (this.approachCircle !== null) {
-            let approachCircleCompletion = (currentTime - this.options.fadeInStart) / ARMs;
-            approachCircleCompletion = MathUtil.clamp(approachCircleCompletion, 0, 1);
-
-            let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0
-            this.approachCircle.scale.set(approachCircleFactor);
-
-            this.approachCircle.alpha = fadeInCompletion;
-
-            if (approachCircleCompletion === 1) this.approachCircle.visible = false;
-        }
+        let fadeInCompletion = this.getFadeInCompletion(currentTime); 
 
         if (this.fadeOut === null) {
             this.container.alpha = fadeInCompletion;
             if (this.reverseArrow) this.reverseArrow.alpha = fadeInCompletion;
+
+            if (this.approachCircle !== null) {
+                let approachCircleCompletion = (currentTime - this.options.fadeInStart) / ARMs;
+                approachCircleCompletion = MathUtil.clamp(approachCircleCompletion, 0, 1);
+    
+                let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0
+                this.approachCircle.scale.set(approachCircleFactor);
+    
+                this.approachCircle.alpha = fadeInCompletion;
+    
+                if (approachCircleCompletion === 1) this.approachCircle.visible = false;
+            }
 
             if (this.reverseArrow !== null) {
                 let scale = this.getReverseArrowScale(currentTime);
                 this.reverseArrow.scale.set(scale);
             }
         } else {
+            if (this.approachCircle) this.approachCircle.visible = false;
+
+            let fadeOutTime = (this.fadeOut.type === HitCirclePrimitiveFadeOutType.ScaleOut)? HIT_OBJECT_FADE_OUT_TIME : HIT_CIRCLE_FADE_OUT_TIME_ON_MISS;
+
+            let fadeOutCompletion = (currentTime - this.fadeOut.time) / fadeOutTime;
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+
+            let alpha = MathUtil.lerp(this.fadeOutStartOpacity, 0, fadeOutCompletion);
+            this.container.alpha = alpha;
+            if (this.reverseArrow) this.reverseArrow.alpha = alpha;
+
             if (this.fadeOut.type === HitCirclePrimitiveFadeOutType.ScaleOut) {
-                let fadeOutCompletion = (currentTime - this.fadeOut.time) / HIT_OBJECT_FADE_OUT_TIME;
-                fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-
-                let alpha = MathUtil.lerp(this.fadeOutStartOpacity, 0, fadeOutCompletion);
-                this.container.alpha = alpha;
-                if (this.reverseArrow) this.reverseArrow.alpha = alpha;
-
                 let scale = 1 + MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion) * 0.5; // Max scale: 1.5
 
                 this.base.scale.set(scale);
@@ -279,9 +284,6 @@ export class HitCirclePrimitive {
                 if (this.reverseArrow !== null) {
                     this.reverseArrow.scale.set(scale);
                 }
-            } else if (this.fadeOut.type === HitCirclePrimitiveFadeOutType.Disappear) {
-                this.container.visible = false;
-                if (this.reverseArrow) this.reverseArrow.visible = false;
             }
 
             let numberFadeOutCompletion = (currentTime - this.fadeOut.time) / HIT_CIRCLE_NUMBER_FADE_OUT_TIME;
@@ -292,6 +294,24 @@ export class HitCirclePrimitive {
 
             this.renderFinished = (!this.approachCircle || this.approachCircle.visible === false) && (this.container.alpha === 0 || this.container.visible === false);
         }
+
+        if (this.options.type === HitCirclePrimitiveType.HitCircle) {
+            // Apply the shaking effect:
+            let shakeCompletion = (currentTime - this.shakeStartTime) / SHAKE_DURATION;
+            shakeCompletion = MathUtil.clamp(shakeCompletion, 0, 1);
+            if (shakeCompletion < 1) {
+                let deflectionFactor = Math.sin(currentTime/7.5) * (1 - shakeCompletion);
+                let maximumDeflection = circleDiameter * 0.1;
+
+                this.container.pivot.x = deflectionFactor * maximumDeflection;
+                if (this.approachCircle) this.approachCircle.pivot.x = deflectionFactor * maximumDeflection / this.approachCircle.scale.x; // Dirty hack: Divide by the scale so that the pivot change is scale-independent
+                if (this.reverseArrow) this.reverseArrow.pivot.x = deflectionFactor * maximumDeflection / this.reverseArrow.scale.x;
+            } else {
+                this.container.pivot.x = 0;
+                if (this.approachCircle) this.approachCircle.pivot.x = 0;
+                if (this.reverseArrow) this.reverseArrow.pivot.x = 0;
+            }
+        }   
     }
 
     getFadeInCompletion(time: number) {
@@ -316,11 +336,14 @@ export class HitCirclePrimitive {
     setFadeOut(options: HitCirclePrimitiveFadeOutOptions) {
         this.fadeOut = options;
         this.fadeOutStartOpacity = 1 || this.getFadeInCompletion(options.time); // It looks like opacity is set to 1 when fade-out starts.
-        this.lastReverseArrowScale = 1 || this.getReverseArrowScale(options.time);
     }
 
     isFadingOut() {
         return this.fadeOut !== null;
+    }
+
+    shake(time: number) {
+        this.shakeStartTime = time;
     }
 
     static fadeOutBasedOnHitState(primitive: HitCirclePrimitive, time: number, hit: boolean) {
@@ -331,7 +354,7 @@ export class HitCirclePrimitive {
             });
         } else {
             primitive.setFadeOut({
-                type: HitCirclePrimitiveFadeOutType.Disappear,
+                type: HitCirclePrimitiveFadeOutType.FadeOut,
                 time: time
             });
         }

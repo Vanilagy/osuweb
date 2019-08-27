@@ -490,6 +490,14 @@ export class Play {
         this.scorePopups.push(popup);
         scorePopupContainer.addChild(popup.container);
     }
+
+    /** Headed hit objects can only be hit when the previous one has already been assigned a judgement. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
+    hitObjectIsInputLocked(hitObject: HeadedDrawableHitObject) {
+        let objectBefore = this.processedBeatmap.hitObjects[hitObject.id - 1];
+        if (!objectBefore || !(objectBefore instanceof HeadedDrawableHitObject)) return false;
+
+        return objectBefore.scoring.head.hit === ScoringValue.NotHit;
+    }
 }
 
 export async function startPlay(beatmap: Beatmap) {

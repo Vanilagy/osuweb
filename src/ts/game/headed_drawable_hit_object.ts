@@ -7,6 +7,8 @@ import { Point, pointDistance } from "../util/point";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
 
+const CLICK_IMMUNITY_THRESHOLD = 350; // This many millisecond before the perfect hit time will the object start to even become clickable. Before that, it should do the little shaky-shake, implying it was clicked WAY too early.
+
 export interface HitObjectHeadScoring {
     hit: ScoringValue,
     time: number
@@ -93,10 +95,13 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
 
         let distance = pointDistance(osuMouseCoordinates, this.startPoint);
 
-        if (distance <= circleRadiusOsuPx) {
-            if (this.scoring.head.hit === ScoringValue.NotHit) {
+        if (distance <= circleRadiusOsuPx && this.scoring.head.hit === ScoringValue.NotHit) {
+            if (currentTime >= this.startTime - CLICK_IMMUNITY_THRESHOLD && !gameState.currentPlay.hitObjectIsInputLocked(this)) {
                 this.hitHead(currentTime);
                 return true;
+            } else {
+                // Display a shaking animation to indicate that the click was way too early or the note is still locked
+                this.head.shake(currentTime);
             }
         }
 
