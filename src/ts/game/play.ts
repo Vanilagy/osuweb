@@ -335,23 +335,32 @@ export class Play {
                     let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
                     hitObject.hitHead(playEvent.time);
                 }; break;
-                case PlayEventType.SliderEnd: {
+                case PlayEventType.SliderEndCheck: { // Checking if the player hit the slider end happens slightly before the end of the slider
                     let slider = playEvent.hitObject as DrawableSlider;
 
-                    slider.stopSliderSlideSound();
-
-                    let distance = pointDistance(osuMouseCoordinates, slider.endPoint);
+                    let distance = pointDistance(osuMouseCoordinates, playEvent.position);
                     if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
                         slider.scoring.end = true;
-                        this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
-
-                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
+                    } else {
+                        slider.scoring.end = false;
                     }
 
                     if (slider.scoring.head.hit === ScoringValue.NotHit) {
                         // If the slider ended before the player managed to click its head, the head is automatically "missed".
                         slider.scoring.head.hit = ScoringValue.Miss;
                         slider.scoring.head.time = playEvent.time;
+                    }
+                }; break;
+                case PlayEventType.SliderEnd: {
+                    let slider = playEvent.hitObject as DrawableSlider;
+
+                    slider.stopSliderSlideSound();
+
+                    // If the slider end was hit, score it now.
+                    if (slider.scoring.end === true) {
+                        this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
+
+                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
                     }
 
                     // Score the slider, no matter if the end was hit or not (obviously) 
@@ -360,8 +369,16 @@ export class Play {
                 case PlayEventType.SliderRepeat: {
                     let slider = playEvent.hitObject as DrawableSlider;
 
-                    let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
+                    let hit: boolean = null;
+                    if (slider.scoring.end !== null) {
+                        // If the slider end has already been checked, 'hit' takes on the success state of the slider end scoring.
+                        hit = slider.scoring.end;
+                    } else {
+                        let distance = pointDistance(osuMouseCoordinates, playEvent.position);
+                        hit = (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
+                    }
+
+                    if (hit) {
                         slider.scoring.repeats++;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
 
@@ -373,8 +390,16 @@ export class Play {
                 case PlayEventType.SliderTick: {
                     let slider = playEvent.hitObject as DrawableSlider;
 
-                    let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
+                    let hit: boolean = null;
+                    if (slider.scoring.end !== null) {
+                        // If the slider end has already been checked, 'hit' takes on the success state of the slider end scoring.
+                        hit = slider.scoring.end;
+                    } else {
+                        let distance = pointDistance(osuMouseCoordinates, playEvent.position);
+                        hit = (anyGameButtonIsPressed() && distance <= this.circleDiameterOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
+                    }
+
+                    if (hit) {
                         slider.scoring.ticks++;
                         this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
 

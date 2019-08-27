@@ -40,6 +40,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public hitCirclePrimitiveContainer: PIXI.Container;
     public reverseArrowContainer: PIXI.Container;
 
+    public duration: number;
     public complete: boolean;
     public reductionFactor: number;
     public curve: SliderCurve;
@@ -68,6 +69,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.complete = true;
 
         this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
+        this.duration = this.endTime - this.startTime;
 
         this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
 
@@ -178,7 +180,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         canvas.setAttribute('height', String(Math.ceil(this.sliderHeight * pixelRatio + circleDiameter)));
         let ctx = canvas.getContext('2d');
         this.baseCtx = ctx;
-        this.curve.render(1);
+        this.curve.render(1.0);
         this.baseSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
 
         this.sliderBall = new SliderBall(this);
@@ -295,8 +297,18 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     addPlayEvents(playEventArray: PlayEvent[]) {
         super.addPlayEvents(playEventArray);
 
-        let { processedBeatmap } = gameState.currentPlay;
+        let sliderEndCheckTime = this.startTime + Math.max(this.duration - 36, this.duration/2); // "Slider ends are a special case and checked exactly 36ms before the end of the slider (unless the slider is <72ms in duration, then it checks exactly halfway time wise)." https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
+        let sliderEndCheckCompletion = (this.timingInfo.sliderVelocity * (sliderEndCheckTime - this.startTime)) / this.hitObject.length;
+        sliderEndCheckCompletion = MathUtil.reflect(sliderEndCheckCompletion);
+        let sliderEndCheckPosition = this.getPosFromPercentage(sliderEndCheckCompletion);
 
+        playEventArray.push({
+            type: PlayEventType.SliderEndCheck,
+            hitObject: this,
+            time: sliderEndCheckTime,
+            position: sliderEndCheckPosition
+        });
+        
         playEventArray.push({
             type: PlayEventType.SliderEnd,
             hitObject: this,

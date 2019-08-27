@@ -42,7 +42,7 @@ export function getDefaultSliderScoring(): SliderScoring {
         head: getDefaultHitObjectHeadScoring(),
         ticks: 0,
         repeats: 0,
-        end: false
+        end: null
     };
 }
 

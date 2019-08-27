@@ -9,7 +9,7 @@ import { SoundEmitter } from "../audio/sound_emitter";
 import { uploadTexture } from "../visuals/rendering";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/seoul";
+let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -475,21 +475,21 @@ export class Skin {
         this.textures["hit300g"] = await OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
 
         // Hit circle numbers
-        let tempObj: any = {};
+        let tempObj = {} as SpriteNumberTextures;
         for (let suffix of HIT_CIRCLE_NUMBER_SUFFIXES) {
             tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.hitCirclePrefix}-${suffix}`, "png", true);
         }
         this.hitCircleNumberTextures = tempObj;
 
         // Score numbers
-        tempObj = {};
+        tempObj = {} as SpriteNumberTextures;
         for (let suffix of SCORE_NUMBER_SUFFIXES) {
             tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.scorePrefix}-${suffix}`, "png", true);
         }
         this.scoreNumberTextures = tempObj;
 
         // Combo numbers
-        tempObj = {};
+        tempObj = {} as SpriteNumberTextures;
         for (let suffix of SCORE_NUMBER_SUFFIXES) { // Combo uses the same suffixes as score
             tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
         }
