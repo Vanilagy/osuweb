@@ -36,7 +36,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public overlayContainer: PIXI.Container;
     public sliderBall: SliderBall;
     public sliderTickContainer: PIXI.Container;
-    public followCircle: PIXI.Container;
+    private followCircle: PIXI.Container;
+    private followCircleAnimator: AnimatedOsuSprite;
     public sliderEnds: HitCirclePrimitive[];
     public hitCirclePrimitiveContainer: PIXI.Container;
     public reverseArrowContainer: PIXI.Container;
@@ -200,15 +201,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.followCircle = followCircle;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
             let osuTexture = gameState.currentGameplaySkin.textures["followCircle"];
-            let sprite = new PIXI.Sprite();
-            sprite.anchor.set(0.5, 0.5);
-
-            osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+            let animator = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
+            animator.setFps(gameState.currentGameplaySkin.config.general.animationFramerate);
+            animator.play(this.startTime);
 
             let wrapper = new PIXI.Container();
-            wrapper.addChild(sprite);
+            wrapper.addChild(animator.sprite);
 
             this.followCircle = wrapper;
+            this.followCircleAnimator = animator;
         }
         this.followCircle.visible = false;
 
@@ -583,6 +584,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         followCircleSizeFactor += 1; // Base. Never get smaller than this.
 
         this.followCircle.scale.set(followCircleSizeFactor / 2);
+
+        if (this.followCircleAnimator) this.followCircleAnimator.update(currentTime);
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {

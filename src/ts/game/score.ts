@@ -324,7 +324,7 @@ export class ScorePopup {
 
             let animatedSprite = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
             animatedSprite.loop = false;
-            animatedSprite.fps = 60; // "Animation rate is fixed to 60 FPS."
+            animatedSprite.setFps(60); // "Animation rate is fixed to 60 FPS."
             animatedSprite.play(startTime);
             this.animatedSprite = animatedSprite;
 

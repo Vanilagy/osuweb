@@ -4,7 +4,7 @@ import { DRAWING_MODE, DrawingMode, PROCEDURAL_HEAD_INNER_TYPE, CIRCLE_BORDER_WI
 import { colorToHexNumber } from "../util/graphics_util";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { MathUtil, EaseType } from "../util/math_util";
-import { OsuTexture } from "./skin";
+import { OsuTexture, AnimatedOsuSprite } from "./skin";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
 const HIT_CIRCLE_FADE_OUT_TIME_ON_MISS = 75;
@@ -44,6 +44,7 @@ export class HitCirclePrimitive {
     public container: PIXI.Container;
     private base: PIXI.Container;
     private overlay: PIXI.Container;
+    private overlayAnimator: AnimatedOsuSprite = null;
     private number: PIXI.Container;
     public approachCircle: PIXI.Container;
     public reverseArrow: PIXI.Container;
@@ -129,10 +130,12 @@ export class HitCirclePrimitive {
             let sprite: PIXI.Sprite;
 
             if (osuTexture) {
-                sprite = new PIXI.Sprite();
-                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+                let animator = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
+                animator.setFps(2); // From the website: "Animation rate: 2 FPS (4 FPS max)." "This rate is affected by the half time and double time/nightcore the game modifiers."
+                animator.play(this.options.fadeInStart);
+                sprite = animator.sprite;
 
-                sprite.anchor.set(0.5, 0.5);
+                this.overlayAnimator = animator;
             } else {
                 sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
             }
@@ -223,6 +226,8 @@ export class HitCirclePrimitive {
         let { ARMs, circleDiameter } = gameState.currentPlay;
 
         let fadeInCompletion = this.getFadeInCompletion(currentTime); 
+
+        if (this.overlayAnimator !== null) this.overlayAnimator.update(currentTime);
 
         if (this.fadeOut === null) {
             this.container.alpha = fadeInCompletion;

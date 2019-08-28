@@ -10,7 +10,7 @@ import { uploadTexture } from "../visuals/rendering";
 import { MathUtil } from "../util/math_util";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/seoul";
+let baseSkinPath = "./assets/skins/default";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -202,7 +202,7 @@ export class OsuTexture {
 export class AnimatedOsuSprite {
     public sprite: PIXI.Sprite;
     public loop: boolean = true;
-    public fps: number = 1;
+    private fps: number = 1;
     private osuTexture: OsuTexture;
     private scalingFactor: number;
     private startTime: number = null;
@@ -234,6 +234,10 @@ export class AnimatedOsuSprite {
         this.sprite.texture = tex;
         this.sprite.width = width;
         this.sprite.height = height;
+    }
+
+    setFps(fps: number) {
+        this.fps = fps || 1;
     }
 
     play(time: number) {
