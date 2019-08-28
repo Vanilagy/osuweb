@@ -103,10 +103,10 @@ export class BeatmapDifficulty {
         let accumulatedDifficultyPoints = this.CS + this.HP + this.OD;
         
         // Determined emperically. These differ from what's listed on the official osu website, however these values seem to be the correct ones. UwU
-        if (accumulatedDifficultyPoints <= 3) return 2;
-        else if (accumulatedDifficultyPoints <= 10) return 3;
-        else if (accumulatedDifficultyPoints <= 18) return 4;
-        else if (accumulatedDifficultyPoints <= 25) return 5;
+        if (accumulatedDifficultyPoints <= 3.0) return 2;
+        else if (accumulatedDifficultyPoints <= 10.5) return 3;
+        else if (accumulatedDifficultyPoints <= 18.2) return 4;
+        else if (accumulatedDifficultyPoints <= 25.7) return 5;
         return 6;
 
         //return difficultyPoints;

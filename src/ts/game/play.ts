@@ -88,7 +88,6 @@ export class Play {
             gameState.currentGameplaySkin = baseSkin;
         } else {
             let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-            console.log(beatmapSkin);
             gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
         }
 

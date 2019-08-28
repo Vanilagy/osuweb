@@ -10,7 +10,7 @@ import { uploadTexture } from "../visuals/rendering";
 import { MathUtil } from "../util/math_util";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/default";
+let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
