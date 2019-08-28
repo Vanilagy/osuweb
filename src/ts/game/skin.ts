@@ -7,6 +7,7 @@ import { charIsDigit, promiseAllSettled, assert, jsonClone, shallowObjectClone }
 import { createAudioBuffer, soundEffectsNode } from "../audio/audio";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { uploadTexture } from "../visuals/rendering";
+import { MathUtil } from "../util/math_util";
 
 // This is all temp:
 let baseSkinPath = "./assets/skins/seoul";
@@ -58,7 +59,7 @@ export class OsuTexture {
     }
 
     getAnimationFrameCount() {
-        return Math.max(this.sd.length, this.hd.length) || 1;
+        return Math.max(this.sd.length, this.hd.length);
     }
 
     getSd(animationIndex?: number) {
@@ -145,6 +146,18 @@ export class OsuTexture {
         for (let tex of this.hd) uploadTexture(tex);
     }
 
+    applyToSprite(sprite: PIXI.Sprite, scalingFactor: number, frame?: number) {
+        let width = this.getWidth(frame) * scalingFactor,
+            height = this.getHeight(frame) * scalingFactor;
+        let maxDimension = Math.max(width, height);
+
+        let tex = this.getDynamic(maxDimension, frame);
+
+        sprite.texture = tex;
+        sprite.width = width;
+        sprite.height = height;
+    }
+
     static async fromFiles(directory: VirtualDirectory, name: string, extension: string, hd = false, animationName: string = null) {
         let newOsuTexture = new OsuTexture();
 
@@ -183,6 +196,69 @@ export class OsuTexture {
         }
 
         return newOsuTexture;
+    }
+}
+
+export class AnimatedOsuSprite {
+    public sprite: PIXI.Sprite;
+    public loop: boolean = true;
+    public fps: number = 1;
+    private osuTexture: OsuTexture;
+    private scalingFactor: number;
+    private startTime: number = null;
+    private currentFrame: number;
+
+    constructor(osuTexture: OsuTexture, scalingFactor: number) {
+        this.osuTexture = osuTexture;
+        this.scalingFactor = scalingFactor;
+
+        this.sprite = new PIXI.Sprite();
+        this.sprite.anchor.set(0.5, 0.5);
+
+        this.setFrame(0);
+    }
+
+    getFrameCount() {
+        return this.osuTexture.getAnimationFrameCount();
+    }
+
+    setFrame(frame: number) {
+        if (frame === this.currentFrame) return;
+        this.currentFrame = frame;
+
+        let width = this.osuTexture.getWidth(frame) * this.scalingFactor,
+            height = this.osuTexture.getHeight(frame) * this.scalingFactor;
+
+        let tex = this.osuTexture.getDynamic(Math.max(width, height), frame);
+
+        this.sprite.texture = tex;
+        this.sprite.width = width;
+        this.sprite.height = height;
+    }
+
+    play(time: number) {
+        this.startTime = time;
+    }
+
+    stop() {
+        this.startTime = null;
+    }
+
+    update(time: number) {
+        let frameCount = this.osuTexture.getAnimationFrameCount();
+        if (this.startTime === null || frameCount === 0) return;
+
+        let elapsed = time - this.startTime;
+        let frame = Math.floor(this.fps * (elapsed / 1000));
+        frame = Math.max(0, frame);
+
+        if (this.loop) {
+            frame = frame % frameCount;
+        } else {
+            frame = MathUtil.clamp(frame, 0, frameCount-1);
+        }
+        
+        this.setFrame(frame);
     }
 }
 

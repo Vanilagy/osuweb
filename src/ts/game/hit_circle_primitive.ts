@@ -61,7 +61,7 @@ export class HitCirclePrimitive {
     }
 
     private draw() {
-        let circleDiameter = gameState.currentPlay.circleDiameter;
+        let { circleDiameter, headedHitObjectTextureFactor } = gameState.currentPlay;
 
         let base: PIXI.Container;
         if (DRAWING_MODE === DrawingMode.Procedural) {
@@ -86,13 +86,9 @@ export class HitCirclePrimitive {
                 if (!endTex.isEmpty()) osuTexture = endTex;
             }
 
-            let factor = circleDiameter / 128;
-            let width = osuTexture.getWidth() * factor;
-            let height = osuTexture.getHeight() * factor;
+            let sprite = new PIXI.Sprite();
+            osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
-            let sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-            sprite.width = width;
-            sprite.height = height;
             sprite.tint = colorToHexNumber(this.options.comboInfo.color);
             sprite.anchor.set(0.5, 0.5);
 
@@ -133,15 +129,10 @@ export class HitCirclePrimitive {
             let sprite: PIXI.Sprite;
 
             if (osuTexture) {
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
-    
-                sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                sprite.anchor.set(0.5, 0.5);
-                sprite.width = width;
-                sprite.height = height;
+                sprite = new PIXI.Sprite();
+                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
+                sprite.anchor.set(0.5, 0.5);
             } else {
                 sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
             }
@@ -162,7 +153,7 @@ export class HitCirclePrimitive {
                     horizontalAlign: "center",
                     verticalAlign: "middle",
                     overlap: gameState.currentGameplaySkin.config.fonts.hitCircleOverlap,
-                    scaleFactor: (circleDiameter / 128) * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
+                    scaleFactor: headedHitObjectTextureFactor * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
                 });
                 text.setValue(this.options.comboInfo.n);
 
@@ -176,14 +167,9 @@ export class HitCirclePrimitive {
         if (this.options.reverseArrowAngle !== undefined) {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["reverseArrow"];
+                let sprite = new PIXI.Sprite();
+                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
-
-                let sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                sprite.width = width;
-                sprite.height = height;
                 sprite.anchor.set(0.5, 0.5);
                 sprite.rotation = this.options.reverseArrowAngle;
 
@@ -206,19 +192,14 @@ export class HitCirclePrimitive {
                 this.approachCircle = approachCircle;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["approachCircle"];
+                let sprite = new PIXI.Sprite();
+                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
-
-                let approachCircle = new PIXI.Sprite(osuTexture.getBest());
-                approachCircle.anchor.set(0.5, 0.5);
-                approachCircle.width = width;
-                approachCircle.height = height;
-                approachCircle.tint = colorToHexNumber(this.options.comboInfo.color);
+                sprite.anchor.set(0.5, 0.5);
+                sprite.tint = colorToHexNumber(this.options.comboInfo.color);
 
                 let wrapper = new PIXI.Container();
-                wrapper.addChild(approachCircle);
+                wrapper.addChild(sprite);
     
                 this.approachCircle = wrapper;
             }

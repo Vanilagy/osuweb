@@ -14,7 +14,7 @@ import { assert, last } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { HitSoundInfo } from "./skin";
+import { HitSoundInfo, AnimatedOsuSprite } from "./skin";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { sliderBodyContainer } from "../visuals/rendering";
 
@@ -110,7 +110,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     draw() {
         super.draw();
 
-        let { circleDiameter, pixelRatio, ARMs, circleRadiusOsuPx } = gameState.currentPlay;
+        let { circleDiameter, pixelRatio, ARMs, circleRadiusOsuPx, headedHitObjectTextureFactor } = gameState.currentPlay;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - ARMs,
@@ -199,10 +199,16 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             this.followCircle = followCircle;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let followCircle = new PIXI.Sprite(gameState.currentGameplaySkin.textures["followCircle"].getDynamic(circleDiameter * FOLLOW_CIRCLE_HITBOX_CS_RATIO));
-            followCircle.anchor.set(0.5, 0.5);
+            let osuTexture = gameState.currentGameplaySkin.textures["followCircle"];
+            let sprite = new PIXI.Sprite();
+            sprite.anchor.set(0.5, 0.5);
 
-            this.followCircle = followCircle;
+            osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+
+            let wrapper = new PIXI.Container();
+            wrapper.addChild(sprite);
+
+            this.followCircle = wrapper;
         }
         this.followCircle.visible = false;
 
@@ -233,15 +239,10 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 tickElement = graphics;
             } else if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["sliderTick"];
-
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * factor;
-                let height = osuTexture.getHeight() * factor;
-
-                let sprite = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
+                let sprite = new PIXI.Sprite();
                 sprite.anchor.set(0.5, 0.5);
-                sprite.width = width;
-                sprite.height = height;
+
+                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
                 let wrapper = new PIXI.Container();
                 wrapper.addChild(sprite);
@@ -505,15 +506,17 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private renderSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
         if (completion === 0) return;
 
-        let { circleDiameter } = gameState.currentPlay;
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
 
         let sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
 
         if (currentTime < this.endTime) {
+            let baseElement = this.sliderBall.base.sprite;
+
             this.sliderBall.container.visible = true;
             this.sliderBall.container.x = sliderBallPos.x;
             this.sliderBall.container.y = sliderBallPos.y;
-            this.sliderBall.base.rotation = this.curve.getAngleFromPercentage(MathUtil.reflect(completion));
+            baseElement.rotation = this.curve.getAngleFromPercentage(MathUtil.reflect(completion));
 
             let osuTex = gameState.currentGameplaySkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();
@@ -523,20 +526,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 let radians = rolledDistance / 15;
                 let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
 
-                let sprite = this.sliderBall.base as PIXI.Sprite;
-                let factor = circleDiameter / 128;
-                let width = osuTex.getWidth() * factor;
-                let height = osuTex.getHeight() * factor;
-
-                sprite.texture = osuTex.getDynamic(Math.max(width, height), currentFrame);
-                sprite.width = width;
-                sprite.height = height;
+                this.sliderBall.base.setFrame(currentFrame);
             }
 
             if (gameState.currentGameplaySkin.config.general.sliderBallFlip) {
                 // Flip the scale when necessary
-                if      (completion % 2 <= 1 && this.sliderBall.base.scale.x < 0) this.sliderBall.base.scale.x *= -1;
-                else if (completion % 2 > 1  && this.sliderBall.base.scale.x > 0) this.sliderBall.base.scale.x *= -1;
+                if      (completion % 2 <= 1 && baseElement.scale.x < 0) baseElement.scale.x *= -1;
+                else if (completion % 2 > 1  && baseElement.scale.x > 0) baseElement.scale.x *= -1;
             }
         } else {
             // The slider ball disappears upon slider completion
@@ -586,13 +582,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         followCircleSizeFactor *= 1 * (1 - shrinkCompletion) + 0.75 * shrinkCompletion; // Shrink on end, to 1.5x
         followCircleSizeFactor += 1; // Base. Never get smaller than this.
 
-        let followCircleOsuTexture = gameState.currentGameplaySkin.textures["followCircle"];
-        let factor = circleDiameter / 128 * followCircleSizeFactor / 2;
-        let width = followCircleOsuTexture.getWidth() * factor;
-        let height = followCircleOsuTexture.getHeight() * factor;
-
-        this.followCircle.width = width;
-        this.followCircle.height = height;
+        this.followCircle.scale.set(followCircleSizeFactor / 2);
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
@@ -651,14 +641,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
 class SliderBall {
     public container: PIXI.Container;
-    public base: PIXI.Container;
+    public base: AnimatedOsuSprite;
     public background: PIXI.Container;
     public spec: PIXI.Container;
 
     constructor(slider: DrawableSlider) {
-        let { circleDiameter } = gameState.currentPlay;
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
 
         this.container = new PIXI.Container();
+        let baseElement: PIXI.Container;
 
         if (DRAWING_MODE === DrawingMode.Procedural) {
             let sliderBall = new PIXI.Graphics();
@@ -668,54 +659,45 @@ class SliderBall {
             sliderBall.drawCircle(0, 0, slider.sliderBodyRadius);
             sliderBall.endFill();
 
-            this.base = sliderBall;
+            baseElement = sliderBall;
         } else if (DRAWING_MODE === DrawingMode.Skin) {
             let osuTexture = gameState.currentGameplaySkin.textures["sliderBall"];
 
-            let factor = circleDiameter / 128;
-            let width = osuTexture.getWidth() * factor;
-            let height = osuTexture.getHeight() * factor;
-            let maxDimension = Math.max(width, height);
+            this.base = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
+            let baseSprite = this.base.sprite;
+            baseElement = baseSprite;
 
-            let sliderBall = new PIXI.Sprite(osuTexture.getDynamic(maxDimension));
-            sliderBall.anchor.set(0.5, 0.5);
-            sliderBall.width = width;
-            sliderBall.height = height;
-
-            if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) sliderBall.tint = colorToHexNumber(slider.comboInfo.color);
-            else sliderBall.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.sliderBall);
-
-            this.base = sliderBall;
+            if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.comboInfo.color);
+            else baseSprite.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.sliderBall);
 
             if (!osuTexture.hasActualBase()) {
                 let bgTexture = gameState.currentGameplaySkin.textures["sliderBallBg"];
-                let tex = bgTexture.getDynamic(maxDimension);
-                if (tex) {
-                    let sliderBallBg = new PIXI.Sprite(tex);
-                    sliderBallBg.anchor.set(0.5, 0.5);
-                    sliderBallBg.width = width;
-                    sliderBallBg.height = height;
-                    sliderBallBg.tint = 0x000000; // Always tinted black.
-    
-                    this.background = sliderBallBg;
+
+                if (!bgTexture.isEmpty()) {
+                    let sprite = new PIXI.Sprite();
+                    sprite.anchor.set(0.5, 0.5);
+                    sprite.tint = 0x000000; // Always tinted black.
+
+                    bgTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+
+                    this.background = sprite;
                 }
             }
 
             let specTexture = gameState.currentGameplaySkin.textures["sliderBallSpec"];
-            let tex = specTexture.getDynamic(maxDimension);
-            if (tex) {
-                let sliderBallSpec = new PIXI.Sprite(tex);
-                sliderBallSpec.anchor.set(0.5, 0.5);
-                sliderBallSpec.width = width;
-                sliderBallSpec.height = height;
-                sliderBallSpec.blendMode = PIXI.BLEND_MODES.ADD;
+            if (!specTexture.isEmpty()) {
+                let sprite = new PIXI.Sprite();
+                sprite.anchor.set(0.5, 0.5);
+                sprite.blendMode = PIXI.BLEND_MODES.ADD;
 
-                this.spec = sliderBallSpec;
+                specTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+
+                this.spec = sprite;
             }
         }
 
         if (this.background) this.container.addChild(this.background);
-        this.container.addChild(this.base);
+        this.container.addChild(baseElement);
         if (this.spec) this.container.addChild(this.spec);
     }
 }

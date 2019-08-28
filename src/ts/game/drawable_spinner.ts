@@ -124,74 +124,59 @@ export class DrawableSpinner extends DrawableHitObject {
         if (this.isNewStyle) {
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerGlow"];
-                //let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let sprite = new PIXI.Sprite();
+
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio); 
+
+                sprite.anchor.set(0.5, 0.5);
+                sprite.tint = colorToHexNumber(SPINNER_GLOW_TINT); // The default slider ball tint
+                sprite.blendMode = PIXI.BLEND_MODES.ADD;
     
-                let spinnerGlow = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerGlow.anchor.set(0.5, 0.5);
-                spinnerGlow.width = width;
-                spinnerGlow.height = height;
-                spinnerGlow.tint = colorToHexNumber(SPINNER_GLOW_TINT); // The default slider ball tint
-                spinnerGlow.blendMode = PIXI.BLEND_MODES.ADD;
-    
-                this.spinnerGlow = spinnerGlow;
+                this.spinnerGlow = sprite;
             }
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerBottom"];
-                //let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let sprite = new PIXI.Sprite();
+
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio);
+
+                sprite.anchor.set(0.5, 0.5);
     
-                let spinnerBottom = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerBottom.anchor.set(0.5, 0.5);
-                spinnerBottom.width = width;
-                spinnerBottom.height = height;
-    
-                this.spinnerBottom = spinnerBottom;
+                this.spinnerBottom = sprite;
             }
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerTop"];
-                //let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let sprite = new PIXI.Sprite();
+
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio);
+
+                sprite.anchor.set(0.5, 0.5);
     
-                let spinnerTop = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerTop.anchor.set(0.5, 0.5);
-                spinnerTop.width = width;
-                spinnerTop.height = height;
-    
-                this.spinnerTop = spinnerTop;
+                this.spinnerTop = sprite;
             }
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle2"];
-                //let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let sprite = new PIXI.Sprite();
+
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio);
     
-                let spinnerMiddle2 = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerMiddle2.anchor.set(0.5, 0.5);
-                spinnerMiddle2.width = width;
-                spinnerMiddle2.height = height;
+                sprite.anchor.set(0.5, 0.5);
     
-                this.spinnerMiddle2 = spinnerMiddle2;
+                this.spinnerMiddle2 = sprite;
             }
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle"];
-                //let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let sprite = new PIXI.Sprite();
+
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio);
     
-                let spinnerMiddle = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerMiddle.anchor.set(0.5, 0.5);
-                spinnerMiddle.width = width;
-                spinnerMiddle.height = height;
+                sprite.anchor.set(0.5, 0.5);
     
-                this.spinnerMiddle = spinnerMiddle;
+                this.spinnerMiddle = sprite;
             }
         } else {
             if (DRAWING_MODE === DrawingMode.Skin) {
@@ -200,82 +185,68 @@ export class DrawableSpinner extends DrawableHitObject {
                 let height = osuTexture.getHeight() * spinnerPixelRatio;
                 let maxSize = Math.max(width*2, height*2);
     
-                let approachCircle = new PIXI.Sprite(osuTexture.getDynamic(maxSize));
-                approachCircle.anchor.set(0.5, 0.5);
-                approachCircle.width = width;
-                approachCircle.height = height;
+                let sprite = new PIXI.Sprite(osuTexture.getDynamic(maxSize));
+                sprite.anchor.set(0.5, 0.5);
+                sprite.width = width;
+                sprite.height = height;
     
                 let wrapper = new PIXI.Container();
-                wrapper.addChild(approachCircle);
+                wrapper.addChild(sprite);
     
                 this.spinnerApproachCircle = wrapper;
             }
 
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
-    
-                let spinnerBackground = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerBackground.anchor.set(0.5, 0.5);
-                spinnerBackground.width = width;
-                spinnerBackground.height = height;
-                //spinnerBackground.x = window.innerWidth/2;
-                //spinnerBackground.y = 46 * spinnerPixelRatio;
-                //spinnerBackground.y = window.innerHeight/2;
-                //spinnerBackground.y = -6933/2 * spinnerPixelRatio;
-                spinnerBackground.y = 5 * spinnerPixelRatio; // TODO: Where does this come from?
+                let sprite = new PIXI.Sprite();
                 
-                spinnerBackground.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.spinnerBackground);
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio);
+
+                sprite.anchor.set(0.5, 0.5);
+                sprite.y = 5 * spinnerPixelRatio; // TODO: Where does this come from?
+                sprite.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.spinnerBackground);
     
-                this.spinnerBackground = spinnerBackground;
+                this.spinnerBackground = sprite;
             }
     
             this.spinnerMeterMask = new PIXI.Graphics();
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMeter"];
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let sprite = new PIXI.Sprite();
+                
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio);
     
-                let spinnerMeter = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerMeter.anchor.set(0.0, 0.0);
-                spinnerMeter.width = width;
-                spinnerMeter.height = height;
-                spinnerMeter.x = window.innerWidth/2 - 512 * spinnerPixelRatio;
-                spinnerMeter.y = 46 * spinnerPixelRatio;
-                spinnerMeter.mask = this.spinnerMeterMask;
+                sprite.anchor.set(0.0, 0.0);
+                sprite.x = window.innerWidth/2 - 512 * spinnerPixelRatio;
+                sprite.y = 46 * spinnerPixelRatio;
+                sprite.mask = this.spinnerMeterMask;
     
-                this.spinnerMeter = spinnerMeter;
+                this.spinnerMeter = sprite;
             }
     
             if (DRAWING_MODE === DrawingMode.Skin) {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerCircle"];
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
+                let sprite = new PIXI.Sprite();
+                
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio);
+ 
+                sprite.anchor.set(0.5, 0.5);
     
-                let spinnerCircle = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-                spinnerCircle.anchor.set(0.5, 0.5);
-                spinnerCircle.width = width;
-                spinnerCircle.height = height;
-    
-                this.spinnerCircle = spinnerCircle;
+                this.spinnerCircle = sprite;
             }
         }
 
         if (DRAWING_MODE === DrawingMode.Skin) {
             let osuTexture = gameState.currentGameplaySkin.textures["spinnerRpm"];
-            //let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
-            let width = osuTexture.getWidth() * spinnerPixelRatio;
-            let height = osuTexture.getHeight() * spinnerPixelRatio;
+            let sprite = new PIXI.Sprite();
+                
+            osuTexture.applyToSprite(sprite, spinnerPixelRatio);
 
-            let spinnerRpm = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-            spinnerRpm.anchor.set(0.0, 0.0);
-            spinnerRpm.width = width;
-            spinnerRpm.height = height;
-            spinnerRpm.y = window.innerHeight - 56 * spinnerPixelRatio;
-            spinnerRpm.x = window.innerWidth/2 - 139 * spinnerPixelRatio;
+            sprite.anchor.set(0.0, 0.0);
+            sprite.y = window.innerHeight - 56 * spinnerPixelRatio;
+            sprite.x = window.innerWidth/2 - 139 * spinnerPixelRatio;
 
-            this.spinnerRpm = spinnerRpm;
+            this.spinnerRpm = sprite;
         }
 
         let spinnerRpmNumber = new SpriteNumber({
@@ -294,32 +265,26 @@ export class DrawableSpinner extends DrawableHitObject {
 
         if (DRAWING_MODE === DrawingMode.Skin) {
             let osuTexture = gameState.currentGameplaySkin.textures["spinnerSpin"];
-            //let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
-            let width = osuTexture.getWidth() * spinnerPixelRatio;
-            let height = osuTexture.getHeight() * spinnerPixelRatio;
+            let sprite = new PIXI.Sprite();
+                
+            osuTexture.applyToSprite(sprite, spinnerPixelRatio);
 
-            let spinnerSpin = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-            spinnerSpin.anchor.set(0.5, 0.5);
-            spinnerSpin.width = width;
-            spinnerSpin.height = height;
-            spinnerSpin.y = 198 * spinnerPixelRatio;
+            sprite.anchor.set(0.5, 0.5);
+            sprite.y = 198 * spinnerPixelRatio;
 
-            this.spinnerSpin = spinnerSpin;
+            this.spinnerSpin = sprite;
         }
 
         if (DRAWING_MODE === DrawingMode.Skin) {
             let osuTexture = gameState.currentGameplaySkin.textures["spinnerClear"];
-            //let factor = circleDiameter / 128 * 1.2; // 1.2 determined emperically lmao
-            let width = osuTexture.getWidth() * spinnerPixelRatio;
-            let height = osuTexture.getHeight() * spinnerPixelRatio;
+            let sprite = new PIXI.Sprite();
+                
+            osuTexture.applyToSprite(sprite, spinnerPixelRatio);
 
-            let spinnerClear = new PIXI.Sprite(osuTexture.getDynamic(Math.max(width, height)));
-            spinnerClear.anchor.set(0.5, 0.5);
-            spinnerClear.width = width;
-            spinnerClear.height = height;
+            sprite.anchor.set(0.5, 0.5);
 
             let wrapper = new PIXI.Container();
-            wrapper.addChild(spinnerClear);
+            wrapper.addChild(sprite);
             wrapper.y = -164 * spinnerPixelRatio;
 
             this.spinnerClear = wrapper;

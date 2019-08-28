@@ -46,6 +46,7 @@ export class Play {
     public circleDiameter: number;
     public circleRadiusOsuPx: number;
     public circleRadius: number;
+    public headedHitObjectTextureFactor: number;
     public ARMs: number;
     public frameTimes: number[] = [];
     public playEvents: PlayEvent[] = [];
@@ -81,10 +82,13 @@ export class Play {
         this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
         this.circleRadius = this.circleDiameter / 2;
 
+        this.headedHitObjectTextureFactor = this.circleDiameter / 128;
+
         if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
             gameState.currentGameplaySkin = baseSkin;
         } else {
             let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
+            console.log(beatmapSkin);
             gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
         }
 

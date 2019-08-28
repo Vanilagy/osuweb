@@ -26,7 +26,7 @@ export class FollowPoint {
     public renderFinished: boolean = false;
 
     constructor(hitObjectA: DrawableHitObject, hitObjectB: DrawableHitObject) {
-        let { circleDiameter } = gameState.currentPlay;
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
 
         this.hitObjectA = hitObjectA;
         this.hitObjectB = hitObjectB;
@@ -48,9 +48,8 @@ export class FollowPoint {
         let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
         let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
 
-        let factor = circleDiameter / 128;
-        let width = osuTexture.getWidth() * factor;
-        let height = osuTexture.getHeight() * factor;
+        let width = osuTexture.getWidth() * headedHitObjectTextureFactor;
+        let height = osuTexture.getHeight() * headedHitObjectTextureFactor;
 
         let texture = osuTexture.getDynamic(Math.max(width, height));
 
@@ -90,7 +89,7 @@ export class FollowPoint {
             return;
         }
 
-        let { circleDiameter, pixelRatio } = gameState.currentPlay;
+        let { headedHitObjectTextureFactor, pixelRatio } = gameState.currentPlay;
 
         let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
         let frameCount = osuTexture.getAnimationFrameCount();
@@ -104,7 +103,7 @@ export class FollowPoint {
             let fadeOutBeginning = MathUtil.lerp(this.startTime, this.endTime, x/this.length);
             let fadeInBeginning = fadeOutBeginning - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
 
-            if (frameCount > 1) fadeInBeginning = fadeOutBeginning - 600; // Observed, I guess? Sometimes, I really wonder how ppy's actual code looks like.
+            if (frameCount > 0) fadeInBeginning = fadeOutBeginning - 600; // Observed, I guess? Sometimes, I really wonder how ppy's actual code looks like.
             
             let fadeInCompletion = (currentTime - fadeInBeginning) / FOLLOW_POINT_FADE_IN_TIME;
             fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
@@ -113,7 +112,7 @@ export class FollowPoint {
             let fadeOutCompletion = (currentTime - fadeOutBeginning) / FOLLOW_POINT_FADE_OUT_TIME;
             fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
 
-            if (frameCount === 1) {
+            if (frameCount === 0) {
                 // This animates the follow points in a certain way. Check the default skin for reference.
                 part.x -= (1 - easedFadeInCompletion) * POINT_DISTANCE*2 * pixelRatio;
                 part.scale.set(1 + (1 - easedFadeInCompletion)*0.75);
@@ -130,9 +129,8 @@ export class FollowPoint {
                     frame = Math.floor((1 - fadeOutCompletion) * (frameCount - 1));
                 }
 
-                let factor = circleDiameter / 128;
-                let width = osuTexture.getWidth(frame) * factor;
-                let height = osuTexture.getHeight(frame) * factor;
+                let width = osuTexture.getWidth(frame) * headedHitObjectTextureFactor;
+                let height = osuTexture.getHeight(frame) * headedHitObjectTextureFactor;
 
                 let texture = osuTexture.getDynamic(Math.max(width, height), frame);
                 sprite.texture = texture;

@@ -8,6 +8,7 @@ import { Point } from "../util/point";
 import { scorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { DRAWING_MODE, DrawingMode } from "../util/constants";
+import { AnimatedOsuSprite } from "./skin";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -283,14 +284,13 @@ export class ScorePopup {
     public container: PIXI.Container;
     private startTime: number = null;
     public renderingFinished: boolean = false;
-    private startWidth: number;
-    private startHeight: number;
+    private animatedSprite: AnimatedOsuSprite;
 
     constructor(type: ScorePopupType, osuPosition: Point, startTime: number) {
         this.startTime = startTime;
 
         let currentPlay = gameState.currentPlay;
-        let { circleDiameter, pixelRatio } = currentPlay;
+        let { pixelRatio, headedHitObjectTextureFactor } = currentPlay;
 
         if (DRAWING_MODE === DrawingMode.Procedural) {
             let popup = new PIXI.Text(scorePopupTypeToString.get(type), {
@@ -322,19 +322,14 @@ export class ScorePopup {
 
             let osuTexture = gameState.currentGameplaySkin.textures[name];
 
-            let factor = circleDiameter / 128;
-            let width = osuTexture.getWidth() * factor;
-            let height = osuTexture.getHeight() * factor;
-
-            let texture = osuTexture.getDynamic(Math.max(width, height), 0);
-            let sprite = new PIXI.Sprite(texture);
-
-            sprite.anchor.set(0.5, 0.5);
-            sprite.width = width;
-            sprite.height = height;
+            let animatedSprite = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
+            animatedSprite.loop = false;
+            animatedSprite.fps = 60; // "Animation rate is fixed to 60 FPS."
+            animatedSprite.play(startTime);
+            this.animatedSprite = animatedSprite;
 
             let wrapper = new PIXI.Container();
-            wrapper.addChild(sprite);
+            wrapper.addChild(animatedSprite.sprite);
 
             this.container = wrapper;
         }
@@ -353,25 +348,26 @@ export class ScorePopup {
             return;
         }
 
-        let { circleDiameter } = gameState.currentPlay;
+        if (this.animatedSprite.getFrameCount() === 0) {
+            // If there are zero frames in the animation, apply a custom scale-up animation:
 
-        let appearanceCompletion = (currentTime - this.startTime) / SCORE_POPUP_APPEARANCE_TIME;
-        appearanceCompletion = MathUtil.clamp(appearanceCompletion, 0, 1);
-        // Same as 'em slider ticks
-        //let parabola = (-2.381 * appearanceCompletion * appearanceCompletion + 3.381 * appearanceCompletion);
-        appearanceCompletion = MathUtil.ease(EaseType.EaseOutElastic, appearanceCompletion, 0.55);
-
-        let gradualScaleUp = (currentTime - this.startTime) / SCORE_POPUP_FADE_OUT_TIME;
+            let appearanceCompletion = (currentTime - this.startTime) / SCORE_POPUP_APPEARANCE_TIME;
+            appearanceCompletion = MathUtil.clamp(appearanceCompletion, 0, 1);
+            appearanceCompletion = MathUtil.ease(EaseType.EaseOutElastic, appearanceCompletion, 0.55);
+    
+            let gradualScaleUp = (currentTime - this.startTime) / SCORE_POPUP_FADE_OUT_TIME;
+    
+            // At the end of the fade out, the thing should be at 1.12x the start size.
+            let factor = appearanceCompletion + gradualScaleUp * 0.12;
+            this.container.scale.set(factor);
+        } else {
+            this.animatedSprite.update(currentTime);
+        }
 
         let fadeOutCompletion = (currentTime - this.startTime) / SCORE_POPUP_FADE_OUT_TIME;
-        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-        fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
-
-        // At the end of the fade out, the thing should be at 1.12x the start size.
-        let factor = appearanceCompletion + gradualScaleUp * 0.12;
-        //this.container.width = SCORE_POPUP_CS_RATIO * circleDiameter * factor;
-        //this.container.height = SCORE_POPUP_CS_RATIO * circleDiameter * factor;
-        this.container.scale.set(factor);
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+            fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
+        
         this.container.alpha = 1 - fadeOutCompletion;
     }
 
