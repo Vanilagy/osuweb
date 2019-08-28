@@ -454,6 +454,8 @@ export class Play {
     }
 
     handleButtonPress() {
+        if (this.activeMods.has(Mod.Auto)) return;
+
         let currentTime = this.getCurrentSongTime();
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
 
@@ -466,6 +468,8 @@ export class Play {
     }
 
     handleMouseMove() {
+        if (this.activeMods.has(Mod.Auto)) return;
+
         let currentTime = this.getCurrentSongTime();
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
 
