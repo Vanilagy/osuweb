@@ -13,7 +13,7 @@ let baseSkinPath = "./assets/skins/seoul";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
-export const IGNORE_BEATMAP_SKIN = true;
+export const IGNORE_BEATMAP_SKIN = false;
 export const IGNORE_BEATMAP_HIT_SOUNDS = false;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];

@@ -16,6 +16,7 @@ import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from 
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { HitSoundInfo } from "./skin";
 import { SoundEmitter } from "../audio/sound_emitter";
+import { sliderBodyContainer } from "../visuals/rendering";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -262,19 +263,27 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.overlayContainer.addChild(this.sliderBall.container);
         this.overlayContainer.addChild(this.followCircle);
 
-        this.container.addChild(this.baseSprite);
         this.container.addChild(this.hitCirclePrimitiveContainer);
         this.container.addChild(this.reverseArrowContainer);
         this.container.addChild(this.overlayContainer);
+    }
+    
+    show(currentTime: number) {
+        sliderBodyContainer.addChildAt(this.baseSprite, 0);
+
+        super.show(currentTime);
     }
 
     position() {
         super.position(); // Haha, superposition. Yes. This joke is funny and not funny at the same time. Until observed, of course.
 
-        let { circleDiameterOsuPx } = gameState.currentPlay;
+        let { circleRadiusOsuPx } = gameState.currentPlay;
 
-        this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.minX - circleDiameterOsuPx/2);
-        this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleDiameterOsuPx/2);
+        let screenX = gameState.currentPlay.toScreenCoordinatesX(this.minX - circleRadiusOsuPx);
+        let screenY = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleRadiusOsuPx);
+
+        this.container.position.set(screenX, screenY);
+        this.baseSprite.position.set(screenX, screenY);
     }
 
     update(currentTime: number) {
@@ -306,8 +315,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     remove() {
         super.remove();
 
-        //this.sliderBall.destroy();
-        this.sliderTickContainer.destroy();
+        sliderBodyContainer.removeChild(this.baseSprite);
     }
 
     addPlayEvents(playEventArray: PlayEvent[]) {
