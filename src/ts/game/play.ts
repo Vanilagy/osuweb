@@ -2,14 +2,14 @@ import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { mainRender, followPointContainer, scorePopupContainer } from "../visuals/rendering";
+import { mainRender, followPointContainer, scorePopupContainer, softwareCursor } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsLocalResourceUrl, readFileAsDataUrl } from "../util/file_util";
 import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
-import { pointDistanceSquared, Point, pointDistance } from "../util/point";
+import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./follow_point";
 import { PlayEvent, PlayEventType } from "./play_events";
 import "./hud";
@@ -23,14 +23,16 @@ import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_primitive";
+import { Mod, ModHelper, AutoInstruction, AutoInstructionType } from "./mods";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
-const AUTOHIT = true; // Just hits everything perfectly. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
+const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const SPINNER_REFERENCE_SCREEN_HEIGHT = 768;
+const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instructions
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -52,8 +54,14 @@ export class Play {
     public playEvents: PlayEvent[] = [];
     public currentPlayEvent: number = 0;
     public scoreCounter: ScoreCounter;
+    public activeMods: Set<Mod>;
     private currentFollowPointIndex = 0; // is this dirty? idk
     private currentBreakIndex = 0;
+
+    // AT stuffz:
+    private playthroughInstructions: AutoInstruction[];
+    private currentPlaythroughInstruction: number;
+    private autohit: boolean;
 
     constructor(beatmap: Beatmap) {
         this.processedBeatmap = new ProcessedBeatmap(beatmap);
@@ -65,6 +73,7 @@ export class Play {
         this.followPoints = [];
         this.onscreenFollowPoints = [];
         this.scorePopups = [];
+        this.activeMods = new Set();
 
         this.pixelRatio = null;
         this.circleDiameter = null;
@@ -91,6 +100,8 @@ export class Play {
             gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
         }
 
+        this.activeMods = ModHelper.getModsFromModCode('AT' || prompt("Enter mod code:"));
+
         console.time("Beatmap process");
         this.processedBeatmap.init();
         console.timeEnd("Beatmap process");
@@ -108,6 +119,13 @@ export class Play {
         this.generateFollowPoints();
 
         accuracyMeter.init();
+
+        this.autohit = AUTOHIT_OVERRIDE;
+        if (this.activeMods.has(Mod.Auto)) {
+            this.playthroughInstructions = ModHelper.generateAutoPlaythroughInstructions(this);
+            this.currentPlaythroughInstruction = 0;
+            this.autohit = true;
+        }
     }
 
     private generateFollowPoints() {
@@ -145,6 +163,8 @@ export class Play {
 
         console.timeEnd("Audio load");
 
+        if (this.activeMods.has(Mod.Auto)) softwareCursor.visible = true;
+
         this.render();
         setInterval(this.tick.bind(this), 0);
     }
@@ -167,7 +187,7 @@ export class Play {
                 let spinner = hitObject as DrawableSpinner;
                 
                 // Spin counter-clockwise as fast as possible. Clockwise just looks shit.
-                if (AUTOHIT) spinner.spin(-1e9, currentTime);
+                if (this.autohit) spinner.spin(-1e9, currentTime);
             }
 
             if (hitObject.renderFinished) {
@@ -290,6 +310,9 @@ export class Play {
             break;
         }
 
+        // Update the cursor position if rocking AT
+        if (this.activeMods.has(Mod.Auto)) this.handlePlaythroughInstructions(currentTime);
+
         // Let PIXI draw it all to the canvas
         mainRender();
 
@@ -337,7 +360,7 @@ export class Play {
                         playEvent.hitObject.beginSliderSlideSound();
                     }
 
-                    if (!AUTOHIT) break;
+                    if (!this.autohit) break;
  
                     let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
                     hitObject.hitHead(playEvent.time);
@@ -346,7 +369,7 @@ export class Play {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT) {
+                    if ((anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit) {
                         slider.scoring.end = true;
                     } else {
                         slider.scoring.end = false;
@@ -385,7 +408,7 @@ export class Play {
                         hit = slider.scoring.end;
                     } else {
                         let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
+                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
                     }
 
                     if (hit) {
@@ -409,7 +432,7 @@ export class Play {
                         hit = slider.scoring.end;
                     } else {
                         let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || AUTOHIT;
+                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
                     }
 
                     if (hit) {
@@ -500,6 +523,66 @@ export class Play {
         if (!objectBefore || !(objectBefore instanceof HeadedDrawableHitObject)) return false;
 
         return objectBefore.scoring.head.hit === ScoringValue.NotHit;
+    }
+
+    /** Handles playthrough instructions for AT. */
+    handlePlaythroughInstructions(currentTime: number) {
+        if (this.currentPlaythroughInstruction >= this.playthroughInstructions.length) return;
+
+        if (this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
+            while (this.playthroughInstructions[this.currentPlaythroughInstruction + 1].time <= currentTime) {
+                this.currentPlaythroughInstruction++;
+
+                if (!this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
+                    break;
+                }
+            }
+        }
+
+        let currentInstruction = this.playthroughInstructions[this.currentPlaythroughInstruction];
+        if (currentInstruction.time > currentTime) return;
+
+        let cursorPlayfieldPos: Point = null;
+
+        if (currentInstruction.type === AutoInstructionType.Blink) {
+            cursorPlayfieldPos = currentInstruction.to;
+
+            this.currentPlaythroughInstruction++;
+        } else if (currentInstruction.type === AutoInstructionType.Move) {
+            // Decides on the easing type
+            let timeDifference = (currentInstruction.endTime - currentInstruction.time);
+            let easingType: EaseType;
+
+            if (timeDifference <= 60000 / STREAM_BEAT_THRESHHOLD / 4) { // Length of 1/4 beats at set BPM
+                easingType = EaseType.Linear;
+            } else {
+                easingType = EaseType.EaseOutQuad;
+            }
+
+            let completion = (currentTime - currentInstruction.time) / (currentInstruction.endTime - currentInstruction.time);
+            completion = MathUtil.clamp(completion, 0, 1);
+            completion = MathUtil.ease(easingType, completion);
+
+            cursorPlayfieldPos = lerpPoints(currentInstruction.startPos, currentInstruction.endPos, completion);
+
+            if (completion === 1) this.currentPlaythroughInstruction++;
+        } else if (currentInstruction.type === AutoInstructionType.Follow) {
+            let slider = currentInstruction.hitObject as DrawableSlider;
+
+            let completion = (slider.timingInfo.sliderVelocity * (currentTime - slider.startTime)) / slider.hitObject.length;
+            completion = MathUtil.clamp(completion, 0, slider.hitObject.repeat);
+
+            cursorPlayfieldPos = slider.getPosFromPercentage(MathUtil.reflect(completion));
+
+            if (currentTime > slider.endTime) this.currentPlaythroughInstruction++;
+        } else if (currentInstruction.type === AutoInstructionType.Spin) {
+            cursorPlayfieldPos = ModHelper.getSpinPositionFromSpinInstruction(currentInstruction, Math.min(currentInstruction.endTime, currentTime));
+
+            if (currentTime > currentInstruction.endTime) this.currentPlaythroughInstruction++;
+        }
+
+        softwareCursor.x = this.toScreenCoordinatesX(cursorPlayfieldPos.x);
+        softwareCursor.y = this.toScreenCoordinatesY(cursorPlayfieldPos.y);
     }
 }
 

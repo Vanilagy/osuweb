@@ -81,9 +81,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
         } else if (this.hitObject.sections[0].type === "perfect") {
-            this.curve = new SliderCurvePerfect(this);
-
-            (<SliderCurvePerfect>this.curve).calculateValues(false);
+            this.curve = new SliderCurvePerfect(this, false);
         } else {
             this.curve = new SliderCurveBézier(this, false);
         }

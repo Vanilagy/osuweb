@@ -13,8 +13,10 @@ export class SliderCurvePerfect extends SliderCurve {
     public radius: number = 0;
     public startingAngle: number = 0;  
 
-    constructor(drawableSlider: DrawableSlider) {
+    constructor(drawableSlider: DrawableSlider, speedCalc: boolean) {
         super(drawableSlider);
+
+        this.calculateValues(speedCalc);
     }
 
     render(completion: number) {

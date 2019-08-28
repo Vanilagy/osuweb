@@ -3,7 +3,7 @@ export interface Point {
     y: number
 }
 
-export function interpolatePointInPointArray(arr: Point[], completion: number) {
+export function interpolatePointInPointArray(arr: Point[], completion: number): Point {
     let actualIdx = completion * (arr.length - 1);
     let lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
     let lowerPos = arr[lowerIdx];
@@ -12,7 +12,14 @@ export function interpolatePointInPointArray(arr: Point[], completion: number) {
     return { // Linear interpolation
         x: lowerPos.x * (1 - (actualIdx - lowerIdx)) + upperPos.x * (actualIdx - lowerIdx),
         y: lowerPos.y * (1 - (actualIdx - lowerIdx)) + upperPos.y * (actualIdx - lowerIdx)
-    }
+    };
+}
+
+export function lerpPoints(p1: Point, p2: Point, completion: number): Point {
+    return {
+        x: p1.x * (1-completion) + p2.x * completion,
+        y: p1.y * (1-completion) + p2.y * completion
+    };
 }
 
 export function pointDistance(p1: Point, p2: Point) {

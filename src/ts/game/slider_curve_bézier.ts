@@ -43,7 +43,7 @@ export class SliderCurveBézier extends SliderCurve {
         }
 
         this.calculateTracePoints(speedCalc);
-        if(!speedCalc) this.calculateEqualDistancePoints();
+        if (!speedCalc) this.calculateEqualDistancePoints();
     }
 
     render(completion: number) {

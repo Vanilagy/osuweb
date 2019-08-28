@@ -24,6 +24,13 @@ export function uploadTexture(tex: PIXI.Texture) {
     renderer.texture.bind(tex, 15); // Use slot 15 for all texture uploaded in this way. While that means that only the last uploaded texture will still be bound, all uploaded textures still remain in video memory.
 }
 
+export let softwareCursor = new PIXI.Sprite(PIXI.Texture.from("./assets/img/cursor.png"));
+softwareCursor.anchor.set(0.5, 0.5);
+softwareCursor.visible = false;
+
+let softwareCursorContainer = new PIXI.Container();
+softwareCursorContainer.addChild(softwareCursor);
+
 export let mainHitObjectContainer = new PIXI.Container();
 export let approachCircleContainer = new PIXI.Container();
 export let sliderBodyContainer = new PIXI.Container();
@@ -38,3 +45,4 @@ stage.addChild(sliderBodyContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
 stage.addChild(hudContainer);
+stage.addChild(softwareCursorContainer);
