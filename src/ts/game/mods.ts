@@ -14,6 +14,8 @@ import { SliderCurveBézier } from "./slider_curve_bézier";
 const DEFAULT_SPIN_RADIUS = 45;
 const RADIUS_LERP_DURATION = 480;
 const SPINNER_END_REDUCTION = 1; // For edge cases where objects might start immediately after spinner. Done so movement will be correct.
+export const HALF_TIME_PLAYBACK_RATE = 2/3;
+export const DOUBLE_TIME_PLAYBACK_RATE = 3/2;
 
 export enum Mod {
     // Difficulty reduction:
@@ -97,6 +99,7 @@ export class ModHelper {
         return set;
     }
 
+    // TODO: Apply health respawn thing.
     static applyEz(processedBeatmap: ProcessedBeatmap) {
         let difficulty = processedBeatmap.difficulty;
 

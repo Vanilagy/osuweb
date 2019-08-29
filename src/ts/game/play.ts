@@ -23,12 +23,12 @@ import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_primitive";
-import { Mod, ModHelper, AutoInstruction, AutoInstructionType } from "./mods";
+import { Mod, ModHelper, AutoInstruction, AutoInstructionType, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
-const MODCODE_OVERRIDE = 'ATHR';
+const MODCODE_OVERRIDE = '';
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
@@ -157,6 +157,10 @@ export class Play {
             let url = await backgroundImageFile.readAsResourceUrl();
             loadMainBackgroundImage(url);
         }
+
+        // TODO: Apply pitch changes and percussion
+        if (this.activeMods.has(Mod.HalfTime) || this.activeMods.has(Mod.Daycore)) mainMusicMediaPlayer.setPlaybackRate(HALF_TIME_PLAYBACK_RATE);
+        if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) mainMusicMediaPlayer.setPlaybackRate(DOUBLE_TIME_PLAYBACK_RATE);
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
         mainMusicMediaPlayer.start(-this.preludeTime / 1000);

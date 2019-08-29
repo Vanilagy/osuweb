@@ -31,6 +31,15 @@ export class MediaPlayer {
         this.gainNode.gain.value = this.volume;
     }
 
+    setPlaybackRate(rate: number) {
+        this.playbackRate = rate;
+        if (this.audioElement) this.audioElement.playbackRate = rate;
+    }
+
+    getPlaybackRate() {
+        return this.playbackRate;
+    }
+
     private resetAudioElement() {
         if (this.audioNode) {
             this.audioNode.disconnect();
