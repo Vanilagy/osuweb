@@ -86,8 +86,6 @@ export class DrawableSpinner extends DrawableHitObject {
         this.cleared = false;
         this.bonusSpins = 0;
 
-        this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
-
         if (this.spinSoundEmitter) {
             this.spinSoundEmitter.setLoopState(true);
         }
@@ -95,6 +93,8 @@ export class DrawableSpinner extends DrawableHitObject {
 
     draw() {
         let { spinnerPixelRatio } = gameState.currentPlay;
+
+        this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
 
         this.componentContainer = new PIXI.Container();
         this.componentContainer2 = new PIXI.Container();

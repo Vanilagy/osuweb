@@ -47,10 +47,12 @@ export class ProcessedBeatmap {
     }
 
     init(mods: Set<Mod>) {
+        if (mods.has(Mod.Easy)) ModHelper.applyEz(this);
+        if (mods.has(Mod.HardRock)) ModHelper.applyHrFirstPass(this);
+
         this.generateHitObjects();
 
-        if (mods.has(Mod.Easy)) ModHelper.applyEz(this);
-        if (mods.has(Mod.HardRock)) ModHelper.applyHr(this);
+        if (mods.has(Mod.HardRock)) ModHelper.applyHrSecondPass(this);
 
         console.time('Stack shift');
         this.applyStackShift(false);

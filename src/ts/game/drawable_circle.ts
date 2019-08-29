@@ -23,8 +23,6 @@ export class DrawableCircle extends HeadedDrawableHitObject {
             y: this.hitObject.y
         };
 
-        this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
-
         this.scoring = getDefaultCircleScoring();
     }
 
@@ -32,6 +30,8 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         super.draw();
 
         let { approachTime } = gameState.currentPlay;
+        
+        this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - approachTime,

@@ -126,14 +126,18 @@ export class ModHelper {
         difficulty.HP /= 2; // half
     }
 
-    static applyHr(processedBeatmap: ProcessedBeatmap) {
+    /** Change the difficulty values. */
+    static applyHrFirstPass(processedBeatmap: ProcessedBeatmap) {
         let difficulty = processedBeatmap.difficulty;
 
         difficulty.CS = Math.min(7, difficulty.CS * 1.3); // cap at 7, and yes, the 1.3 is correct
         difficulty.AR = Math.min(10, difficulty.AR * 1.4); // cap at 10
         difficulty.OD = Math.min(10, difficulty.OD * 1.4); // cap at 10
         difficulty.HP = Math.min(10, difficulty.HP * 1.4); // cap at 10
+    }
 
+    /** Perform the point flipping. */
+    static applyHrSecondPass(processedBeatmap: ProcessedBeatmap) {
         for (let i = 0; i < processedBeatmap.hitObjects.length; i++) {
             let hitObject = processedBeatmap.hitObjects[i];
 

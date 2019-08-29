@@ -76,8 +76,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
         this.duration = this.endTime - this.startTime;
 
-        this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
-
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
         } else if (this.hitObject.sections[0].type === "perfect") {
@@ -110,6 +108,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         super.draw();
 
         let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor } = gameState.currentPlay;
+
+        this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - approachTime,
