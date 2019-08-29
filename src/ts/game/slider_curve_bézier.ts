@@ -9,6 +9,7 @@ import { Point, pointAngle, clonePoint } from "../util/point";
 import { gameState } from "./game_state";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { last } from "../util/misc_util";
+import { SliderCurveSection } from "../datamodel/slider";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
@@ -16,8 +17,9 @@ export class SliderCurveBézier extends SliderCurve {
     public tracePoints: Point[];
     public equalDistancePoints: Point[];
 
-    constructor(drawableSlider: DrawableSlider, speedCalc: boolean) {
-        super(drawableSlider); 
+    constructor(drawableSlider: DrawableSlider, sections: SliderCurveSection[], speedCalc: boolean) {
+        super(drawableSlider, sections); 
+
         this.equalDistancePoints = [];
         this.tracePoints = [];
 

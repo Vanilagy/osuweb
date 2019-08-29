@@ -41,6 +41,23 @@ export enum Mod {
     Cinema = "CN"
 }
 
+let modMultipliers = new Map<Mod, number>();
+modMultipliers.set(Mod.Easy, 0.5);
+modMultipliers.set(Mod.NoFail, 0.5);
+modMultipliers.set(Mod.HalfTime, 0.3);
+modMultipliers.set(Mod.Daycore, 0.3);
+modMultipliers.set(Mod.HardRock, 1.06);
+modMultipliers.set(Mod.SuddenDeath, 1.0);
+modMultipliers.set(Mod.Perfect, 1.0);
+modMultipliers.set(Mod.DoubleTime, 1.12);
+modMultipliers.set(Mod.Hidden, 1.06);
+modMultipliers.set(Mod.Flashlight, 1.12);
+modMultipliers.set(Mod.Relax, 0.0);
+modMultipliers.set(Mod.Autopilot, 0.0);
+modMultipliers.set(Mod.SpunOut, 0.9);
+modMultipliers.set(Mod.Auto, 1.0);
+modMultipliers.set(Mod.Cinema, 1.0);
+
 enum WaypointType {
     HitCircle,
     SliderHead,
@@ -148,6 +165,14 @@ export class ModHelper {
                 hitObject.maxY = temp;
             }
         }
+    }
+
+    static calculateModMultiplier(mods: Set<Mod>) {
+        let multiplier = 1.0;
+
+        mods.forEach((mod) => multiplier *= modMultipliers.get(mod));
+
+        return multiplier;
     }
 
     static generateAutoPlaythroughInstructions(play: Play) {

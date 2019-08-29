@@ -14,7 +14,7 @@ import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./follow_p
 import { PlayEvent, PlayEventType } from "./play_events";
 import "./hud";
 import "../input/input";
-import { ScoreCounter, ScorePopup, ScoringValue } from "./score";
+import { ScoreCounter, ScorePopup } from "./score";
 import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
 import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
@@ -24,6 +24,7 @@ import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } f
 import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_primitive";
 import { Mod, ModHelper, AutoInstruction, AutoInstructionType, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods";
+import { ScoringValue } from "./scoring_value";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz

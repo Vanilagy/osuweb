@@ -11,12 +11,13 @@ export abstract class SliderCurve {
     protected sections: SliderCurveSection[];
     protected curveLength: number;
 
-    constructor(drawableSlider: DrawableSlider) {
+    constructor(drawableSlider: DrawableSlider, sections: SliderCurveSection[]) {
         this.slider = drawableSlider;
-        this.sections = drawableSlider.hitObject.sections;
+        this.sections = sections;
         this.curveLength = 0;
     }
 
+    // World's worst abstract method:
     applyStackPosition() {
         console.log("Not implemented yet.");
     }

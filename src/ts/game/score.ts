@@ -9,23 +9,13 @@ import { scorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { DRAWING_MODE, DrawingMode } from "../util/constants";
 import { AnimatedOsuSprite } from "./skin";
+import { ModHelper } from "./mods";
+import { ScoringValue } from "./scoring_value";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
 const SCORE_POPUP_CS_RATIO = 1;
 const HIDE_300s = false; // Enable this if 300 popups get too annoying
-
-export enum ScoringValue {
-    NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
-    Hit300 = 300,
-    Hit100 = 100,
-    Hit50 = 50,
-    Miss = 0,
-    SliderHead = 30,
-    SliderTick = 10,
-    SliderRepeat = 30,
-    SliderEnd = 30
-}
 
 export class Score {
     public points: number;
@@ -85,7 +75,7 @@ export class ScoreCounter {
         this.totalValueOfHits = 0;
 
         this.difficultyMultiplier = this.processedBeatmap.beatmap.difficulty.calculateDifficultyMultiplier(); // Get the difficulty from the beatmap, not the processed beatmap, because: "Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier. It will only account for original values only."
-        this.modMultiplier = 1;
+        this.modMultiplier = ModHelper.calculateModMultiplier(gameState.currentPlay.activeMods);
 
         this.resetGekiAndKatu();
 
@@ -109,7 +99,7 @@ export class ScoreCounter {
 
         let gain = rawAmount;
         if (!raw) gain = rawAmount + (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25));
-        gain = Math.round(gain); // TODO: round or floor, here?
+        gain = Math.floor(gain); // Especially with a mod multiplier, gain can be decimal, so floor here.
 
         this.score.points += gain;
 

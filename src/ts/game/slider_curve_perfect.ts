@@ -5,6 +5,8 @@ import { SliderCurveBézier } from "./slider_curve_bézier";
 import { DrawableSlider } from "./drawable_slider";
 import { Point, pointsAreEqual } from "../util/point";
 import { gameState } from "./game_state";
+import { jsonClone } from "../util/misc_util";
+import { SliderCurveSection } from "../datamodel/slider";
 //import {Console} from "../console";
 
 export class SliderCurvePerfect extends SliderCurve {
@@ -13,10 +15,11 @@ export class SliderCurvePerfect extends SliderCurve {
     public radius: number = 0;
     public startingAngle: number = 0;  
 
-    constructor(drawableSlider: DrawableSlider, speedCalc: boolean) {
-        super(drawableSlider);
+    private constructor(drawableSlider: DrawableSlider, sections: SliderCurveSection[], speedCalc: boolean, centerPos?: Point) {
+        super(drawableSlider, sections);
 
-        this.calculateValues(speedCalc);
+        // Incase center pos has already been computed, so let's pass it over:
+        this.calculateValues(speedCalc, centerPos);
     }
 
     render(completion: number) {
@@ -51,31 +54,9 @@ export class SliderCurvePerfect extends SliderCurve {
         return MathUtil.constrainRadians(angle);
     }
 
-    calculateValues(speedCalc: boolean) {
+    calculateValues(speedCalc: boolean, centerPos?: Point) {
         let points = this.sections[0].values;
-
-        // Monstrata plz
-        if(pointsAreEqual(points[0], points[2])) { // case one
-            //Console.warn("Converted P to L-slider due to case one.");
-            this.sections[0] = {type: "linear", values: [points[0], points[1]]};
-            this.sections[1] = {type: "linear", values: [points[1], points[2]]};
-
-            this.slider.curve = new SliderCurveBézier(this.slider, speedCalc);
-            return;
-        }
-
-        this.centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
-
-        // Slider seems to have all points on one line. Parsing it as linear slider instead
-        if(!isFinite(this.centerPos.x) || !isFinite(this.centerPos.y)) { // case two
-            //Console.warn("Converted P to L-slider due to case two.");
-            // Remove middle point
-            this.sections[0].values.splice(1, 1);
-            this.sections[0].type = "linear";
-
-            this.slider.curve = new SliderCurveBézier(this.slider, speedCalc);
-            return;
-        }
+        this.centerPos = centerPos || MathUtil.circleCenterPos(points[0], points[1], points[2]);
 
         this.radius = Math.hypot(this.centerPos.x - points[0].x, this.centerPos.y - points[0].y);
         let a1 = Math.atan2(points[0].y - this.centerPos.y, points[0].x - this.centerPos.x), // angle to start
@@ -118,5 +99,38 @@ export class SliderCurvePerfect extends SliderCurve {
 
         this.centerPos.x += stackHeight * -4;
         this.centerPos.y += stackHeight * -4;
+    }
+
+    /** Needs separate method because some perfect sliders need to be converted to beziér. */
+    static create(slider: DrawableSlider, speedCalc: boolean) {
+        let sections = slider.hitObject.sections;
+        let points = sections[0].values;
+
+        // Monstrata plz
+        if (pointsAreEqual(points[0], points[2])) { // case one
+            //Console.warn("Converted P to L-slider due to case one.");
+            sections = jsonClone(sections); // Sicce we're modifying the sections here, we have to decouple them from the raw hit object.
+
+            sections[0] = {type: "linear", values: [points[0], points[1]]};
+            sections[1] = {type: "linear", values: [points[1], points[2]]};
+
+            return new SliderCurveBézier(slider, sections, speedCalc);
+        }
+
+        let centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
+
+        // Slider seems to have all points on one line. Parsing it as linear slider instead
+        if (!isFinite(centerPos.x) || !isFinite(centerPos.y)) { // case two
+            //Console.warn("Converted P to L-slider due to case two.");
+            sections = jsonClone(sections);
+        
+            // Remove middle point
+            sections[0].values.splice(1, 1);
+            sections[0].type = "linear";
+
+            return new SliderCurveBézier(slider, sections, speedCalc);
+        }
+
+        return new SliderCurvePerfect(slider, sections, speedCalc, centerPos);
     }
 }

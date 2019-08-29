@@ -9,7 +9,6 @@ import { gameState } from "./game_state";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
-import { ScoringValue } from "./score";
 import { assert, last } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
@@ -17,6 +16,7 @@ import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveTy
 import { HitSoundInfo, AnimatedOsuSprite } from "./skin";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { sliderBodyContainer } from "../visuals/rendering";
+import { ScoringValue } from "./scoring_value";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -81,9 +81,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
         } else if (this.hitObject.sections[0].type === "perfect") {
-            this.curve = new SliderCurvePerfect(this, false);
+            this.curve = SliderCurvePerfect.create(this, false);
         } else {
-            this.curve = new SliderCurveBézier(this, false);
+            this.curve = new SliderCurveBézier(this, this.hitObject.sections, false);
         }
 
         this.tailPoint = this.getPosFromPercentage(1);

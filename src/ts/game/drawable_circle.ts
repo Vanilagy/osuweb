@@ -1,11 +1,11 @@
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
 import { HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
-import { ScoringValue } from "./score";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { HitSoundInfo } from "./skin";
+import { ScoringValue } from "./scoring_value";
 
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;
