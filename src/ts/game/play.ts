@@ -192,7 +192,7 @@ export class Play {
                 let spinner = hitObject as DrawableSpinner;
                 
                 // Spin counter-clockwise as fast as possible. Clockwise just looks shit.
-                if (this.autohit) spinner.spin(-1e9, currentTime);
+                if (this.autohit || this.activeMods.has(Mod.SpunOut)) spinner.spin(-1e9, currentTime);
             }
 
             if (hitObject.renderFinished) {
@@ -481,7 +481,7 @@ export class Play {
         for (let id in this.onscreenObjects) {
             let hitObject = this.onscreenObjects[id];
 
-            if (hitObject instanceof DrawableSpinner) {
+            if (hitObject instanceof DrawableSpinner && !this.activeMods.has(Mod.SpunOut)) {
                 let spinner = hitObject as DrawableSpinner;
                 spinner.handleMouseMove(osuMouseCoordinates, currentTime);
             }
