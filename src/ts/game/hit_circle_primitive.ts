@@ -9,6 +9,7 @@ import { Mod } from "./mods";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
 const HIT_CIRCLE_FADE_OUT_TIME_ON_MISS = 75;
+const REVERSE_ARROW_FADE_IN_TIME = 150;
 const REVERSE_ARROW_PULSE_DURATION = 300;
 const SHAKE_DURATION = 200;
 
@@ -238,7 +239,17 @@ export class HitCirclePrimitive {
             let hiddenFadeOutCompletion = hasHidden? this.getHiddenFadeOutCompletion(currentTime) : 0;
 
             this.container.alpha = fadeInCompletion * (1 - hiddenFadeOutCompletion);
-            if (this.reverseArrow) this.reverseArrow.alpha = Math.ceil(fadeInCompletion); // Show it fully the moment the fade out begins
+            
+            if (this.reverseArrow) {
+                // When using HD, any reverse arrow but the first one will receive no fade-in animation whatsoever
+                if (this.options.baseElementsHidden) this.reverseArrow.alpha = Math.ceil(fadeInCompletion);
+                else {
+                    let reverseArrowFadeInCompletion = (currentTime - this.options.fadeInStart) / REVERSE_ARROW_FADE_IN_TIME;
+                    reverseArrowFadeInCompletion = MathUtil.clamp(reverseArrowFadeInCompletion, 0, 1);
+    
+                    this.reverseArrow.alpha = reverseArrowFadeInCompletion;
+                }
+            }
 
             if (this.approachCircle !== null) {
                 let approachCircleCompletion = (currentTime - this.options.fadeInStart) / approachTime;
