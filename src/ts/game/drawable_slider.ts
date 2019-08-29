@@ -6,7 +6,7 @@ import { SliderCurveBézier } from "./slider_curve_bézier";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
-import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode } from "../util/constants";
+import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../util/constants";
 import { colorToHexNumber } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { assert, last } from "../util/misc_util";
@@ -17,12 +17,14 @@ import { HitSoundInfo, AnimatedOsuSprite } from "./skin";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { sliderBodyContainer } from "../visuals/rendering";
 import { ScoringValue } from "./scoring_value";
+import { Mod } from "./mods";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
 const FOLLOW_CIRCLE_SCALE_OUT_DURATION = 200;
 const FOLLOW_CIRCLE_PULSE_DURATION = 200;
 const MAX_SLIDER_BALL_SLIDER_VELOCITY = 0.25; // In osu pixels per millisecond. This variable is used to cap the rotation speed on slider balls for very fast sliders.
+const HIDDEN_TICK_FADE_OUT_DURATION = 400;
 
 export interface SliderTimingInfo {
     msPerBeat: number,
@@ -107,14 +109,14 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     draw() {
         super.draw();
 
-        let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor } = gameState.currentPlay;
+        let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
 
         this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - approachTime,
             comboInfo: this.comboInfo,
-            hasApproachCircle: true,
+            hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
             hasNumber: true,
             type: HitCirclePrimitiveType.SliderHead
         });
@@ -159,7 +161,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 hasApproachCircle: false,
                 hasNumber: false,
                 reverseArrowAngle: reverseArrowAngle,
-                type: HitCirclePrimitiveType.SliderEnd
+                type: HitCirclePrimitiveType.SliderEnd,
+                baseElementsHidden: i > 0
             });
 
             primitive.container.x = pos.x;
@@ -287,27 +290,34 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     update(currentTime: number) {
+        let { approachTime, activeMods } = gameState.currentPlay;
+
         if (currentTime > this.endTime + HIT_OBJECT_FADE_OUT_TIME) {
             this.renderFinished = true;
             return;
         }
 
         this.updateHeadElements(currentTime);
-        let fadeInCompletion = this.head.getFadeInCompletion(currentTime);
+        
+        let hasHidden = activeMods.has(Mod.Hidden);
+        let fadeInCompletion = this.head.getFadeInCompletion(currentTime, hasHidden);
+        let fadeOutCompletion = (currentTime - (this.endTime)) / HIT_OBJECT_FADE_OUT_TIME;
+        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+        fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
 
-        if (currentTime < this.endTime) {
-            this.baseSprite.alpha = fadeInCompletion;
-            this.overlayContainer.alpha = fadeInCompletion;
+        if (hasHidden) {
+            let bodyFadeOutCompletion = (currentTime - (this.startTime - 2/3 * approachTime)) / (this.duration + 2/3 * approachTime); // Slider body fades from from the millisecond the fade in is complete to the end of the slider
+            bodyFadeOutCompletion = MathUtil.clamp(bodyFadeOutCompletion, 0, 1);
+            bodyFadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, bodyFadeOutCompletion);
+
+            this.baseSprite.alpha = fadeInCompletion * (1 - bodyFadeOutCompletion);
         } else {
-            let fadeOutCompletion = (currentTime - (this.endTime)) / HIT_OBJECT_FADE_OUT_TIME;
-            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            fadeOutCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeOutCompletion);
-
-            let alpha = 1 - fadeOutCompletion;
-            
-            this.baseSprite.alpha = alpha;
-            this.overlayContainer.alpha = alpha;
+            if (currentTime < this.endTime) this.baseSprite.alpha = fadeInCompletion;
+            else this.baseSprite.alpha = 1 - fadeOutCompletion;
         }
+
+        if (currentTime < this.endTime) this.overlayContainer.alpha = fadeInCompletion;
+        else this.overlayContainer.alpha = 1 - fadeOutCompletion;
 
         this.renderSubelements(currentTime);
     }
@@ -587,10 +597,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
-        let { approachTime } = gameState.currentPlay;
+        let { approachTime, activeMods } = gameState.currentPlay;
 
         let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
         let currentCycle = Math.floor(completion);
+        let hasHidden = activeMods.has(Mod.Hidden);
 
         for (let i = 0; i < this.sliderTickElements.length; i++) {
             let tickElement = this.sliderTickElements[i];
@@ -603,6 +614,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 tickCompletionIndex += this.sliderTickElements.length - 1 - i;
             }
             let tickCompletion = this.sliderTickCompletions[tickCompletionIndex];
+            if (tickCompletion === undefined) continue;
 
             if (tickCompletion <= completion) {
                 tickElement.visible = false;
@@ -636,6 +648,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             if (animationCompletion >= 1) parabola = 1;
 
             tickElement.scale.set(parabola);
+
+            // With HD, ticks start fading out shortly before they're supposed to be picked up. By the time they are picked up, they will have reached opacity 0.
+            if (hasHidden) {
+                let tickPickUpTime = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+                let fadeOutCompletion = (currentSliderTime - (tickPickUpTime - HIDDEN_TICK_FADE_OUT_DURATION)) / HIDDEN_TICK_FADE_OUT_DURATION;
+                fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+
+                tickElement.alpha = 1 - fadeOutCompletion;
+            }
         }
     }
 }

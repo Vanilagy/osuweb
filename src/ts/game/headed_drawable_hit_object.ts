@@ -70,15 +70,17 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
 
     show(currentTime: number) {
         mainHitObjectContainer.addChildAt(this.container, 0);
-        approachCircleContainer.addChild(this.head.approachCircle);
+        if (this.head.approachCircle) approachCircleContainer.addChild(this.head.approachCircle);
 
         this.position();
         this.update(currentTime);
     }
 
     position() {
-        this.head.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
-        this.head.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
+        if (this.head.approachCircle) {
+            this.head.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
+            this.head.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
+        }
     }
 
     remove() {

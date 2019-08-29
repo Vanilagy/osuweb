@@ -6,13 +6,14 @@ import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
-import { PLAYFIELD_DIMENSIONS, DrawingMode, DRAWING_MODE, HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, DrawingMode, DRAWING_MODE, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
 import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../util/graphics_util";
 import { HitSoundInfo, HitSoundType } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { SoundEmitter } from "../audio/sound_emitter";
+import { Mod } from "./mods";
 
-const SPINNER_FADE_IN_TIME = HIT_OBJECT_FADE_IN_TIME; // In ms
+const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
 const SPIN_TEXT_FADE_IN_TIME = 200; // In ms
 const SPIN_TEXT_FADE_OUT_TIME = 200; // In ms
@@ -92,7 +93,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     draw() {
-        let { spinnerPixelRatio } = gameState.currentPlay;
+        let { spinnerPixelRatio, activeMods } = gameState.currentPlay;
 
         this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
 
@@ -192,6 +193,8 @@ export class DrawableSpinner extends DrawableHitObject {
     
                 let wrapper = new PIXI.Container();
                 wrapper.addChild(sprite);
+
+                if (activeMods.has(Mod.Hidden)) wrapper.visible = false; // With HD, all spinner approach circles are hidden
     
                 this.spinnerApproachCircle = wrapper;
             }

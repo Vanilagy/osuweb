@@ -5,7 +5,7 @@ import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider
 import { mainRender, followPointContainer, scorePopupContainer, softwareCursor } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsLocalResourceUrl, readFileAsDataUrl } from "../util/file_util";
 import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
@@ -23,8 +23,9 @@ import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_primitive";
-import { Mod, ModHelper, AutoInstruction, AutoInstructionType, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods";
 import { ScoringValue } from "./scoring_value";
+import { Mod } from "./mods";
+import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mod_helper";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
@@ -528,7 +529,7 @@ export class Play {
 
     /** Headed hit objects can only be hit when the previous one has already been assigned a judgement. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
     hitObjectIsInputLocked(hitObject: HeadedDrawableHitObject) {
-        let objectBefore = this.processedBeatmap.hitObjects[hitObject.id - 1];
+        let objectBefore = this.processedBeatmap.hitObjects[hitObject.index - 1];
         if (!objectBefore || !(objectBefore instanceof HeadedDrawableHitObject)) return false;
 
         return objectBefore.scoring.head.hit === ScoringValue.NotHit;

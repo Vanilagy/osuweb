@@ -1,10 +1,11 @@
 import { ComboInfo } from "./processed_beatmap";
 import { gameState } from "./game_state";
-import { DRAWING_MODE, DrawingMode, PROCEDURAL_HEAD_INNER_TYPE, CIRCLE_BORDER_WIDTH, NUMBER_HEIGHT_CS_RATIO, HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
+import { DRAWING_MODE, DrawingMode, PROCEDURAL_HEAD_INNER_TYPE, CIRCLE_BORDER_WIDTH, NUMBER_HEIGHT_CS_RATIO, DEFAULT_HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
 import { colorToHexNumber } from "../util/graphics_util";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { MathUtil, EaseType } from "../util/math_util";
 import { OsuTexture, AnimatedOsuSprite } from "./skin";
+import { Mod } from "./mods";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
 const HIT_CIRCLE_FADE_OUT_TIME_ON_MISS = 75;
@@ -17,7 +18,8 @@ interface HitCirclePrimitiveOptions {
     hasApproachCircle: boolean,
     hasNumber: boolean,
     reverseArrowAngle?: number,
-    type: HitCirclePrimitiveType
+    type: HitCirclePrimitiveType,
+    baseElementsHidden?: boolean
 }
 
 export enum HitCirclePrimitiveType {
@@ -219,19 +221,24 @@ export class HitCirclePrimitive {
             if (number) container.addChild(number);
         }
 
+        if (this.options.baseElementsHidden) container.visible = false;
+
         this.container = container;
     }
 
     update(currentTime: number) {
-        let { approachTime, circleDiameter } = gameState.currentPlay;
+        let { approachTime, circleDiameter, activeMods } = gameState.currentPlay;
 
-        let fadeInCompletion = this.getFadeInCompletion(currentTime); 
+        let hasHidden = activeMods.has(Mod.Hidden);
 
         if (this.overlayAnimator !== null) this.overlayAnimator.update(currentTime);
 
-        if (this.fadeOut === null) {
-            this.container.alpha = fadeInCompletion;
-            if (this.reverseArrow) this.reverseArrow.alpha = fadeInCompletion;
+        if (hasHidden || this.fadeOut === null) {
+            let fadeInCompletion = this.getFadeInCompletion(currentTime, hasHidden);
+            let hiddenFadeOutCompletion = hasHidden? this.getHiddenFadeOutCompletion(currentTime) : 0;
+
+            this.container.alpha = fadeInCompletion * (1 - hiddenFadeOutCompletion);
+            if (this.reverseArrow) this.reverseArrow.alpha = Math.ceil(fadeInCompletion); // Show it fully the moment the fade out begins
 
             if (this.approachCircle !== null) {
                 let approachCircleCompletion = (currentTime - this.options.fadeInStart) / approachTime;
@@ -240,7 +247,7 @@ export class HitCirclePrimitive {
                 let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0
                 this.approachCircle.scale.set(approachCircleFactor);
     
-                this.approachCircle.alpha = fadeInCompletion;
+                this.approachCircle.alpha = fadeInCompletion * (1 - hiddenFadeOutCompletion);
     
                 if (approachCircleCompletion === 1) this.approachCircle.visible = false;
             }
@@ -248,6 +255,15 @@ export class HitCirclePrimitive {
             if (this.reverseArrow !== null) {
                 let scale = this.getReverseArrowScale(currentTime);
                 this.reverseArrow.scale.set(scale);
+            }
+
+            // Dirty?
+            if (this.fadeOut) {
+                this.container.visible = false;
+                if (this.approachCircle) this.approachCircle.visible = false;
+                if (this.reverseArrow) this.reverseArrow.visible = false;
+                
+                this.renderFinished = true;
             }
         } else {
             if (this.approachCircle) this.approachCircle.visible = false;
@@ -300,11 +316,33 @@ export class HitCirclePrimitive {
         }   
     }
 
-    getFadeInCompletion(time: number) {
-        let fadeInCompletion = (time - this.options.fadeInStart) / HIT_OBJECT_FADE_IN_TIME;
-        fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+    getHiddenFadeOutCompletion(time: number) {
+        let { approachTime } = gameState.currentPlay;
 
-        return fadeInCompletion;
+        let approachTimeThird = approachTime / 3;
+
+        let fadeOutCompletion = (time - (this.options.fadeInStart + approachTimeThird)) / approachTimeThird; // Fade out in 1/3rd the approach time
+        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+
+        return fadeOutCompletion;
+    }
+
+    getFadeInCompletion(time: number, hasHidden: boolean) {
+        let { approachTime } = gameState.currentPlay;
+
+        if (hasHidden) {
+            let approachTimeThird = approachTime / 3;
+
+            let fadeInCompletion = (time - this.options.fadeInStart) / approachTimeThird; // Fade in in 1/3rd the approach time
+            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+
+            return fadeInCompletion;
+        } else {
+            let fadeInCompletion = (time - this.options.fadeInStart) / DEFAULT_HIT_OBJECT_FADE_IN_TIME;
+            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+
+            return fadeInCompletion;
+        }
     }
 
     getReverseArrowScale(time: number) {
@@ -321,7 +359,7 @@ export class HitCirclePrimitive {
 
     setFadeOut(options: HitCirclePrimitiveFadeOutOptions) {
         this.fadeOut = options;
-        this.fadeOutStartOpacity = 1 || this.getFadeInCompletion(options.time); // It looks like opacity is set to 1 when fade-out starts.
+        this.fadeOutStartOpacity = 1; // It looks like opacity is set to 1 when fade-out starts.
     }
 
     isFadingOut() {

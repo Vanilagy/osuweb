@@ -7,10 +7,11 @@ export const STANDARD_SCREEN_DIMENSIONS = {
     height: 480
 };
 
-export const HIT_OBJECT_FADE_IN_TIME = 400; // In ms. This is constant and actually independent of AR.
+export const DEFAULT_HIT_OBJECT_FADE_IN_TIME = 400; // In ms. This is constant and actually independent of AR.
 export const HIT_OBJECT_FADE_OUT_TIME = 200; // In ms
 export const SLIDER_TICK_APPEARANCE_ANIMATION_DURATION = 200; // In ms
 export const FOLLOW_CIRCLE_THICKNESS_FACTOR = 0.045; // in circle diameters
+export const SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT = true;
 
 export enum DrawingMode {
     Procedural, // Draw everything, use no image assetss

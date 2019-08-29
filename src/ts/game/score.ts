@@ -9,7 +9,7 @@ import { scorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { DRAWING_MODE, DrawingMode } from "../util/constants";
 import { AnimatedOsuSprite } from "./skin";
-import { ModHelper } from "./mods";
+import { ModHelper } from "./mod_helper";
 import { ScoringValue } from "./scoring_value";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms

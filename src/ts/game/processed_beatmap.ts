@@ -15,7 +15,8 @@ import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBi
 import { gameState } from "./game_state";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
-import { Mod, ModHelper } from "./mods";
+import { Mod } from "./mods";
+import { ModHelper } from "./mod_helper";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -272,7 +273,7 @@ export class ProcessedBeatmap {
             }
 
             if (newObject !== null) {
-                newObject.id = hitObjectId;
+                newObject.index = hitObjectId;
                 newObject.comboInfo = comboInfo;
                 newObject.init();
 

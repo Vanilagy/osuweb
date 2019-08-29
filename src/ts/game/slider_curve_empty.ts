@@ -4,7 +4,7 @@ import { Point } from "../util/point";
 
 export class SliderCurveEmpty extends SliderCurve {
     constructor(drawableSlider: DrawableSlider) {
-        super(drawableSlider);
+        super(drawableSlider, []);
 
         //this.equalDistancePoints.push(drawableSlider.startPoint); // TODO
     }

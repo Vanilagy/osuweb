@@ -1,11 +1,12 @@
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
-import { HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
+import { HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../util/constants";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { HitSoundInfo } from "./skin";
 import { ScoringValue } from "./scoring_value";
+import { Mod } from "./mods";
 
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;
@@ -29,14 +30,14 @@ export class DrawableCircle extends HeadedDrawableHitObject {
     draw() {
         super.draw();
 
-        let { approachTime } = gameState.currentPlay;
-        
+        let { approachTime, activeMods } = gameState.currentPlay;
+
         this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - approachTime,
             comboInfo: this.comboInfo,
-            hasApproachCircle: true,
+            hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
             hasNumber: true,
             type: HitCirclePrimitiveType.HitCircle
         });

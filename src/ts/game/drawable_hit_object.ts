@@ -4,7 +4,7 @@ import { Point } from "../util/point";
 import { PlayEvent } from "./play_events";
 
 export abstract class DrawableHitObject {
-    public id: number = 0;
+    public index: number = 0;
     public comboInfo: ComboInfo;
     public hitObject: HitObject;
     public container: PIXI.Container;
