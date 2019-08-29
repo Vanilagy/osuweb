@@ -12,6 +12,7 @@ import { HitSoundInfo, HitSoundType } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { Mod } from "./mods";
+import { accuracyMeter } from "./hud";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -557,6 +558,8 @@ export class DrawableSpinner extends DrawableHitObject {
         if (currentTime < this.startTime || currentTime >= this.endTime) return;
 
         let currentPlay = gameState.currentPlay;
+
+        accuracyMeter.fadeOutNow(currentTime);
 
         if (this.lastInputTime === null) {
             this.lastInputTime = currentTime;

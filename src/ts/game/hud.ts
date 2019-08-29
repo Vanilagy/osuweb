@@ -171,6 +171,7 @@ class AccuracyMeter {
     private accuracyLines: PIXI.Graphics[];
     private accuracyLineSpawnTimes: WeakMap<PIXI.Graphics, number>;
     private lastLineTime: number;
+    private fadeOutStart: number;
     private time50: number; // If you don't know what it means, just look where it's assigned.
 
     constructor() {
@@ -188,6 +189,7 @@ class AccuracyMeter {
         let { processedBeatmap } = gameState.currentPlay;
 
         this.lastLineTime = -Infinity;
+        this.fadeOutStart = -Infinity;
         this.time50 = processedBeatmap.difficulty.getHitDeltaForJudgement(50);
 
         this.height = Math.max(15, Math.round(window.innerHeight * ACCURACY_METER_HEIGHT_FACTOR / 5) * 5);
@@ -254,7 +256,7 @@ class AccuracyMeter {
         }
 
         // Make sure the whole thing fades out after a few seconds of no new accuracy lines
-        let fadeOutCompletion = (currentTime - (this.lastLineTime + ACCURACY_METER_FADE_OUT_DELAY)) / ACCURACY_METER_FADE_OUT_TIME;
+        let fadeOutCompletion = (currentTime - this.fadeOutStart) / ACCURACY_METER_FADE_OUT_TIME;
         fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
         this.container.alpha = 1 - fadeOutCompletion;
     }
@@ -283,6 +285,12 @@ class AccuracyMeter {
         this.overlay.addChild(line);
         this.accuracyLines.push(line);
         this.accuracyLineSpawnTimes.set(line, currentTime);
+
         this.lastLineTime = currentTime;
+        this.fadeOutStart = currentTime + ACCURACY_METER_FADE_OUT_DELAY;
+    }
+
+    fadeOutNow(currentTime: number) {
+        if (this.fadeOutStart > currentTime) this.fadeOutStart = currentTime;
     }
 }
