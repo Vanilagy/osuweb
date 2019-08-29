@@ -82,7 +82,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
         this.duration = this.endTime - this.startTime;
         // 1 Spin = 1 Revolution
-        this.requiredSpins = (100 + processedBeatmap.beatmap.difficulty.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
+        this.requiredSpins = (100 + processedBeatmap.difficulty.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
         this.cleared = false;
         this.bonusSpins = 0;
 
@@ -339,8 +339,8 @@ export class DrawableSpinner extends DrawableHitObject {
 
     position() {
         // Position it in the center
-        this.componentContainer.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-        this.componentContainer.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        this.componentContainer.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
+        this.componentContainer.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
         this.componentContainer2.position.copyFrom(this.componentContainer.position);
     }
 

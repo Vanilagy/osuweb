@@ -23,7 +23,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
             y: this.hitObject.y
         };
 
-        this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
+        this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
 
         this.scoring = getDefaultCircleScoring();
     }
@@ -31,10 +31,10 @@ export class DrawableCircle extends HeadedDrawableHitObject {
     draw() {
         super.draw();
 
-        let { ARMs } = gameState.currentPlay;
+        let { approachTime } = gameState.currentPlay;
     
         this.head = new HitCirclePrimitive({
-            fadeInStart: this.startTime - ARMs,
+            fadeInStart: this.startTime - approachTime,
             comboInfo: this.comboInfo,
             hasApproachCircle: true,
             hasNumber: true,
@@ -47,8 +47,8 @@ export class DrawableCircle extends HeadedDrawableHitObject {
     position() {
         super.position(); // See DrawableSlider for the joke
 
-        this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-        this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
+        this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
     }
 
     update(currentTime: number) {
@@ -82,7 +82,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
             judgement = judgementOverride;
         } else {
             let hitDelta = Math.abs(timeInaccuracy);
-            judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
+            judgement = processedBeatmap.difficulty.getJudgementForHitDelta(hitDelta);
         }
 
         this.score(time, judgement);

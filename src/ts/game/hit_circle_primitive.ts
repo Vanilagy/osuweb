@@ -223,7 +223,7 @@ export class HitCirclePrimitive {
     }
 
     update(currentTime: number) {
-        let { ARMs, circleDiameter } = gameState.currentPlay;
+        let { approachTime, circleDiameter } = gameState.currentPlay;
 
         let fadeInCompletion = this.getFadeInCompletion(currentTime); 
 
@@ -234,7 +234,7 @@ export class HitCirclePrimitive {
             if (this.reverseArrow) this.reverseArrow.alpha = fadeInCompletion;
 
             if (this.approachCircle !== null) {
-                let approachCircleCompletion = (currentTime - this.options.fadeInStart) / ARMs;
+                let approachCircleCompletion = (currentTime - this.options.fadeInStart) / approachTime;
                 approachCircleCompletion = MathUtil.clamp(approachCircleCompletion, 0, 1);
     
                 let approachCircleFactor = (1-approachCircleCompletion) * 3 + 1; // Goes from 4.0 -> 1.0

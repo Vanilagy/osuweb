@@ -34,3 +34,11 @@ export function pointDistanceSquared(p1: Point, p2: Point) {
 export function pointAngle(p1: Point, p2: Point) {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
 }
+
+export function pointsAreEqual(p1: Point, p2: Point) {
+    return p1.x === p2.x && p1.y === p2.y;
+}
+
+export function clonePoint(p: Point): Point {
+    return {x: p.x, y: p.y};
+}

@@ -188,11 +188,11 @@ class AccuracyMeter {
         let { processedBeatmap } = gameState.currentPlay;
 
         this.lastLineTime = -Infinity;
-        this.time50 = processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50);
+        this.time50 = processedBeatmap.difficulty.getHitDeltaForJudgement(50);
 
         this.height = Math.max(15, Math.round(window.innerHeight * ACCURACY_METER_HEIGHT_FACTOR / 5) * 5);
         let widthScale = this.height * 0.04;
-        this.width = Math.round(processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)*2 * widthScale / 2) * 2;
+        this.width = Math.round(processedBeatmap.difficulty.getHitDeltaForJudgement(50)*2 * widthScale / 2) * 2;
 
         //this.lineWidth = Math.floor(this.height/5 / 2) * 2;
         this.lineWidth = 2;
@@ -210,13 +210,13 @@ class AccuracyMeter {
         this.base.endFill();
 
         // Green strip
-        let greenStripWidth = Math.ceil(processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(100)*2 * widthScale);
+        let greenStripWidth = Math.ceil(processedBeatmap.difficulty.getHitDeltaForJudgement(100)*2 * widthScale);
         this.base.beginFill(0x57e11a, 1);
         this.base.drawRect(Math.floor(this.width/2 - greenStripWidth/2), this.height*2/5, greenStripWidth, this.height/5);
         this.base.endFill();
 
         // Blue strip
-        let blueStripWidth = Math.ceil(processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(300)*2 * widthScale);
+        let blueStripWidth = Math.ceil(processedBeatmap.difficulty.getHitDeltaForJudgement(300)*2 * widthScale);
         this.base.beginFill(0x38b8e8, 1);
         this.base.drawRect(Math.floor(this.width/2 - blueStripWidth/2), this.height*2/5, blueStripWidth, this.height/5);
         this.base.endFill();
@@ -262,7 +262,7 @@ class AccuracyMeter {
     addAccuracyLine(inaccuracy: number, currentTime: number) {
         let { processedBeatmap } = gameState.currentPlay;
 
-        let judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(Math.abs(inaccuracy));
+        let judgement = processedBeatmap.difficulty.getJudgementForHitDelta(Math.abs(inaccuracy));
         if (judgement === 0) return;
 
         let color = (() => {

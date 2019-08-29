@@ -3,7 +3,7 @@ import { SliderCurve } from "./slider_curve";
 import { MathUtil } from "../util/math_util";
 import { SliderCurveBézier } from "./slider_curve_bézier";
 import { DrawableSlider } from "./drawable_slider";
-import { Point } from "../util/point";
+import { Point, pointsAreEqual } from "../util/point";
 import { gameState } from "./game_state";
 //import {Console} from "../console";
 
@@ -55,7 +55,7 @@ export class SliderCurvePerfect extends SliderCurve {
         let points = this.sections[0].values;
 
         // Monstrata plz
-        if(JSON.stringify(points[0]) === JSON.stringify(points[2])) { // case one
+        if(pointsAreEqual(points[0], points[2])) { // case one
             //Console.warn("Converted P to L-slider due to case one.");
             this.sections[0] = {type: "linear", values: [points[0], points[1]]};
             this.sections[1] = {type: "linear", values: [points[1], points[2]]};
@@ -70,7 +70,7 @@ export class SliderCurvePerfect extends SliderCurve {
         if(!isFinite(this.centerPos.x) || !isFinite(this.centerPos.y)) { // case two
             //Console.warn("Converted P to L-slider due to case two.");
             // Remove middle point
-            this.sections[0].values.splice(1,1);
+            this.sections[0].values.splice(1, 1);
             this.sections[0].type = "linear";
 
             this.slider.curve = new SliderCurveBézier(this.slider, speedCalc);

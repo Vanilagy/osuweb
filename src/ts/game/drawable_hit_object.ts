@@ -9,8 +9,6 @@ export abstract class DrawableHitObject {
     public hitObject: HitObject;
     public container: PIXI.Container;
 
-    public x: number;
-    public y: number;
     public startPoint: Point;
     public endPoint: Point;
     public startTime: number;
@@ -28,11 +26,8 @@ export abstract class DrawableHitObject {
         this.startPoint = {
             x: this.hitObject.x,
             y: this.hitObject.y
-        };
+        }; // It is important that we "duplicate" the point here. This decouples the raw hitObject from the drawable.
         this.startTime = this.hitObject.time;
-
-        this.x = this.hitObject.x;
-        this.y = this.hitObject.y;
     }
 
     abstract init(): void;

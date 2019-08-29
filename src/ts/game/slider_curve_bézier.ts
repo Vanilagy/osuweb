@@ -5,7 +5,7 @@ import { MathUtil } from "../util/math_util";
 //import {SLIDER_SETTINGS} from "../game/drawableslider";
 //import {Console} from "../console";
 import { DrawableSlider } from "./drawable_slider";
-import { Point, pointAngle } from "../util/point";
+import { Point, pointAngle, clonePoint } from "../util/point";
 import { gameState } from "./game_state";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { last } from "../util/misc_util";
@@ -35,7 +35,7 @@ export class SliderCurveBézier extends SliderCurve {
                     y: points[0].y + Math.sin(angle) * distance
                 };
 
-                this.pushEqualDistancePoint(points[0]);
+                this.pushEqualDistancePoint(clonePoint(points[0]));
                 this.pushEqualDistancePoint(pointTwo);
 
                 return;
@@ -165,7 +165,7 @@ export class SliderCurveBézier extends SliderCurve {
          all points are equally distant from one another. This is done to guarantee constant
          slider velocity. */
         let lastPoint = this.tracePoints[0];
-        this.pushEqualDistancePoint(lastPoint);
+        this.pushEqualDistancePoint(clonePoint(lastPoint)); // Clone so we detach from the raw hit object's data
         let currentIndex = 1;
         for (let c = 0; c < segmentCount; c++) {
             let remainingLength = segmentLength;

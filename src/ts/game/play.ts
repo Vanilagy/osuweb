@@ -28,6 +28,7 @@ import { Mod, ModHelper, AutoInstruction, AutoInstructionType } from "./mods";
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
+const MODCODE_OVERRIDE = 'ATHR';
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
@@ -49,7 +50,7 @@ export class Play {
     public circleRadiusOsuPx: number;
     public circleRadius: number;
     public headedHitObjectTextureFactor: number;
-    public ARMs: number;
+    public approachTime: number;
     public frameTimes: number[] = [];
     public playEvents: PlayEvent[] = [];
     public currentPlayEvent: number = 0;
@@ -77,7 +78,6 @@ export class Play {
 
         this.pixelRatio = null;
         this.circleDiameter = null;
-        this.ARMs = this.processedBeatmap.beatmap.difficulty.getApproachTime();
     }
     
     async init() {
@@ -86,13 +86,6 @@ export class Play {
         this.pixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
         this.spinnerPixelRatio = screenHeight / SPINNER_REFERENCE_SCREEN_HEIGHT;
 
-        this.circleDiameterOsuPx = this.processedBeatmap.beatmap.difficulty.getCirclePixelSize();
-        this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
-        this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
-        this.circleRadius = this.circleDiameter / 2;
-
-        this.headedHitObjectTextureFactor = this.circleDiameter / 128;
-
         if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
             gameState.currentGameplaySkin = baseSkin;
         } else {
@@ -100,11 +93,18 @@ export class Play {
             gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
         }
 
-        this.activeMods = ModHelper.getModsFromModCode('AT' || prompt("Enter mod code:"));
+        this.activeMods = ModHelper.getModsFromModCode(MODCODE_OVERRIDE || prompt("Enter mod code:"));
 
         console.time("Beatmap process");
-        this.processedBeatmap.init();
+        this.processedBeatmap.init(this.activeMods);
         console.timeEnd("Beatmap process");
+
+        this.approachTime = this.processedBeatmap.difficulty.getApproachTime();
+        this.circleDiameterOsuPx = this.processedBeatmap.difficulty.getCirclePixelSize();
+        this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
+        this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
+        this.circleRadius = this.circleDiameter / 2;
+        this.headedHitObjectTextureFactor = this.circleDiameter / 128;
 
         console.time("Beatmap draw");
         this.processedBeatmap.draw();

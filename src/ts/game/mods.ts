@@ -5,7 +5,11 @@ import { Point } from "../util/point";
 import { DrawableSlider } from "./drawable_slider";
 import { MathUtil, EaseType } from "../util/math_util";
 import { DrawableSpinner } from "./drawable_spinner";
-import { PLAYFIELD_DIMENSIONS } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
+import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
+import { ProcessedBeatmap } from "./processed_beatmap";
+import { SliderCurvePerfect } from "./slider_curve_perfect";
+import { SliderCurveBézier } from "./slider_curve_bézier";
 
 const DEFAULT_SPIN_RADIUS = 45;
 const RADIUS_LERP_DURATION = 480;
@@ -67,6 +71,15 @@ export interface AutoInstruction {
     hitObject?: DrawableHitObject
 }
 
+function hardRockFlipPoint(point: Point) {
+    point.y = hardRockFlipY(point.y);
+}
+
+function hardRockFlipY(y: number) {
+    // Mirror the point on the horizontal line that goes through the playfield center.
+    return PLAYFIELD_DIMENSIONS.height - y;
+}
+
 export class ModHelper {
     static getModsFromModCode(modCode: string) {
         let chunks: string[] = [];
@@ -82,6 +95,56 @@ export class ModHelper {
         }
 
         return set;
+    }
+
+    static applyEz(processedBeatmap: ProcessedBeatmap) {
+        let difficulty = processedBeatmap.difficulty;
+
+        difficulty.CS /= 2; // half, no lower limit, this can actually go to CS 1
+        difficulty.AR /= 2; // half
+        difficulty.OD /= 2; // half
+        difficulty.HP /= 2; // half
+    }
+
+    static applyHr(processedBeatmap: ProcessedBeatmap) {
+        let difficulty = processedBeatmap.difficulty;
+
+        difficulty.CS = Math.min(7, difficulty.CS * 1.3); // cap at 7, and yes, the 1.3 is correct
+        difficulty.AR = Math.min(10, difficulty.AR * 1.4); // cap at 10
+        difficulty.OD = Math.min(10, difficulty.OD * 1.4); // cap at 10
+        difficulty.HP = Math.min(10, difficulty.HP * 1.4); // cap at 10
+
+        for (let i = 0; i < processedBeatmap.hitObjects.length; i++) {
+            let hitObject = processedBeatmap.hitObjects[i];
+
+            if (hitObject instanceof DrawableCircle) {
+                hardRockFlipPoint(hitObject.startPoint);
+                hardRockFlipPoint(hitObject.endPoint);
+            } else if (hitObject instanceof DrawableSlider) {
+                hardRockFlipPoint(hitObject.startPoint);
+                hardRockFlipPoint(hitObject.tailPoint);
+                // Since endPoint is either startPoint or tailPoint, we'll have flipped endPoint.
+
+                let curve = hitObject.curve;
+                if (curve instanceof SliderCurvePerfect) {
+                    hardRockFlipPoint(curve.centerPos);
+                    curve.startingAngle *= -1; // Here, we flip the angle on the horizontal axis. Since an angle with degree 0 lies exactly on that axis, it suffices to simply negate the angle in order to perform the flip.
+                    curve.angleDifference *= -1; // Since we flipped, we now go the other way.
+                } else if (curve instanceof SliderCurveBézier) {
+                    for (let i = 0; i < curve.equalDistancePoints.length; i++) {
+                        hardRockFlipPoint(curve.equalDistancePoints[i]);
+                    }
+                }
+
+                hitObject.minY = hardRockFlipY(hitObject.minY);
+                hitObject.maxY = hardRockFlipY(hitObject.maxY);
+
+                // Because we flipped them, we need to swap 'em now too:
+                let temp = hitObject.minY;
+                hitObject.minY = hitObject.maxY;
+                hitObject.maxY = temp;
+            }
+        }
     }
 
     static generateAutoPlaythroughInstructions(play: Play) {
@@ -173,7 +236,7 @@ export class ModHelper {
 
             if (activeSpinnerCount <= 0) {
                 if (waypoint.type === WaypointType.HitCircle) {
-                    let time = Math.max(getLastInstructionEndTime(), waypoint.time - play.ARMs);
+                    let time = Math.max(getLastInstructionEndTime(), waypoint.time - play.approachTime);
 
                     instructions.push({
                         type: AutoInstructionType.Move,
@@ -183,7 +246,7 @@ export class ModHelper {
                         endPos: waypoint.pos
                     });
                 } else if (waypoint.type === WaypointType.SliderHead) {
-                    let time = Math.max(getLastInstructionEndTime(), waypoint.time - play.ARMs);
+                    let time = Math.max(getLastInstructionEndTime(), waypoint.time - play.approachTime);
 
                     instructions.push({
                         type: AutoInstructionType.Move,

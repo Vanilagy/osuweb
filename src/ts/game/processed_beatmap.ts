@@ -14,6 +14,8 @@ import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, HitSoundType } from "./skin";
 import { gameState } from "./game_state";
 import { SoundEmitter } from "../audio/sound_emitter";
+import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
+import { Mod, ModHelper } from "./mods";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -35,15 +37,20 @@ export class ProcessedBeatmap {
     public beatmap: Beatmap;
     public hitObjects: DrawableHitObject[];
     public breaks: Break[];
+    public difficulty: BeatmapDifficulty;
 
     constructor(beatmap: Beatmap) {
         this.beatmap = beatmap;
         this.hitObjects = [];
         this.breaks = [];
+        this.difficulty = this.beatmap.difficulty.clone();
     }
 
-    init() {
+    init(mods: Set<Mod>) {
         this.generateHitObjects();
+
+        if (mods.has(Mod.Easy)) ModHelper.applyEz(this);
+        if (mods.has(Mod.HardRock)) ModHelper.applyHr(this);
 
         console.time('Stack shift');
         this.applyStackShift(false);
@@ -154,7 +161,7 @@ export class ProcessedBeatmap {
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
 
-                let sliderVelocityInOsuPixelsPerBeat = 100 * this.beatmap.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
+                let sliderVelocityInOsuPixelsPerBeat = 100 * this.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
                 let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / (currentMsPerBeat * currentMsPerBeatMultiplier);
 
                 let timingInfo: SliderTimingInfo = {
@@ -169,7 +176,7 @@ export class ProcessedBeatmap {
                 // Only go to completion 1, because the slider tick locations are determined solely by the first repeat cycle. In all cycles after that, they stay in the exact same place. Example: If my slider is:
                 // O----T----T-O
                 // where O represents the ends, and T is a slider tick, then repeating that slider does NOT change the position of the Ts. It follows that slider ticks don't always "tick" in constant time intervals.
-                for (let tickCompletion = 0; tickCompletion < 1; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.beatmap.difficulty.TR)) / rawHitObject.length) {
+                for (let tickCompletion = 0; tickCompletion < 1; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.difficulty.TR)) / rawHitObject.length) {
                     let timeToStart = tickCompletion * rawHitObject.length / timingInfo.sliderVelocity;
                     let timeToEnd = (1 - tickCompletion) * rawHitObject.length / timingInfo.sliderVelocity;
 
@@ -276,7 +283,7 @@ export class ProcessedBeatmap {
 
     applyStackShift(fullCalc: boolean) {
         let lastStackEnd = 0;
-        let stackThreshold = this.beatmap.difficulty.getApproachTime() * this.beatmap.difficulty.SL;
+        let stackThreshold = this.difficulty.getApproachTime() * this.difficulty.SL;
         let stackSnapDistance = 3;
 
         let extendedEndIndex = this.hitObjects.length - 1;

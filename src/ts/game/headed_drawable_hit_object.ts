@@ -58,8 +58,6 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     }
 
     applyStackPosition() {
-        this.x += this.stackHeight * -4;
-        this.y += this.stackHeight * -4;
         this.startPoint.x += this.stackHeight * -4;
         this.startPoint.y += this.stackHeight * -4;
         this.endPoint.x += this.stackHeight * -4;
@@ -79,8 +77,8 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     }
 
     position() {
-        this.head.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.x);
-        this.head.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.y);
+        this.head.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
+        this.head.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
     }
 
     remove() {
@@ -120,7 +118,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
         playEventArray.push({
             type: PlayEventType.HeadHitWindowEnd,
             hitObject: this,
-            time: this.startTime + processedBeatmap.beatmap.difficulty.getHitDeltaForJudgement(50)
+            time: this.startTime + processedBeatmap.difficulty.getHitDeltaForJudgement(50)
         });
     }
 

@@ -76,7 +76,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
         this.duration = this.endTime - this.startTime;
 
-        this.renderStartTime = this.startTime - gameState.currentPlay.ARMs;
+        this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
 
         if (this.hitObject.sections.length === 0) {
             this.curve = new SliderCurveEmpty(this);
@@ -109,10 +109,10 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     draw() {
         super.draw();
 
-        let { circleDiameter, pixelRatio, ARMs, circleRadiusOsuPx, headedHitObjectTextureFactor } = gameState.currentPlay;
+        let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor } = gameState.currentPlay;
     
         this.head = new HitCirclePrimitive({
-            fadeInStart: this.startTime - ARMs,
+            fadeInStart: this.startTime - approachTime,
             comboInfo: this.comboInfo,
             hasApproachCircle: true,
             hasNumber: true,
@@ -136,7 +136,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             
             let fadeInStart: number;
             if (i === 0) {
-                fadeInStart = this.startTime - ARMs;
+                fadeInStart = this.startTime - approachTime;
             } else {
                 fadeInStart = this.startTime + (i-1) * msPerRepeatCycle;
             }
@@ -425,7 +425,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             judgement = judgementOverride;
         } else {
             let hitDelta = Math.abs(timeInaccuracy);
-            judgement = processedBeatmap.beatmap.difficulty.getJudgementForHitDelta(hitDelta);
+            judgement = processedBeatmap.difficulty.getJudgementForHitDelta(hitDelta);
         }
 
         this.scoring.head.hit = judgement;
@@ -587,7 +587,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     private renderSliderTicks(completion: number, currentSliderTime: number) {
-        let { ARMs } = gameState.currentPlay;
+        let { approachTime } = gameState.currentPlay;
 
         let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
         let currentCycle = Math.floor(completion);
@@ -622,7 +622,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             
             // If we're in the first cycle, slider ticks appear a certain duration earlier. Experiments have lead to the value being subtracted here:
             if (currentCycle === 0) {
-                tickTime -= ARMs * 2/3 - 100;
+                tickTime -= approachTime * 2/3 - 100;
             }
 
             let animationStart = tickTime - SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;

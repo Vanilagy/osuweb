@@ -84,7 +84,7 @@ export class ScoreCounter {
         this.totalNumberOfHits = 0;
         this.totalValueOfHits = 0;
 
-        this.difficultyMultiplier = this.processedBeatmap.beatmap.difficulty.calculateDifficultyMultiplier();
+        this.difficultyMultiplier = this.processedBeatmap.beatmap.difficulty.calculateDifficultyMultiplier(); // Get the difficulty from the beatmap, not the processed beatmap, because: "Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier. It will only account for original values only."
         this.modMultiplier = 1;
 
         this.resetGekiAndKatu();
