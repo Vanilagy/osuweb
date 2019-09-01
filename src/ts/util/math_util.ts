@@ -140,16 +140,26 @@ export class MathUtil {
         }
         return difference;
     }
-    // start: inclusive, end: exclusive
-    static getAvgInArray(array: number[], start: number = 0, end?: number) {
+    static getAggregateValuesFromArray(array: number[], start: number = 0, end?: number) {
         if (end === undefined) end = array.length;
 
         let total = 0;
+        let min = Infinity;
+        let max = -Infinity;
+
         for (let i = start; i < end; i++) {
-            total += array[i];
+            let val = array[i];
+
+            total += val;
+            if (val < min) min = val;
+            if (val > max) max = val;
         }
-        
-        return total / (end - start);
+
+        return {
+            avg: total / (end - start),
+            min: min,
+            max: max
+        };
     }
     static clamp(val: number, min: number, max: number) {
 	    if (val < min) {

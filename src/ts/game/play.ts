@@ -28,7 +28,7 @@ import { Mod } from "./mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mod_helper";
 
 const LOG_RENDER_INFO = true;
-const LOG_RENDER_INFO_SAMPLE_SIZE = 60 * 5; // 5 seconds @60Hz
+const LOG_RENDER_INFO_INTERVAL = 5000; // In ms
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
 const BREAK_FADE_TIME = 1250; // In ms
@@ -53,7 +53,12 @@ export class Play {
     public circleRadius: number;
     public headedHitObjectTextureFactor: number;
     public approachTime: number;
+
     public frameTimes: number[] = [];
+    public inbetweenFrameTimes: number[] = [];
+    public lastFrameTime: number = null;
+    public lastRenderInfoLogTime: number = null;
+
     public playEvents: PlayEvent[] = [];
     public currentPlayEvent: number = 0;
     public scoreCounter: ScoreCounter;
@@ -327,23 +332,28 @@ export class Play {
         if (!LOG_RENDER_INFO) return;
 
         // Frame time logger:
-        let elapsedTime = performance.now() - startTime;
+        let now = performance.now();
+        let elapsedTime = now - startTime;
         this.frameTimes.push(elapsedTime);
+        if (this.lastFrameTime !== null) {
+            this.inbetweenFrameTimes.push(now - this.lastFrameTime);
+        }
+        this.lastFrameTime = now;
 
-        if (this.frameTimes.length >= LOG_RENDER_INFO_SAMPLE_SIZE) {
-            let min = Infinity, max = 0, total = 0;
-
-            for (let time of this.frameTimes) {
-                total += time;
-                if (time < min) min = time;
-                if (time > max) max = time;
-            }
-
-            let avg = total / this.frameTimes.length;
-            console.log(`Frame time info: Average: ${avg.toFixed(3)}ms, Best: ${min.toFixed(3)}ms, Worst: ${max.toFixed(3)}ms`);
+        if ((now - this.lastRenderInfoLogTime) >= LOG_RENDER_INFO_INTERVAL && this.frameTimes.length > 0 && this.inbetweenFrameTimes.length > 0) {
+            let data1 = MathUtil.getAggregateValuesFromArray(this.frameTimes),
+                data2 = MathUtil.getAggregateValuesFromArray(this.inbetweenFrameTimes);
+                
+            console.log("---");
+            console.log(`Frame time info: Average: ${data1.avg.toFixed(3)}ms, Shortest: ${data1.min.toFixed(3)}ms, Longest: ${data1.max.toFixed(3)}ms`);
+            console.log(`Frame period info: Average: ${data2.avg.toFixed(3)}ms, Shortest: ${data2.min.toFixed(3)}ms, Longest: ${data2.max.toFixed(3)}ms`);
 
             this.frameTimes.length = 0;
+            this.inbetweenFrameTimes.length = 0;
+            this.lastRenderInfoLogTime = now;
         }
+
+        if (this.lastRenderInfoLogTime === null) this.lastRenderInfoLogTime = now;
     }
 
     tick(currentTimeOverride?: number) {

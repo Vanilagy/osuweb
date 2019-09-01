@@ -144,7 +144,7 @@ export class MediaPlayer {
 
             if (this.lastNudgeTime === null) this.lastNudgeTime = now;
             if (now - this.lastNudgeTime >= MEDIA_NUDGE_INTERVAL) {
-                let average = MathUtil.getAvgInArray(this.timingDeltas); // Average of last deltas
+                let average = MathUtil.getAggregateValuesFromArray(this.timingDeltas).avg; // Average of last deltas
                 if (Math.abs(average) >= 5) console.warn("High average media playback delta: " + average + "ms - Nudging offset...");
                 this.startTime += average / 2; // Nudge closer towards zero
 
