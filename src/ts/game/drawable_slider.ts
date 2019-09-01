@@ -44,7 +44,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public hitCirclePrimitiveContainer: PIXI.Container;
     public reverseArrowContainer: PIXI.Container;
 
-    /** The "visual other end" of the slider. Not necesarrily where the slider ends (because of repeats); for that, refer to endPoint instead. */
+    /** The "visual other end" of the slider. Not necessarily where the slider ends (because of repeats); for that, refer to endPoint instead. */
     public tailPoint: Point;
     public duration: number;
     public complete: boolean;

@@ -3,7 +3,7 @@ import { gameState } from "./game_state";
 import { SliderCurveSection } from "../datamodel/slider";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { Point } from "../util/point";
-import { colorToHexStirng, Color } from "../util/graphics_util";
+import { colorToHexString, Color } from "../util/graphics_util";
 import { MathUtil } from "../util/math_util";
 
 export abstract class SliderCurve {
@@ -35,7 +35,7 @@ export abstract class SliderCurve {
 
         // "Border"
         this.slider.baseCtx.lineWidth = circleDiameter * this.slider.reductionFactor;
-        this.slider.baseCtx.strokeStyle = colorToHexStirng(gameState.currentGameplaySkin.config.colors.sliderBorder);
+        this.slider.baseCtx.strokeStyle = colorToHexString(gameState.currentGameplaySkin.config.colors.sliderBorder);
         this.slider.baseCtx.lineCap = "round";
         this.slider.baseCtx.lineJoin = "round";
         this.slider.baseCtx.globalCompositeOperation = "source-over";
@@ -65,7 +65,7 @@ export abstract class SliderCurve {
             if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();
         }
         this.slider.baseCtx.lineWidth = this.slider.sliderBodyRadius * 2;
-        this.slider.baseCtx.strokeStyle = "rgba(255, 255, 255, 0.333)";
+        this.slider.baseCtx.strokeStyle = "rgba(255,255,255,0.333)";
         this.slider.baseCtx.globalCompositeOperation = "destination-out"; // Transparency
         if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();
     }

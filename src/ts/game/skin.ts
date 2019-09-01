@@ -645,7 +645,7 @@ export class Skin {
 
 export let baseSkin = new Skin(baseSkinDirectory);
 
-export function joinSkins(skins: Skin[], joinTextures = true, joinHitsounds = true) {
+export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = true) {
     assert(skins.length > 0);
 
     let baseSkin = skins[0].clone();
@@ -688,7 +688,7 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinHitsounds = tr
             if (!skin.hasDefaultConfig) baseSkin.colors = skin.colors.slice(0);
         }
 
-        if (joinHitsounds) {
+        if (joinHitSounds) {
             for (let key in skin.sounds) {
                 let sound = skin.sounds[key];
                 if (sound.isEmpty()) continue;

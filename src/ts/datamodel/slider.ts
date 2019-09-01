@@ -18,7 +18,7 @@ export class Slider extends HitObject {
     public repeat: number;
     public length: number;
     public sections: SliderCurveSection[];
-    public edgeHitsounds: number[] = [];
+    public edgeHitSounds: number[] = [];
     public edgeSamplings: Sampling[] = [];
 
     constructor(data: string[]) {
@@ -32,11 +32,11 @@ export class Slider extends HitObject {
             let values = data[8].split('|');
 
             for (let i = 0; i < values.length; i++) {
-                this.edgeHitsounds.push(parseInt(values[i]));
+                this.edgeHitSounds.push(parseInt(values[i]));
             }
         } else {
-            this.edgeHitsounds.length = this.repeat + 1;
-            this.edgeHitsounds.fill(0); // TODO. Does this default to 0?
+            this.edgeHitSounds.length = this.repeat + 1;
+            this.edgeHitSounds.fill(0); // TODO. Does this default to 0?
         }
 
         if (data[9]) {

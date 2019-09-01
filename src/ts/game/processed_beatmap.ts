@@ -214,11 +214,11 @@ export class ProcessedBeatmap {
 
                     // Init hit sounds for slider head, repeats and end
                     let hitSounds: HitSoundInfo[] = [];
-                    for (let i = 0; i < rawHitObject.edgeHitsounds.length; i++) {
+                    for (let i = 0; i < rawHitObject.edgeHitSounds.length; i++) {
                         
                         let time = rawHitObject.time + rawHitObject.length/timingInfo.sliderVelocity * i;
                         let timingPoint = getClosestTimingPointTo(time);
-                        let hitSound = rawHitObject.edgeHitsounds[i];
+                        let hitSound = rawHitObject.edgeHitSounds[i];
                         let sampling = rawHitObject.edgeSamplings[i];
 
                         let info = generateHitSoundInfo(hitSound, sampling.sampleSet, sampling.additionSet, null, null, timingPoint);
