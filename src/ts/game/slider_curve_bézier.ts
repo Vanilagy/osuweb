@@ -48,7 +48,7 @@ export class SliderCurveBézier extends SliderCurve {
         if (!speedCalc) this.calculateEqualDistancePoints();
     }
 
-    render(completion: number) {
+    render(completion: number, noClear = false) {
         let actualIndex = completion * (this.equalDistancePoints.length - 1);
         let targetIndex = Math.floor(actualIndex);
 
@@ -76,7 +76,7 @@ export class SliderCurveBézier extends SliderCurve {
             this.slider.baseCtx.lineTo(snakingEndPoint.x, snakingEndPoint.y);
         }
 
-        this.draw();
+        this.draw(noClear);
     }
 
     getEndPoint(): Point {

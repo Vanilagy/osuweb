@@ -22,7 +22,7 @@ export class SliderCurvePerfect extends SliderCurve {
         this.calculateValues(speedCalc, centerPos);
     }
 
-    render(completion: number) {
+    render(completion: number, noClear = false) {
         let pixelRatio = gameState.currentPlay.pixelRatio;
         let centerPos = this.slider.toCtxCoord(this.centerPos);
         let angleDifference = this.angleDifference * completion;
@@ -30,7 +30,7 @@ export class SliderCurvePerfect extends SliderCurve {
         this.slider.baseCtx.beginPath();
         this.slider.baseCtx.arc(centerPos.x, centerPos.y, this.radius * pixelRatio, this.startingAngle, this.startingAngle + angleDifference, angleDifference < 0);
 
-        this.draw();
+        this.draw(noClear);
     }
 
     getEndPoint(): Point {

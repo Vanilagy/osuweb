@@ -22,16 +22,16 @@ export abstract class SliderCurve {
         console.log("Not implemented yet.");
     }
 
-    abstract render(completion: number): void;
+    abstract render(completion: number, noClear?: boolean): void;
 
     abstract getEndPoint(): Point;
 
     abstract getAngleFromPercentage(percent: number): number;
 
-    draw() { // Paints the slider, defined through path
-        let { circleDiameter } = gameState.currentPlay;
+    draw(noClear: boolean) { // Paints the slider, defined through path
+        let { circleDiameter, pixelRatio } = gameState.currentPlay;
         
-        this.slider.baseCtx.clearRect(0, 0, Math.ceil(this.slider.sliderWidth + circleDiameter), Math.ceil(this.slider.sliderHeight + circleDiameter));
+        if (!noClear) this.slider.baseCtx.clearRect(0, 0, Math.ceil(this.slider.sliderWidth * pixelRatio + circleDiameter), Math.ceil(this.slider.sliderHeight * pixelRatio + circleDiameter));
 
         // "Border"
         this.slider.baseCtx.lineWidth = circleDiameter * this.slider.reductionFactor;

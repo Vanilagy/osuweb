@@ -111,12 +111,14 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
 
+        let hasHidden = activeMods.has(Mod.Hidden);
+
         this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - approachTime,
             comboInfo: this.comboInfo,
-            hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
+            hasApproachCircle: !hasHidden || (this.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
             hasNumber: true,
             type: HitCirclePrimitiveType.SliderHead
         });
@@ -162,7 +164,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 hasNumber: false,
                 reverseArrowAngle: reverseArrowAngle,
                 type: HitCirclePrimitiveType.SliderEnd,
-                baseElementsHidden: i > 0
+                baseElementsHidden: hasHidden && i > 0
             });
 
             primitive.container.x = pos.x;
@@ -187,7 +189,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         canvas.setAttribute('height', String(Math.ceil(this.sliderHeight * pixelRatio + circleDiameter)));
         let ctx = canvas.getContext('2d');
         this.baseCtx = ctx;
-        this.curve.render(1.0);
+        this.curve.render(1.0, true);
         this.baseSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
 
         this.sliderBall = new SliderBall(this);
@@ -318,6 +320,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         if (currentTime < this.endTime) this.overlayContainer.alpha = fadeInCompletion;
         else this.overlayContainer.alpha = 1 - fadeOutCompletion;
+
+        /*
+        if (currentTime < this.startTime) {
+            let snakeCompletion = (currentTime - (this.startTime - approachTime)) / (approachTime/3); // Slider snaking takes 1/3rd of approach time
+            snakeCompletion = MathUtil.clamp(snakeCompletion, 0, 1);
+
+            this.curve.render(snakeCompletion);
+            this.baseSprite.texture.update();
+        }*/
 
         this.renderSubelements(currentTime);
     }
@@ -506,8 +517,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private renderSliderEnds(currentTime: number) {
         for (let i = 0; i < this.sliderEnds.length; i++) {
             let sliderEnd = this.sliderEnds[i];
-            if (sliderEnd.renderFinished) continue;
-
             sliderEnd.update(currentTime);
         }
     }

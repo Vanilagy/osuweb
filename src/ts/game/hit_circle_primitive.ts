@@ -7,7 +7,7 @@ import { MathUtil, EaseType } from "../util/math_util";
 import { OsuTexture, AnimatedOsuSprite } from "./skin";
 import { Mod } from "./mods";
 
-const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 100;
+const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 50;
 const HIT_CIRCLE_FADE_OUT_TIME_ON_MISS = 75;
 const REVERSE_ARROW_FADE_IN_TIME = 150;
 const REVERSE_ARROW_PULSE_DURATION = 300;
@@ -228,6 +228,8 @@ export class HitCirclePrimitive {
     }
 
     update(currentTime: number) {
+        if (this.renderFinished) return;
+
         let { approachTime, circleDiameter, activeMods } = gameState.currentPlay;
 
         let hasHidden = activeMods.has(Mod.Hidden);
