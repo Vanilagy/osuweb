@@ -1,4 +1,5 @@
 import { Point, pointDistanceSquared } from "./point";
+import { jsonClone } from "./misc_util";
 
 export enum EaseType {
     Linear,
@@ -26,7 +27,7 @@ export enum EaseType {
 export class MathUtil {
 	static pointOnBézierCurve(pointArray: Point[], t: number): Point {
         let bx = 0, by = 0, n = pointArray.length - 1; // degree
-
+        
         if (n === 1) { // if linear
             bx = (1 - t) * pointArray[0].x + t * pointArray[1].x;
             by = (1 - t) * pointArray[0].y + t * pointArray[1].y;
@@ -37,10 +38,24 @@ export class MathUtil {
             bx = (1 - t) * (1 - t) * (1 - t) * pointArray[0].x + 3 * (1 - t) * (1 - t) * t * pointArray[1].x + 3 * (1 - t) * t * t * pointArray[2].x + t * t * t * pointArray[3].x;
             by = (1 - t) * (1 - t) * (1 - t) * pointArray[0].y + 3 * (1 - t) * (1 - t) * t * pointArray[1].y + 3 * (1 - t) * t * t * pointArray[2].y + t * t * t * pointArray[3].y;
         } else { // generalized equation
-            for (let i = 0; i <= n; i++) {
-                bx += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].x;
-                by += this.binomialCoef(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i) * pointArray[i].y;
+            // This uses De Casteljau's Algorithm, taken from https://stackoverflow.com/questions/41663348/bezier-curve-of-n-order?noredirect=1&lq=1. Probably not yet as fast as it can be, might have to look into some other form of array or WebAssembly.
+
+            let list = pointArray.slice();
+
+            for (let j = pointArray.length; j > 1; j--) {
+                let firstIteration = j === pointArray.length;
+            
+                for (let i = 0; i < j-1; i++) {
+                    let x = (1-t) * list[i].x + t * list[i+1].x,
+                        y = (1-t) * list[i].y + t * list[i+1].y;
+
+                    if (firstIteration) list[i] = {x, y};
+                    else list[i].x = x, list[i].y = y;
+                }
+            
             }
+
+            return list[0];
         }
 
         return {x: bx, y: by};
