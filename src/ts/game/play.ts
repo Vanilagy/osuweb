@@ -26,11 +26,13 @@ import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mod_helper";
+import { processJobs, processJob } from "../multithreading/job_system";
+import { JobTask, DrawSliderByIndexJob } from "../multithreading/job";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_INTERVAL = 5000; // In ms
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
-const MODCODE_OVERRIDE = '';
+const MODCODE_OVERRIDE = 'AT';
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
@@ -114,7 +116,7 @@ export class Play {
         this.headedHitObjectTextureFactor = this.circleDiameter / 128;
 
         console.time("Beatmap draw");
-        this.processedBeatmap.draw();
+        await this.processedBeatmap.draw();
         console.timeEnd("Beatmap draw");
 
         console.time("Play event generation");
@@ -465,6 +467,20 @@ export class Play {
 
                     spinner.score();
                 }; break;
+                case PlayEventType.DrawSlider: {
+                    let slider = playEvent.hitObject as DrawableSlider;
+
+                    processJob({
+                        job: {
+                            task: JobTask.DrawSliderByIndex,
+                            sliderIndex: slider.index
+                        } as DrawSliderByIndexJob,
+                        transfer: []
+                    }).then(() => {
+                        //slider.baseSprite.texture = PIXI.Texture.from(slider.baseCanvas);
+                        //slider.baseSprite.texture = PIXI.Texture.from(slider.baseCanvas);
+                    });
+                }; break;
             }
         }
     }
@@ -503,16 +519,16 @@ export class Play {
         return mainMusicMediaPlayer.getCurrentTime() * 1000;
     }
 
-    toScreenCoordinatesX(osuCoordinateX: number) {
+    toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
         let coord = window.innerWidth*0.5 + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
 
-        return coord | 0; // "Cast" to int
+        return floor? (coord | 0) : coord; // "Cast" to int
     }
 
-    toScreenCoordinatesY(osuCoordinateY: number) {
+    toScreenCoordinatesY(osuCoordinateY: number, floor = true) {
         let coord = window.innerHeight*0.510 + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
 
-        return coord | 0;
+        return floor? (coord | 0) : coord;
     }
 
     // Inverse of toScreenCoordinatesX
@@ -601,8 +617,8 @@ export class Play {
             if (currentTime > currentInstruction.endTime) this.currentPlaythroughInstruction++;
         }
 
-        softwareCursor.x = this.toScreenCoordinatesX(cursorPlayfieldPos.x);
-        softwareCursor.y = this.toScreenCoordinatesY(cursorPlayfieldPos.y);
+        softwareCursor.x = this.toScreenCoordinatesX(cursorPlayfieldPos.x, false);
+        softwareCursor.y = this.toScreenCoordinatesY(cursorPlayfieldPos.y, false);
     }
 }
 

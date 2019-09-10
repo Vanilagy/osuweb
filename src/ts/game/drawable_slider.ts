@@ -7,17 +7,19 @@ import { MathUtil, EaseType } from "../util/math_util";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../util/constants";
-import { colorToHexNumber } from "../util/graphics_util";
+import { colorToHexNumber, Colors, colorToHexString } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { assert, last } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { HitSoundInfo, AnimatedOsuSprite } from "./skin";
+import { HitSoundInfo, AnimatedOsuSprite, DEFAULT_COLORS } from "./skin";
 import { SoundEmitter } from "../audio/sound_emitter";
-import { sliderBodyContainer } from "../visuals/rendering";
+import { sliderBodyContainer, renderer, mainHitObjectContainer } from "../visuals/rendering";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
+import { JobTask, DrawSliderJob } from "../multithreading/job";
+import { drawBézier, getWebGLShattyAssFuckingMotherfuckingNiggerTexture, getSliderBodyMesh } from "../slider_drawing";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -35,6 +37,7 @@ export interface SliderTimingInfo {
 export class DrawableSlider extends HeadedDrawableHitObject {
     public baseSprite: PIXI.Sprite;
     public baseCtx: CanvasRenderingContext2D;
+    public baseCanvas: HTMLCanvasElement;
     public overlayContainer: PIXI.Container;
     public sliderBall: SliderBall;
     public sliderTickContainer: PIXI.Container;
@@ -65,6 +68,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public hitSounds: HitSoundInfo[];
     public tickSounds: HitSoundInfo[];
     public slideEmitters: SoundEmitter[];
+
+    public wackyCanvas: HTMLCanvasElement;
+    public wackyCtx: CanvasRenderingContext2D;
+    public wackyBoolean: boolean;
+    public sliderBodyMesh: PIXI.Mesh;
 
     constructor(hitObject: Slider) {
         super(hitObject);
@@ -184,13 +192,54 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.sliderHeight = this.maxY - this.minY;
         this.sliderBodyRadius = circleDiameter/2 * (this.reductionFactor - CIRCLE_BORDER_WIDTH);
 
+        
         let canvas = document.createElement('canvas');
         canvas.setAttribute('width', String(Math.ceil(this.sliderWidth * pixelRatio + circleDiameter)));
         canvas.setAttribute('height', String(Math.ceil(this.sliderHeight * pixelRatio + circleDiameter)));
-        let ctx = canvas.getContext('2d');
-        this.baseCtx = ctx;
-        this.curve.render(1.0, true);
-        this.baseSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
+        this.baseCanvas = canvas;
+        //let ctx = canvas.getContext('2d');
+        //this.baseCtx = ctx;
+        //this.curve.render(1.0, true);
+        //this.baseSprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
+        this.baseSprite = new PIXI.Sprite();
+
+        let renderTex = PIXI.RenderTexture.create({width: 1920, height: 1080}); // To large? What's the cost?
+        renderTex.baseTexture.framebuffer.enableDepth();
+        renderTex.baseTexture.framebuffer.addDepthTexture();
+
+        this.baseSprite.texture = renderTex;
+
+        if (this.curve instanceof SliderCurveBézier) {
+            this.sliderBodyMesh = getSliderBodyMesh(this.curve);
+        }
+
+        
+        //let filteruuuu = new PIXI.filters.FXAAFilter();
+        //this.baseSprite.filters = [filteruuuu];
+
+        /*
+        if (this.curve instanceof SliderCurveBézier) {
+            //console.time()
+            drawBézier(this.curve);
+            getWebGLShattyAssFuckingMotherfuckingNiggerTexture().then((texture) => {
+                this.baseSprite.texture = texture;
+            })
+
+            //debugger;
+            //this.baseSprite.texture = await getWebGLShattyAssFuckingMotherfuckingNiggerTexture();
+            //console.timeEnd()
+        }*/
+
+
+
+        this.wackyCanvas = document.createElement('canvas');
+        this.wackyCanvas.setAttribute('width', String(Math.ceil(this.sliderWidth * pixelRatio + circleDiameter)));
+        this.wackyCanvas.setAttribute('height', String(Math.ceil(this.sliderHeight * pixelRatio + circleDiameter)));
+        this.wackyCtx = this.wackyCanvas.getContext('2d');
+
+        
+
+        //this.baseSprite.texture = PIXI.Texture.from(this.wackyCanvas as unknown as HTMLCanvasElement);
 
         this.sliderBall = new SliderBall(this);
         this.sliderBall.container.visible = false;
@@ -277,6 +326,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         sliderBodyContainer.addChildAt(this.baseSprite, 0);
 
         super.show(currentTime);
+
+        
+
+
+        
+
+        
     }
 
     position() {
@@ -288,11 +344,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let screenY = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleRadiusOsuPx);
 
         this.container.position.set(screenX, screenY);
-        this.baseSprite.position.set(screenX, screenY);
+        //this.baseSprite.position.set(screenX, screenY);
     }
 
     update(currentTime: number) {
-        let { approachTime, activeMods } = gameState.currentPlay;
+        let { approachTime, activeMods, circleDiameter } = gameState.currentPlay;
 
         if (currentTime > this.endTime + HIT_OBJECT_FADE_OUT_TIME) {
             this.renderFinished = true;
@@ -331,6 +387,178 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }*/
 
         this.renderSubelements(currentTime);
+
+        if (this.curve instanceof SliderCurveBézier) {
+            
+            //this.baseSprite.addChild(mesh);
+            /*
+
+            let renderTex = PIXI.RenderTexture.create({width: 600, height: 600});
+            //console.log(renderTex.baseTexture.getDrawableSource());
+        
+        
+        
+            renderTex.baseTexture.framebuffer.enableDepth();
+        
+            //let wack = new PIXI.Texture(new PIXI.BaseTexture());
+            renderTex.baseTexture.framebuffer.addDepthTexture()
+            //renderTex.baseTexture.framebuffer.colorTextures[0].premultiplyAlpha = false;
+        
+        
+        
+            renderer.render(mesh, renderTex);
+            console.log(renderTex);
+        
+            let gl = renderer.state.gl;
+        
+            //gl.enable(gl.BLEND)
+            //gl.blendFunc(gl.ONE, gl.ZERO)
+        
+            let spraito = new PIXI.Sprite();
+            spraito.texture = renderTex;
+        
+            //let spraito = new PIXI.Sprite(renderTex);
+            mainHitObjectContainer.addChild(spraito);*/
+
+        
+            
+            let mesh = this.sliderBodyMesh;
+
+            let renderTex = this.baseSprite.texture;
+
+            let gl = renderer.state.gl;
+
+            // Blending here needs to be done normally 'cause, well, reasons. lmao
+
+            // INSANE hack:
+            gl.disable(gl.BLEND);
+            renderer.render(mesh, renderTex as PIXI.RenderTexture);
+            gl.enable(gl.BLEND);
+
+            //this.baseSprite.texture = renderTex;
+
+            //this.baseSprite = mesh;
+            
+            
+        }
+
+
+        // Uhh
+        /*
+        let snakeCompletion = (currentTime - (this.startTime - approachTime)) / (approachTime/3); // Slider snaking takes 1/3rd of approach time
+        snakeCompletion = MathUtil.clamp(snakeCompletion, 0, 1);
+
+        if (this.curve instanceof SliderCurveBézier) {
+            //console.time()
+
+            let endIndex = Math.floor(snakeCompletion * (this.curve.equidistantPoints.length - 1));
+
+            drawBézier(this.curve, endIndex);
+            
+            getWebGLShattyAssFuckingMotherfuckingNiggerTexture(this.baseCanvas.width, this.baseCanvas.height).then((imageBitmap) => {
+                if (this.baseSprite.texture.baseTexture.resource) {
+                    let oldBitmap = (this.baseSprite.texture.baseTexture.resource as any).source as ImageBitmap;
+                    oldBitmap.close(); // Close the ImageBitmap
+
+                    this.baseSprite.texture.baseTexture.dispose();
+                }
+
+                let tex = PIXI.Texture.from(imageBitmap as any);
+
+                this.baseSprite.texture = tex;
+                //console.timeEnd() 
+            });
+        }*/
+
+
+
+
+        return;
+
+        if (this.wackyBoolean) {
+            return;
+        }
+
+
+
+        //console.time()
+        this.wackyCtx.clearRect(0, 0, this.wackyCanvas.width, this.wackyCanvas.height);
+        this.wackyCtx.drawImage(this.baseCanvas, 0, 0);
+
+        this.wackyCtx.beginPath();
+
+        //let snakeCompletion = (currentTime - (this.startTime - approachTime)) / (approachTime/3); // Slider snaking takes 1/3rd of approach time
+        snakeCompletion = MathUtil.clamp(snakeCompletion, 0, 1);
+
+        if (this.curve instanceof SliderCurveBézier) {
+            
+
+            let actualIndex = snakeCompletion * (this.curve.equidistantPoints.length - 1);
+            let targetIndex = Math.floor(actualIndex);
+
+            // Path generation
+            //this.slider.baseCtx.beginPath();
+
+            let startPoint = this.toCtxCoord(this.curve.equidistantPoints[0]);
+            this.wackyCtx.moveTo(startPoint.x, startPoint.y);
+            for (let i = 1; i < targetIndex + 1; i++) {
+                let point = this.curve.equidistantPoints[i];
+
+                point = this.toCtxCoord(point);
+                this.wackyCtx.lineTo(point.x, point.y);
+            }
+
+            if (snakeCompletion !== 1) {
+                let snakingEndPoint = this.toCtxCoord(this.getPosFromPercentage(snakeCompletion));
+                this.wackyCtx.lineTo(snakingEndPoint.x, snakingEndPoint.y);
+            }
+        } else if (this.curve instanceof SliderCurvePerfect) {
+            let pixelRatio = gameState.currentPlay.pixelRatio;
+            let centerPos = this.toCtxCoord(this.curve.centerPos);
+            let angleDifference = this.curve.angleDifference * snakeCompletion;
+    
+            this.wackyCtx.beginPath();
+            this.wackyCtx.arc(centerPos.x, centerPos.y, this.curve.radius * pixelRatio, this.curve.startingAngle, this.curve.startingAngle + angleDifference, angleDifference < 0);
+        }
+
+        /*
+        let startingPoint = this.curve.equidistantPoints[0];
+        startingPoint = this.toCtxCoord(startingPoint);
+
+        //console.time("points")
+        this.wackyCtx.moveTo(startingPoint.x, startingPoint.y);
+        for (let i = 0; i < this.curve.equidistantPoints.length; i++) {
+            let point = this.curve.equidistantPoints[i];
+            point = this.toCtxCoord(point);
+
+            this.wackyCtx.lineTo(point.x, point.y);
+        }
+        //console.timeEnd("points")*/
+
+        let context = this.wackyCtx;
+        context.lineCap = "round";
+        context.lineJoin = "round";
+
+        context.lineWidth = this.sliderBodyRadius * 2;
+        context.globalCompositeOperation = "destination-in";
+        context.stroke();
+
+        context.lineWidth = circleDiameter * 0.92;
+        context.strokeStyle = colorToHexString(gameState.currentGameplaySkin.config.colors.sliderBorder);
+        context.globalCompositeOperation = "destination-over";
+        context.stroke();
+        
+
+        
+
+
+
+
+
+        this.baseSprite.texture.update();
+
+        if (currentTime >= (this.startTime - approachTime*2/3)) this.wackyBoolean = true;
+        //console.timeEnd();
     }
 
     remove() {
@@ -341,6 +569,16 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
     addPlayEvents(playEventArray: PlayEvent[]) {
         super.addPlayEvents(playEventArray);
+
+        /* NO!
+        if (true || this.curve instanceof SliderCurveBézier) {
+            playEventArray.push({
+                type: PlayEventType.DrawSlider,
+                hitObject: this,
+                time: this.startTime - 5000
+            });
+        }*/
+        
 
         let sliderEndCheckTime = this.startTime + Math.max(this.duration - 36, this.duration/2); // "Slider ends are a special case and checked exactly 36ms before the end of the slider (unless the slider is <72ms in duration, then it checks exactly halfway time wise)." https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
         let sliderEndCheckCompletion = (this.timingInfo.sliderVelocity * (sliderEndCheckTime - this.startTime)) / this.hitObject.length;
@@ -464,7 +702,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
     getPosFromPercentage(percent: number) : Point {
         if (this.curve instanceof SliderCurveBézier) {
-            return interpolatePointInPointArray(this.curve.equalDistancePoints, percent);
+            return interpolatePointInPointArray(this.curve.equidistantPoints, percent);
         } else if (this.curve instanceof SliderCurvePerfect) {
             let angle = this.curve.startingAngle + this.curve.angleDifference * percent;
 

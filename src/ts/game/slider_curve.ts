@@ -7,7 +7,7 @@ import { colorToHexString, Color } from "../util/graphics_util";
 import { MathUtil } from "../util/math_util";
 
 export abstract class SliderCurve {
-    protected slider: DrawableSlider;
+    public slider: DrawableSlider;
     protected sections: SliderCurveSection[];
     protected curveLength: number;
 

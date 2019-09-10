@@ -20,6 +20,7 @@ export enum DrawingMode {
 
 export const DRAWING_MODE: DrawingMode = DrawingMode.Skin;
 export const CIRCLE_BORDER_WIDTH = 1.75 / 16;
+export const SLIDER_BODY_INSIDE_TO_TOTAL_RATIO = 0.9;
 export const NUMBER_HEIGHT_CS_RATIO = 52 / 128; // Determined empirically by comparing asset dimensions.
 export const UNSCALED_NUMBER_HEIGHT = 47;
 export const PROCEDURAL_HEAD_INNER_TYPE: "number" | "dot" = "number";

@@ -146,9 +146,9 @@ export class MathUtil {
     static getRandomInt(min: number, max: number) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
-    static getNormalizedAngleDelta(alpha: number, beta: number) {
-        let difference = alpha - beta;
-        if (beta - alpha < -Math.PI) {
+    static getNormalizedAngleDelta(theta1: number, theta2: number) {
+        let difference = theta2 - theta1;
+        if (-difference < -Math.PI) {
             difference -= Math.PI * 2;
         } else if (difference < -Math.PI) {
             difference += Math.PI * 2;

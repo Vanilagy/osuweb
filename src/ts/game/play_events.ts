@@ -10,7 +10,8 @@ export enum PlayEventType {
     SliderEndCheck, // When user input is checked. Happens a bit earlier than the actual slider end. https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
     HeadHitWindowEnd,
     PerfectHeadHit,
-    SpinnerEnd
+    SpinnerEnd,
+    DrawSlider
 }
 
 export interface PlayEvent {

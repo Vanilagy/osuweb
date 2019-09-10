@@ -132,8 +132,8 @@ export class ModHelper {
                     curve.startingAngle *= -1; // Here, we flip the angle on the horizontal axis. Since an angle with degree 0 lies exactly on that axis, it suffices to simply negate the angle in order to perform the flip.
                     curve.angleDifference *= -1; // Since we flipped, we now go the other way.
                 } else if (curve instanceof SliderCurveBézier) {
-                    for (let i = 0; i < curve.equalDistancePoints.length; i++) {
-                        hardRockFlipPoint(curve.equalDistancePoints[i]);
+                    for (let i = 0; i < curve.equidistantPoints.length; i++) {
+                        hardRockFlipPoint(curve.equidistantPoints[i]);
                     }
                 }
 

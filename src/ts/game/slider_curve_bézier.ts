@@ -15,12 +15,12 @@ const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
 export class SliderCurveBézier extends SliderCurve {
     public tracePoints: Point[];
-    public equalDistancePoints: Point[];
+    public equidistantPoints: Point[];
 
     constructor(drawableSlider: DrawableSlider, sections: SliderCurveSection[], speedCalc: boolean) {
         super(drawableSlider, sections); 
 
-        this.equalDistancePoints = [];
+        this.equidistantPoints = [];
         this.tracePoints = [];
 
         if (!speedCalc) {
@@ -49,16 +49,16 @@ export class SliderCurveBézier extends SliderCurve {
     }
 
     render(completion: number, noClear = false) {
-        let actualIndex = completion * (this.equalDistancePoints.length - 1);
+        let actualIndex = completion * (this.equidistantPoints.length - 1);
         let targetIndex = Math.floor(actualIndex);
 
         // Path generation
         this.slider.baseCtx.beginPath();
 
-        let startPoint = this.slider.toCtxCoord(this.equalDistancePoints[0]);
+        let startPoint = this.slider.toCtxCoord(this.equidistantPoints[0]);
         this.slider.baseCtx.moveTo(startPoint.x, startPoint.y);
         for (let i = 1; i < targetIndex + 1; i++) {
-            let point = this.equalDistancePoints[i];
+            let point = this.equidistantPoints[i];
 
             point = this.slider.toCtxCoord(point);
             this.slider.baseCtx.lineTo(point.x, point.y);
@@ -109,11 +109,11 @@ export class SliderCurveBézier extends SliderCurve {
     }
 
     getAngleFromPercentage(percent: number) {
-        let index = Math.floor(percent * (this.equalDistancePoints.length - 1));
-        if (index === (this.equalDistancePoints.length - 1)) index--;
+        let index = Math.floor(percent * (this.equidistantPoints.length - 1));
+        if (index === (this.equidistantPoints.length - 1)) index--;
 
-        let p1 = this.equalDistancePoints[index];
-        let p2 = this.equalDistancePoints[index + 1];
+        let p1 = this.equidistantPoints[index];
+        let p2 = this.equidistantPoints[index + 1];
 
         return pointAngle(p1, p2);
     }
@@ -208,7 +208,7 @@ export class SliderCurveBézier extends SliderCurve {
     }
 
     pushEqualDistancePoint(pos: Point) { // Pushes endpoint to array
-        this.equalDistancePoints.push(pos);
+        this.equidistantPoints.push(pos);
 
         this.slider.minX = Math.min(this.slider.minX, pos.x);
         this.slider.minY = Math.min(this.slider.minY, pos.y);
@@ -219,7 +219,7 @@ export class SliderCurveBézier extends SliderCurve {
     applyStackPosition() {
         let stackHeight = this.slider.stackHeight;
 
-        for (let point of this.equalDistancePoints) {
+        for (let point of this.equidistantPoints) {
             point.x += stackHeight * -4;
             point.y += stackHeight * -4;
         }

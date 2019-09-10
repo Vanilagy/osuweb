@@ -29,8 +29,12 @@ export function assert(value: boolean) {
     }
 }
 
-export function last<T>(arr: T[]): T {
+export function last<T>(arr: T[]) {
     return arr[arr.length - 1];
+}
+
+export function randomInArray<T>(arr: T[]) {
+    return arr[(Math.random() * arr.length) | 0];
 }
 
 export function shallowObjectClone<T extends object>(obj: T) {
