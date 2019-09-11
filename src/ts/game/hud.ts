@@ -173,6 +173,7 @@ class AccuracyMeter {
     private lastLineTime: number;
     private fadeOutStart: number;
     private time50: number; // If you don't know what it means, just look where it's assigned.
+    private alphaFilter: PIXI.filters.AlphaFilter; // We need to use an alpha filter here, because fading out without one looks weird due to the additive blend mode of the accuracy lines. Using the filter, everything fades out as if it were one.
 
     constructor() {
         this.container = new PIXI.Container();
@@ -180,9 +181,12 @@ class AccuracyMeter {
         this.overlay = new PIXI.Container();
         this.accuracyLines = [];
         this.accuracyLineSpawnTimes = new WeakMap();
+        this.alphaFilter = new PIXI.filters.AlphaFilter();
 
         this.container.addChild(this.base);
         this.container.addChild(this.overlay);
+
+        this.container.filters = [this.alphaFilter];
     }
 
     init() {
@@ -258,7 +262,7 @@ class AccuracyMeter {
         // Make sure the whole thing fades out after a few seconds of no new accuracy lines
         let fadeOutCompletion = (currentTime - this.fadeOutStart) / ACCURACY_METER_FADE_OUT_TIME;
         fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-        this.container.alpha = 1 - fadeOutCompletion;
+        this.alphaFilter.alpha = 1 - fadeOutCompletion;
     }
 
     addAccuracyLine(inaccuracy: number, currentTime: number) {

@@ -17,9 +17,7 @@ export let renderer = new PIXI.Renderer({
 });
 export let stage = new PIXI.Container();
 
-console.log(renderer);
-
-renderer.framebuffer.writeDepthTexture = true; // OKAY SO. WHAT THE FUCK. WHY IS THIS FALSE IN THE FIRST PLACE. Absolute hack. Don't know if this has any side-effects. Maybe it's how the renderer is created?
+(renderer.framebuffer as any).writeDepthTexture = true; // OKAY SO. WHAT THE FUCK. WHY IS THIS FALSE IN THE FIRST PLACE. Absolute hack. Don't know if this has any side-effects. Maybe it's how the renderer is created?
 
 export function mainRender() {
     renderer.render(stage);

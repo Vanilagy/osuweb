@@ -17778,8 +17778,7 @@ var PIXI = (function (exports) {
 	            }
 	            else
 	            {
-					//func += '\n debugger; \n';
-	                func += "\n                gl.uniformMatrix3fv(ud." + i + ".location, false, uv." + i + ".value);\n                \n";
+	                func += "\n                gl.uniformMatrix3fv(ud." + i + ".location, false, uv." + i + ");\n                \n";
 	            }
 	        }
 	        else if (data.type === 'vec2' && data.size === 1)

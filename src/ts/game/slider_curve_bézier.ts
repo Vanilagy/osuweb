@@ -10,6 +10,7 @@ import { gameState } from "./game_state";
 import { SLIDER_SETTINGS } from "../util/constants";
 import { last } from "../util/misc_util";
 import { SliderCurveSection } from "../datamodel/slider";
+import { SliderPath } from "./slider_path";
 
 const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
@@ -46,37 +47,6 @@ export class SliderCurveBézier extends SliderCurve {
 
         this.calculateTracePoints(speedCalc);
         if (!speedCalc) this.calculateEqualDistancePoints();
-    }
-
-    render(completion: number, noClear = false) {
-        let actualIndex = completion * (this.equidistantPoints.length - 1);
-        let targetIndex = Math.floor(actualIndex);
-
-        // Path generation
-        this.slider.baseCtx.beginPath();
-
-        let startPoint = this.slider.toCtxCoord(this.equidistantPoints[0]);
-        this.slider.baseCtx.moveTo(startPoint.x, startPoint.y);
-        for (let i = 1; i < targetIndex + 1; i++) {
-            let point = this.equidistantPoints[i];
-
-            point = this.slider.toCtxCoord(point);
-            this.slider.baseCtx.lineTo(point.x, point.y);
-
-            if (SLIDER_SETTINGS.debugDrawing) {
-                this.slider.baseCtx.beginPath();
-                this.slider.baseCtx.arc(point.x, point.y, 1, 0, Math.PI * 2);
-                this.slider.baseCtx.fillStyle = "white";
-                this.slider.baseCtx.fill();
-            }
-        }
-
-        if (completion !== 1) {
-            let snakingEndPoint = this.slider.toCtxCoord(this.slider.getPosFromPercentage(completion) as Point);
-            this.slider.baseCtx.lineTo(snakingEndPoint.x, snakingEndPoint.y);
-        }
-
-        this.draw(noClear);
     }
 
     getEndPoint(): Point {
@@ -214,6 +184,10 @@ export class SliderCurveBézier extends SliderCurve {
         this.slider.minY = Math.min(this.slider.minY, pos.y);
         this.slider.maxX = Math.max(this.slider.maxX, pos.x);
         this.slider.maxY = Math.max(this.slider.maxY, pos.y);
+    }
+
+    protected createPath() {
+        this.path = new SliderPath(this.equidistantPoints, this.slider);
     }
 
     applyStackPosition() {

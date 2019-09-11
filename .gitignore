@@ -1,5 +1,6 @@
 **/node_modules
 src/js/bundle.js
+src/js/worker_bundle.js
 src/assets/test_maps
 src/assets/yugen
 src/assets/skins

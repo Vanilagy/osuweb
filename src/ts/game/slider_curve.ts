@@ -5,11 +5,14 @@ import { SLIDER_SETTINGS } from "../util/constants";
 import { Point } from "../util/point";
 import { colorToHexString, Color } from "../util/graphics_util";
 import { MathUtil } from "../util/math_util";
+import { SliderPath } from "./slider_path";
 
 export abstract class SliderCurve {
     public slider: DrawableSlider;
     protected sections: SliderCurveSection[];
     protected curveLength: number;
+    protected path: SliderPath;
+    public lastRenderedCompletion: number = 0.0;
 
     constructor(drawableSlider: DrawableSlider, sections: SliderCurveSection[]) {
         this.slider = drawableSlider;
@@ -22,51 +25,35 @@ export abstract class SliderCurve {
         console.log("Not implemented yet.");
     }
 
-    abstract render(completion: number, noClear?: boolean): void;
-
     abstract getEndPoint(): Point;
 
     abstract getAngleFromPercentage(percent: number): number;
 
-    draw(noClear: boolean) { // Paints the slider, defined through path
-        let { circleDiameter, pixelRatio } = gameState.currentPlay;
-        
-        if (!noClear) this.slider.baseCtx.clearRect(0, 0, Math.ceil(this.slider.sliderWidth * pixelRatio + circleDiameter), Math.ceil(this.slider.sliderHeight * pixelRatio + circleDiameter));
+    protected abstract createPath(): void;
 
-        // "Border"
-        this.slider.baseCtx.lineWidth = circleDiameter * this.slider.reductionFactor;
-        this.slider.baseCtx.strokeStyle = colorToHexString(gameState.currentGameplaySkin.config.colors.sliderBorder);
-        this.slider.baseCtx.lineCap = "round";
-        this.slider.baseCtx.lineJoin = "round";
-        this.slider.baseCtx.globalCompositeOperation = "source-over";
-        if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();
+    generateGeometry(completion: number) {
+        if (!this.path) this.createPath();
 
-        let color: Color;
-        if (gameState.currentGameplaySkin.config.colors.sliderTrackOverride) {
-            color = gameState.currentGameplaySkin.config.colors.sliderTrackOverride;
-        } else {
-            color = this.slider.comboInfo.color;
-        }
+        let geometry = new PIXI.Geometry();
+        geometry.addAttribute(
+            'vertPosition',
+            new PIXI.Buffer(new Float32Array(0)),
+            3,
+            false,
+            PIXI.TYPES.FLOAT,
+            3 * Float32Array.BYTES_PER_ELEMENT,
+            0
+        );
 
-        let targetRed = Math.min(255, color.r * 1.125 + 75),
-            targetGreen = Math.min(255, color.g * 1.125 + 75),
-            targetBlue = Math.min(255, color.b * 1.125 + 75);
+        this.updateGeometry(geometry, completion);
+        return geometry;
+    }
 
-        // Gradient
-        for (let i = this.slider.sliderBodyRadius; i > 1; i -= 2) {
-            this.slider.baseCtx.lineWidth = i * 2;
-            let brightnessCompletion = 1 - (i / this.slider.sliderBodyRadius); // 0 -> Border, 1 -> Center
+    updateGeometry(geometry: PIXI.Geometry, completion: number) {
+        let vertexBuffer = this.path.generateVertexBuffer(completion);
+        let pixiBuffer = geometry.getBuffer('vertPosition');
 
-            let red = MathUtil.lerp(color.r, targetRed, brightnessCompletion),
-                green = MathUtil.lerp(color.g, targetGreen, brightnessCompletion),
-                blue = MathUtil.lerp(color.b, targetBlue, brightnessCompletion);
-
-            this.slider.baseCtx.strokeStyle = `rgb(${red | 0},${green | 0},${blue | 0})`;
-            if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();
-        }
-        this.slider.baseCtx.lineWidth = this.slider.sliderBodyRadius * 2;
-        this.slider.baseCtx.strokeStyle = "rgba(255,255,255,0.333)";
-        this.slider.baseCtx.globalCompositeOperation = "destination-out"; // Transparency
-        if (!SLIDER_SETTINGS.debugDrawing) this.slider.baseCtx.stroke();
+        pixiBuffer.update(vertexBuffer);
+        this.lastRenderedCompletion = completion;
     }
 }

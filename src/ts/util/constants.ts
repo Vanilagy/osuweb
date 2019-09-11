@@ -26,5 +26,6 @@ export const UNSCALED_NUMBER_HEIGHT = 47;
 export const PROCEDURAL_HEAD_INNER_TYPE: "number" | "dot" = "number";
 
 export const SLIDER_SETTINGS = {
-    debugDrawing: false
+    debugDrawing: false,
+    snaking: true
 };

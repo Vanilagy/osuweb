@@ -1,5 +1,4 @@
 import { Job, JobTask, DrawSliderJob, JobMessageWrapper, DrawSliderByIndexJob } from "./job";
-import { drawSliderCurve } from "../game/slider_curve_drawer";
 
 let workerGlobalScope = self as any; // Hacky, but eh. TypeScript made it hard ¯\_(ツ)_/¯
 
@@ -26,14 +25,14 @@ workerGlobalScope.onmessage = (e: MessageEvent) => {
             case JobTask.DrawSlider: {
                 let drawSliderJob = job as DrawSliderJob;
 
-                drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.pixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
+                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.pixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
 
                 //workerGlobalScope.postMessage(drawSliderJob.id);
             }; break;
             case JobTask.DrawSliderByIndex: {
                 let drawSliderJob = sliderCurveStorage[(job as DrawSliderByIndexJob).sliderIndex] as DrawSliderJob;
 
-                drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.pixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
+                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.pixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
 
                 //workerGlobalScope.postMessage(drawSliderJob.id);
             }; break;

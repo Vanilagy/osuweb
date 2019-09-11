@@ -1,6 +1,7 @@
 import { SliderCurve } from "./slider_curve";
 import { DrawableSlider } from "./drawable_slider";
 import { Point } from "../util/point";
+import { SliderPath } from "./slider_path";
 
 export class SliderCurveEmpty extends SliderCurve {
     constructor(drawableSlider: DrawableSlider) {
@@ -9,13 +10,15 @@ export class SliderCurveEmpty extends SliderCurve {
         //this.equalDistancePoints.push(drawableSlider.startPoint); // TODO
     }
 
-    render() {}
-
     getEndPoint(): Point {
         return null;
     }
 
     getAngleFromPercentage(percent: number): number {
         return null;
+    }
+
+    createPath() {
+        this.path = new SliderPath([], this.slider);
     }
 }

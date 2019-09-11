@@ -3,6 +3,9 @@ export interface Point {
     y: number
 }
 
+// Works exactly like point, but doesn't always MEAN the same thing. Like, you wouldn't use a "Point" to describe a normal; you'd use a vector for that!
+export interface Vector2 extends Point {}
+
 export function interpolatePointInPointArray(arr: Point[], completion: number): Point {
     let actualIdx = completion * (arr.length - 1);
     let lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);

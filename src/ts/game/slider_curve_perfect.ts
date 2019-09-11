@@ -7,7 +7,11 @@ import { Point, pointsAreEqual } from "../util/point";
 import { gameState } from "./game_state";
 import { jsonClone } from "../util/misc_util";
 import { SliderCurveSection } from "../datamodel/slider";
+import { SliderPath } from "./slider_path";
 //import {Console} from "../console";
+
+const CIRCLE_SEGMENTS = 64;
+const RADIANS_PER_CIRCLE_SEGMENT = Math.PI*2 / CIRCLE_SEGMENTS;
 
 export class SliderCurvePerfect extends SliderCurve {
     public centerPos: Point = {x: 0, y: 0};
@@ -20,17 +24,6 @@ export class SliderCurvePerfect extends SliderCurve {
 
         // Incase center pos has already been computed, so let's pass it over:
         this.calculateValues(speedCalc, centerPos);
-    }
-
-    render(completion: number, noClear = false) {
-        let pixelRatio = gameState.currentPlay.pixelRatio;
-        let centerPos = this.slider.toCtxCoord(this.centerPos);
-        let angleDifference = this.angleDifference * completion;
-
-        this.slider.baseCtx.beginPath();
-        this.slider.baseCtx.arc(centerPos.x, centerPos.y, this.radius * pixelRatio, this.startingAngle, this.startingAngle + angleDifference, angleDifference < 0);
-
-        this.draw(noClear);
     }
 
     getEndPoint(): Point {
@@ -94,6 +87,24 @@ export class SliderCurvePerfect extends SliderCurve {
         }
     }
 
+    protected createPath() {
+        let points: Point[] = [];
+
+        let segments = Math.ceil(Math.abs(this.angleDifference) / RADIANS_PER_CIRCLE_SEGMENT) || 1;
+        let segmentLength = this.angleDifference / segments;
+
+        for (let i = 0; i < segments + 1; i++) {
+            let angle = this.startingAngle + segmentLength * i;
+            
+            points.push({
+                x: this.centerPos.x + Math.cos(angle) * this.radius,
+                y: this.centerPos.y + Math.sin(angle) * this.radius
+            });
+        }
+
+        this.path = new SliderPath(points, this.slider);
+    }
+
     applyStackPosition() {
         let stackHeight = this.slider.stackHeight;
 
@@ -101,7 +112,7 @@ export class SliderCurvePerfect extends SliderCurve {
         this.centerPos.y += stackHeight * -4;
     }
 
-    /** Needs separate method because some perfect sliders need to be converted to beziér. */
+    /** Needs separate method because some perfect sliders need to be converted to bézier. */
     static create(slider: DrawableSlider, speedCalc: boolean) {
         let sections = slider.hitObject.sections;
         let points = sections[0].values;

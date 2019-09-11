@@ -395,96 +395,10 @@ export class ProcessedBeatmap {
     }
 
     async draw() {
-        let { circleDiameter, pixelRatio } = gameState.currentPlay;
-
-        //let rememberSliderJobContainers: JobContainer[] = [];
- 
         for (let i = 0; i < this.hitObjects.length; i++) {
             let hitObject = this.hitObjects[i];
             hitObject.draw();
-
-            /*
-            if (hitObject instanceof DrawableSlider) {
-                let offscreenCanvas = hitObject.baseCanvas.transferControlToOffscreen();
-
-                let shapeData: DrawSliderJob["shapeData"];
-                if (hitObject.curve instanceof SliderCurveBézier) {
-                    shapeData = {
-                        type: 'bézier',
-                        points: hitObject.curve.equidistantPoints
-                    };
-                } else if (hitObject.curve instanceof SliderCurvePerfect) {
-                    shapeData = {
-                        type: 'perfect',
-                        centerPos: hitObject.curve.centerPos,
-                        startingAngle: hitObject.curve.startingAngle,
-                        angleDifference: hitObject.curve.angleDifference,
-                        radius: hitObject.curve.radius
-                    };
-                }
-
-                rememberSliderJobContainers.push({
-                    job: {
-                        task: JobTask.RememberSlider,
-                        sliderIndex: hitObject.index,
-                        shapeData: shapeData,
-                        canvas: offscreenCanvas,
-                        pixelRatio: pixelRatio,
-                        circleDiameter: circleDiameter,
-                        minX: hitObject.minX,
-                        minY: hitObject.minY,
-                        color: hitObject.comboInfo.color,
-                        sliderBodyRadius: hitObject.sliderBodyRadius,
-                        sliderBorder: gameState.currentGameplaySkin.config.colors.sliderBorder,
-                        sliderTrackOverride: gameState.currentGameplaySkin.config.colors.sliderTrackOverride,
-                    } as DrawSliderJob,
-                    transfer: [offscreenCanvas]
-                });
-            }*/
-
-            /*
-            if (hitObject instanceof DrawableSlider) {
-                if (hitObject.curve instanceof SliderCurveBézier) {
-                    let offscreenCanvas = hitObject.baseCanvas.transferControlToOffscreen();
-
-                    drawSliderJobContainers.push({
-                        job: {
-                            task: JobTask.DrawSlider,
-                            points: hitObject.curve.equidistantPoints,
-                            canvas: offscreenCanvas,
-                            pixelRatio: pixelRatio,
-                            circleDiameter: circleDiameter,
-                            minX: hitObject.minX,
-                            minY: hitObject.minY,
-                            color: hitObject.comboInfo.color,
-                            sliderBodyRadius: hitObject.sliderBodyRadius
-                        } as DrawSliderJob,
-                        transfer: [offscreenCanvas]
-                    });
-                }
-            }*/
         }
-
-        return; // TODO: Delete this?
-
-        console.time("Worker upload");
-        uploadSliderData(rememberSliderJobContainers);
-        console.timeEnd("Worker upload");
-
-        /*
-        console.time("Slider body draw");
-
-        await processJobs(drawSliderJobContainers);
-
-        for (let i = 0; i < this.hitObjects.length; i++) {
-            let hitObject = this.hitObjects[i];
-
-            if (hitObject instanceof DrawableSlider) {
-                hitObject.baseSprite.texture = PIXI.Texture.from(hitObject.baseCanvas);
-            }
-        }
-
-        console.timeEnd("Slider body draw");*/
     }
 
     // The time to delay the song at the start to allow for player preparation, in milliseconds
