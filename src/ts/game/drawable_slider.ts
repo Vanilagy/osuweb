@@ -48,7 +48,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public tailPoint: Point;
     public duration: number;
     public complete: boolean;
-    public reductionFactor: number;
     public curve: SliderCurve;
     public sliderWidth: number = 0;
     public sliderHeight: number = 0;
@@ -56,7 +55,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public maxX: number = 0;
     public minY: number = 0;
     public maxY: number = 0;
-    public sliderBodyRadius: number;
     public timingInfo: SliderTimingInfo;
     public hitObject: Slider;
     public sliderTickCompletions: number[];
@@ -67,13 +65,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public slideEmitters: SoundEmitter[];
 
     public sliderBodyMesh: PIXI.Mesh;
+    public sliderBodyHasBeenRendered = false;
 
     constructor(hitObject: Slider) {
         super(hitObject);
     }
 
     init() {
-        this.reductionFactor = 0.92;
         this.curve = null;
         this.complete = true;
 
@@ -100,11 +98,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     toCtxCoord(pos: Point): Point {
-        let { pixelRatio, circleDiameter } = gameState.currentPlay;
+        let { pixelRatio, circleRadius } = gameState.currentPlay;
 
         return {
-            x: (pos.x - this.minX) * pixelRatio + circleDiameter/2,
-            y: (pos.y - this.minY) * pixelRatio + circleDiameter/2
+            x: (pos.x - this.minX) * pixelRatio + circleRadius,
+            y: (pos.y - this.minY) * pixelRatio + circleRadius
         };
     }
 
@@ -188,9 +186,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         this.sliderWidth = (this.maxX - this.minX) * pixelRatio + circleDiameter;
         this.sliderHeight = (this.maxY - this.minY) * pixelRatio + circleDiameter;
-        this.sliderBodyRadius = circleDiameter/2 * (this.reductionFactor - CIRCLE_BORDER_WIDTH);        
 
-        let renderTex = PIXI.RenderTexture.create({width: 1920, height: 1080}); // Too large? What's the cost?
+        let renderTex = PIXI.RenderTexture.create({width: this.sliderWidth, height: this.sliderHeight});
         let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer;
         renderTexFramebuffer.enableDepth();
         renderTexFramebuffer.addDepthTexture();
@@ -201,7 +198,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.baseSprite = new PIXI.Sprite(renderTex);
         this.baseSprite.filters = [aaFilter];
 
-        let sliderBodyGeometry = this.curve.generateGeometry(0.0);
+        let sliderBodyGeometry = this.curve.generateGeometry(SLIDER_SETTINGS.snaking? 0.0 : 1.0);
         let sliderBodyShader = createSliderBodyShader(this);
         let sliderBodyMesh = new PIXI.Mesh(sliderBodyGeometry, sliderBodyShader, SLIDER_BODY_MESH_STATE);
         this.sliderBodyMesh = sliderBodyMesh;
@@ -302,7 +299,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let screenY = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleRadiusOsuPx);
 
         this.container.position.set(screenX, screenY);
-        //this.baseSprite.position.set(screenX, screenY);
+        this.baseSprite.position.set(screenX, screenY);
     }
 
     update(currentTime: number) {
@@ -534,21 +531,25 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             snakeCompletion = 1.0;
         }
 
-        if (this.curve.lastRenderedCompletion >= snakeCompletion) {
-            return;
-        }
-
+        let doRender = !this.sliderBodyHasBeenRendered;
         let mesh = this.sliderBodyMesh;
-        let renderTex = this.baseSprite.texture;
+        let renderTex = this.baseSprite.texture as PIXI.RenderTexture;
         let gl = renderer.state.gl;
 
-        this.curve.updateGeometry(mesh.geometry, snakeCompletion);
+        if (this.curve.lastRenderedCompletion < snakeCompletion) {
+            this.curve.updateGeometry(mesh.geometry, snakeCompletion);
+            doRender = true;
+        }
+
+        if (!doRender) return;
 
         // Blending here needs to be done normally 'cause, well, reasons. lmao
         // INSANE hack:
         gl.disable(gl.BLEND);
-        renderer.render(mesh, renderTex as PIXI.RenderTexture);
+        renderer.render(mesh, renderTex);
         gl.enable(gl.BLEND);
+
+        this.sliderBodyHasBeenRendered = true;
     }
 
     private renderSubelements(currentTime: number) {
@@ -736,7 +737,7 @@ class SliderBall {
             sliderBall = new PIXI.Graphics();
             sliderBall.beginFill(colorToHexNumber(slider.comboInfo.color));
             sliderBall.lineStyle(0);
-            sliderBall.drawCircle(0, 0, slider.sliderBodyRadius);
+            //sliderBall.drawCircle(0, 0, slider.sliderBodyRadius);
             sliderBall.endFill();
 
             baseElement = sliderBall;

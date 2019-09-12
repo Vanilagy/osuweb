@@ -14,15 +14,14 @@ precision mediump float;
 
 attribute vec3 vertPosition;
 
-uniform mat3 mOsuToScreen;
-uniform mat3 projectionMatrix; // Provided by PIXI
+uniform mat3 matrix; // Original name. I know.
 
 varying float fragDistance;
 
 void main() {
     fragDistance = vertPosition.z;
 
-    vec3 screenPosition = projectionMatrix * mOsuToScreen * vec3(vertPosition.x, vertPosition.y, 1.0);
+    vec3 screenPosition = matrix * vec3(vertPosition.x, vertPosition.y, 1.0);
     gl_Position = vec4(screenPosition.x, screenPosition.y, vertPosition.z, 1.0);
 }
 `;
@@ -55,17 +54,20 @@ void main() {
 let sliderBodyProgram = new PIXI.Program(vertexShaderText, fragmentShaderText, "sliderBodyProgram");
 
 export function createSliderBodyShader(slider: DrawableSlider) {
-    let { pixelRatio } = gameState.currentPlay;
+    let { pixelRatio, circleRadius } = gameState.currentPlay;
 
-    let osuToScreenMatrix = new Float32Array(9);
-    glMatrix.mat3.identity(osuToScreenMatrix);
+    let matrix = new Float32Array(9);
+    glMatrix.mat3.identity(matrix);
 
-    // Read these transformations in reverse order:
-    glMatrix.mat3.translate(osuToScreenMatrix, osuToScreenMatrix, new Float32Array([window.innerWidth*0.5, window.innerHeight*0.51]));
-    glMatrix.mat3.scale(osuToScreenMatrix, osuToScreenMatrix, new Float32Array([pixelRatio, pixelRatio]));
-    glMatrix.mat3.translate(osuToScreenMatrix, osuToScreenMatrix, new Float32Array([-PLAYFIELD_DIMENSIONS.width/2, -PLAYFIELD_DIMENSIONS.height/2]));
+    // Read these transformations in reverse order (bottom to top):
 
-    ///
+    // Okay. Why does it work with this line commented out: ? QUE?
+    //glMatrix.mat3.scale(matrix, matrix, new Float32Array([1.0, -1.0])); // Flip that y axis.
+    glMatrix.mat3.translate(matrix, matrix, new Float32Array([-1.0, -1.0]));
+    glMatrix.mat3.scale(matrix, matrix, new Float32Array([2 / slider.sliderWidth, 2 / slider.sliderHeight])); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
+    glMatrix.mat3.translate(matrix, matrix, new Float32Array([circleRadius, circleRadius])); // Okay, at this point, we'll have projected the coordinate into slider-relative space.
+    glMatrix.mat3.scale(matrix, matrix, new Float32Array([pixelRatio, pixelRatio]));
+    glMatrix.mat3.translate(matrix, matrix, new Float32Array([-slider.minX, -slider.minY]));
 
     let borderColor = gameState.currentGameplaySkin.config.colors.sliderBorder;
 
@@ -80,11 +82,9 @@ export function createSliderBodyShader(slider: DrawableSlider) {
         targetGreen = Math.min(255, sliderBodyColor.g * 1.125 + 75),
         targetBlue = Math.min(255, sliderBodyColor.b * 1.125 + 75);
 
-    ///
-
     // TODO: Is this definition even right?
     let pixiUniforms = {} as any;
-    pixiUniforms.mOsuToScreen = osuToScreenMatrix;
+    pixiUniforms.matrix = matrix;
     pixiUniforms.insideToTotalRatio = SLIDER_BODY_INSIDE_TO_TOTAL_RATIO;
     pixiUniforms.borderColor = [borderColor.r/255, borderColor.g/255, borderColor.b/255];
     pixiUniforms.innerColor = [targetRed/255, targetGreen/255, targetBlue/255];
