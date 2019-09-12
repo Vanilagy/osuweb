@@ -18,6 +18,7 @@ export class MediaPlayer {
     private volume: number = 1;
     private gainNode: GainNode;
     private playbackRate = 1.0;
+    private lastCurrentTime: number = null;
 
     constructor(destination: AudioNode) {
         this.gainNode = audioContext.createGain();
@@ -88,6 +89,7 @@ export class MediaPlayer {
         this.offset = offset;
         this.startTime = performance.now();
         this.pausedTime = null;
+        this.lastCurrentTime = -Infinity;
 
         if (this.offset >= 0) {
             this.audioElement.currentTime = this.offset;
@@ -145,15 +147,23 @@ export class MediaPlayer {
             if (this.lastNudgeTime === null) this.lastNudgeTime = now;
             if (now - this.lastNudgeTime >= MEDIA_NUDGE_INTERVAL) {
                 let average = MathUtil.getAggregateValuesFromArray(this.timingDeltas).avg; // Average of last deltas
-                if (Math.abs(average) >= 5) console.warn("High average media playback delta: " + average + "ms - Nudging offset...");
-                this.startTime += average / 2; // Nudge closer towards zero
+                let absAverage = Math.abs(average);
+
+                if (absAverage >= 5) console.warn("High average media playback delta: " + average + "ms - Nudging offset...");
+                if (absAverage >= 1) this.startTime += average / 2; // Nudge closer towards zero
 
                 this.timingDeltas.length = 0;
                 this.lastNudgeTime = now;
             }
         }
 
-        return (calculated - OBSERVED_AUDIO_MEDIA_OFFSET) / 1000; // return in seconds
+        let seconds = (calculated - OBSERVED_AUDIO_MEDIA_OFFSET) / 1000; // return in seconds
+
+        // This here is done to guarantee getCurrentTime to be monotonically increasing. We don't want the current time to suddenly go backwards because a nudge happened, we just want it to stay still. A lot of other code assumes the monotonic increase of this value.
+        let returnValue = Math.max(this.lastCurrentTime, seconds);
+        this.lastCurrentTime = returnValue;
+
+        return returnValue;
     }
 
     isPlaying() {

@@ -332,8 +332,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         if (currentTime < this.endTime) this.overlayContainer.alpha = fadeInCompletion;
         else this.overlayContainer.alpha = 1 - fadeOutCompletion;
 
-        this.renderSliderBody(currentTime);
-        this.renderSubelements(currentTime);
+        this.updateSliderBody(currentTime);
+        this.updateSubelements(currentTime);
     }
 
     remove() {
@@ -520,7 +520,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
     }
 
-    private renderSliderBody(currentTime: number) {
+    private updateSliderBody(currentTime: number) {
         let { approachTime } = gameState.currentPlay;
 
         let snakeCompletion: number;
@@ -552,26 +552,26 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.sliderBodyHasBeenRendered = true;
     }
 
-    private renderSubelements(currentTime: number) {
+    private updateSubelements(currentTime: number) {
         let completion = 0;
         let currentSliderTime = currentTime - this.hitObject.time;
 
         completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length;
         completion = MathUtil.clamp(completion, 0, this.hitObject.repeat);
 
-        this.renderSliderEnds(currentTime);
-        this.renderSliderBall(completion, currentTime, currentSliderTime);
-        if (this.sliderTickCompletions.length > 0) this.renderSliderTicks(completion, currentSliderTime);
+        this.updateSliderEnds(currentTime);
+        this.updateSliderBall(completion, currentTime, currentSliderTime);
+        if (this.sliderTickCompletions.length > 0) this.updateSliderTicks(completion, currentSliderTime);
     }
 
-    private renderSliderEnds(currentTime: number) {
+    private updateSliderEnds(currentTime: number) {
         for (let i = 0; i < this.sliderEnds.length; i++) {
             let sliderEnd = this.sliderEnds[i];
             sliderEnd.update(currentTime);
         }
     }
 
-    private renderSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
+    private updateSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
         if (completion === 0) return;
 
         let { headedHitObjectTextureFactor } = gameState.currentPlay;
@@ -655,7 +655,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         if (this.followCircleAnimator) this.followCircleAnimator.update(currentTime);
     }
 
-    private renderSliderTicks(completion: number, currentSliderTime: number) {
+    private updateSliderTicks(completion: number, currentSliderTime: number) {
         let { approachTime, activeMods } = gameState.currentPlay;
 
         let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
