@@ -1,3 +1,5 @@
+import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from "constants";
+
 export interface Point {
     x: number,
     y: number
@@ -6,8 +8,10 @@ export interface Point {
 // Works exactly like point, but doesn't always MEAN the same thing. Like, you wouldn't use a "Point" to describe a normal; you'd use a vector for that!
 export interface Vector2 extends Point {}
 
-export function interpolatePointInPointArray(arr: Point[], completion: number): Point {
-    let actualIdx = completion * (arr.length - 1);
+export function interpolatePointInPointArray(arr: Point[], t: number): Point {
+    if (arr.length <= 1) return arr[0] || null;
+
+    let actualIdx = t * (arr.length - 1);
     let lowerIdx = Math.floor(actualIdx), upperIdx = Math.ceil(actualIdx);
     let lowerPos = arr[lowerIdx];
     let upperPos = arr[upperIdx];
@@ -44,4 +48,17 @@ export function pointsAreEqual(p1: Point, p2: Point) {
 
 export function clonePoint(p: Point): Point {
     return {x: p.x, y: p.y};
+}
+
+export function calculateTotalPointArrayArcLength(arr: Point[]) {
+    let total = 0;
+
+    for (let i = 0; i < arr.length - 1; i++) {
+        let p1 = arr[i],
+            p2 = arr[i+1];
+
+        total += pointDistance(p1, p2);
+    }
+
+    return total;
 }

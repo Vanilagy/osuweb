@@ -608,7 +608,7 @@ export class Play {
             let completion = (slider.timingInfo.sliderVelocity * (currentTime - slider.startTime)) / slider.hitObject.length;
             completion = MathUtil.clamp(completion, 0, slider.hitObject.repeat);
 
-            cursorPlayfieldPos = slider.getPosFromPercentage(MathUtil.reflect(completion));
+            cursorPlayfieldPos = slider.path.getPosFromPercentage(MathUtil.reflect(completion));
 
             if (currentTime > slider.endTime) this.currentPlaythroughInstruction++;
         } else if (currentInstruction.type === AutoInstructionType.Spin) {

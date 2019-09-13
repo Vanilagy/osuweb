@@ -1,12 +1,14 @@
-import { Point, Vector2, pointDistance } from "../util/point";
+import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, interpolatePointInPointArray } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
-import { last } from "../util/misc_util";
-import { DrawableSlider } from "./drawable_slider";
+import { last, jsonClone } from "../util/misc_util";
+import { Slider, SliderCurveSection } from "../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
 const SLIDER_CAPCIRCLE_SEGMENTS = 40;
 const SLIDER_CAP_CIRCLE_SEGMENT_ARC_LENGTH = Math.PI*2 / SLIDER_CAPCIRCLE_SEGMENTS;
+const CIRCLE_ARC_SEGMENT_LENGTH = 10; // For P sliders
+const MAXIMUM_TRACE_POINT_DISTANCE = 3;
 
 // Returns the maximum amount of floats needed to store one line segment in the VBO
 function getMaxFloatsPerLineSegment() {
@@ -23,22 +25,26 @@ interface VertexBufferGenerationData {
     radius: number
 }
 
+export interface SliderPathBounds {
+    minX: number,
+    maxX: number,
+    minY: number,
+    maxY: number
+}
+
 export class SliderPath {
-    public points: Point[];
+    public points: Point[]; // These points should be pretty much equidistant.
     public lineLengths: number[] = [];
     public lineThetas: number[] = [];
     public lineNormals: Vector2[] = [];
     public baseVertexBuffer: Float32Array;
     public lineSegmentVBOIndices: number[] = []; // Basically, to which index (exclusive) in the VBO one needs to draw in order to draw the first _n_ line segments.
-    private radius: number;
-    private slider: DrawableSlider;
+    private lineRadius: number;
 
-    constructor(points: Point[], slider: DrawableSlider) {
+    constructor(points: Point[]) {
         let { circleRadiusOsuPx } = gameState.currentPlay;
 
         this.points = points;
-        this.slider = slider;
-        this.radius = circleRadiusOsuPx * SLIDER_BODY_SIZE_REDUCTION_FACTOR;
 
         for (let i = 0; i < points.length-1; i++) {
             let p1 = points[i],
@@ -55,18 +61,77 @@ export class SliderPath {
             this.lineThetas.push(theta);
             this.lineNormals.push(normal);
         }
+    }
+
+    static fromSlider(slider: Slider) {
+        let sections = slider.sections;
+
+        let points: Point[];
+
+        if (sections.length === 0) points = [];
+        else if (sections[0].type === 'perfect') points = calculatePerfectSliderPoints(slider);
+        else points = calculateBézierSliderPoints(slider);
+
+        return new SliderPath(points);
+    }
+
+    getPosFromPercentage(percentage: number) {
+        return interpolatePointInPointArray(this.points, percentage);
+    }
+
+    getAngleFromPercentage(percentage: number) {
+        if (this.points.length <= 1) return 0;
+
+        let index = Math.floor(percentage * (this.points.length - 1));
+        if (index === this.points.length - 1) index--;
+        return this.lineThetas[index];
+    }
+
+    applyStackPosition(stackHeight: number) {
+        for (let i = 0; i < this.points.length; i++) {
+            let point = this.points[i];
+
+            point.x += stackHeight * -4;
+            point.y += stackHeight * -4;
+        }
+    }
+
+    calculatePathBounds() {
+        let bounds: SliderPathBounds = {
+            minX: Infinity,
+            maxX: -Infinity,
+            minY: Infinity,
+            maxY: -Infinity
+        };
+
+        for (let i = 0; i < this.points.length; i++) {
+            let point = this.points[i];
+
+            if (point.x < bounds.minX) bounds.minX = point.x;
+            if (point.x > bounds.maxX) bounds.maxX = point.x;
+            if (point.y < bounds.minY) bounds.minY = point.y;
+            if (point.y > bounds.maxY) bounds.maxY = point.y;
+        }
+
+        return bounds;
+    }
+
+    generateBaseVertexBuffer() {
+        let { circleRadiusOsuPx } = gameState.currentPlay;
+
+        this.lineRadius = circleRadiusOsuPx * SLIDER_BODY_SIZE_REDUCTION_FACTOR;
 
         let buffer = new Float32Array((this.points.length - 1) * getMaxFloatsPerLineSegment());
 
         let data: VertexBufferGenerationData = {
             buffer: buffer,
             currentIndex: 0,
-            radius: this.radius
+            radius: this.lineRadius
         };
 
-        for (let i = 0; i < points.length-1; i++) {
-            let p1 = points[i],
-                p2 = points[i+1],
+        for (let i = 0; i < this.points.length-1; i++) {
+            let p1 = this.points[i],
+                p2 = this.points[i+1],
                 theta = this.lineThetas[i],
                 normal = this.lineNormals[i],
                 prevTheta = this.lineThetas[i-1],
@@ -95,7 +160,7 @@ export class SliderPath {
         let data: VertexBufferGenerationData = {
             buffer: buffer,
             currentIndex: vboIndex,
-            radius: this.radius
+            radius: this.lineRadius
         };
 
         let firstP = this.points[0],
@@ -107,7 +172,7 @@ export class SliderPath {
             let p1Index = Math.floor((this.points.length - 1) * completion)
 
             let p1 = this.points[p1Index];
-            let p2 = this.slider.getPosFromPercentage(completion);
+            let p2 = this.getPosFromPercentage(completion);
 
             let length = pointDistance(p1, p2);
             let theta = Math.atan2(p2.y - p1.y, p2.x - p1.x);
@@ -225,4 +290,182 @@ export class SliderPath {
             p2y = p3y;
         }
     }
+
+    generateGeometry(completion: number) {
+        let geometry = new PIXI.Geometry();
+        geometry.addAttribute(
+            'vertPosition',
+            new PIXI.Buffer(new Float32Array(0)),
+            3,
+            false,
+            PIXI.TYPES.FLOAT,
+            3 * Float32Array.BYTES_PER_ELEMENT,
+            0
+        );
+
+        this.updateGeometry(geometry, completion);
+        return geometry;
+    }
+
+    updateGeometry(geometry: PIXI.Geometry, completion: number) {
+        let vertexBuffer = this.generateVertexBuffer(completion);
+        let pixiBuffer = geometry.getBuffer('vertPosition');
+
+        pixiBuffer.update(vertexBuffer);
+    }
+}
+
+function calculatePerfectSliderPoints(slider: Slider) {
+    let sections = slider.sections;
+    let points = sections[0].values;
+
+    // Monstrata plz
+    if (pointsAreEqual(points[0], points[2])) { // case one
+        //Console.warn("Converted P to L-slider due to case one.");
+        sections = jsonClone(sections); // Sicce we're modifying the sections here, we have to decouple them from the raw hit object.
+
+        sections[0] = {type: "linear", values: [points[0], points[1]]};
+        sections[1] = {type: "linear", values: [points[1], points[2]]};
+
+        return calculateBézierSliderPoints(slider);
+    }
+
+    let centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
+
+    // Slider seems to have all points on one line. Parsing it as linear slider instead
+    if (!isFinite(centerPos.x) || !isFinite(centerPos.y)) { // case two
+        //Console.warn("Converted P to L-slider due to case two.");
+        sections = jsonClone(sections);
+    
+        // Remove middle point
+        sections[0].values.splice(1, 1);
+        sections[0].type = "linear";
+
+        return calculateBézierSliderPoints(slider);
+    }
+
+    let radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
+    let a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
+        a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
+        a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
+
+    let startingAngle = a1;
+    let angleDifference = slider.length / radius;
+    if ((a3 < a2 && a2 < a1) || (a1 < a3 && a3 < a2) || (a2 < a1 && a1 < a3)) { // Point order
+        angleDifference *= -1;
+    }
+
+    let outputPoints: Point[] = [];
+    let segments = Math.ceil(slider.length / CIRCLE_ARC_SEGMENT_LENGTH) || 1;
+    let segmentLength = angleDifference / segments;
+
+    for (let i = 0; i < segments + 1; i++) {
+        let angle = startingAngle + segmentLength * i;
+        
+        outputPoints.push({
+            x: centerPos.x + Math.cos(angle) * radius,
+            y: centerPos.y + Math.sin(angle) * radius
+        });
+    }
+
+    return outputPoints;
+}
+
+function calculateBézierSliderPoints(slider: Slider) {
+    let sections = slider.sections;
+
+    if (sections.length === 1 && sections[0].values.length === 2) { // If it's only one linear section
+        let points = sections[0].values;
+
+        let angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
+        let distance = Math.min(slider.length, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y));
+        let pointTwo: Point = {
+            x: points[0].x + Math.cos(angle) * distance,
+            y: points[0].y + Math.sin(angle) * distance
+        };
+
+        return [clonePoint(points[0]), pointTwo]; // Clone so we detach from the raw hit object's data
+    }
+
+    let samplePoints: Point[] = [];
+
+    for (let i = 0; i < sections.length; i++) {
+        let points = sections[i].values;
+
+        if (points.length === 2) { // if segment is linear
+            samplePoints.push(points[0], points[1]);
+        } else {
+            let t = 0;
+
+            while (t < 1) {
+                let point = MathUtil.pointOnBézierCurve(points, t);
+                let curvature = MathUtil.curvatureOfBézierCurve(points, t, point);
+
+                samplePoints.push(point);
+
+                t += Math.min(0.25, 0.01 / Math.sqrt(curvature * 300)); // Move smaller steps based on curvature
+            }
+        }
+
+        samplePoints.push(last(points));
+    }
+
+    // Extra point is added because floats
+    let lastPoint = last(samplePoints);
+    let secondLastPoint = samplePoints[samplePoints.length - 2];
+    if (lastPoint && secondLastPoint) {
+        let angle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
+        samplePoints.push({
+            x: lastPoint.x + 500 * Math.cos(angle),
+            y: lastPoint.y + 500 * Math.sin(angle)
+        });
+    }
+
+    // Now that we've sampled points along the curve, we can start generating mostly equidistant points from them.
+
+    let arcLength = calculateTotalPointArrayArcLength(samplePoints);
+    if (arcLength > slider.length) { // If traced length bigger than pixelLength
+        arcLength = slider.length;
+    }
+    
+    return calculateEquidistantPointsFromSamplePoints(samplePoints, arcLength);
+}
+
+function calculateEquidistantPointsFromSamplePoints(samplePoints: Point[], arcLength: number) {
+    let equidistantPoints: Point[] = [];
+
+    let segmentCount = Math.ceil(arcLength / MAXIMUM_TRACE_POINT_DISTANCE) || 1;
+    let segmentLength = arcLength / segmentCount;
+
+    /*  Using the initially traced points, generate a slider path point array in which
+        all points are equally distant from one another. This is done to guarantee constant
+        slider velocity. */
+    let currentPoint = samplePoints[0];
+    equidistantPoints.push(clonePoint(currentPoint)); // Clone so we detach from the raw hit object's data
+    let currentIndex = 1;
+    for (let c = 0; c < segmentCount; c++) {
+        let remainingLength = segmentLength;
+
+        while (true) {
+            let dist = Math.hypot(currentPoint.x - samplePoints[currentIndex].x, currentPoint.y - samplePoints[currentIndex].y);
+
+            if (dist < remainingLength) {
+                currentPoint = samplePoints[currentIndex];
+                remainingLength -= dist;
+                currentIndex++;
+            } else {
+                let percentReached = remainingLength / dist;
+                let newPoint: Point = {
+                    x: currentPoint.x * (1 - percentReached) + samplePoints[currentIndex].x * percentReached,
+                    y: currentPoint.y * (1 - percentReached) + samplePoints[currentIndex].y * percentReached
+                };
+
+                equidistantPoints.push(newPoint);
+                currentPoint = newPoint;
+                break;
+            }
+        }
+    }
+
+    return equidistantPoints;
 }

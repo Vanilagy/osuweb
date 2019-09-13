@@ -5,11 +5,8 @@ import { Point } from "../util/point";
 import { DrawableSlider } from "./drawable_slider";
 import { MathUtil, EaseType } from "../util/math_util";
 import { DrawableSpinner } from "./drawable_spinner";
-import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
-import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
+import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 import { ProcessedBeatmap } from "./processed_beatmap";
-import { SliderCurvePerfect } from "./slider_curve_perfect";
-import { SliderCurveBézier } from "./slider_curve_bézier";
 import { Mod } from "./mods";
 
 const DEFAULT_SPIN_RADIUS = 45;
@@ -126,24 +123,18 @@ export class ModHelper {
                 hardRockFlipPoint(hitObject.tailPoint);
                 // Since endPoint is either startPoint or tailPoint, we'll have flipped endPoint.
 
-                let curve = hitObject.curve;
-                if (curve instanceof SliderCurvePerfect) {
-                    hardRockFlipPoint(curve.centerPos);
-                    curve.startingAngle *= -1; // Here, we flip the angle on the horizontal axis. Since an angle with degree 0 lies exactly on that axis, it suffices to simply negate the angle in order to perform the flip.
-                    curve.angleDifference *= -1; // Since we flipped, we now go the other way.
-                } else if (curve instanceof SliderCurveBézier) {
-                    for (let i = 0; i < curve.equidistantPoints.length; i++) {
-                        hardRockFlipPoint(curve.equidistantPoints[i]);
-                    }
+                let path = hitObject.path;
+                for (let i = 0; i < path.points.length; i++) {
+                    hardRockFlipPoint(path.points[i]);
                 }
 
-                hitObject.minY = hardRockFlipY(hitObject.minY);
-                hitObject.maxY = hardRockFlipY(hitObject.maxY);
+                hitObject.bounds.minY = hardRockFlipY(hitObject.bounds.minY);
+                hitObject.bounds.maxY = hardRockFlipY(hitObject.bounds.maxY);
 
                 // Because we flipped them, we need to swap 'em now too:
-                let temp = hitObject.minY;
-                hitObject.minY = hitObject.maxY;
-                hitObject.maxY = temp;
+                let temp = hitObject.bounds.minY;
+                hitObject.bounds.minY = hitObject.bounds.maxY;
+                hitObject.bounds.maxY = temp;
             }
         }
     }
@@ -186,7 +177,7 @@ export class ModHelper {
 
                 for (let j = 0; j < hitObject.sliderTickCompletions.length; j++) {
                     let tickMs = hitObject.startTime + hitObject.sliderTickCompletions[j] * hitObject.hitObject.length / hitObject.timingInfo.sliderVelocity;
-                    let tickPosition = hitObject.getPosFromPercentage(MathUtil.reflect(hitObject.sliderTickCompletions[j]));
+                    let tickPosition = hitObject.path.getPosFromPercentage(MathUtil.reflect(hitObject.sliderTickCompletions[j]));
 
                     waypoints.push({
                         type: WaypointType.SliderTick,
@@ -340,7 +331,7 @@ export class ModHelper {
 
                 let completion = (slider.timingInfo.sliderVelocity * (time - slider.startTime)) / slider.hitObject.length;
                 completion = MathUtil.clamp(completion, 0, slider.hitObject.repeat);
-                let pos = slider.getPosFromPercentage(MathUtil.reflect(completion));
+                let pos = slider.path.getPosFromPercentage(MathUtil.reflect(completion));
 
                 return pos;
             } else if (lastInstruction.type === AutoInstructionType.Spin) {

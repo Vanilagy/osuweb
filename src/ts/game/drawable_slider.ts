@@ -1,8 +1,4 @@
 import { Slider } from "../datamodel/slider";
-import { SliderCurve } from "./slider_curve";
-import { SliderCurveEmpty } from "./slider_curve_empty";
-import { SliderCurvePerfect } from "./slider_curve_perfect";
-import { SliderCurveBézier } from "./slider_curve_bézier";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
 import { gameState } from "./game_state";
@@ -19,6 +15,7 @@ import { sliderBodyContainer, renderer, mainHitObjectContainer } from "../visual
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE } from "./slider_body_shader";
+import { SliderPath, SliderPathBounds } from "./slider_path";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -31,6 +28,13 @@ export interface SliderTimingInfo {
     msPerBeat: number,
     msPerBeatMultiplier: number,
     sliderVelocity: number
+}
+
+interface SliderBounds extends SliderPathBounds {
+    width: number,
+    height: number,
+    screenWidth: number,
+    screenHeight: number
 }
 
 export class DrawableSlider extends HeadedDrawableHitObject {
@@ -48,13 +52,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public tailPoint: Point;
     public duration: number;
     public complete: boolean;
-    public curve: SliderCurve;
-    public sliderWidth: number = 0;
-    public sliderHeight: number = 0;
-    public minX: number = 0;
-    public maxX: number = 0;
-    public minY: number = 0;
-    public maxY: number = 0;
+    public path: SliderPath;
+    public bounds: SliderBounds;
     public timingInfo: SliderTimingInfo;
     public hitObject: Slider;
     public sliderTickCompletions: number[];
@@ -66,27 +65,20 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
     public sliderBodyMesh: PIXI.Mesh;
     public sliderBodyHasBeenRendered = false;
+    public lastGeneratedSnakingCompletion = 0;
 
     constructor(hitObject: Slider) {
         super(hitObject);
     }
 
     init() {
-        this.curve = null;
         this.complete = true;
-
         this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
         this.duration = this.endTime - this.startTime;
 
-        if (this.hitObject.sections.length === 0) {
-            this.curve = new SliderCurveEmpty(this);
-        } else if (this.hitObject.sections[0].type === "perfect") {
-            this.curve = SliderCurvePerfect.create(this, false);
-        } else {
-            this.curve = new SliderCurveBézier(this, this.hitObject.sections, false);
-        }
+        this.path = SliderPath.fromSlider(this.hitObject);
 
-        this.tailPoint = this.getPosFromPercentage(1);
+        this.tailPoint = this.path.getPosFromPercentage(1.0);
 
         if (this.hitObject.repeat % 2 === 0) {
             this.endPoint = this.startPoint;
@@ -97,23 +89,30 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.scoring = getDefaultSliderScoring();
     }
 
-    toCtxCoord(pos: Point): Point {
+    toRelativeCoord(pos: Point): Point {
         let { pixelRatio, circleRadius } = gameState.currentPlay;
 
         return {
-            x: (pos.x - this.minX) * pixelRatio + circleRadius,
-            y: (pos.y - this.minY) * pixelRatio + circleRadius
+            x: (pos.x - this.bounds.minX) * pixelRatio + circleRadius,
+            y: (pos.y - this.bounds.minY) * pixelRatio + circleRadius
         };
     }
 
     draw() {
         super.draw();
 
-        let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
+        let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods, circleDiameterOsuPx } = gameState.currentPlay;
 
         let hasHidden = activeMods.has(Mod.Hidden);
 
         this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
+
+        let bounds = this.path.calculatePathBounds() as SliderBounds;
+        bounds.width = bounds.maxX - bounds.minX + circleDiameterOsuPx;
+        bounds.height = bounds.maxY - bounds.minY + circleDiameterOsuPx;
+        bounds.screenWidth = bounds.width * pixelRatio;
+        bounds.screenHeight = bounds.height * pixelRatio;
+        this.bounds = bounds;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - approachTime,
@@ -123,11 +122,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             type: HitCirclePrimitiveType.SliderHead
         });
 
-        let ctxStartPos = this.toCtxCoord({x: this.startPoint.x, y: this.startPoint.y});
-        let ctxEndPos = this.toCtxCoord({x: this.tailPoint.x, y: this.tailPoint.y});
+        let relativeStartPos = this.toRelativeCoord({x: this.startPoint.x, y: this.startPoint.y});
+        let relativeEndPos = this.toRelativeCoord({x: this.tailPoint.x, y: this.tailPoint.y});
 
-        this.head.container.x = ctxStartPos.x;
-        this.head.container.y = ctxStartPos.y;
+        this.head.container.x = relativeStartPos.x;
+        this.head.container.y = relativeStartPos.y;
 
         this.hitCirclePrimitiveContainer = new PIXI.Container();
         this.hitCirclePrimitiveContainer.addChild(this.head.container);
@@ -136,7 +135,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.sliderEnds = [];
         let msPerRepeatCycle = this.hitObject.length / this.timingInfo.sliderVelocity;
         for (let i = 0; i < this.hitObject.repeat; i++) {
-            let pos = (i % 2 === 0)? ctxEndPos : ctxStartPos;
+            let pos = (i % 2 === 0)? relativeEndPos : relativeStartPos;
             
             let fadeInStart: number;
             if (i === 0) {
@@ -152,12 +151,12 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let reverseArrowAngle: number;
             if (i < this.hitObject.repeat-1) {
                 if (i % 2 === 0) {
-                    let angle = this.curve.getAngleFromPercentage(1);
+                    let angle = this.path.getAngleFromPercentage(1);
                     angle = MathUtil.constrainRadians(angle + Math.PI); // Turn it by 180°
 
                     reverseArrowAngle = angle;
                 } else {
-                    reverseArrowAngle = this.curve.getAngleFromPercentage(0);
+                    reverseArrowAngle = this.path.getAngleFromPercentage(0);
                 }
             }
 
@@ -184,11 +183,10 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             }
         }
 
-        this.sliderWidth = (this.maxX - this.minX) * pixelRatio + circleDiameter;
-        this.sliderHeight = (this.maxY - this.minY) * pixelRatio + circleDiameter;
+        this.path.generateBaseVertexBuffer();
 
-        let renderTex = PIXI.RenderTexture.create({width: this.sliderWidth, height: this.sliderHeight});
-        let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer;
+        let renderTex = PIXI.RenderTexture.create({width: this.bounds.screenWidth, height: this.bounds.screenHeight});
+        let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
         renderTexFramebuffer.enableDepth();
         renderTexFramebuffer.addDepthTexture();
 
@@ -198,7 +196,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.baseSprite = new PIXI.Sprite(renderTex);
         this.baseSprite.filters = [aaFilter];
 
-        let sliderBodyGeometry = this.curve.generateGeometry(SLIDER_SETTINGS.snaking? 0.0 : 1.0);
+        let sliderBodyDefaultSnake = SLIDER_SETTINGS.snaking? 0.0 : 1.0;
+        let sliderBodyGeometry = this.path.generateGeometry(sliderBodyDefaultSnake);
+        this.lastGeneratedSnakingCompletion = sliderBodyDefaultSnake;
         let sliderBodyShader = createSliderBodyShader(this);
         let sliderBodyMesh = new PIXI.Mesh(sliderBodyGeometry, sliderBodyShader, SLIDER_BODY_MESH_STATE);
         this.sliderBodyMesh = sliderBodyMesh;
@@ -234,7 +234,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let completion = this.sliderTickCompletions[i];
             if (completion >= 1) break;
 
-            let sliderTickPos = this.getPosFromPercentage(MathUtil.reflect(completion));
+            let sliderTickPos = this.path.getPosFromPercentage(MathUtil.reflect(completion));
 
             // Check if the tick overlaps with either slider end
             if (pointDistance(sliderTickPos, this.startPoint) <= circleRadiusOsuPx || pointDistance(sliderTickPos, this.tailPoint) <= circleRadiusOsuPx) {
@@ -265,7 +265,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 tickElement = wrapper;
             }
 
-            let ctxPos = this.toCtxCoord(sliderTickPos);
+            let ctxPos = this.toRelativeCoord(sliderTickPos);
 
             tickElement.x = ctxPos.x;
             tickElement.y = ctxPos.y;
@@ -295,8 +295,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         let { circleRadiusOsuPx } = gameState.currentPlay;
 
-        let screenX = gameState.currentPlay.toScreenCoordinatesX(this.minX - circleRadiusOsuPx);
-        let screenY = gameState.currentPlay.toScreenCoordinatesY(this.minY - circleRadiusOsuPx);
+        let screenX = gameState.currentPlay.toScreenCoordinatesX(this.bounds.minX - circleRadiusOsuPx);
+        let screenY = gameState.currentPlay.toScreenCoordinatesY(this.bounds.minY - circleRadiusOsuPx);
 
         this.container.position.set(screenX, screenY);
         this.baseSprite.position.set(screenX, screenY);
@@ -363,7 +363,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let sliderEndCheckTime = this.startTime + Math.max(this.duration - 36, this.duration/2); // "Slider ends are a special case and checked exactly 36ms before the end of the slider (unless the slider is <72ms in duration, then it checks exactly halfway time wise)." https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
         let sliderEndCheckCompletion = (this.timingInfo.sliderVelocity * (sliderEndCheckTime - this.startTime)) / this.hitObject.length;
         sliderEndCheckCompletion = MathUtil.reflect(sliderEndCheckCompletion);
-        let sliderEndCheckPosition = this.getPosFromPercentage(sliderEndCheckCompletion);
+        let sliderEndCheckPosition = this.path.getPosFromPercentage(sliderEndCheckCompletion);
 
         playEventArray.push({
             type: PlayEventType.SliderEndCheck,
@@ -404,7 +404,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             // Time that the tick should be hit, relative to the slider start time
             let time = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
-            let position = this.getPosFromPercentage(MathUtil.reflect(tickCompletion));
+            let position = this.path.getPosFromPercentage(MathUtil.reflect(tickCompletion));
 
             playEventArray.push({
                 type: PlayEventType.SliderTick,
@@ -480,34 +480,16 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
     }
 
-    getPosFromPercentage(percent: number) : Point {
-        if (this.curve instanceof SliderCurveBézier) {
-            return interpolatePointInPointArray(this.curve.equidistantPoints, percent);
-        } else if (this.curve instanceof SliderCurvePerfect) {
-            let angle = this.curve.startingAngle + this.curve.angleDifference * percent;
-
-            return {
-                x: this.curve.centerPos.x + this.curve.radius * Math.cos(angle),
-                y: this.curve.centerPos.y + this.curve.radius * Math.sin(angle)
-            };
-        } else if (this.curve instanceof SliderCurveEmpty) {
-            // TODO
-            console.warn("Tried to access position from empty slider curve. Empty. Slider. Curve. What's that?");
-        } else {
-            throw new Error("Tried to get position on non-existing slider curve.");
-        }
-    }
-
     applyStackPosition() {
         super.applyStackPosition();
 
         if (true /* This was if(fullCalc) before */) {
-            this.minX += this.stackHeight * -4;
-            this.minY += this.stackHeight * -4;
-            this.maxX += this.stackHeight * -4;
-            this.maxY += this.stackHeight * -4;
+            this.bounds.minX += this.stackHeight * -4;
+            this.bounds.minY += this.stackHeight * -4;
+            this.bounds.maxX += this.stackHeight * -4;
+            this.bounds.maxY += this.stackHeight * -4;
 
-            this.curve.applyStackPosition();
+            this.path.applyStackPosition(this.stackHeight);
         }
     }
 
@@ -536,8 +518,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let renderTex = this.baseSprite.texture as PIXI.RenderTexture;
         let gl = renderer.state.gl;
 
-        if (this.curve.lastRenderedCompletion < snakeCompletion) {
-            this.curve.updateGeometry(mesh.geometry, snakeCompletion);
+        if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
+            this.path.updateGeometry(mesh.geometry, snakeCompletion);
+            this.lastGeneratedSnakingCompletion = snakeCompletion;
             doRender = true;
         }
 
@@ -576,7 +559,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         let { headedHitObjectTextureFactor } = gameState.currentPlay;
 
-        let sliderBallPos = this.toCtxCoord(this.getPosFromPercentage(MathUtil.reflect(completion)));
+        let sliderBallPos = this.toRelativeCoord(this.path.getPosFromPercentage(MathUtil.reflect(completion)));
 
         if (currentTime < this.endTime) {
             let baseElement = this.sliderBall.base.sprite;
@@ -584,7 +567,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.sliderBall.container.visible = true;
             this.sliderBall.container.x = sliderBallPos.x;
             this.sliderBall.container.y = sliderBallPos.y;
-            baseElement.rotation = this.curve.getAngleFromPercentage(MathUtil.reflect(completion));
+            baseElement.rotation = this.path.getAngleFromPercentage(MathUtil.reflect(completion));
 
             let osuTex = gameState.currentGameplaySkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();

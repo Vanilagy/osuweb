@@ -64,10 +64,10 @@ export function createSliderBodyShader(slider: DrawableSlider) {
     // Okay. Why does it work with this line commented out: ? QUE?
     //glMatrix.mat3.scale(matrix, matrix, new Float32Array([1.0, -1.0])); // Flip that y axis.
     glMatrix.mat3.translate(matrix, matrix, new Float32Array([-1.0, -1.0]));
-    glMatrix.mat3.scale(matrix, matrix, new Float32Array([2 / slider.sliderWidth, 2 / slider.sliderHeight])); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
+    glMatrix.mat3.scale(matrix, matrix, new Float32Array([2 / slider.bounds.screenWidth, 2 / slider.bounds.screenHeight])); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
     glMatrix.mat3.translate(matrix, matrix, new Float32Array([circleRadius, circleRadius])); // Okay, at this point, we'll have projected the coordinate into slider-relative space.
     glMatrix.mat3.scale(matrix, matrix, new Float32Array([pixelRatio, pixelRatio]));
-    glMatrix.mat3.translate(matrix, matrix, new Float32Array([-slider.minX, -slider.minY]));
+    glMatrix.mat3.translate(matrix, matrix, new Float32Array([-slider.bounds.minX, -slider.bounds.minY]));
 
     let borderColor = gameState.currentGameplaySkin.config.colors.sliderBorder;
 
