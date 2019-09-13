@@ -2,7 +2,7 @@ import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTot
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
 import { last, jsonClone } from "../util/misc_util";
-import { Slider, SliderCurveSection } from "../datamodel/slider";
+import { Slider } from "../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
 const SLIDER_CAPCIRCLE_SEGMENTS = 40;
@@ -42,8 +42,6 @@ export class SliderPath {
     private lineRadius: number;
 
     constructor(points: Point[]) {
-        let { circleRadiusOsuPx } = gameState.currentPlay;
-
         this.points = points;
 
         for (let i = 0; i < points.length-1; i++) {
@@ -344,7 +342,7 @@ function calculatePerfectSliderPoints(slider: Slider) {
         return calculateBézierSliderPoints(slider);
     }
 
-    let radius = Math.hypot(centerPos.x - points[0].x, centerPos.y - points[0].y);
+    let radius = pointDistance(centerPos, points[0]);
     let a1 = Math.atan2(points[0].y - centerPos.y, points[0].x - centerPos.x), // angle to start
         a2 = Math.atan2(points[1].y - centerPos.y, points[1].x - centerPos.x), // angle to control point
         a3 = Math.atan2(points[2].y - centerPos.y, points[2].x - centerPos.x); // angle to end
@@ -378,7 +376,7 @@ function calculateBézierSliderPoints(slider: Slider) {
         let points = sections[0].values;
 
         let angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
-        let distance = Math.min(slider.length, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y));
+        let distance = Math.min(slider.length, pointDistance(points[0], points[1]));
         let pointTwo: Point = {
             x: points[0].x + Math.cos(angle) * distance,
             y: points[0].y + Math.sin(angle) * distance
@@ -447,7 +445,7 @@ function calculateEquidistantPointsFromSamplePoints(samplePoints: Point[], arcLe
         let remainingLength = segmentLength;
 
         while (true) {
-            let dist = Math.hypot(currentPoint.x - samplePoints[currentIndex].x, currentPoint.y - samplePoints[currentIndex].y);
+            let dist = pointDistance(currentPoint, samplePoints[currentIndex]);
 
             if (dist < remainingLength) {
                 currentPoint = samplePoints[currentIndex];
