@@ -10,8 +10,7 @@ import { SliderCurveSection } from "../datamodel/slider";
 import { SliderPath } from "./slider_path";
 //import {Console} from "../console";
 
-const CIRCLE_SEGMENTS = 64;
-const RADIANS_PER_CIRCLE_SEGMENT = Math.PI*2 / CIRCLE_SEGMENTS;
+const CIRCLE_ARC_SEGMENT_LENGTH = 10;
 
 export class SliderCurvePerfect extends SliderCurve {
     public centerPos: Point = {x: 0, y: 0};
@@ -89,8 +88,8 @@ export class SliderCurvePerfect extends SliderCurve {
 
     protected createPath() {
         let points: Point[] = [];
-
-        let segments = Math.ceil(Math.abs(this.angleDifference) / RADIANS_PER_CIRCLE_SEGMENT) || 1;
+        
+        let segments = Math.ceil(this.slider.hitObject.length / CIRCLE_ARC_SEGMENT_LENGTH) || 1;
         let segmentLength = this.angleDifference / segments;
 
         for (let i = 0; i < segments + 1; i++) {
