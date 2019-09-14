@@ -1,8 +1,12 @@
 import { HitObject } from "./hit_object";
-import { Point } from "../util/point";
+import { Point, pointsAreEqual } from "../util/point";
 
-// Use enum here?
-type SliderCurveSectionType = 'unknown' | 'perfect' | 'linear' | 'bézier';
+export enum SliderCurveSectionType {
+    Perfect,
+    Linear,
+    Bézier,
+    Catmull
+}
 
 interface Sampling {
     sampleSet: number,
@@ -86,7 +90,7 @@ export class Slider extends HitObject {
             };
 
             // end section if same point appears twice and start a new one if end is not reached
-            if (JSON.stringify(lastPoint) === JSON.stringify(nextPoint)) {
+            if (lastPoint && pointsAreEqual(lastPoint, nextPoint)) {
                 this.finishSection(sliderSectionPoints, sliderType, sliderSections);
 
                 // Don't make a new section in case this is the last point
@@ -104,14 +108,17 @@ export class Slider extends HitObject {
     }
 
     finishSection(sliderSectionPoints: Point[], sliderType: string, sliderSections: SliderCurveSection[]) {
-        let sectionType: SliderCurveSectionType = "unknown";
+        let sectionType: SliderCurveSectionType;
 
+        // Is this code more complicated than it needs to be?
         if (sliderSectionPoints.length === 3 && sliderType === "P") {
-            sectionType = "perfect";
+            sectionType = SliderCurveSectionType.Perfect;
         } else if (sliderSectionPoints.length === 2) {
-            sectionType = "linear";
-        } else {
-            sectionType = "bézier";
+            sectionType = SliderCurveSectionType.Linear;
+        } else if (sliderType === "B") {
+            sectionType = SliderCurveSectionType.Bézier;
+        } else if (sliderType === "C") {
+            sectionType = SliderCurveSectionType.Catmull;
         }
 
         if (sliderSectionPoints.length > 1) sliderSections.push({

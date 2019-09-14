@@ -2,13 +2,14 @@ import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTot
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
 import { last, jsonClone } from "../util/misc_util";
-import { Slider } from "../datamodel/slider";
+import { Slider, SliderCurveSectionType } from "../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
-const SLIDER_CAPCIRCLE_SEGMENTS = 40;
+const SLIDER_CAPCIRCLE_SEGMENTS = 48;
 const SLIDER_CAP_CIRCLE_SEGMENT_ARC_LENGTH = Math.PI*2 / SLIDER_CAPCIRCLE_SEGMENTS;
 const CIRCLE_ARC_SEGMENT_LENGTH = 10; // For P sliders
-const MAXIMUM_TRACE_POINT_DISTANCE = 3;
+const EQUIDISTANT_POINT_DISTANCE = 3;
+const CATMULL_ROM_SECTION_SAMPLE_COUNT = 50;
 
 // Returns the maximum amount of floats needed to store one line segment in the VBO
 function getMaxFloatsPerLineSegment() {
@@ -67,8 +68,13 @@ export class SliderPath {
         let points: Point[];
 
         if (sections.length === 0) points = [];
-        else if (sections[0].type === 'perfect') points = calculatePerfectSliderPoints(slider);
-        else points = calculateBézierSliderPoints(slider);
+        else {
+            let type = sections[0].type;
+
+            if (type === SliderCurveSectionType.Perfect) points = calculatePerfectSliderPoints(slider);
+            else if (type === SliderCurveSectionType.Linear || type === SliderCurveSectionType.Bézier) points = calculateBézierSliderPoints(slider);
+            else if (type === SliderCurveSectionType.Catmull) points = calculateCatmullSliderPoints(slider);
+        }
 
         return new SliderPath(points);
     }
@@ -322,8 +328,8 @@ function calculatePerfectSliderPoints(slider: Slider) {
         //Console.warn("Converted P to L-slider due to case one.");
         sections = jsonClone(sections); // Sicce we're modifying the sections here, we have to decouple them from the raw hit object.
 
-        sections[0] = {type: "linear", values: [points[0], points[1]]};
-        sections[1] = {type: "linear", values: [points[1], points[2]]};
+        sections[0] = {type: SliderCurveSectionType.Linear, values: [points[0], points[1]]};
+        sections[1] = {type: SliderCurveSectionType.Linear, values: [points[1], points[2]]};
 
         return calculateBézierSliderPoints(slider);
     }
@@ -337,7 +343,7 @@ function calculatePerfectSliderPoints(slider: Slider) {
     
         // Remove middle point
         sections[0].values.splice(1, 1);
-        sections[0].type = "linear";
+        sections[0].type = SliderCurveSectionType.Linear;
 
         return calculateBézierSliderPoints(slider);
     }
@@ -408,6 +414,43 @@ function calculateBézierSliderPoints(slider: Slider) {
         samplePoints.push(last(points));
     }
 
+    // Now that we've sampled points along the curve, we can start generating mostly equidistant points from them.
+
+    let arcLength = calculateTotalPointArrayArcLength(samplePoints);
+    if (arcLength > slider.length) { // If traced length bigger than pixelLength
+        arcLength = slider.length;
+    }
+    
+    return calculateEquidistantPointsFromSamplePoints(samplePoints, arcLength);
+}
+
+function calculateCatmullSliderPoints(slider: Slider) {
+    let points = slider.sections[0].values;
+    let samplePoints: Point[] = [];
+
+    // Based on ppy's algorithm used in lazer: https://github.com/ppy/osu-framework/blob/master/osu.Framework/MathUtils/PathApproximator.cs
+    for (let i = 0; i < points.length; i++) {
+        let v1 = points[i-1] || points[0],
+            v2 = points[i],
+            v3 = (i < points.length - 1)? points[i+1] : {x: v2.x*2 - v1.x, y: v2.y*2 - v1.y},
+            v4 = (i < points.length - 2)? points[i+2] : {x: v3.x*2 - v2.x, y: v3.y*2 - v2.y};
+
+        for (let c = 0; c < CATMULL_ROM_SECTION_SAMPLE_COUNT; c++) {
+            samplePoints.push(MathUtil.catmullFindPoint(v1, v2, v3, v4, c / CATMULL_ROM_SECTION_SAMPLE_COUNT));
+        }
+    }
+
+    samplePoints.push(last(points));
+
+    let arcLength = calculateTotalPointArrayArcLength(samplePoints);
+    if (arcLength > slider.length) { // If traced length bigger than pixelLength
+        arcLength = slider.length;
+    }
+
+    return calculateEquidistantPointsFromSamplePoints(samplePoints, arcLength);
+}
+
+function calculateEquidistantPointsFromSamplePoints(samplePoints: Point[], arcLength: number) {
     // Extra point is added because floats
     let lastPoint = last(samplePoints);
     let secondLastPoint = samplePoints[samplePoints.length - 2];
@@ -419,20 +462,8 @@ function calculateBézierSliderPoints(slider: Slider) {
         });
     }
 
-    // Now that we've sampled points along the curve, we can start generating mostly equidistant points from them.
-
-    let arcLength = calculateTotalPointArrayArcLength(samplePoints);
-    if (arcLength > slider.length) { // If traced length bigger than pixelLength
-        arcLength = slider.length;
-    }
-    
-    return calculateEquidistantPointsFromSamplePoints(samplePoints, arcLength);
-}
-
-function calculateEquidistantPointsFromSamplePoints(samplePoints: Point[], arcLength: number) {
     let equidistantPoints: Point[] = [];
-
-    let segmentCount = Math.ceil(arcLength / MAXIMUM_TRACE_POINT_DISTANCE) || 1;
+    let segmentCount = Math.ceil(arcLength / EQUIDISTANT_POINT_DISTANCE) || 1;
     let segmentLength = arcLength / segmentCount;
 
     /*  Using the initially traced points, generate a slider path point array in which

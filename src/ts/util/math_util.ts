@@ -1,5 +1,5 @@
-import { Point, pointDistanceSquared } from "./point";
-import { jsonClone } from "./misc_util";
+import { Point, pointDistanceSquared, Vector2 } from "./point";
+import { jsonClone, last } from "./misc_util";
 
 export enum EaseType {
     Linear,
@@ -74,6 +74,7 @@ export class MathUtil {
 
         return r;
     }
+    // No, this isn't some mathematically-accurate 2nd derivative calculation. It's an estimate, and it does the job. Hopefully. >.<
     static curvatureOfBézierCurve(pointArray: Point[], t: number, middlePoint?: Point) {
         let a = MathUtil.pointOnBézierCurve(pointArray, t - 0.001),
             b = middlePoint || MathUtil.pointOnBézierCurve(pointArray, t),
@@ -287,6 +288,61 @@ export class MathUtil {
         // The maximum value of this noise is 8*(3/4)^4 = 2.53125
         // A factor of 0.395 scales to fit exactly within [-1,1]
         return 0.395 * (n0 + n1);
+    }
+
+    // Based on https://www.cubic.org/docs/hermite.htm
+    static calculateCardinalSplineTangents(points: Point[], tightness: number) {
+        let tangents: Vector2[] = [];
+
+        for (let i = 0; i < points.length; i++) {
+            let p1 = points[i-1] || points[0],
+                p2 = points[i+1] || last(points);
+
+            tangents.push({
+                x: (p2.x - p1.x) * tightness,
+                y: (p2.y - p1.y) * tightness
+            });
+        }
+
+        return tangents;
+    }
+
+    static calculateCatmullRomTangents(points: Point[]) {
+        return this.calculateCardinalSplineTangents(points, 0.5); // Catmull-Rom splines are just Cardinal splines with a fixed tightness of 0.5.
+    }
+
+    static pointOnCubicHermiteSpline(points: Point[], tangents: Vector2[], t: number): Point {
+        let scaledT = t * (points.length - 1);
+        let index = Math.floor(scaledT);
+        let s = scaledT - index; // from 0 to 1 between two points
+
+        if (s === 0) return points[index];
+
+        let p1 = points[index],
+            p2 = points[index+1],
+            t1 = tangents[index],
+            t2 = tangents[index+1];
+
+        let h1 = 2*s**3 - 3*s**2 + 1,
+            h2 = -2*s**3 + 3*s**2,
+            h3 = s**3 - 2*s**2 + s,
+            h4 = s**3 - s**2;
+
+        return {
+            x: h1*p1.x + h2*p2.x + h3*t1.x + h4*t2.x,
+            y: h1*p1.y + h2*p2.y + h3*t1.y + h4*t2.y,
+        };
+    }
+
+    // Based on ppy's algorithm: https://github.com/ppy/osu-framework/blob/master/osu.Framework/MathUtils/PathApproximator.cs
+    static catmullFindPoint(v1: Point, v2: Point, v3: Point, v4: Point, t: number): Point {
+        let t2 = t**2;
+        let t3 = t**3;
+
+        return {
+            x: 0.5 * (2 * v2.x + (-v1.x + v3.x) * t + (2 * v1.x - 5 * v2.x + 4 * v3.x - v4.x) * t2 + (-v1.x + 3 * v2.x - 3 * v3.x + v4.x) * t3),
+            y: 0.5 * (2 * v2.y + (-v1.y + v3.y) * t + (2 * v1.y - 5 * v2.y + 4 * v3.y - v4.y) * t2 + (-v1.y + 3 * v2.y - 3 * v3.y + v4.y) * t3)
+        };
     }
 }
 
