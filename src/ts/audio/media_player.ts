@@ -145,6 +145,7 @@ export class MediaPlayer {
             // Keep the calculated time as close as possible to the ACTUAL time of the audio. The reason we don't use HTMLAudioElement.currentTime for getting the current time directly, is that it tends to fluctuate +-5ms. We avoid that fluctuation by using performance.now(), but that requires us to perform this synchronization:
 
             if (this.lastNudgeTime === null) this.lastNudgeTime = now;
+            
             if (now - this.lastNudgeTime >= MEDIA_NUDGE_INTERVAL) {
                 let average = MathUtil.getAggregateValuesFromArray(this.timingDeltas).avg; // Average of last deltas
                 let absAverage = Math.abs(average);

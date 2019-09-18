@@ -141,32 +141,5 @@ export class FollowPoint {
                 part.alpha = 1 - fadeOutCompletion;
             }
         }
-
-        /*
-        let duration = this.endTime - this.startTime;
-        let relTime = currentTime - this.startTime;
-
-        if (duration === 0) return; // Literally no need to draw it
-
-        let renderStart = MathUtil.clamp(relTime / duration, 0, 1);
-        let renderEnd = MathUtil.clamp((relTime + PRE_EMPT) / duration, 0, 1);
-        let currentPlay = gameState.currentPlay;
-
-        // Lerp
-        let p1: Point = {
-            x: this.startPoint.x * (1 - renderStart) + this.endPoint.x * renderStart,
-            y: this.startPoint.y * (1 - renderStart) + this.endPoint.y * renderStart
-        };
-        let p2: Point = {
-            x: this.startPoint.x * (1 - renderEnd) + this.endPoint.x * renderEnd,
-            y: this.startPoint.y * (1 - renderEnd) + this.endPoint.y * renderEnd
-        };
-
-        let line = new PIXI.Graphics();
-        line.lineStyle(this.height, 0xFFFFFF, 0.75);
-        line.moveTo(currentPlay.toScreenCoordinatesX(p1.x), currentPlay.toScreenCoordinatesY(p1.y));
-        line.lineTo(currentPlay.toScreenCoordinatesX(p2.x), currentPlay.toScreenCoordinatesY(p2.y));
-
-        followPointContainer.addChild(line);*/
     }
 }

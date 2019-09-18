@@ -137,7 +137,7 @@ function handleGameButtonPress(button: FunctionalInput) {
 function emitGameButtonPress() {
     // TEMP! This isn't clean. This doesn't isolate the input class.
     if (gameState.currentPlay) {
-        gameState.currentPlay.handleButtonPress();
+        gameState.currentPlay.handleButtonDown();
     }
 }
 

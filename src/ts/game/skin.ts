@@ -273,25 +273,28 @@ export interface HitSoundInfo {
     index?: number
 }
 
-export function getHitSoundTypesFromSampleSetAndBitmap(sampleSet: number, bitmap: number) {
+export function getHitSoundTypesFromSampleSetAndBitfield(sampleSet: number, bitfield: number) {
     let types: HitSoundType[] = [];
 
-    if ((bitmap & 1) !== 0) {
+    if ((bitfield & 1) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalHitNormal);
         else if (sampleSet === 2) types.push(HitSoundType.SoftHitNormal);
         else if (sampleSet === 3) types.push(HitSoundType.DrumHitNormal);
     }
-    if ((bitmap & 2) !== 0) {
+
+    if ((bitfield & 2) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalHitWhistle);
         else if (sampleSet === 2) types.push(HitSoundType.SoftHitWhistle);
         else if (sampleSet === 3) types.push(HitSoundType.DrumHitWhistle);
     }
-    if ((bitmap & 4) !== 0) {
+
+    if ((bitfield & 4) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalHitFinish);
         else if (sampleSet === 2) types.push(HitSoundType.SoftHitFinish);
         else if (sampleSet === 3) types.push(HitSoundType.DrumHitFinish);
     }
-    if ((bitmap & 8) !== 0) {
+    
+    if ((bitfield & 8) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalHitClap);
         else if (sampleSet === 2) types.push(HitSoundType.SoftHitClap);
         else if (sampleSet === 3) types.push(HitSoundType.DrumHitClap);
@@ -555,28 +558,25 @@ export class Skin {
         this.textures["hit300g"] = await OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
 
         // Hit circle numbers
-        let tempObj = {} as SpriteNumberTextures;
+        this.hitCircleNumberTextures = {} as SpriteNumberTextures;
         for (let suffix of HIT_CIRCLE_NUMBER_SUFFIXES) {
-            tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.hitCirclePrefix}-${suffix}`, "png", true);
+            this.hitCircleNumberTextures[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.hitCirclePrefix}-${suffix}`, "png", true);
         }
-        this.hitCircleNumberTextures = tempObj;
 
         // Score numbers
-        tempObj = {} as SpriteNumberTextures;
+        this.scoreNumberTextures = {} as SpriteNumberTextures;
         for (let suffix of SCORE_NUMBER_SUFFIXES) {
-            tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.scorePrefix}-${suffix}`, "png", true);
+            this.scoreNumberTextures[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.scorePrefix}-${suffix}`, "png", true);
         }
-        this.scoreNumberTextures = tempObj;
 
         // Combo numbers
-        tempObj = {} as SpriteNumberTextures;
+        this.comboNumberTextures = {} as SpriteNumberTextures;
         for (let suffix of SCORE_NUMBER_SUFFIXES) { // Combo uses the same suffixes as score
-            tempObj[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
+            this.comboNumberTextures[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
         }
-        this.comboNumberTextures = tempObj;
-
+        
         // Sounds
-
+        
         console.time("Hit sounds load");
 
         let hitSoundReadyPromises: Promise<void>[] = [];

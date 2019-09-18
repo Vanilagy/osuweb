@@ -1,4 +1,4 @@
-import { Beatmap, BeatmapEventBreak, TimingPoint } from "../datamodel/beatmap";
+import { Beatmap, BeatmapEventBreak, TimingPoint, BeatmapEventType } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider, SliderTimingInfo } from "./drawable_slider";
 import { Circle } from "../datamodel/circle";
@@ -11,12 +11,13 @@ import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitmap, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, HitSoundType } from "./skin";
+import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitfield, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, HitSoundType } from "./skin";
 import { gameState } from "./game_state";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { Mod } from "./mods";
 import { ModHelper } from "./mod_helper";
+import { pointDistance } from "../util/point";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -144,8 +145,8 @@ export class ProcessedBeatmap {
                 volume = volume || timingPoint.volume;
                 index = index || timingPoint.sampleIndex || 1;
 
-                let baseType = getHitSoundTypesFromSampleSetAndBitmap(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
-                let additionTypes = getHitSoundTypesFromSampleSetAndBitmap(additionSet, hitSound & ~1);
+                let baseType = getHitSoundTypesFromSampleSetAndBitfield(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
+                let additionTypes = getHitSoundTypesFromSampleSetAndBitfield(additionSet, hitSound & ~1);
 
                 let info: HitSoundInfo = {
                     base: baseType,
@@ -424,7 +425,7 @@ export class ProcessedBeatmap {
 
     generateBreaks() {
         for (let event of this.beatmap.events) {
-            if (event.type !== "break") continue;
+            if (event.type !== BeatmapEventType.Break) continue;
 
             let breakEvent = event as BeatmapEventBreak;
 
@@ -457,8 +458,7 @@ export class ProcessedBeatmap {
 
                 if (!ho1 || !ho2) break;
 
-                outer:
-                if (ho2.startTime - ho1.endTime >= IMPLICIT_BREAK_THRESHOLD) {
+                outer: if (ho2.startTime - ho1.endTime >= IMPLICIT_BREAK_THRESHOLD) {
                     // Check if there's already a break starting between the two hit object
 
                     for (let breakEvent of this.breaks) {

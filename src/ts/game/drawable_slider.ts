@@ -99,8 +99,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     draw() {
-        super.draw();
-
         let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods, circleDiameterOsuPx } = gameState.currentPlay;
 
         let hasHidden = activeMods.has(Mod.Hidden);

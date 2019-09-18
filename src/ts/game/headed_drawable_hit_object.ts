@@ -64,10 +64,6 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
         this.endPoint.y += this.stackHeight * -4;
     }
 
-    draw() {
-        
-    }
-
     show(currentTime: number) {
         mainHitObjectContainer.addChildAt(this.container, 0);
         if (this.head.approachCircle) approachCircleContainer.addChild(this.head.approachCircle);
@@ -90,7 +86,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
 
     abstract hitHead(time: number, judgementOverride?: number): void;
     
-    handleButtonPress(osuMouseCoordinates: Point, currentTime: number) {
+    handleButtonDown(osuMouseCoordinates: Point, currentTime: number) {
         let { circleRadiusOsuPx } = gameState.currentPlay;
 
         let distance = pointDistance(osuMouseCoordinates, this.startPoint);

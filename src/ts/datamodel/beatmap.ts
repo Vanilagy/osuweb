@@ -27,11 +27,16 @@ export interface TimingPoint {
     kiai: boolean
 }
 
-interface BeatmapEvent {
-    type: string
+export enum BeatmapEventType {
+    Break,
+    Image
 }
 
-interface BeatmapEventImage extends BeatmapEvent {
+export interface BeatmapEvent {
+    type: BeatmapEventType
+}
+
+export interface BeatmapEventImage extends BeatmapEvent {
     time: number,
     file: string,
     position: Point
@@ -99,7 +104,7 @@ export class Beatmap {
         for (let key in this.events) {
             let evt = this.events[key];
 
-            if (evt.type === "image") {
+            if (evt.type === BeatmapEventType.Image) {
                 return (evt as BeatmapEventImage).file;
             }
         }
@@ -260,7 +265,7 @@ export class Beatmap {
                     y = parseInt(values[4]);
 
                 let event: BeatmapEventImage = {
-                    type: "image",
+                    type: BeatmapEventType.Image,
                     time: parseInt(values[1]),
                     file: values[2].substring(1, values[2].length - 1),
                     position: {x, y}
@@ -270,7 +275,7 @@ export class Beatmap {
             }; break;
             case "2": {
                 let event: BeatmapEventBreak = {
-                    type: "break",
+                    type: BeatmapEventType.Break,
                     start: parseInt(values[1]),
                     end: parseInt(values[2])
                 };

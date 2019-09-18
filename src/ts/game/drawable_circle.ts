@@ -28,8 +28,6 @@ export class DrawableCircle extends HeadedDrawableHitObject {
     }
 
     draw() {
-        super.draw();
-
         let { approachTime, activeMods } = gameState.currentPlay;
 
         this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;

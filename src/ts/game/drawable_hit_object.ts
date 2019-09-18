@@ -45,5 +45,5 @@ export abstract class DrawableHitObject {
     abstract addPlayEvents(playEventArray: PlayEvent[]): void;
 
     /** @returns A boolean, indicating whether or not the object was handled by the button press. It could be false, for example, if the mouse wasn't over it or the object was already hit. */
-    abstract handleButtonPress(osuMouseCoordinates: Point, currentTime: number): boolean;
+    abstract handleButtonDown(osuMouseCoordinates: Point, currentTime: number): boolean;
 }

@@ -485,7 +485,7 @@ export class Play {
         }
     }
 
-    handleButtonPress() {
+    handleButtonDown() {
         if (this.activeMods.has(Mod.Auto)) return;
 
         let currentTime = this.getCurrentSongTime();
@@ -493,7 +493,7 @@ export class Play {
 
         for (let id in this.onscreenObjects) {
             let hitObject = this.onscreenObjects[id];
-            let handled = hitObject.handleButtonPress(osuMouseCoordinates, currentTime);
+            let handled = hitObject.handleButtonDown(osuMouseCoordinates, currentTime);
 
             if (handled) break; // One button press can only affect one hit object.
         }

@@ -1,4 +1,4 @@
-import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, interpolatePointInPointArray } from "../util/point";
+import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, interpolatePointInPointArray, pointAngle } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
 import { last, jsonClone } from "../util/misc_util";
@@ -45,17 +45,21 @@ export class SliderPath {
     constructor(points: Point[]) {
         this.points = points;
 
-        for (let i = 0; i < points.length-1; i++) {
-            let p1 = points[i],
-                p2 = points[i+1];
+        this.generatePointData();
+    }
+
+    private generatePointData() {
+        for (let i = 0; i < this.points.length-1; i++) {
+            let p1 = this.points[i],
+                p2 = this.points[i+1];
 
             let length = pointDistance(p1, p2);
-            let theta = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+            let theta = pointAngle(p1, p2);
             let normal: Vector2 = {
                 x: -(p2.y - p1.y) / length,
                 y: (p2.x - p1.x) / length,
             };
-
+            
             this.lineLengths.push(length);
             this.lineThetas.push(theta);
             this.lineNormals.push(normal);
@@ -65,10 +69,11 @@ export class SliderPath {
     static fromSlider(slider: Slider) {
         let sections = slider.sections;
 
-        let points: Point[];
+        let points: Point[] = [];
 
-        if (sections.length === 0) points = [];
-        else {
+        if (sections.length === 0) {
+            points = [];
+        } else {
             let type = sections[0].type;
 
             if (type === SliderCurveSectionType.Perfect) points = calculatePerfectSliderPoints(slider);
@@ -326,7 +331,7 @@ function calculatePerfectSliderPoints(slider: Slider) {
     // Monstrata plz
     if (pointsAreEqual(points[0], points[2])) { // case one
         //Console.warn("Converted P to L-slider due to case one.");
-        sections = jsonClone(sections); // Sicce we're modifying the sections here, we have to decouple them from the raw hit object.
+        sections = jsonClone(sections); // Since we're modifying the sections here, we have to decouple them from the raw hit object.
 
         sections[0] = {type: SliderCurveSectionType.Linear, values: [points[0], points[1]]};
         sections[1] = {type: SliderCurveSectionType.Linear, values: [points[1], points[2]]};

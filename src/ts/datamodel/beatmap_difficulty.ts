@@ -7,10 +7,8 @@ export class BeatmapDifficulty {
     public OD: number = 5; // Overall difficulty
     public CS: number = 5; // Circle size
 
-    constructor() {}
-
     // AR
-    static getApproachTime(AR: number) : number {
+    static getApproachTime(AR: number) {
         if (AR <= 5) {
             return 1800 - 120 * AR;
         } else {
@@ -18,12 +16,12 @@ export class BeatmapDifficulty {
         }
     }
 
-    getApproachTime() : number {
+    getApproachTime() {
         return BeatmapDifficulty.getApproachTime(this.AR);
     }
 
     // OD
-    static getHitDeltaForJudgement(OD: number, judgement: number) : number {
+    static getHitDeltaForJudgement(OD: number, judgement: number) {
         switch(judgement) {
             case 300:
                 return Math.ceil(79.5 - 6 * OD);
@@ -36,27 +34,27 @@ export class BeatmapDifficulty {
         }
     }
 
-    getHitDeltaForJudgement(judgement: number) : number {
+    getHitDeltaForJudgement(judgement: number) {
         return BeatmapDifficulty.getHitDeltaForJudgement(this.OD, judgement);
     }
 
-    static getJudgementForHitDelta(OD: number, hitDelta: number) : number {
+    static getJudgementForHitDelta(OD: number, hitDelta: number) {
         if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 300) >= hitDelta) return 300;
         if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 100) >= hitDelta) return 100;
         if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 50) >= hitDelta) return 50;
         return 0;
     }
 
-    getJudgementForHitDelta(hitDelta: number) : number {
+    getJudgementForHitDelta(hitDelta: number) {
         return BeatmapDifficulty.getJudgementForHitDelta(this.OD, hitDelta);
     }
 
     // CS
-    static getCirclePixelSize(CS: number) : number {
+    static getCirclePixelSize(CS: number) {
         return 64 * (1.0 - 0.7 * (CS - 5) / 5);
     }
 
-    getCirclePixelSize() : number {
+    getCirclePixelSize()  {
         return BeatmapDifficulty.getCirclePixelSize(this.CS);
     }
 

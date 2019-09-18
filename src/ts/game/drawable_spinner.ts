@@ -503,9 +503,10 @@ export class DrawableSpinner extends DrawableHitObject {
 
         let p1 = osuMouseCoordinates,
             p2 = this.lastSpinPosition;
-        let angle1 = Math.atan2(p1.y - PLAYFIELD_DIMENSIONS.height/2, p1.x - PLAYFIELD_DIMENSIONS.width/2),
-            angle2 = Math.atan2(p2.y - PLAYFIELD_DIMENSIONS.height/2, p2.x - PLAYFIELD_DIMENSIONS.width/2);
+        let angle1 = Math.atan2(p2.y - PLAYFIELD_DIMENSIONS.height/2, p2.x - PLAYFIELD_DIMENSIONS.width/2),
+            angle2 = Math.atan2(p1.y - PLAYFIELD_DIMENSIONS.height/2, p1.x - PLAYFIELD_DIMENSIONS.width/2);
         let theta = MathUtil.getNormalizedAngleDelta(angle1, angle2);
+        
         let timeDelta = (currentTime - this.lastInputTime) / 1000; // In seconds
         if (timeDelta <= 0) return; // WTF? TODO!
         // Ergh. current time can jump backwards. fuuuck
@@ -628,5 +629,5 @@ export class DrawableSpinner extends DrawableHitObject {
         });
     }
 
-    handleButtonPress() {return false;}
+    handleButtonDown() {return false;}
 }
