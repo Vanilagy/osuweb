@@ -1,7 +1,7 @@
 import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, interpolatePointInPointArray, pointAngle } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
-import { last, jsonClone } from "../util/misc_util";
+import { last, jsonClone, gcPreventor } from "../util/misc_util";
 import { Slider, SliderCurveSectionType } from "../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
@@ -171,17 +171,19 @@ export class SliderPath {
             currentIndex: vboIndex,
             radius: this.lineRadius
         };
-
+        
         let firstP = this.points[0],
             lastP: Point;
 
-        if (completion < 1) {
+        outer: if (completion < 1) {
             // Add an additional line segment.
 
-            let p1Index = Math.floor((this.points.length - 1) * completion)
+            let p1Index = Math.floor((this.points.length - 1) * completion);
 
             let p1 = this.points[p1Index];
             let p2 = this.getPosFromPercentage(completion);
+
+            if (pointsAreEqual(p1, p2)) break outer;
 
             let length = pointDistance(p1, p2);
             let theta = Math.atan2(p2.y - p1.y, p2.x - p1.x);

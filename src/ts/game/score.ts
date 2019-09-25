@@ -8,7 +8,7 @@ import { Point } from "../util/point";
 import { scorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { DRAWING_MODE, DrawingMode } from "../util/constants";
-import { AnimatedOsuSprite } from "./skin";
+import { AnimatedOsuSprite, HitSoundType } from "./skin";
 import { ModHelper } from "./mod_helper";
 import { ScoringValue } from "./scoring_value";
 
@@ -162,6 +162,11 @@ export class ScoreCounter {
 
     break(time: number) {
         if (this.currentCombo === 0) return;
+
+        if (this.currentCombo >= 50) {
+            console.log("Yes?");
+            gameState.currentGameplaySkin.sounds[HitSoundType.ComboBreak].play(100);
+        }
 
         this.currentCombo = 0;
         phantomComboAnimationInterpolator.start(time);

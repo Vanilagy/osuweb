@@ -71,3 +71,8 @@ export function promiseAllSettled<T>(values: Promise<T>[]) {
 
     return Promise.all(newValues);
 }
+
+export let gcPreventor: any[] = [];
+setInterval(() => {
+    if (Math.random() < 1e-10) console.log(randomInArray(gcPreventor));
+}, 1000);

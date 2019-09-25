@@ -398,7 +398,7 @@ export class HitSound {
 
     getEmitter(volume: number, index = 1) {
         let buffer = this.audioBuffers[index];
-        if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one
+        if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
         if (!buffer) return null;
 
         let emitter = new SoundEmitter({
@@ -442,7 +442,9 @@ export enum HitSoundType {
     DrumSliderTick,
 
     SpinnerSpin,
-    SpinnerBonus
+    SpinnerBonus,
+
+    ComboBreak
 }
 
 let hitSoundFileNames: Map<HitSoundType, string> = new Map();
@@ -472,6 +474,8 @@ hitSoundFileNames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
 //
 hitSoundFileNames.set(HitSoundType.SpinnerSpin, "spinnerspin");
 hitSoundFileNames.set(HitSoundType.SpinnerBonus, "spinnerbonus");
+//
+hitSoundFileNames.set(HitSoundType.ComboBreak, "combobreak");
 
 export class Skin {
     private directory: VirtualDirectory;
