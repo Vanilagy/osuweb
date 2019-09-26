@@ -153,7 +153,7 @@ export class SliderPath {
         let sliced = buffer.slice(0, data.currentIndex);
         this.baseVertexBuffer = sliced;
 
-        let maximumLength = buffer.length + (3 * 3 * SLIDER_CAPCIRCLE_SEGMENTS * 2 /* 3 floats per vertex, 3 vertices per triangle, ..., and 2 caps in total */);
+        let maximumLength = buffer.length + (3 * 3 * SLIDER_CAPCIRCLE_SEGMENTS/2 * 2 /* 3 floats per vertex, 3 vertices per triangle, ..., and 2 caps in total */);
         this.vertexBuffer = new Float32Array(maximumLength); // All zeroes at this point
     }
 
@@ -223,9 +223,7 @@ export class SliderPath {
 
     updateGeometry(geometry: PIXI.Geometry, completion: number) {
         this.updateVertexBuffer(completion);
-        //let vertexBuffer = this.generateVertexBuffer(completion);
         let pixiBuffer = geometry.getBuffer('vertPosition');
-
         pixiBuffer.update();
     }
 
