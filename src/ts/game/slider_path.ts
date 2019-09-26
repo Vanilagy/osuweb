@@ -1,7 +1,7 @@
 import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, interpolatePointInPointArray, pointAngle, pointNormal } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
-import { last, jsonClone, gcPreventor } from "../util/misc_util";
+import { last, jsonClone } from "../util/misc_util";
 import { Slider, SliderCurveSectionType } from "../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
