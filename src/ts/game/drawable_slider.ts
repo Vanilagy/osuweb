@@ -232,7 +232,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let completion = this.sliderTickCompletions[i];
             if (completion >= 1) break;
 
-            let sliderTickPos = this.path.getPosFromPercentage(MathUtil.reflect(completion));
+            let sliderTickPos = this.path.getPosFromPercentage(MathUtil.mirror(completion));
 
             // Check if the tick overlaps with either slider end
             if (pointDistance(sliderTickPos, this.startPoint) <= circleRadiusOsuPx || pointDistance(sliderTickPos, this.tailPoint) <= circleRadiusOsuPx) {
@@ -360,7 +360,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         let sliderEndCheckTime = this.startTime + Math.max(this.duration - 36, this.duration/2); // "Slider ends are a special case and checked exactly 36ms before the end of the slider (unless the slider is <72ms in duration, then it checks exactly halfway time wise)." https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
         let sliderEndCheckCompletion = (this.timingInfo.sliderVelocity * (sliderEndCheckTime - this.startTime)) / this.hitObject.length;
-        sliderEndCheckCompletion = MathUtil.reflect(sliderEndCheckCompletion);
+        sliderEndCheckCompletion = MathUtil.mirror(sliderEndCheckCompletion);
         let sliderEndCheckPosition = this.path.getPosFromPercentage(sliderEndCheckCompletion);
 
         playEventArray.push({
@@ -402,7 +402,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             // Time that the tick should be hit, relative to the slider start time
             let time = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
-            let position = this.path.getPosFromPercentage(MathUtil.reflect(tickCompletion));
+            let position = this.path.getPosFromPercentage(MathUtil.mirror(tickCompletion));
 
             playEventArray.push({
                 type: PlayEventType.SliderTick,
@@ -557,7 +557,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         let { headedHitObjectTextureFactor } = gameState.currentPlay;
 
-        let sliderBallPos = this.toRelativeCoord(this.path.getPosFromPercentage(MathUtil.reflect(completion)));
+        let sliderBallPos = this.toRelativeCoord(this.path.getPosFromPercentage(MathUtil.mirror(completion)));
 
         if (currentTime < this.endTime) {
             let baseElement = this.sliderBall.base.sprite;
@@ -565,13 +565,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.sliderBall.container.visible = true;
             this.sliderBall.container.x = sliderBallPos.x;
             this.sliderBall.container.y = sliderBallPos.y;
-            baseElement.rotation = this.path.getAngleFromPercentage(MathUtil.reflect(completion));
+            baseElement.rotation = this.path.getAngleFromPercentage(MathUtil.mirror(completion));
 
             let osuTex = gameState.currentGameplaySkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();
             if (frameCount > 1) {
                 let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.timingInfo.sliderVelocity);
-                let rolledDistance = this.hitObject.length * velocityRatio * MathUtil.reflect(completion);
+                let rolledDistance = this.hitObject.length * velocityRatio * MathUtil.mirror(completion);
                 let radians = rolledDistance / 15;
                 let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
 

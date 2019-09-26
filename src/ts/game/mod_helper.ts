@@ -83,7 +83,7 @@ export class ModHelper {
         }
 
         for (let chunk of chunks) {
-            if (!Object.values(Mod).includes(chunk)) continue;
+            if (!Object.values(Mod).includes(chunk as Mod)) continue;
             set.add(chunk as Mod);
         }
 
@@ -177,7 +177,7 @@ export class ModHelper {
 
                 for (let j = 0; j < hitObject.sliderTickCompletions.length; j++) {
                     let tickMs = hitObject.startTime + hitObject.sliderTickCompletions[j] * hitObject.hitObject.length / hitObject.timingInfo.sliderVelocity;
-                    let tickPosition = hitObject.path.getPosFromPercentage(MathUtil.reflect(hitObject.sliderTickCompletions[j]));
+                    let tickPosition = hitObject.path.getPosFromPercentage(MathUtil.mirror(hitObject.sliderTickCompletions[j]));
 
                     waypoints.push({
                         type: WaypointType.SliderTick,
@@ -331,7 +331,7 @@ export class ModHelper {
 
                 let completion = (slider.timingInfo.sliderVelocity * (time - slider.startTime)) / slider.hitObject.length;
                 completion = MathUtil.clamp(completion, 0, slider.hitObject.repeat);
-                let pos = slider.path.getPosFromPercentage(MathUtil.reflect(completion));
+                let pos = slider.path.getPosFromPercentage(MathUtil.mirror(completion));
 
                 return pos;
             } else if (lastInstruction.type === AutoInstructionType.Spin) {

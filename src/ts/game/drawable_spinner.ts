@@ -429,7 +429,7 @@ export class DrawableSpinner extends DrawableHitObject {
                 mask.endFill();
 
                 // Using the noise, create the 'flicker' effect.
-                if (completedSteps > 0 && ((completedSteps === SPINNER_METER_STEPS && gameState.currentGameplaySkin.config.general.spinnerNoBlink) || MathUtil.simplexNoise1D(currentTime / 50) < 0.5)) {
+                if (completedSteps > 0 && ((completedSteps === SPINNER_METER_STEPS && gameState.currentGameplaySkin.config.general.spinnerNoBlink) || MathUtil.valueNoise1D(currentTime / 50) < 0.6)) {
                     // Draw the top step:
                     mask.beginFill(0xFF0000);
                     mask.drawRect(0, (49 + (1-completion)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * spinnerPixelRatio, window.innerWidth, SPINNER_METER_STEP_HEIGHT * spinnerPixelRatio);
