@@ -113,12 +113,14 @@ export class Slider extends HitObject {
         // Is this code more complicated than it needs to be?
         if (sliderSectionPoints.length === 3 && sliderType === "P") {
             sectionType = SliderCurveSectionType.Perfect;
-        } else if (sliderSectionPoints.length === 2) {
+        } else if (sliderSectionPoints.length === 2) { // The reason we check this condition and not just "L", is because for some bizarre reason, some sliders are marked as "L" but have more than two control points. Those "special-case" "linear" sliders will then have to be treated like Béziers instead.
             sectionType = SliderCurveSectionType.Linear;
         } else if (sliderType === "B") {
             sectionType = SliderCurveSectionType.Bézier;
         } else if (sliderType === "C") {
             sectionType = SliderCurveSectionType.Catmull;
+        } else {
+            sectionType = SliderCurveSectionType.Bézier;
         }
 
         if (sliderSectionPoints.length > 1) sliderSections.push({

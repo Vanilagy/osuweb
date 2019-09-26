@@ -164,7 +164,6 @@ export class ScoreCounter {
         if (this.currentCombo === 0) return;
 
         if (this.currentCombo >= 50) {
-            console.log("Yes?");
             gameState.currentGameplaySkin.sounds[HitSoundType.ComboBreak].play(100);
         }
 

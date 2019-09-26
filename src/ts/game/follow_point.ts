@@ -10,6 +10,7 @@ export const FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED = FOLLOW_POINT_DISTANCE_THR
 export const PRE_EMPT = 450; // In ms
 const FOLLOW_POINT_SCREENTIME = 1200;
 const FOLLOW_POINT_FADE_IN_TIME = 400;
+const FOLLOW_POINT_FADE_IN_TIME_ANIMTED = 800; // For animated follow points, the fade-in time is 800 ms. That way, it's directly followed by the fade-out.
 const FOLLOW_POINT_FADE_OUT_TIME = 400;
 
 export class FollowPoint {
@@ -93,6 +94,7 @@ export class FollowPoint {
 
         let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
         let frameCount = osuTexture.getAnimationFrameCount();
+        const partFadeInTime = (frameCount === 0)? FOLLOW_POINT_FADE_IN_TIME : FOLLOW_POINT_FADE_IN_TIME_ANIMTED;
 
         for (let i = 0; i < this.parts.length; i++) {
             let part = this.parts[i];
@@ -102,10 +104,8 @@ export class FollowPoint {
 
             let fadeOutBeginning = MathUtil.lerp(this.startTime, this.endTime, x/this.length);
             let fadeInBeginning = fadeOutBeginning - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
-
-            if (frameCount > 0) fadeInBeginning = fadeOutBeginning - 600; // Observed, I guess? Sometimes, I really wonder how ppy's actual code looks like.
             
-            let fadeInCompletion = (currentTime - fadeInBeginning) / FOLLOW_POINT_FADE_IN_TIME;
+            let fadeInCompletion = (currentTime - fadeInBeginning) / partFadeInTime;
             fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
             let easedFadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
  
@@ -137,8 +137,7 @@ export class FollowPoint {
                 sprite.width = width;
                 sprite.height = height;
 
-                // The overall container's alpha will be that of the LAST part
-                part.alpha = 1 - fadeOutCompletion;
+                part.alpha = fadeInCompletion - fadeOutCompletion;
             }
         }
     }
