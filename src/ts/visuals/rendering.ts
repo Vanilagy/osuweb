@@ -7,7 +7,7 @@ const mainContext = mainCanvas.getContext('webgl2', {
     desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 });
 
-// PIXI.settings.CREATE_IMAGE_BITMAP = true; // ehh? good or not?
+PIXI.settings.CREATE_IMAGE_BITMAP = true; // ehh? good or not?
 
 export let renderer = new PIXI.Renderer({
     width: window.innerWidth,

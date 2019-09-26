@@ -39,6 +39,8 @@ const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const SPINNER_REFERENCE_SCREEN_HEIGHT = 768;
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instructions
 
+let shit = {x: 0, y: 0}
+
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
     public preludeTime: number;
@@ -104,9 +106,8 @@ export class Play {
 
         this.activeMods = ModHelper.getModsFromModCode(MODCODE_OVERRIDE || prompt("Enter mod code:"));
 
-        console.time("Beatmap process");
-        this.processedBeatmap.init(this.activeMods);
-        console.timeEnd("Beatmap process");
+        if (this.activeMods.has(Mod.Easy)) ModHelper.applyEz(this.processedBeatmap);
+        if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrFirstPass(this.processedBeatmap);
 
         this.approachTime = this.processedBeatmap.difficulty.getApproachTime();
         this.circleDiameterOsuPx = this.processedBeatmap.difficulty.getCirclePixelSize();
@@ -114,6 +115,16 @@ export class Play {
         this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
         this.circleRadius = this.circleDiameter / 2;
         this.headedHitObjectTextureFactor = this.circleDiameter / 128;
+
+        console.time("Beatmap process");
+        this.processedBeatmap.init();
+        console.timeEnd("Beatmap process");
+
+        if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrSecondPass(this.processedBeatmap);
+
+        console.time('Stack shift');
+        this.processedBeatmap.applyStackShift(false);
+        console.timeEnd('Stack shift');
 
         console.time("Beatmap draw");
         await this.processedBeatmap.draw();

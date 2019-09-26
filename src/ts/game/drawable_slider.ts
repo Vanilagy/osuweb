@@ -72,6 +72,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     init() {
+        let { circleDiameterOsuPx, pixelRatio } = gameState.currentPlay;
+
         this.complete = true;
         this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
         this.duration = this.endTime - this.startTime;
@@ -86,6 +88,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.endPoint = this.tailPoint;
         }
 
+        let bounds = this.path.calculatePathBounds() as SliderBounds;
+        bounds.width = bounds.maxX - bounds.minX + circleDiameterOsuPx;
+        bounds.height = bounds.maxY - bounds.minY + circleDiameterOsuPx;
+        bounds.screenWidth = bounds.width * pixelRatio;
+        bounds.screenHeight = bounds.height * pixelRatio;
+        this.bounds = bounds;
+
         this.scoring = getDefaultSliderScoring();
     }
 
@@ -99,18 +108,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     draw() {
-        let { circleDiameter, pixelRatio, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods, circleDiameterOsuPx } = gameState.currentPlay;
+        let { circleDiameter, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
 
         let hasHidden = activeMods.has(Mod.Hidden);
 
         this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
-
-        let bounds = this.path.calculatePathBounds() as SliderBounds;
-        bounds.width = bounds.maxX - bounds.minX + circleDiameterOsuPx;
-        bounds.height = bounds.maxY - bounds.minY + circleDiameterOsuPx;
-        bounds.screenWidth = bounds.width * pixelRatio;
-        bounds.screenHeight = bounds.height * pixelRatio;
-        this.bounds = bounds;
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.startTime - approachTime,

@@ -48,18 +48,8 @@ export class ProcessedBeatmap {
         this.difficulty = this.beatmap.difficulty.clone();
     }
 
-    init(mods: Set<Mod>) {
-        if (mods.has(Mod.Easy)) ModHelper.applyEz(this);
-        if (mods.has(Mod.HardRock)) ModHelper.applyHrFirstPass(this);
-
+    init() {
         this.generateHitObjects();
-
-        if (mods.has(Mod.HardRock)) ModHelper.applyHrSecondPass(this);
-
-        console.time('Stack shift');
-        this.applyStackShift(false);
-        console.timeEnd('Stack shift');
-
         this.generateBreaks();
     }
 
