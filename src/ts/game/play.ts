@@ -127,7 +127,7 @@ export class Play {
         console.timeEnd('Stack shift');
 
         console.time("Beatmap draw");
-        await this.processedBeatmap.draw();
+        this.processedBeatmap.draw();
         console.timeEnd("Beatmap draw");
 
         console.time("Play event generation");

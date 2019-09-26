@@ -7,7 +7,8 @@ const mainContext = mainCanvas.getContext('webgl2', {
     desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 });
 
-PIXI.settings.CREATE_IMAGE_BITMAP = true; // ehh? good or not?
+PIXI.settings.CREATE_IMAGE_BITMAP = false; // ehh? good or not? OKAY actually it seems like having this on false reduces GC work. Could be some weird placebo shit, tho
+PIXI.settings.GC_MODE = PIXI.GC_MODES.MANUAL; // TODO! So... what actually needs to be done manually? Just Texture.destroy()?
 
 export let renderer = new PIXI.Renderer({
     width: window.innerWidth,

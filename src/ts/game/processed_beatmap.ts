@@ -381,7 +381,7 @@ export class ProcessedBeatmap {
         }
     }
 
-    async draw() {
+    draw() {
         for (let i = 0; i < this.hitObjects.length; i++) {
             let hitObject = this.hitObjects[i];
             hitObject.draw();
