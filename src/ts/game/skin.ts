@@ -10,7 +10,7 @@ import { uploadTexture } from "../visuals/rendering";
 import { MathUtil } from "../util/math_util";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/seoul";
+let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -309,17 +309,17 @@ export function getTickHitSoundTypeFromSampleSet(sampleSet: number) {
     else if (sampleSet === 3) return HitSoundType.DrumSliderTick;
 }
 
-export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitmap: number) {
+export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitfield: number) {
     let types: HitSoundType[] = [];
 
-    bitmap |= 1; // Normal sound is always played
+    bitfield |= 1; // Normal sound is always played
 
-    if ((bitmap & 1) !== 0) {
+    if ((bitfield & 1) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalSliderSlide);
         else if (sampleSet === 2) types.push(HitSoundType.SoftSliderSlide);
         else if (sampleSet === 3) types.push(HitSoundType.DrumSliderSlide);
     }
-    if ((bitmap & 2) !== 0) {
+    if ((bitfield & 2) !== 0) {
         if (sampleSet === 1) types.push(HitSoundType.NormalSliderWhistle);
         else if (sampleSet === 2) types.push(HitSoundType.SoftSliderWhistle);
         else if (sampleSet === 3) types.push(HitSoundType.DrumSliderWhistle);

@@ -199,6 +199,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.lastGeneratedSnakingCompletion = sliderBodyDefaultSnake;
         let sliderBodyShader = createSliderBodyShader(this);
         let sliderBodyMesh = new PIXI.Mesh(sliderBodyGeometry, sliderBodyShader, SLIDER_BODY_MESH_STATE);
+        sliderBodyMesh.size = this.path.currentVertexCount;
         this.sliderBodyMesh = sliderBodyMesh;
 
         this.sliderBall = new SliderBall(this);
@@ -512,13 +513,14 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
 
         let doRender = !this.sliderBodyHasBeenRendered;
-        let mesh = this.sliderBodyMesh;
         let renderTex = this.baseSprite.texture as PIXI.RenderTexture;
         let gl = renderer.state.gl;
 
         if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
-            this.path.updateGeometry(mesh.geometry, snakeCompletion);
+            this.path.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion);
+            this.sliderBodyMesh.size = this.path.currentVertexCount;
             this.lastGeneratedSnakingCompletion = snakeCompletion;
+
             doRender = true;
         }
 
@@ -527,7 +529,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         // Blending here needs to be done normally 'cause, well, reasons. lmao
         // INSANE hack:
         gl.disable(gl.BLEND);
-        renderer.render(mesh, renderTex);
+        renderer.render(this.sliderBodyMesh, renderTex);
         gl.enable(gl.BLEND);
 
         this.sliderBodyHasBeenRendered = true;

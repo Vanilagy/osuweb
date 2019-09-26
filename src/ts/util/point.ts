@@ -40,6 +40,15 @@ export function pointAngle(p1: Point, p2: Point) {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
 }
 
+export function pointNormal(p1: Point, p2: Point, precomputedLength?: number): Vector2 {
+    let length = precomputedLength || pointDistance(p1, p2);
+
+    return {
+        x: -(p2.y - p1.y) / length,
+        y: (p2.x - p1.x) / length,
+    };
+}
+
 export function pointsAreEqual(p1: Point, p2: Point) {
     return p1.x === p2.x && p1.y === p2.y;
 }
