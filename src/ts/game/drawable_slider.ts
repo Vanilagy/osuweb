@@ -132,6 +132,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.hitCirclePrimitiveContainer.addChild(this.head.container);
         this.reverseArrowContainer = new PIXI.Container();
 
+        this.path.generatePointData();
+        this.path.generateBaseVertexBuffer();
+
         this.sliderEnds = [];
         let msPerRepeatCycle = this.hitObject.length / this.timingInfo.sliderVelocity;
         for (let i = 0; i < this.hitObject.repeat; i++) {
@@ -182,8 +185,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 this.reverseArrowContainer.addChildAt(primitive.reverseArrow, 0);
             }
         }
-
-        this.path.generateBaseVertexBuffer();
 
         let renderTex = PIXI.RenderTexture.create({width: this.bounds.screenWidth, height: this.bounds.screenHeight});
         let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;

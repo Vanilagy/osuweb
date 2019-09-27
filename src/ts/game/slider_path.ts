@@ -46,11 +46,10 @@ export class SliderPath {
 
     constructor(points: Point[]) {
         this.points = points;
-
-        this.generatePointData();
     }
 
-    private generatePointData() {
+    /** Generates utility information for the path. Has to be called before any vertices are created! */
+    generatePointData() {
         for (let i = 0; i < this.points.length-1; i++) {
             let p1 = this.points[i],
                 p2 = this.points[i+1];
