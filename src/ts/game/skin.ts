@@ -10,7 +10,7 @@ import { uploadTexture } from "../visuals/rendering";
 import { MathUtil } from "../util/math_util";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/seoul";
+let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -329,6 +329,10 @@ export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitfield: nu
     return types;
 }
 
+export function normSampleSet(sampleSet: number) {
+    return MathUtil.clamp(sampleSet, 1, 3);
+}
+
 export class HitSound {
     private files: { [index: number]: VirtualFile };
     private audioBuffers: { [index: number]: AudioBuffer };
@@ -400,6 +404,9 @@ export class HitSound {
         let buffer = this.audioBuffers[index];
         if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
         if (!buffer) return null;
+
+        // TODO: How correct is this? Eeeeeeh
+        volume = MathUtil.clamp(volume, 10, 10000);
 
         let emitter = new SoundEmitter({
             destination: soundEffectsNode,

@@ -23,28 +23,36 @@ export interface TimingPoint {
     sampleSet: number,
     sampleIndex: number,
     volume: number,
-    inherited: boolean,
+    canBeInheritedFrom: boolean,
     kiai: boolean
 }
 
 export enum BeatmapEventType {
-    Break,
-    Image
+    Background,
+    Video,
+    Break
 }
 
 export interface BeatmapEvent {
-    type: BeatmapEventType
+    type: BeatmapEventType,
+    time: number
 }
 
-export interface BeatmapEventImage extends BeatmapEvent {
-    time: number,
+export interface BeatmapEventBackground extends BeatmapEvent {
+    type: BeatmapEventType.Background
     file: string,
-    position: Point
+    offset: Point
+}
+
+export interface BeatmapEventVideo extends BeatmapEvent {
+    type: BeatmapEventType.Video
+    file: string,
+    offset: Point
 }
 
 export interface BeatmapEventBreak extends BeatmapEvent {
-    start: number,
-    end: number
+    type: BeatmapEventType.Break,
+    endTime: number
 }
 
 export class Beatmap {
@@ -69,7 +77,7 @@ export class Beatmap {
     public audioLeadIn: number = null;
     public previewTime: number = null;
     public countdown: number = null;
-    public sampleSet: number = null;
+    public sampleSet: string = null; // Some... weird legacy thing, I think. Not used anywhere :thinking:
     public mode: number = null;
     public letterBoxInBreaks: number = null;
     public widescreenStoryboard: number = null;
@@ -104,8 +112,8 @@ export class Beatmap {
         for (let key in this.events) {
             let evt = this.events[key];
 
-            if (evt.type === BeatmapEventType.Image) {
-                return (evt as BeatmapEventImage).file;
+            if (evt.type === BeatmapEventType.Background) {
+                return (evt as BeatmapEventBackground).file;
             }
         }
 
@@ -127,7 +135,7 @@ export class Beatmap {
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i].trim();
 
-            if (line === "") continue;
+            if (line === "" || line.startsWith("//")) continue;
 
             if (line.startsWith("osu file format v")) {
                 this.version = line.substr(line.length - 2, 2);
@@ -154,7 +162,7 @@ export class Beatmap {
                 else if (line.startsWith("AudioLeadIn")) this.audioLeadIn = parseInt(line.split(':')[1].trim());
                 else if (line.startsWith("PreviewTime")) this.previewTime = parseInt(line.split(':')[1].trim());
                 else if (line.startsWith("Countdown")) this.countdown = parseInt(line.split(':')[1].trim());
-                else if (line.startsWith("SampleSet")) this.sampleSet = parseInt(line.split(':')[1].trim());
+                else if (line.startsWith("SampleSet")) this.sampleSet = line.split(':')[1].trim();
                 else if (line.startsWith("StackLeniency")) this.difficulty.SL = parseFloat(line.split(':')[1].trim());
                 else if (line.startsWith("Mode")) this.mode = parseInt(line.split(':')[1].trim());
                 else if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = parseInt(line.split(':')[1].trim());
@@ -183,6 +191,11 @@ export class Beatmap {
         }
 
         if (!this.ARFound) this.difficulty.AR = this.difficulty.OD;
+
+        // These arrays are not guaranteed to be in-order in the file, so we sort 'em:
+        this.events.sort((a, b) => a.time - b.time);
+        this.hitObjects.sort((a, b) => a.time - b.time);
+        this.timingPoints.sort((a, b) => a.offset - b.offset);
 
         //Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
         //Console.verbose("--- BEATMAP LOADING FINISHED ---");
@@ -216,12 +229,12 @@ export class Beatmap {
             index: this.timingPoints.length,
             offset: offset,
             msPerBeat: msPerBeat,
-            BPM: msPerBeat > 0 ? 60000 / Number(values[1]) : -1,
+            BPM: msPerBeat > 0 ? 60000 / msPerBeat : -1,
             meter: parseInt(values[2]),
             sampleSet: parseInt(values[3]),
             sampleIndex: parseInt(values[4]),
             volume: parseInt(values[5]),
-            inherited: msPerBeat < 0,
+            canBeInheritedFrom: values[6] === "1", // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
             kiai: Boolean(parseInt(values[7])),
         });
 
@@ -261,23 +274,36 @@ export class Beatmap {
 
         switch (values[0]) {
             case "0": {
-                let x = parseInt(values[3]),
-                    y = parseInt(values[4]);
+                let offsetX = parseInt(values[3]),
+                    offsetY = parseInt(values[4]);
 
-                let event: BeatmapEventImage = {
-                    type: BeatmapEventType.Image,
+                let event: BeatmapEventBackground = {
+                    type: BeatmapEventType.Background,
                     time: parseInt(values[1]),
                     file: values[2].substring(1, values[2].length - 1),
-                    position: {x, y}
+                    offset: {x: offsetX, y: offsetY}
                 };
 
                 this.events.push(event);
             }; break;
-            case "2": {
+            case "1": case "Video": { // "Video may be replaced by 1." https://osu.ppy.sh/help/wiki/osu!_File_Formats/Osu_(file_format)
+                let offsetX = parseInt(values[3]),
+                offsetY = parseInt(values[4]);
+
+                let event: BeatmapEventVideo = {
+                    type: BeatmapEventType.Video,
+                    time: parseInt(values[1]),
+                    file: values[2].substring(1, values[2].length - 1),
+                    offset: {x: offsetX, y: offsetY}
+                };
+
+                this.events.push(event);
+            }; break;
+            case "2": case "Break": { // "The 2 lets osu! know that this is a break event. It may be replaced by Break." https://osu.ppy.sh/help/wiki/osu!_File_Formats/Osu_(file_format)
                 let event: BeatmapEventBreak = {
                     type: BeatmapEventType.Break,
-                    start: parseInt(values[1]),
-                    end: parseInt(values[2])
+                    time: parseInt(values[1]),
+                    endTime: parseInt(values[2])
                 };
 
                 this.events.push(event);
@@ -289,7 +315,7 @@ export class Beatmap {
 
     getNextNonInheritedTimingPoint(num: number) {
         for(let i = num + 1; i < this.timingPoints.length; i++) {
-            if(!this.timingPoints[i].inherited) return this.timingPoints[i];
+            if(!this.timingPoints[i].canBeInheritedFrom) return this.timingPoints[i];
         }
 
         return null;

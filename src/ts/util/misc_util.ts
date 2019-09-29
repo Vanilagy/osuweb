@@ -71,3 +71,9 @@ export function promiseAllSettled<T>(values: Promise<T>[]) {
 
     return Promise.all(newValues);
 }
+
+let floatConverterDataView = new DataView(new ArrayBuffer(8));
+export function toFloat32(f64: number) {
+    floatConverterDataView.setFloat32(0, f64);
+    return floatConverterDataView.getFloat32(0);
+}

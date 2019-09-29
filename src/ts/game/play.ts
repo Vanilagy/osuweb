@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
-import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
+import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO, SpecialSliderBehavior } from "./drawable_slider";
 import { mainRender, followPointContainer, scorePopupContainer, softwareCursor } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
@@ -183,7 +183,7 @@ export class Play {
         if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) mainMusicMediaPlayer.setPlaybackRate(DOUBLE_TIME_PLAYBACK_RATE);
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
-        mainMusicMediaPlayer.start(-this.preludeTime / 1000);
+        mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
 
         console.timeEnd("Audio load");
 
@@ -419,11 +419,13 @@ export class Play {
                     if (hit) {
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
 
-                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
+                        // gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
+                        // This is commented out because the hit sound should be played in the .score method.
                     }
 
                     let primitive = slider.sliderEnds[playEvent.i];
-                    HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
+                    // The if here ie because there is not always a slider end primitive (like for invisible sliders)
+                    if (primitive) HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
 
                     // Score the slider, no matter if the end was hit or not (obviously) 
                     slider.score();
@@ -477,20 +479,6 @@ export class Play {
                     let spinner = playEvent.hitObject as DrawableSpinner;
 
                     spinner.score();
-                }; break;
-                case PlayEventType.DrawSlider: {
-                    let slider = playEvent.hitObject as DrawableSlider;
-
-                    processJob({
-                        job: {
-                            task: JobTask.DrawSliderByIndex,
-                            sliderIndex: slider.index
-                        } as DrawSliderByIndexJob,
-                        transfer: []
-                    }).then(() => {
-                        //slider.baseSprite.texture = PIXI.Texture.from(slider.baseCanvas);
-                        //slider.baseSprite.texture = PIXI.Texture.from(slider.baseCanvas);
-                    });
                 }; break;
             }
         }
@@ -591,6 +579,7 @@ export class Play {
 
         let cursorPlayfieldPos: Point = null;
 
+        outer:
         if (currentInstruction.type === AutoInstructionType.Blink) {
             cursorPlayfieldPos = currentInstruction.to;
 
@@ -616,16 +605,23 @@ export class Play {
         } else if (currentInstruction.type === AutoInstructionType.Follow) {
             let slider = currentInstruction.hitObject as DrawableSlider;
 
-            let completion = (slider.timingInfo.sliderVelocity * (currentTime - slider.startTime)) / slider.hitObject.length;
-            completion = MathUtil.clamp(completion, 0, slider.hitObject.repeat);
+            if (currentTime >= currentInstruction.endTime) {
+                this.currentPlaythroughInstruction++;
+                cursorPlayfieldPos = slider.endPoint;
+                break outer;
+            }
+
+            let completion = (slider.timingInfo.sliderVelocity * (currentTime - slider.startTime)) / slider.length;
+            completion = MathUtil.clamp(completion, 0, slider.repeat);
 
             cursorPlayfieldPos = slider.path.getPosFromPercentage(MathUtil.mirror(completion));
-
-            if (currentTime > slider.endTime) this.currentPlaythroughInstruction++;
         } else if (currentInstruction.type === AutoInstructionType.Spin) {
             cursorPlayfieldPos = ModHelper.getSpinPositionFromSpinInstruction(currentInstruction, Math.min(currentInstruction.endTime, currentTime));
 
-            if (currentTime > currentInstruction.endTime) this.currentPlaythroughInstruction++;
+            if (currentTime >= currentInstruction.endTime) {
+                this.currentPlaythroughInstruction++;
+                break outer;
+            }
         }
 
         softwareCursor.x = this.toScreenCoordinatesX(cursorPlayfieldPos.x, false);

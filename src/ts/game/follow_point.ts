@@ -1,5 +1,5 @@
 import { DrawableHitObject } from "./drawable_hit_object";
-import { Point, pointDistance } from "../util/point";
+import { Point, pointDistance, pointAngle } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { followPointContainer } from "../visuals/rendering";
@@ -40,7 +40,7 @@ export class FollowPoint {
         this.renderStartTime = this.startTime - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
 
         this.length = pointDistance(this.startPoint, this.endPoint);
-        let angle = Math.atan2(this.endPoint.y - this.startPoint.y, this.endPoint.x - this.startPoint.x);
+        let angle = pointAngle(this.startPoint, this.endPoint);
 
         this.parts = [];
         this.container = new PIXI.Container();

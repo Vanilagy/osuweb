@@ -5,7 +5,7 @@ import { gameState } from "./game_state";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../util/constants";
 import { colorToHexNumber, Colors, colorToHexString } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
-import { assert, last } from "../util/misc_util";
+import { assert, last, toFloat32 } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
@@ -37,6 +37,11 @@ interface SliderBounds extends SliderPathBounds {
     screenHeight: number
 }
 
+export enum SpecialSliderBehavior {
+    None,
+    Invisible
+}
+
 export class DrawableSlider extends HeadedDrawableHitObject {
     public baseSprite: PIXI.Sprite;
     public overlayContainer: PIXI.Container;
@@ -44,14 +49,15 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public sliderTickContainer: PIXI.Container;
     private followCircle: PIXI.Container;
     private followCircleAnimator: AnimatedOsuSprite;
-    public sliderEnds: HitCirclePrimitive[];
+    public sliderEnds: HitCirclePrimitive[] = [];
     public hitCirclePrimitiveContainer: PIXI.Container;
     public reverseArrowContainer: PIXI.Container;
 
     /** The "visual other end" of the slider. Not necessarily where the slider ends (because of repeats); for that, refer to endPoint instead. */
     public tailPoint: Point;
     public duration: number;
-    public complete: boolean;
+    public repeat: number; // Contains the adjusted value of repeats in case the file was doing something funky.
+    public length: number; // Same info as for repeat.
     public path: SliderPath;
     public bounds: SliderBounds;
     public timingInfo: SliderTimingInfo;
@@ -62,6 +68,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public hitSounds: HitSoundInfo[];
     public tickSounds: HitSoundInfo[];
     public slideEmitters: SoundEmitter[];
+    public specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
 
     public sliderBodyMesh: PIXI.Mesh;
     public sliderBodyHasBeenRendered = false;
@@ -74,15 +81,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     init() {
         let { circleDiameterOsuPx, pixelRatio } = gameState.currentPlay;
 
-        this.complete = true;
-        this.endTime = this.startTime + this.hitObject.repeat * this.hitObject.length / this.timingInfo.sliderVelocity;
+        this.endTime = this.startTime + this.repeat * this.length / this.timingInfo.sliderVelocity;
         this.duration = this.endTime - this.startTime;
-
-        this.path = SliderPath.fromSlider(this.hitObject);
-
         this.tailPoint = this.path.getPosFromPercentage(1.0);
-
-        if (this.hitObject.repeat % 2 === 0) {
+    
+        if (this.repeat % 2 === 0) {
             this.endPoint = this.startPoint;
         } else {
             this.endPoint = this.tailPoint;
@@ -108,6 +111,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     draw() {
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
         let { circleDiameter, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
 
         let hasHidden = activeMods.has(Mod.Hidden);
@@ -136,8 +141,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.path.generateBaseVertexBuffer();
 
         this.sliderEnds = [];
-        let msPerRepeatCycle = this.hitObject.length / this.timingInfo.sliderVelocity;
-        for (let i = 0; i < this.hitObject.repeat; i++) {
+        let msPerRepeatCycle = this.length / this.timingInfo.sliderVelocity;
+        for (let i = 0; i < this.repeat; i++) {
             let pos = (i % 2 === 0)? relativeEndPos : relativeStartPos;
             
             let fadeInStart: number;
@@ -152,10 +157,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             }
 
             let reverseArrowAngle: number;
-            if (i < this.hitObject.repeat-1) {
+            if (i < this.repeat-1) {
                 if (i % 2 === 0) {
                     let angle = this.path.getAngleFromPercentage(1);
-                    angle = MathUtil.constrainRadians(angle + Math.PI); // Turn it by 180°
+                    // This odd condition is to prevent rotation for reverse arrows for edge-case sliders, like zero-length or zero-section sliders, which are found in Aspire maps, for example. Those sliders only have a one-point path, and something naive in ppy's code makes that cause all reverse arrows to face the same direction. I think he's just atan2-ing two very close points on the path, instead of what's being done here. Welp. Fake it!
+                    if (this.path.points.length > 1) angle = MathUtil.constrainRadians(angle + Math.PI); // Turn it by 180°
 
                     reverseArrowAngle = angle;
                 } else {
@@ -287,12 +293,16 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
     
     show(currentTime: number) {
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
         sliderBodyContainer.addChildAt(this.baseSprite, 0);
 
         super.show(currentTime);
     }
 
     position() {
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
         super.position(); // Haha, superposition. Yes. This joke is funny and not funny at the same time. Until observed, of course.
 
         let { circleRadiusOsuPx } = gameState.currentPlay;
@@ -311,6 +321,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.renderFinished = true;
             return;
         }
+
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
         this.updateHeadElements(currentTime);
         
@@ -339,6 +351,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     remove() {
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
         super.remove();
 
         sliderBodyContainer.removeChild(this.baseSprite);
@@ -352,28 +366,24 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     addPlayEvents(playEventArray: PlayEvent[]) {
         super.addPlayEvents(playEventArray);
 
-        /* NO!
-        if (true || this.curve instanceof SliderCurveBézier) {
+        // Sliders that are shorter than 1ms in duration won't run checks for the slider end, repeats or ticks. The float conversion is done to account for osu-internal code.
+        // This isn't totally how osu works, osu is more buggy. But it's like... buggy in a really unpredictable way. It's such a small and rare edge case, that I cannot be bothered to figure out its exact behavior. Sorry.
+        let tooShort = toFloat32(this.duration) < 1;
+
+        if (this.specialBehavior !== SpecialSliderBehavior.Invisible && !tooShort) {
+            let sliderEndCheckTime = this.startTime + Math.max(this.duration - 36, this.duration/2); // "Slider ends are a special case and checked exactly 36ms before the end of the slider (unless the slider is <72ms in duration, then it checks exactly halfway time wise)." https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
+            let sliderEndCheckCompletion = ((this.timingInfo.sliderVelocity * (sliderEndCheckTime - this.startTime)) / this.length) || 0; // || 0 to catch NaN for zero-length slider
+            sliderEndCheckCompletion = MathUtil.mirror(sliderEndCheckCompletion);
+            let sliderEndCheckPosition = this.path.getPosFromPercentage(sliderEndCheckCompletion);
+    
             playEventArray.push({
-                type: PlayEventType.DrawSlider,
+                type: PlayEventType.SliderEndCheck,
                 hitObject: this,
-                time: this.startTime - 5000
+                time: sliderEndCheckTime,
+                position: sliderEndCheckPosition
             });
-        }*/
-        
+        }
 
-        let sliderEndCheckTime = this.startTime + Math.max(this.duration - 36, this.duration/2); // "Slider ends are a special case and checked exactly 36ms before the end of the slider (unless the slider is <72ms in duration, then it checks exactly halfway time wise)." https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
-        let sliderEndCheckCompletion = (this.timingInfo.sliderVelocity * (sliderEndCheckTime - this.startTime)) / this.hitObject.length;
-        sliderEndCheckCompletion = MathUtil.mirror(sliderEndCheckCompletion);
-        let sliderEndCheckPosition = this.path.getPosFromPercentage(sliderEndCheckCompletion);
-
-        playEventArray.push({
-            type: PlayEventType.SliderEndCheck,
-            hitObject: this,
-            time: sliderEndCheckTime,
-            position: sliderEndCheckPosition
-        });
-        
         playEventArray.push({
             type: PlayEventType.SliderEnd,
             hitObject: this,
@@ -382,11 +392,14 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             i: this.sliderEnds.length-1
         });
 
-        // Add repeats
-        if (this.hitObject.repeat > 1) {
-            let repeatCycleDuration = (this.endTime - this.startTime) / this.hitObject.repeat;
+        if (tooShort) return;
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-            for (let i = 1; i < this.hitObject.repeat; i++) {
+        // Add repeats
+        if (this.repeat > 1) {
+            let repeatCycleDuration = this.duration / this.repeat;
+
+            for (let i = 1; i < this.repeat; i++) {
                 let position = (i % 2 === 0)? this.startPoint : this.endPoint;
 
                 playEventArray.push({
@@ -405,7 +418,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let tickCompletion = this.sliderTickCompletions[i];
 
             // Time that the tick should be hit, relative to the slider start time
-            let time = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+            let time = tickCompletion * this.length / this.timingInfo.sliderVelocity;
             let position = this.path.getPosFromPercentage(MathUtil.mirror(tickCompletion));
 
             playEventArray.push({
@@ -419,6 +432,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     beginSliderSlideSound() {
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
         for (let emitter of this.slideEmitters) {
             emitter.start();
         }
@@ -431,25 +446,33 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     score() {
-        let total = 0;
-        if (this.scoring.head.hit !== ScoringValue.Miss) total++;
-        if (this.scoring.end) total++;
-        total += this.scoring.ticks;
-        total += this.scoring.repeats;
+        let resultingRawScore = 0;
 
-        let fraction = total / (2 + this.sliderTickCompletions.length + (this.hitObject.repeat - 1));
-        assert(fraction >= 0 && fraction <= 1);
+        if (this.specialBehavior === SpecialSliderBehavior.Invisible) {
+            if (this.scoring.head.hit) resultingRawScore = 300;
+        } else {
+            let total = 0;
+            if (this.scoring.head.hit !== ScoringValue.Miss) total++;
+            if (this.scoring.end) total++;
+            total += this.scoring.ticks;
+            total += this.scoring.repeats;
+    
+            let fraction = total / (2 + this.sliderTickCompletions.length + (this.repeat - 1));
+            assert(fraction >= 0 && fraction <= 1);
+    
+            resultingRawScore = (() => {
+                if (fraction === 1) {
+                    return 300;
+                } else if (fraction >= 0.5) {
+                    return 100;
+                } else if (fraction > 0) {
+                    return 50;
+                }
+                return 0;
+            })();
+        }
 
-        let resultingRawScore = (() => {
-            if (fraction === 1) {
-                return 300;
-            } else if (fraction >= 0.5) {
-                return 100;
-            } else if (fraction > 0) {
-                return 50;
-            }
-            return 0;
-        })();
+        if (this.scoring.end || resultingRawScore === 300) gameState.currentGameplaySkin.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
 
         gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true, this, this.endTime);
     }
@@ -479,7 +502,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             gameState.currentGameplaySkin.playHitSound(this.hitSounds[0]);
             accuracyMeter.addAccuracyLine(timeInaccuracy, time);
         }
-        HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
+        // The if here is because not all sliders have heads, like edge-case invisible sliders.
+        if (this.head) HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
     }
 
     applyStackPosition() {
@@ -542,8 +566,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let completion = 0;
         let currentSliderTime = currentTime - this.hitObject.time;
 
-        completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.hitObject.length;
-        completion = MathUtil.clamp(completion, 0, this.hitObject.repeat);
+        completion = (this.timingInfo.sliderVelocity * currentSliderTime) / this.length;
+        completion = MathUtil.clamp(completion, 0, this.repeat);
 
         this.updateSliderEnds(currentTime);
         this.updateSliderBall(completion, currentTime, currentSliderTime);
@@ -576,7 +600,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let frameCount = osuTex.getAnimationFrameCount();
             if (frameCount > 1) {
                 let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.timingInfo.sliderVelocity);
-                let rolledDistance = this.hitObject.length * velocityRatio * MathUtil.mirror(completion);
+                let rolledDistance = this.length * velocityRatio * MathUtil.mirror(completion);
                 let radians = rolledDistance / 15;
                 let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
 
@@ -611,7 +635,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             biggestCurrentTickCompletion = c;
         }
         biggestCurrentRepeatCompletion = Math.floor(completion);
-        if (biggestCurrentRepeatCompletion === 0 || biggestCurrentRepeatCompletion === this.hitObject.repeat)
+        if (biggestCurrentRepeatCompletion === 0 || biggestCurrentRepeatCompletion === this.repeat)
             biggestCurrentRepeatCompletion = null; // We don't want the "pulse" on slider beginning and end, only on hitting repeats
 
         outer:
@@ -620,7 +644,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             if (biggestCompletion === -Infinity) break outer; // Breaking ifs, yay! Tbh, it's a useful thing.
 
             // Time of the slider tick or the reverse, relative to the slider start time
-            let time = biggestCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+            let time = biggestCompletion * this.length / this.timingInfo.sliderVelocity;
 
             let pulseFactor = (currentSliderTime - time) / FOLLOW_CIRCLE_PULSE_DURATION;
             pulseFactor = 1 - MathUtil.ease(EaseType.EaseOutQuad, MathUtil.clamp(pulseFactor, 0, 1));
@@ -669,11 +693,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             }
             
             // The currentSliderTime at the beginning of the current repeat cycle
-            let msPerRepeatCycle = this.hitObject.length / this.timingInfo.sliderVelocity;
+            let msPerRepeatCycle = this.duration / this.repeat;
             let currentRepeatTime = currentCycle * msPerRepeatCycle;
             // The time the tick should have fully appeared (animation complete), relative to the current repeat cycle
             // Slider velocity here is doubled, meaning the ticks appear twice as fast as the slider ball moves.
-            let relativeTickTime = ((tickCompletion - lowestTickCompletionFromCurrentRepeat) * this.hitObject.length / (this.timingInfo.sliderVelocity * 2)) + SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
+            let relativeTickTime = ((tickCompletion - lowestTickCompletionFromCurrentRepeat) * this.length / (this.timingInfo.sliderVelocity * 2)) + SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
             // Sum both up to get the timing of the tick relative to the beginning of the whole slider:
             let tickTime = currentRepeatTime + relativeTickTime;
             
@@ -696,7 +720,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
             // With HD, ticks start fading out shortly before they're supposed to be picked up. By the time they are picked up, they will have reached opacity 0.
             if (hasHidden) {
-                let tickPickUpTime = tickCompletion * this.hitObject.length / this.timingInfo.sliderVelocity;
+                let tickPickUpTime = tickCompletion * this.length / this.timingInfo.sliderVelocity;
                 let fadeOutCompletion = (currentSliderTime - (tickPickUpTime - HIDDEN_TICK_FADE_OUT_DURATION)) / HIDDEN_TICK_FADE_OUT_DURATION;
                 fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
 

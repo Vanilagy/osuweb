@@ -1,8 +1,8 @@
 import { Beatmap, BeatmapEventBreak, TimingPoint, BeatmapEventType } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
-import { DrawableSlider, SliderTimingInfo } from "./drawable_slider";
+import { DrawableSlider, SliderTimingInfo, SpecialSliderBehavior } from "./drawable_slider";
 import { Circle } from "../datamodel/circle";
-import { Slider } from "../datamodel/slider";
+import { Slider, SliderType } from "../datamodel/slider";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { DrawableSpinner } from "./drawable_spinner";
 import { MathUtil } from "../util/math_util";
@@ -11,13 +11,14 @@ import { PlayEvent } from "./play_events";
 import { last } from "../util/misc_util";
 import { Spinner } from "../datamodel/spinner";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitfield, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, HitSoundType } from "./skin";
+import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS, getHitSoundTypesFromSampleSetAndBitfield, HitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, HitSoundType, normSampleSet } from "./skin";
 import { gameState } from "./game_state";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { Mod } from "./mods";
 import { ModHelper } from "./mod_helper";
 import { pointDistance } from "../util/point";
+import { SliderPath } from "./slider_path";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -96,17 +97,20 @@ export class ProcessedBeatmap {
                 while (this.beatmap.timingPoints[currentTimingPointIndex].offset <= rawHitObject.time) {
                     let timingPoint = this.beatmap.timingPoints[currentTimingPointIndex];
 
-                    if (timingPoint.inherited) {
-                        // Implies timingPoint.msPerBeat is negative. An exaplanation pulled from the osu website:
+                    if (timingPoint.canBeInheritedFrom) {
+                        currentMsPerBeatMultiplier = 1;
+                        currentMsPerBeat = timingPoint.msPerBeat;
+                    }
+
+                    // LMFAO! PPY'S CODE IS SUCH A MESS! Turns out that if a timing point that can be inherited from has negative msPerBeat (it's positive for normal maps), it is counted as BOTH an inherited AND non-inherited timing point. BOTH! What the heck! That's why the following if is based on solely msPerBeat and not on the inherited-ness of the timing point specified in the .osu file. Whew.
+                    if (timingPoint.msPerBeat < 0) {
+                        // timingPoint.msPerBeat is negative. An exaplanation pulled from the osu website:
                         // The milliseconds per beat field (Decimal) defines the duration of one beat. It affect the scrolling speed in osu!taiko or osu!mania, and the slider speed in osu!standard, among other things. When positive, it is faithful to its name. When negative, it is a percentage of previous non-negative milliseconds per beat. For instance, 3 consecutive timing points with 500, -50, -100 will have a resulting beat duration of half a second, a quarter of a second, and half a second, respectively.
                         
                         let factor = timingPoint.msPerBeat * -1 / 100;
-                        factor = MathUtil.clamp(factor, 0, 10); // TODO: is there a a lower limit?
+                        factor = MathUtil.clamp(factor, 0.1, 10);
                         
-                        currentMsPerBeatMultiplier = factor;
-                    } else {
-                        currentMsPerBeatMultiplier = 1;
-                        currentMsPerBeat = timingPoint.msPerBeat;
+                        currentMsPerBeatMultiplier = factor;   
                     }
 
                     currentTimingPoint = timingPoint;
@@ -130,8 +134,8 @@ export class ProcessedBeatmap {
             };
 
             function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, index: number, timingPoint: TimingPoint) {
-                baseSet = baseSet || timingPoint.sampleSet || 1;
-                additionSet = additionSet || baseSet; // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+                baseSet = normSampleSet(baseSet || timingPoint.sampleSet || 1)
+                additionSet = normSampleSet(additionSet || baseSet); // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
                 volume = volume || timingPoint.volume;
                 index = index || timingPoint.sampleIndex || 1;
 
@@ -155,51 +159,87 @@ export class ProcessedBeatmap {
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
 
+                let { path, additionalData: additionalPathData } = SliderPath.fromSlider(rawHitObject);
+                newObject.path = path;
+
+                let specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
+                if (rawHitObject.sections.length === 0 && rawHitObject.type !== SliderType.Bézier) {
+                    specialBehavior = SpecialSliderBehavior.Invisible;
+                }
+                if (rawHitObject.sections.length > 0 && rawHitObject.length < 0) {
+                    specialBehavior = SpecialSliderBehavior.Invisible;
+                }
+                newObject.specialBehavior = specialBehavior;
+
+                let repeat = rawHitObject.repeat;
+                if (repeat < 1) repeat = 1; // In case the map file is feeling funny.
+                newObject.repeat = repeat;
+
+                let length = rawHitObject.length;
+                if (specialBehavior === SpecialSliderBehavior.Invisible) length = 0;
+                if (length < 0) length = 0;
+                if (rawHitObject.sections.length === 0) length = 0;
+                if (rawHitObject.sections.length > 0 && rawHitObject.length === 0) length = additionalPathData.pathLength; // When the length is 0 in the file, it doesn't mean "zero" length (how could you guess something so outrageous?), but instead means that the path generator will calculate the length based on the control points. More on that in SliderPath.
+                // TODO: More here?
+                newObject.length = length;
+
+                let combinedMsPerBeat = currentMsPerBeat * currentMsPerBeatMultiplier;
+                if (combinedMsPerBeat <= 0 && !MathUtil.isPositiveZero(combinedMsPerBeat)) combinedMsPerBeat = 1000; // This is the case for Aspire-like hacky maps. It's strange and kinda arbitrary, but observed.
+
                 let sliderVelocityInOsuPixelsPerBeat = 100 * this.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
-                let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / (currentMsPerBeat * currentMsPerBeatMultiplier);
+                let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / combinedMsPerBeat;
 
                 let timingInfo: SliderTimingInfo = {
                     msPerBeat: currentMsPerBeat,
                     msPerBeatMultiplier: currentMsPerBeatMultiplier,
                     sliderVelocity: sliderVelocityInOsuPixelsPerMillisecond
                 };
-
                 newObject.timingInfo = timingInfo;
 
-                let sliderTickCompletions = [];
-                // Only go to completion 1, because the slider tick locations are determined solely by the first repeat cycle. In all cycles after that, they stay in the exact same place. Example: If my slider is:
-                // O----T----T-O
-                // where O represents the ends, and T is a slider tick, then repeating that slider does NOT change the position of the Ts. It follows that slider ticks don't always "tick" in constant time intervals.
-                for (let tickCompletion = 0; tickCompletion < 1; tickCompletion += (timingInfo.sliderVelocity * (timingInfo.msPerBeat / this.difficulty.TR)) / rawHitObject.length) {
-                    let timeToStart = tickCompletion * rawHitObject.length / timingInfo.sliderVelocity;
-                    let timeToEnd = (1 - tickCompletion) * rawHitObject.length / timingInfo.sliderVelocity;
+                let sliderTickCompletions: number[] = [];
+                outer:
+                if (specialBehavior !== SpecialSliderBehavior.Invisible) {
+                    let timeBetweenTicks = timingInfo.msPerBeat;
+                    if (timeBetweenTicks <= 0) timeBetweenTicks = 1000 / timingInfo.msPerBeatMultiplier; // This is seriously weird, but observed. Weird because it's so arbitrary, and 'cause ticks usually don't get affected by the multiplier, at least not for normal values.
 
-                    if (timeToStart < 6 || timeToEnd < 6) continue; // Ignore slider ticks temporally close to either slider end
+                    // Not sure if this is how osu does it, but this is to prevent getting stuck while generating slider ticks.
+                    if (timeBetweenTicks < 1) break outer;
 
-                    sliderTickCompletions.push(tickCompletion);
-                }
-                
-                // Weird implementation. Can probably be done much easier-ly. This handles the "going back and forth but keep the ticks in the same location" thing. TODO.
-                let len = sliderTickCompletions.length;
-                if (len > 0) {
-                    for (let i = 1; i < newObject.hitObject.repeat; i++) {
-                        if (i % 2 === 0) {
-                            for (let j = 0; j < len; j++) {
-                                sliderTickCompletions.push(i + sliderTickCompletions[j]);
-                            }
-                        } else {
-                            for (let j = len-1; j >= 0; j--) {
-                                sliderTickCompletions.push(i + 1 - sliderTickCompletions[j]);
+                    let tickCompletionIncrement = (timingInfo.sliderVelocity * (timeBetweenTicks / this.difficulty.TR)) / length;
+                    
+                    // Only go to completion 1, because the slider tick locations are determined solely by the first repeat cycle. In all cycles after that, they stay in the exact same place. Example: If my slider is:
+                    // O----T----T-O
+                    // where O represents the ends, and T is a slider tick, then repeating that slider does NOT change the position of the Ts. It follows that slider ticks don't always "tick" in constant time intervals.
+                    for (let tickCompletion = tickCompletionIncrement; tickCompletion > 0 && tickCompletion < 1; tickCompletion += tickCompletionIncrement) {
+                        let timeToStart = tickCompletion * length / timingInfo.sliderVelocity;
+                        let timeToEnd = (1 - tickCompletion) * length / timingInfo.sliderVelocity;
+    
+                        if (timeToStart < 6 || timeToEnd < 6) continue; // Ignore slider ticks temporally close to either slider end
+    
+                        sliderTickCompletions.push(tickCompletion);
+                    }
+                    
+                    // Weird implementation. Can probably be done much easier-ly. This handles the "going back and forth but keep the ticks in the same location" thing. TODO.
+                    let len = sliderTickCompletions.length;
+                    if (len > 0) {
+                        for (let i = 1; i < repeat; i++) {
+                            if (i % 2 === 0) {
+                                for (let j = 0; j < len; j++) {
+                                    sliderTickCompletions.push(i + sliderTickCompletions[j]);
+                                }
+                            } else {
+                                for (let j = len-1; j >= 0; j--) {
+                                    sliderTickCompletions.push(i + 1 - sliderTickCompletions[j]);
+                                }
                             }
                         }
                     }
                 }
-
                 newObject.sliderTickCompletions = sliderTickCompletions;
 
                 /* Init hit sounds */
                 {
-                    let sampleSet = rawHitObject.extras.sampleSet || currentTimingPoint.sampleSet || 1,
+                    let sampleSet = normSampleSet(rawHitObject.extras.sampleSet || currentTimingPoint.sampleSet || 1),
                         volume = rawHitObject.extras.sampleVolume || currentTimingPoint.volume,
                         index = rawHitObject.extras.customIndex || currentTimingPoint.sampleIndex || 1;
 
@@ -207,7 +247,7 @@ export class ProcessedBeatmap {
                     let hitSounds: HitSoundInfo[] = [];
                     for (let i = 0; i < rawHitObject.edgeHitSounds.length; i++) {
                         
-                        let time = rawHitObject.time + rawHitObject.length/timingInfo.sliderVelocity * i;
+                        let time = rawHitObject.time + length/timingInfo.sliderVelocity * i;
                         let timingPoint = getClosestTimingPointTo(time);
                         let hitSound = rawHitObject.edgeHitSounds[i];
                         let sampling = rawHitObject.edgeSamplings[i];
@@ -222,11 +262,11 @@ export class ProcessedBeatmap {
                     let tickSounds: HitSoundInfo[] = [];
                     for (let i = 0; i < newObject.sliderTickCompletions.length; i++) {
                         let completion = newObject.sliderTickCompletions[i];
-                        let time = rawHitObject.time + rawHitObject.length/timingInfo.sliderVelocity * completion;
+                        let time = rawHitObject.time + length/timingInfo.sliderVelocity * completion;
                         let timingPoint = getClosestTimingPointTo(time);
 
                         let info: HitSoundInfo = {
-                            base: getTickHitSoundTypeFromSampleSet(rawHitObject.extras.sampleSet || timingPoint.sampleSet || 1),
+                            base: getTickHitSoundTypeFromSampleSet(normSampleSet(rawHitObject.extras.sampleSet || timingPoint.sampleSet || 1)),
                             volume: rawHitObject.extras.sampleVolume || timingPoint.volume,
                             index: rawHitObject.extras.customIndex || timingPoint.index || 1
                         };
@@ -296,8 +336,8 @@ export class ProcessedBeatmap {
 
                 if (objectB.startTime - endTime > stackThreshold) break;
 
-                if (Math.hypot(stackBaseObject.startPoint.x - objectB.startPoint.x, stackBaseObject.startPoint.y - objectB.startPoint.y) < stackSnapDistance ||
-                    (stackBaseObject instanceof DrawableSlider) && MathUtil.distance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
+                if (pointDistance(stackBaseObject.startPoint, objectB.startPoint) < stackSnapDistance ||
+                    (stackBaseObject instanceof DrawableSlider) && pointDistance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
                     stackBaseIndex = b;
 
                     objectB.stackHeight = 0;
@@ -337,20 +377,20 @@ export class ProcessedBeatmap {
                         extendedStartIndex = n;
                     }
 
-                    if (objectN instanceof DrawableSlider && MathUtil.distance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
+                    if (objectN instanceof DrawableSlider && pointDistance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
                         let offset = objectI.stackHeight - objectN.stackHeight + 1;
 
                         for (let j = n + 1; j <= i; j++) {
                             let objectJ = this.hitObjects[j];
                             if (!(objectJ instanceof HeadedDrawableHitObject)) continue;
 
-                            if (MathUtil.distance(objectN.endPoint, objectJ.startPoint) < stackSnapDistance)
+                            if (pointDistance(objectN.endPoint, objectJ.startPoint) < stackSnapDistance)
                                 objectJ.stackHeight -= offset;
                         }
                         break;
                     }
 
-                    if (MathUtil.distance(objectN.startPoint, objectI.startPoint) < stackSnapDistance) {
+                    if (pointDistance(objectN.startPoint, objectI.startPoint) < stackSnapDistance) {
                         objectN.stackHeight = objectI.stackHeight + 1;
                         objectI = objectN;
                     }
@@ -365,7 +405,7 @@ export class ProcessedBeatmap {
                     if (objectI.startTime - objectN.startTime > stackThreshold)
                         break;
 
-                    if (MathUtil.distance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
+                    if (pointDistance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
                         objectN.stackHeight = objectI.stackHeight + 1;
                         objectI = objectN;
                     }
@@ -420,8 +460,8 @@ export class ProcessedBeatmap {
             let breakEvent = event as BeatmapEventBreak;
 
             this.breaks.push({
-                startTime: breakEvent.start,
-                endTime: breakEvent.end
+                startTime: breakEvent.time,
+                endTime: breakEvent.endTime
             });
         }
 

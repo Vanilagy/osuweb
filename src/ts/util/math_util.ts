@@ -52,14 +52,14 @@ export class MathUtil {
                     if (firstIteration) list[i] = {x, y};
                     else list[i].x = x, list[i].y = y;
                 }
-            
             }
 
             return list[0];
         }
 
         return {x: bx, y: by};
-	}
+    }
+    
     static binomialCoef(n: number, k: number): number {
         // I tried to add caching to this function, but apparently, V8 already recognized this function is "hot" (called a lot), and therefore caches it in the background or something. It was slower with manual caching than without.
 
@@ -74,6 +74,7 @@ export class MathUtil {
 
         return r;
     }
+
     // No, this isn't some mathematically-accurate 2nd derivative calculation. It's an estimate, and it does the job. Hopefully. >.<
     static curvatureOfBézierCurve(pointArray: Point[], t: number, middlePoint?: Point) {
         let a = MathUtil.pointOnBézierCurve(pointArray, t - 0.001),
@@ -85,9 +86,11 @@ export class MathUtil {
 
         return Math.abs(MathUtil.getNormalizedAngleDelta(a1, a2));
     }
+
     static triangleArea(a: Point, b: Point, c: Point) {
         return 0.5 * ((b.x - a.x)*(c.y - a.y) - (c.x - a.x)*(b.y - a.y));
     }
+
     static circleRadius(p1: Point, p2: Point, p3: Point) {
         let ds1 = pointDistanceSquared(p1, p2),
             ds2 = pointDistanceSquared(p2, p3),
@@ -96,6 +99,7 @@ export class MathUtil {
 
         return Math.sqrt(ds1 * ds2 * ds3) / (4 * area);
     }
+
     static circleCenterPos(p1: Point, p2: Point, p3: Point): Point {
         let yDelta_a = p2.y - p1.y;
         let xDelta_a = p2.x - p1.x;
@@ -109,7 +113,7 @@ export class MathUtil {
         let AB_Mid = {x: (p1.x+p2.x)/2, y: (p1.y+p2.y)/2};
         let BC_Mid = {x: (p2.x+p3.x)/2, y: (p2.y+p3.y)/2};
 
-        if(yDelta_a === 0) {         //aSlope == 0
+        if (yDelta_a === 0) {         //aSlope == 0
             center.x = AB_Mid.x;
             if (xDelta_b === 0) {        //bSlope == INFINITY
                 center.y = BC_Mid.y;
@@ -136,17 +140,17 @@ export class MathUtil {
 
         return center;
     }
+
     static mirror(val: number) {
         let mod2 = val % 2;
         if (mod2 > 1) return 2 - mod2;
         return mod2;
     }
-    static distance(p1: Point, p2: Point) {
-	    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-    }
+
     static getRandomInt(min: number, max: number) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
+
     static getNormalizedAngleDelta(theta1: number, theta2: number) {
         let difference = theta2 - theta1;
         if (-difference < -Math.PI) {
@@ -156,6 +160,7 @@ export class MathUtil {
         }
         return difference;
     }
+
     static getAggregateValuesFromArray(array: number[], start: number = 0, end?: number) {
         if (end === undefined) end = array.length;
 
@@ -177,6 +182,7 @@ export class MathUtil {
             max: max
         };
     }
+
     static clamp(val: number, min: number, max: number) {
 	    if (val < min) {
 	        return min;
@@ -185,6 +191,7 @@ export class MathUtil {
         }
         return val;
     }
+
     static ease(type: EaseType, val: number, p = 0.3) {
         // p = Some shit used for elastic bounce
 
@@ -342,6 +349,18 @@ export class MathUtil {
         var xMax = ( xMin + 1 ) % valueNoiseLatticePoints.length;
 
         return MathUtil.lerp(valueNoiseLatticePoints[xMin], valueNoiseLatticePoints[xMax], tRemapSmoothstep);
+    }
+
+    static isPositiveZero(num: number) {
+        return num === 0 && 1/num === Infinity;
+    }
+
+    static isNegativeZero(num: number) {
+        return num === 0 && 1/num === -Infinity;
+    }
+
+    static fastHypot(dx: number, dy: number) {
+        return (dx**2 + dy**2)**0.5;
     }
 }
 

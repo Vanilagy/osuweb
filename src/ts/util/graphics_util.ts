@@ -66,11 +66,13 @@ export class InterpolatedCounter {
         let now;
         if (customTime !== undefined) now = customTime;
         else now = performance.now();
+
+        let timePassed = (now === this.startTime)? 0 : now - this.startTime; // This check might seem unnecessary, since x - x = 0, however that does not hold true for x = +-Infinity. Since some maps are... questionable, we need to add this check.
         
-        let completion = MathUtil.clamp((now - this.startTime) / this.duration, 0, 1);
+        let completion = MathUtil.clamp(timePassed / this.duration, 0, 1);
         completion = MathUtil.ease(this.ease, completion);
 
-        return this.start * (1 - completion) + this.end * completion;
+        return MathUtil.lerp(this.start, this.end, completion);
     }
 
     setGoal(goal: number, customTime?: number) {

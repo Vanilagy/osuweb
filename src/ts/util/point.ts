@@ -28,7 +28,7 @@ export function lerpPoints(p1: Point, p2: Point, completion: number): Point {
 }
 
 export function pointDistance(p1: Point, p2: Point) {
-    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    return ((p1.x - p2.x)**2 + (p1.y - p2.y)**2)**0.5; // Doing it like this was measured to be about 100x faster than Math.hypot. Jesus.
 }
 
 // Gets the distanced squared, for efficiency 

@@ -1,7 +1,7 @@
 import { HitObject } from "./hit_object";
 import { Point, pointsAreEqual } from "../util/point";
 
-export enum SliderCurveSectionType {
+export enum SliderType {
     Perfect,
     Linear,
     Bézier,
@@ -14,7 +14,6 @@ interface Sampling {
 }
 
 export interface SliderCurveSection {
-    type: SliderCurveSectionType,
     values: Point[]
 }
 
@@ -24,6 +23,7 @@ export class Slider extends HitObject {
     public sections: SliderCurveSection[];
     public edgeHitSounds: number[] = [];
     public edgeSamplings: Sampling[] = [];
+    public type: SliderType;
 
     constructor(data: string[]) {
         super(data);
@@ -71,12 +71,19 @@ export class Slider extends HitObject {
         let sliderPoints = data[5].split("|");
 
         let sliderType = sliderPoints[0];
+        switch (sliderType) {
+            case "P": this.type = SliderType.Perfect; break;
+            case "L": this.type = SliderType.Linear; break;
+            case "B": this.type = SliderType.Bézier; break;
+            case "C": this.type = SliderType.Catmull; break;
+            default:  this.type = SliderType.Bézier; // Default to Bézier.
+        }
 
         let sliderSections: SliderCurveSection[] = [];
 
         let sliderSectionPoints: Point[] = [{
-            x: parseInt(data[0]),
-            y: parseInt(data[1])
+            x: this.x,
+            y: this.y
         }];
 
         let lastPoint = null;
@@ -91,7 +98,7 @@ export class Slider extends HitObject {
 
             // end section if same point appears twice and start a new one if end is not reached
             if (lastPoint && pointsAreEqual(lastPoint, nextPoint)) {
-                this.finishSection(sliderSectionPoints, sliderType, sliderSections);
+                this.finishSection(sliderSectionPoints, sliderSections);
 
                 // Don't make a new section in case this is the last point
                 if (j + 1 !== sliderPoints.length) sliderSectionPoints = [];
@@ -99,7 +106,7 @@ export class Slider extends HitObject {
 
             sliderSectionPoints.push(nextPoint);
 
-            if (j + 1 === sliderPoints.length) this.finishSection(sliderSectionPoints, sliderType, sliderSections);
+            if (j === sliderPoints.length-1) this.finishSection(sliderSectionPoints, sliderSections);
 
             lastPoint = nextPoint;
         }
@@ -107,24 +114,8 @@ export class Slider extends HitObject {
         return sliderSections;
     }
 
-    finishSection(sliderSectionPoints: Point[], sliderType: string, sliderSections: SliderCurveSection[]) {
-        let sectionType: SliderCurveSectionType;
-
-        // Is this code more complicated than it needs to be?
-        if (sliderSectionPoints.length === 3 && sliderType === "P") {
-            sectionType = SliderCurveSectionType.Perfect;
-        } else if (sliderSectionPoints.length === 2) { // The reason we check this condition and not just "L", is because for some bizarre reason, some sliders are marked as "L" but have more than two control points. Those "special-case" "linear" sliders will then have to be treated like Béziers instead.
-            sectionType = SliderCurveSectionType.Linear;
-        } else if (sliderType === "B") {
-            sectionType = SliderCurveSectionType.Bézier;
-        } else if (sliderType === "C") {
-            sectionType = SliderCurveSectionType.Catmull;
-        } else {
-            sectionType = SliderCurveSectionType.Bézier;
-        }
-
+    finishSection(sliderSectionPoints: Point[], sliderSections: SliderCurveSection[]) {
         if (sliderSectionPoints.length > 1) sliderSections.push({
-            type: sectionType,
             values: sliderSectionPoints
         });
     }

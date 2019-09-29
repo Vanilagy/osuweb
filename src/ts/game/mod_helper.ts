@@ -176,7 +176,7 @@ export class ModHelper {
                 });
 
                 for (let j = 0; j < hitObject.sliderTickCompletions.length; j++) {
-                    let tickMs = hitObject.startTime + hitObject.sliderTickCompletions[j] * hitObject.hitObject.length / hitObject.timingInfo.sliderVelocity;
+                    let tickMs = hitObject.startTime + hitObject.sliderTickCompletions[j] * hitObject.length / hitObject.timingInfo.sliderVelocity;
                     let tickPosition = hitObject.path.getPosFromPercentage(MathUtil.mirror(hitObject.sliderTickCompletions[j]));
 
                     waypoints.push({
@@ -187,8 +187,8 @@ export class ModHelper {
                     });
                 }
 
-                for (let j = 1; j <= hitObject.hitObject.repeat; j++) {
-                    let repeatMs = hitObject.startTime + j * hitObject.hitObject.length / hitObject.timingInfo.sliderVelocity;
+                for (let j = 1; j <= hitObject.repeat; j++) {
+                    let repeatMs = hitObject.startTime + j * hitObject.length / hitObject.timingInfo.sliderVelocity;
                     let repeatPosition = (j % 2) ? hitObject.tailPoint : hitObject.startPoint;
 
                     waypoints.push({
@@ -259,7 +259,7 @@ export class ModHelper {
                     instructions.push({
                         type: AutoInstructionType.Follow,
                         time: waypoint.time,
-                        endTime: waypoint.time,
+                        endTime: waypoint.hitObject.endTime,
                         hitObject: waypoint.hitObject
                     });
                 } else if (waypoint.type === WaypointType.SliderTick) {
@@ -329,8 +329,8 @@ export class ModHelper {
             } else if (lastInstruction.type === AutoInstructionType.Follow) {
                 let slider = lastInstruction.hitObject as DrawableSlider;
 
-                let completion = (slider.timingInfo.sliderVelocity * (time - slider.startTime)) / slider.hitObject.length;
-                completion = MathUtil.clamp(completion, 0, slider.hitObject.repeat);
+                let completion = ((slider.timingInfo.sliderVelocity * (time - slider.startTime)) / slider.length) || 0; // || 0 to catch NaN
+                completion = MathUtil.clamp(completion, 0, slider.repeat);
                 let pos = slider.path.getPosFromPercentage(MathUtil.mirror(completion));
 
                 return pos;
@@ -366,7 +366,7 @@ export class ModHelper {
         let radiusLerpCompletion = (time - instruction.time) / RADIUS_LERP_DURATION;
         radiusLerpCompletion = MathUtil.clamp(radiusLerpCompletion, 0, 1);
         radiusLerpCompletion = MathUtil.ease(EaseType.EaseInOutQuad, radiusLerpCompletion);
-        let spinRadius = Math.hypot(instruction.startPos.x - middleX, instruction.startPos.y - middleY) * (1 - radiusLerpCompletion) + DEFAULT_SPIN_RADIUS * radiusLerpCompletion;
+        let spinRadius = MathUtil.fastHypot(instruction.startPos.x - middleX, instruction.startPos.y - middleY) * (1 - radiusLerpCompletion) + DEFAULT_SPIN_RADIUS * radiusLerpCompletion;
         let angle = Math.atan2(instruction.startPos.y - middleY, instruction.startPos.x - middleX) + 0.05 * (time - instruction.time);
 
         return {
