@@ -497,7 +497,7 @@ export class SliderPath {
         let dx = lastPoint.x - secondLastPoint.x;
         let dy = lastPoint.y - secondLastPoint.y;
 
-        // In case both points happened to be equal
+        // In case both points happen to be equal
         if (dx === 0 && dy === 0) {
             dx = 1;
             distance = farFarAway;

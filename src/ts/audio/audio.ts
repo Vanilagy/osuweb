@@ -12,7 +12,7 @@ mediaAudioNode.gain.value = 1.0;
 mediaAudioNode.connect(masterGain);
 
 export let soundEffectsNode = audioContext.createGain();
-soundEffectsNode.gain.value = 0.6;
+soundEffectsNode.gain.value = 1.0;
 soundEffectsNode.connect(masterGain);
 
 export function createAudioBuffer(arrayBuffer: ArrayBuffer) {

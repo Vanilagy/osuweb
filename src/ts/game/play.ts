@@ -605,7 +605,7 @@ export class Play {
         } else if (currentInstruction.type === AutoInstructionType.Follow) {
             let slider = currentInstruction.hitObject as DrawableSlider;
 
-            if (currentTime >= currentInstruction.endTime) {
+            if (currentTime >= slider.endTime) {
                 this.currentPlaythroughInstruction++;
                 cursorPlayfieldPos = slider.endPoint;
                 break outer;

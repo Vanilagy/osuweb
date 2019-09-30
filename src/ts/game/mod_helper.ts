@@ -259,7 +259,7 @@ export class ModHelper {
                     instructions.push({
                         type: AutoInstructionType.Follow,
                         time: waypoint.time,
-                        endTime: waypoint.hitObject.endTime,
+                        endTime: waypoint.time, // Kinda stupid, but this is necessary in order for 2B maps to look decent.
                         hitObject: waypoint.hitObject
                     });
                 } else if (waypoint.type === WaypointType.SliderTick) {
