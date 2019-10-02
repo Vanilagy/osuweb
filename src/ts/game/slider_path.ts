@@ -26,11 +26,15 @@ interface VertexBufferGenerationData {
     radius: number
 }
 
-export interface SliderPathBounds {
+export interface SliderBounds {
     minX: number,
     maxX: number,
     minY: number,
-    maxY: number
+    maxY: number,
+    width: number,
+    height: number,
+    screenWidth: number,
+    screenHeight: number
 }
 
 interface SliderPathGenerationAdditionalData {
@@ -119,28 +123,6 @@ export class SliderPath {
         }
     }
 
-    calculatePathBounds() {
-        let firstPoint = this.points[0];
-
-        let bounds: SliderPathBounds = {
-            minX: firstPoint.x,
-            maxX: firstPoint.x,
-            minY: firstPoint.y,
-            maxY: firstPoint.y
-        };
-
-        for (let i = 1; i < this.points.length; i++) {
-            let point = this.points[i];
-
-            if (point.x < bounds.minX) bounds.minX = point.x;
-            if (point.x > bounds.maxX) bounds.maxX = point.x;
-            if (point.y < bounds.minY) bounds.minY = point.y;
-            if (point.y > bounds.maxY) bounds.maxY = point.y;
-        }
-
-        return bounds;
-    }
-
     generateBaseVertexBuffer() {
         let { circleRadiusOsuPx } = gameState.currentPlay;
 
@@ -174,7 +156,7 @@ export class SliderPath {
         this.vertexBuffer = new Float32Array(maximumLength); // All zeroes at this point
     }
 
-    updateVertexBuffer(completion: number) {
+    updateVertexBuffer(completion: number, createSliderBoundsObject = false) {
         let targetIndex = Math.floor(this.lineSegmentVBOIndices.length * completion);
         let vboIndex = this.lineSegmentVBOIndices[targetIndex - 1] || 0;
 
@@ -191,10 +173,17 @@ export class SliderPath {
             firstTheta = this.getAngleFromPercentage(0.0),
             lastTheta: number;
 
+        let p1Index = Math.floor((this.points.length - 1) * completion);
+        let includedPoints: Point[] = null;
+        if (createSliderBoundsObject) {
+            includedPoints = [];
+            for (let i = 0; i <= p1Index; i++) {
+                includedPoints.push(this.points[i]);
+            }
+        }  
+
         outer: if (completion < 1) {
             // Add an additional line segment.
-
-            let p1Index = Math.floor((this.points.length - 1) * completion);
 
             let p1 = this.points[p1Index];
             let p2 = this.getPosFromPercentage(completion);
@@ -208,6 +197,7 @@ export class SliderPath {
                 prevNormal = this.lineNormals[p1Index - 1];
 
             SliderPath.addVerticesForLineSegment(data, p1, p2, theta, normal, prevTheta, prevNormal);
+            if (createSliderBoundsObject) includedPoints.push(p2);
 
             lastP = p2;
             lastTheta = theta;
@@ -220,6 +210,8 @@ export class SliderPath {
         SliderPath.addLineCap(data, lastP.x, lastP.y, lastTheta - Math.PI/2, Math.PI);
 
         this.currentVertexCount = data.currentIndex / 3; // The amount of vertices that need to be drawn
+
+        return includedPoints && SliderPath.calculateBounds(includedPoints);
     }
 
     generateGeometry(completion: number) {
@@ -238,10 +230,45 @@ export class SliderPath {
         return geometry;
     }
 
-    updateGeometry(geometry: PIXI.Geometry, completion: number) {
-        this.updateVertexBuffer(completion);
+    updateGeometry(geometry: PIXI.Geometry, completion: number, createSliderBoundsObject = false) {
+        let sliderBounds = this.updateVertexBuffer(completion, createSliderBoundsObject);
         let pixiBuffer = geometry.getBuffer('vertPosition');
         pixiBuffer.update();
+
+        return sliderBounds;
+    }
+
+    calculateBounds() {
+        return SliderPath.calculateBounds(this.points);
+    }
+
+    static calculateBounds(points: Point[]) {
+        let { pixelRatio, circleDiameterOsuPx } = gameState.currentPlay;
+
+        let firstPoint = points[0];
+
+        let bounds = {
+            minX: firstPoint.x,
+            maxX: firstPoint.x,
+            minY: firstPoint.y,
+            maxY: firstPoint.y
+        } as SliderBounds;
+
+        for (let i = 1; i < points.length; i++) {
+            let point = points[i];
+
+            if (point.x < bounds.minX) bounds.minX = point.x;
+            if (point.x > bounds.maxX) bounds.maxX = point.x;
+            if (point.y < bounds.minY) bounds.minY = point.y;
+            if (point.y > bounds.maxY) bounds.maxY = point.y;
+        }
+        
+        bounds.width = bounds.maxX - bounds.minX + circleDiameterOsuPx;
+        bounds.height = bounds.maxY - bounds.minY + circleDiameterOsuPx;
+        bounds.screenWidth = bounds.width * pixelRatio;
+        bounds.screenHeight = bounds.height * pixelRatio;
+
+        return bounds;
     }
 
     private static addVertex(data: VertexBufferGenerationData, x: number, y: number, z: number) {

@@ -11,11 +11,11 @@ import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from 
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { HitSoundInfo, AnimatedOsuSprite, DEFAULT_COLORS } from "./skin";
 import { SoundEmitter } from "../audio/sound_emitter";
-import { sliderBodyContainer, renderer, mainHitObjectContainer } from "../visuals/rendering";
+import { sliderBodyContainer, renderer, mainHitObjectContainer, MAX_TEXTURE_SIZE } from "../visuals/rendering";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
-import { createSliderBodyShader, SLIDER_BODY_MESH_STATE } from "./slider_body_shader";
-import { SliderPath, SliderPathBounds } from "./slider_path";
+import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
+import { SliderPath, SliderBounds } from "./slider_path";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -28,13 +28,6 @@ export interface SliderTimingInfo {
     msPerBeat: number,
     msPerBeatMultiplier: number,
     sliderVelocity: number
-}
-
-interface SliderBounds extends SliderPathBounds {
-    width: number,
-    height: number,
-    screenWidth: number,
-    screenHeight: number
 }
 
 export enum SpecialSliderBehavior {
@@ -70,6 +63,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public slideEmitters: SoundEmitter[];
     public specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
 
+    public hasFullscreenBaseSprite: boolean = false; // If a slider is really big, like bigger-than-the-screen big, we change slider body rendering to happen in relation to the entire screen rather than a local slider texture. This way, we don't get WebGL errors from trying to draw to too big of a texture buffer, and it allows us to support slider distortions with some matrix magic.
     public sliderBodyMesh: PIXI.Mesh;
     public sliderBodyHasBeenRendered = false;
     public lastGeneratedSnakingCompletion = 0;
@@ -79,8 +73,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     }
 
     init() {
-        let { circleDiameterOsuPx, pixelRatio } = gameState.currentPlay;
-
         this.endTime = this.startTime + this.repeat * this.length / this.timingInfo.sliderVelocity;
         this.duration = this.endTime - this.startTime;
         this.tailPoint = this.path.getPosFromPercentage(1.0);
@@ -91,11 +83,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             this.endPoint = this.tailPoint;
         }
 
-        let bounds = this.path.calculatePathBounds() as SliderBounds;
-        bounds.width = bounds.maxX - bounds.minX + circleDiameterOsuPx;
-        bounds.height = bounds.maxY - bounds.minY + circleDiameterOsuPx;
-        bounds.screenWidth = bounds.width * pixelRatio;
-        bounds.screenHeight = bounds.height * pixelRatio;
+        let bounds = this.path.calculateBounds();
         this.bounds = bounds;
 
         this.scoring = getDefaultSliderScoring();
@@ -192,7 +180,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             }
         }
 
-        let renderTex = PIXI.RenderTexture.create({width: this.bounds.screenWidth, height: this.bounds.screenHeight});
+        this.hasFullscreenBaseSprite = Math.max(this.bounds.screenWidth, this.bounds.screenHeight) >= Math.max(window.innerWidth, window.innerHeight);
+        //this.hasFullscreenBaseSprite = true;
+
+        let renderTex = PIXI.RenderTexture.create({
+            width: this.hasFullscreenBaseSprite? window.innerWidth : this.bounds.screenWidth,
+            height: this.hasFullscreenBaseSprite? window.innerHeight : this.bounds.screenHeight
+        });
         let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
         renderTexFramebuffer.enableDepth();
         renderTexFramebuffer.addDepthTexture();
@@ -311,7 +305,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let screenY = gameState.currentPlay.toScreenCoordinatesY(this.bounds.minY - circleRadiusOsuPx);
 
         this.container.position.set(screenX, screenY);
-        this.baseSprite.position.set(screenX, screenY);
+
+        if (this.hasFullscreenBaseSprite) this.baseSprite.position.set(0, 0);
+        else this.baseSprite.position.set(screenX, screenY);
     }
 
     update(currentTime: number) {
@@ -544,16 +540,21 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let gl = renderer.state.gl;
 
         if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
-            this.path.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion);
+            let newBounds = this.path.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion, this.hasFullscreenBaseSprite);
             this.sliderBodyMesh.size = this.path.currentVertexCount;
             this.lastGeneratedSnakingCompletion = snakeCompletion;
+
+            if (this.hasFullscreenBaseSprite) {
+                let transformationMatrix = createSliderBodyTransformationMatrix(this, newBounds);
+                this.sliderBodyMesh.shader.uniforms.matrix = transformationMatrix; // Update the matrix uniform
+            }
 
             doRender = true;
         }
 
         if (!doRender) return;
 
-        // Blending here needs to be done normally 'cause, well, reasons. lmao
+        // Blending here needs to be done manually 'cause, well, reasons. lmao
         // INSANE hack:
         gl.disable(gl.BLEND);
         renderer.render(this.sliderBodyMesh, renderTex);

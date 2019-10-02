@@ -38,13 +38,13 @@ export function randomInArray<T>(arr: T[]) {
 }
 
 export function shallowObjectClone<T extends object>(obj: T) {
-    let newObj: any = {};
+    let newObj = {} as T;
 
     for (let key in obj) {
         newObj[key] = obj[key];
     }
 
-    return newObj as T;
+    return newObj;
 }
 
 export function jsonClone<T>(obj: T) {

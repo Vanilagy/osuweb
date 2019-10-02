@@ -7,6 +7,9 @@ export const STANDARD_SCREEN_DIMENSIONS = {
     height: 480
 };
 
+export const SCREEN_COORDINATES_X_FACTOR = 0.5; // See this constant's use for an explanation.
+export const SCREEN_COORDINATES_Y_FACTOR = 0.515;
+
 export const DEFAULT_HIT_OBJECT_FADE_IN_TIME = 400; // In ms. This is constant and actually independent of AR.
 export const HIT_OBJECT_FADE_OUT_TIME = 200; // In ms
 export const SLIDER_TICK_APPEARANCE_ANIMATION_DURATION = 200; // In ms

@@ -245,7 +245,7 @@ export class MathUtil {
                 const scaledTime = val * 2;
                 const scaledTime1 = scaledTime - 1;
 
-                if(scaledTime < 1) {
+                if (scaledTime < 1) {
                     return 0.5 * Math.pow(2, 10 * (scaledTime1));
                 }
 
@@ -338,7 +338,7 @@ export class MathUtil {
         };
     }
 
-    /** One-dimension value-based noise function with the output in [-1.0, 1.0] */
+    /** One-dimensional value-based noise function with the output in [-1.0, 1.0] */
     static valueNoise1D(x: number) {
         let scaledX = x * 1.0; // lol idk
         let xFloor = Math.floor(scaledX);

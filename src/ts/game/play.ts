@@ -5,7 +5,7 @@ import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO, SpecialSliderBehavior } 
 import { mainRender, followPointContainer, scorePopupContainer, softwareCursor } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { readFileAsArrayBuffer, readFileAsLocalResourceUrl, readFileAsDataUrl } from "../util/file_util";
 import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
@@ -37,9 +37,7 @@ const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const SPINNER_REFERENCE_SCREEN_HEIGHT = 768;
-const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instructions
-
-let shit = {x: 0, y: 0}
+const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -519,13 +517,13 @@ export class Play {
     }
 
     toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
-        let coord = window.innerWidth*0.5 + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
+        let coord = window.innerWidth*SCREEN_COORDINATES_X_FACTOR + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
 
         return floor? (coord | 0) : coord; // "Cast" to int
     }
 
     toScreenCoordinatesY(osuCoordinateY: number, floor = true) {
-        let coord = window.innerHeight*0.510 + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
+        let coord = window.innerHeight*SCREEN_COORDINATES_Y_FACTOR + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
 
         return floor? (coord | 0) : coord;
     }

@@ -1,11 +1,13 @@
 export const mainCanvas = document.querySelector('#mainCanvas') as HTMLCanvasElement;
 
-const mainContext = mainCanvas.getContext('webgl2', {
+const gl = mainCanvas.getContext('webgl2', {
     stencil: true,
     alpha: true,
     powerPreference: 'high-performance',
     desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
-});
+}) as WebGLRenderingContext; // Technically WebGL2, but idk. Rollup is complaining :S
+
+export const MAX_TEXTURE_SIZE = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 
 PIXI.settings.CREATE_IMAGE_BITMAP = false; // ehh? good or not? OKAY actually it seems like having this on false reduces GC work. Could be some weird placebo shit, tho
 PIXI.settings.GC_MODE = PIXI.GC_MODES.MANUAL; // TODO! So... what actually needs to be done manually? Just Texture.destroy()?
@@ -13,7 +15,7 @@ PIXI.settings.GC_MODE = PIXI.GC_MODES.MANUAL; // TODO! So... what actually needs
 export let renderer = new PIXI.Renderer({
     width: window.innerWidth,
     height: window.innerHeight,
-    context: mainContext,
+    context: gl,
     antialias: true
 });
 export let stage = new PIXI.Container();
