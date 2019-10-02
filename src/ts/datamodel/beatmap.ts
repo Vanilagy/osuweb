@@ -23,7 +23,7 @@ export interface TimingPoint {
     sampleSet: number,
     sampleIndex: number,
     volume: number,
-    canBeInheritedFrom: boolean,
+    inheritable: boolean,
     kiai: boolean
 }
 
@@ -234,7 +234,7 @@ export class Beatmap {
             sampleSet: parseInt(values[3]),
             sampleIndex: parseInt(values[4]),
             volume: parseInt(values[5]),
-            canBeInheritedFrom: values[6] === "1", // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
+            inheritable: values[6] === "1", // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
             kiai: Boolean(parseInt(values[7])),
         });
 
@@ -315,7 +315,7 @@ export class Beatmap {
 
     getNextNonInheritedTimingPoint(num: number) {
         for(let i = num + 1; i < this.timingPoints.length; i++) {
-            if(!this.timingPoints[i].canBeInheritedFrom) return this.timingPoints[i];
+            if(!this.timingPoints[i].inheritable) return this.timingPoints[i];
         }
 
         return null;

@@ -1,14 +1,13 @@
-import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, interpolatePointInPointArray, pointAngle, pointNormal, lerpPoints, pointDistanceSquared } from "../util/point";
+import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
-import { last, jsonClone, assert } from "../util/misc_util";
+import { last, jsonClone, assert, binarySearchLessOrEqual } from "../util/misc_util";
 import { Slider, SliderType, SliderCurveSection } from "../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
 const SLIDER_CAPCIRCLE_SEGMENTS = 48;
 const SLIDER_CAP_CIRCLE_SEGMENT_ARC_LENGTH = Math.PI*2 / SLIDER_CAPCIRCLE_SEGMENTS;
 const CIRCLE_ARC_SEGMENT_LENGTH = 10; // For P sliders
-const EQUIDISTANT_POINT_DISTANCE = 3;
 const CATMULL_ROM_SECTION_SAMPLE_COUNT = 50;
 
 // Returns the maximum amount of floats needed to store one line segment in the VBO
@@ -37,12 +36,15 @@ export interface SliderBounds {
     screenHeight: number
 }
 
-interface SliderPathGenerationAdditionalData {
-    pathLength: number
+interface PathCalculationResult {
+    points: Point[],
+    completions: number[],
+    length: number
 }
 
 export class SliderPath {
-    public points: Point[]; // These points should be pretty much equidistant.
+    public points: Point[]; // These points do not need to be equidistant.
+    public completions: number[]; // The number at every index represents the percentage of how far the point with the same index is along the curve. Using this, fixed-velocity travel along the path is possible.
     public lineLengths: number[] = [];
     public lineThetas: number[] = [];
     public lineNormals: Vector2[] = [];
@@ -52,8 +54,9 @@ export class SliderPath {
     public lineSegmentVBOIndices: number[] = []; // Basically, to which index (exclusive) in the VBO one needs to draw in order to draw the first _n_ line segments.
     private lineRadius: number;
 
-    constructor(points: Point[]) {
+    constructor(points: Point[], completions: number[]) {
         this.points = points;
+        this.completions = completions;
     }
 
     /** Generates utility information for the path. Has to be called before any vertices are created! */
@@ -74,42 +77,53 @@ export class SliderPath {
 
     static fromSlider(slider: Slider) {
         let sections = slider.sections;
-
-        let points: Point[];
-
-        let additionalData: SliderPathGenerationAdditionalData = {
-            pathLength: 0
-        };
+        let result: PathCalculationResult;
 
         if (sections.length === 0 || slider.length < 0) {
             // Empty slider! These wackers exist in, like, Aspire maps.
-            points = [{x: slider.x, y: slider.y}]; // Path only consists of the start point.
+            result = {
+                points: [{x: slider.x, y: slider.y}], // Path only consists of the start point.
+                completions: [0.0],
+                length: 0
+            };
         } else {
             let { type, sections, length } = slider;
 
             // NOTE: A slider with length 0 will automatically figure out its length based on its control points. You'll see extra logic to handle that case in the methods this method calls.
 
-            if (type === SliderType.Perfect && sections[0].values.length === 3) points = SliderPath.calculatePerfectSliderPoints(sections, length, additionalData);
-            else if (sections.length === 1 && sections[0].values.length === 2) points = SliderPath.calculateLinearSliderPoints(sections, length, additionalData); // The reason we check this condition and not just "L", is because for some bizarre reason, some sliders are marked as "L" but have more than two control points. Those "special-case" "linear" sliders will then have to be treated like linear instead.
-            else if (type === SliderType.Bézier) points = SliderPath.calculateBézierSliderPoints(sections, length, additionalData);
-            else if (type === SliderType.Catmull) points = SliderPath.calculateCatmullSliderPoints(sections, length, additionalData);
-            else points = SliderPath.calculateBézierSliderPoints(sections, length, additionalData); // Just default to Bézier
+            if (type === SliderType.Perfect && sections[0].values.length === 3) result = SliderPath.calculatePerfectSliderPoints(sections, length);
+            else if (sections.length === 1 && sections[0].values.length === 2) result = SliderPath.calculateLinearSliderPoints(sections, length); // The reason we check this condition and not just "L", is because for some bizarre reason, some sliders are marked as "L" but have more than two control points. Those "special-case" "linear" sliders will then have to be treated like linear instead.
+            else if (type === SliderType.Bézier) result = SliderPath.calculateBézierSliderPoints(sections, length);
+            else if (type === SliderType.Catmull) result = SliderPath.calculateCatmullSliderPoints(sections, length);
+            else result = SliderPath.calculateBézierSliderPoints(sections, length); // Just default to Bézier
         }
 
         return {
-            path: new SliderPath(points),
-            additionalData: additionalData
+            path: new SliderPath(result.points, result.completions),
+            length: result.length
         };
     }
 
     getPosFromPercentage(percentage: number) {
-        return interpolatePointInPointArray(this.points, percentage);
+        if (this.points.length <= 1) return this.points[0] || null;
+
+        let p1Index = binarySearchLessOrEqual(this.completions, percentage);
+        let p1Completion = this.completions[p1Index];
+
+        if (p1Completion === percentage) return this.points[p1Index];
+
+        let p1 = this.points[p1Index],
+            p2 = this.points[p1Index+1],
+            p2Completion = this.completions[p1Index+1];
+        let t = (percentage - p1Completion) / (p2Completion - p1Completion);
+
+        return lerpPoints(p1, p2, t);
     }
 
     getAngleFromPercentage(percentage: number) {
         if (this.points.length <= 1) return 0;
 
-        let index = Math.floor(percentage * (this.points.length - 1));
+        let index = binarySearchLessOrEqual(this.completions, percentage);
         if (index === this.points.length - 1) index--;
         return this.lineThetas[index];
     }
@@ -157,8 +171,8 @@ export class SliderPath {
     }
 
     updateVertexBuffer(completion: number, createSliderBoundsObject = false) {
-        let targetIndex = Math.floor(this.lineSegmentVBOIndices.length * completion);
-        let vboIndex = this.lineSegmentVBOIndices[targetIndex - 1] || 0;
+        let p1Index = binarySearchLessOrEqual(this.completions, completion);
+        let vboIndex = this.lineSegmentVBOIndices[p1Index - 1] || 0;
 
         this.vertexBuffer.set(this.baseVertexBuffer.slice(0, vboIndex));
 
@@ -173,14 +187,14 @@ export class SliderPath {
             firstTheta = this.getAngleFromPercentage(0.0),
             lastTheta: number;
 
-        let p1Index = Math.floor((this.points.length - 1) * completion);
         let includedPoints: Point[] = null;
         if (createSliderBoundsObject) {
             includedPoints = [];
+
             for (let i = 0; i <= p1Index; i++) {
                 includedPoints.push(this.points[i]);
             }
-        }  
+        }
 
         outer: if (completion < 1) {
             // Add an additional line segment.
@@ -366,7 +380,7 @@ export class SliderPath {
         }
     }
 
-    private static calculatePerfectSliderPoints(sections: SliderCurveSection[], length: number, additionalData: SliderPathGenerationAdditionalData) {
+    private static calculatePerfectSliderPoints(sections: SliderCurveSection[], length: number): PathCalculationResult {
         let points = sections[0].values;
     
         // Monstrata plz
@@ -377,7 +391,7 @@ export class SliderPath {
             sections[0] = {values: [points[0], points[1]]};
             sections[1] = {values: [points[1], points[2]]};
 
-            return SliderPath.calculateBézierSliderPoints(sections, length, additionalData);
+            return SliderPath.calculateBézierSliderPoints(sections, length);
         }
     
         let centerPos = MathUtil.circleCenterPos(points[0], points[1], points[2]);
@@ -390,7 +404,7 @@ export class SliderPath {
             // Remove middle point
             sections[0].values.splice(1, 1);
 
-            return SliderPath.calculateLinearSliderPoints(sections, length, additionalData);
+            return SliderPath.calculateLinearSliderPoints(sections, length);
         }
     
         let radius = pointDistance(centerPos, points[0]);
@@ -407,8 +421,9 @@ export class SliderPath {
         let calculatedLength = Math.abs(fullAngleDifference) * radius;
         let hasToBeExtended = length > calculatedLength;
 
-        additionalData.pathLength = (length === 0)? calculatedLength : length;
-        let arcLength = Math.min(calculatedLength, additionalData.pathLength);
+        // Jesus, this is horrible nomenclature! Also, I'm a quality programmer for just calling my nomenclature bad instead of improving on it. WELP, at least I self-reflected.
+        let pathLength = (length === 0)? calculatedLength : length;
+        let arcLength = Math.min(calculatedLength, pathLength);
     
         let startingAngle = a1;
         let angleDifference = arcLength / radius;
@@ -427,7 +442,18 @@ export class SliderPath {
             });
         }
 
-        if (!hasToBeExtended) return outputPoints;
+        if (!hasToBeExtended) {
+            let completions = [];
+            for (let i = 0; i < segments + 1; i++) {
+                completions.push(i / segments);
+            }
+
+            return {
+                points: outputPoints,
+                completions: completions,
+                length: pathLength
+            };
+        }
 
         let linearSegmentAngle = startingAngle + angleDifference + ((angleDifference < 0)? -Math.PI/2 : Math.PI/2);
         let additionalPoint: Point = {
@@ -436,15 +462,22 @@ export class SliderPath {
         };
 
         outputPoints.push(additionalPoint);
-        return SliderPath.calculateEquidistantPointsFromSamplePoints(outputPoints, length);
+
+        // TODO: Since length includes the full distance along the arc, but this method only counts the lengths of the chords (https://en.wikipedia.org/wiki/Chord_(geometry)), is it necessary to subtract the length we're missing?
+        let pathCompletions = fitPolylineToLength(outputPoints, length);
+
+        return {
+            points: outputPoints,
+            completions: pathCompletions,
+            length: pathLength
+        };
     }
 
-    private static calculateLinearSliderPoints(sections: SliderCurveSection[], length: number, additionalData: SliderPathGenerationAdditionalData) {
+    private static calculateLinearSliderPoints(sections: SliderCurveSection[], length: number): PathCalculationResult {
         let points = sections[0].values;
     
         let angle = pointAngle(points[0], points[1]);
         let distance = (length === 0)? pointDistance(points[0], points[1]) : length;
-        additionalData.pathLength = distance;
 
         let pointTwo: Point = {
             x: points[0].x + Math.cos(angle) * distance,
@@ -453,10 +486,14 @@ export class SliderPath {
 
         let pointOne = clonePoint(points[0]) // Clone so we detach from the raw hit object's data
 
-        return [pointOne, pointTwo];
+        return {
+            points: [pointOne, pointTwo],
+            completions: [0.0, 1.0],
+            length: distance
+        };
     }
 
-    private static calculateBézierSliderPoints(sections: SliderCurveSection[], length: number, additionalData: SliderPathGenerationAdditionalData) {
+    private static calculateBézierSliderPoints(sections: SliderCurveSection[], length: number): PathCalculationResult {
         let samplePoints: Point[] = [];
 
         samplePoints.push(sections[0].values[0]); // Add the first point of the first segment
@@ -484,12 +521,16 @@ export class SliderPath {
         }
     
         let arcLength = (length === 0)? calculateTotalPointArrayArcLength(samplePoints) : length;
-        additionalData.pathLength = arcLength;
-        
-        return SliderPath.calculateEquidistantPointsFromSamplePoints(samplePoints, arcLength);
+        let pathCompletions = fitPolylineToLength(samplePoints, arcLength);
+
+        return {
+            points: samplePoints,
+            completions: pathCompletions,
+            length: arcLength
+        };
     }
     
-    private static calculateCatmullSliderPoints(sections: SliderCurveSection[], length: number, additionalData: SliderPathGenerationAdditionalData) {
+    private static calculateCatmullSliderPoints(sections: SliderCurveSection[], length: number): PathCalculationResult {
         let points = sections[0].values;
         let samplePoints: Point[] = [];
     
@@ -508,66 +549,12 @@ export class SliderPath {
         samplePoints.push(last(points));
     
         let arcLength = (length === 0)? calculateTotalPointArrayArcLength(samplePoints) : length;
-        additionalData.pathLength = arcLength;
-    
-        return SliderPath.calculateEquidistantPointsFromSamplePoints(samplePoints, arcLength);
-    }
+        let pathCompletions = fitPolylineToLength(samplePoints, arcLength);
 
-    private static calculateEquidistantPointsFromSamplePoints(samplePoints: Point[], arcLength: number) {
-        if (samplePoints.length <= 1) return samplePoints;
-
-        let secondLastPoint = samplePoints[samplePoints.length - 2];
-        let lastPoint = last(samplePoints);
-        let farFarAway = 1e7;
-
-        let distance = farFarAway / pointDistance(secondLastPoint, lastPoint);
-        let dx = lastPoint.x - secondLastPoint.x;
-        let dy = lastPoint.y - secondLastPoint.y;
-
-        // In case both points happen to be equal
-        if (dx === 0 && dy === 0) {
-            dx = 1;
-            distance = farFarAway;
-        }
-
-        // Extra point is added because of possible last linear segment extension
-        samplePoints.push({
-            x: lastPoint.x + distance * dx,
-            y: lastPoint.y + distance * dy
-        });
-    
-        let equidistantPoints: Point[] = [];
-        let segmentCount = Math.ceil(arcLength / EQUIDISTANT_POINT_DISTANCE) || 1;
-        let segmentLength = arcLength / segmentCount;
-    
-        /*  Using the initially traced points, generate a slider path point array in which
-            all points are (almost) equally distant from one another. This is done to guarantee constant
-            slider velocity. */
-        let currentPoint = samplePoints[0];
-        equidistantPoints.push(clonePoint(currentPoint)); // Clone so we detach from the raw hit object's data
-        let currentIndex = 1;
-        for (let c = 0; c < segmentCount; c++) {
-            let remainingLength = segmentLength;
-    
-            while (true) {
-                let nextPoint = samplePoints[currentIndex];
-                let dist = pointDistance(currentPoint, nextPoint);
-    
-                if (dist < remainingLength) {
-                    currentPoint = samplePoints[currentIndex];
-                    remainingLength -= dist;
-                    currentIndex++;
-                } else {
-                    let percentReached = remainingLength / dist;
-                    let newPoint = lerpPoints(currentPoint, nextPoint, percentReached);
-    
-                    equidistantPoints.push(newPoint);
-                    currentPoint = newPoint;
-                    break;
-                }
-            }
-        }
-    
-        return equidistantPoints;
+        return {
+            points: samplePoints,
+            completions: pathCompletions,
+            length: arcLength
+        };
     }
 }

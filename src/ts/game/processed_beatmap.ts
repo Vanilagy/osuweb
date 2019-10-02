@@ -97,7 +97,7 @@ export class ProcessedBeatmap {
                 while (this.beatmap.timingPoints[currentTimingPointIndex].offset <= rawHitObject.time) {
                     let timingPoint = this.beatmap.timingPoints[currentTimingPointIndex];
 
-                    if (timingPoint.canBeInheritedFrom) {
+                    if (timingPoint.inheritable) {
                         currentMsPerBeatMultiplier = 1;
                         currentMsPerBeat = timingPoint.msPerBeat;
                     }
@@ -159,7 +159,7 @@ export class ProcessedBeatmap {
             } else if (rawHitObject instanceof Slider) {
                 newObject = new DrawableSlider(rawHitObject);
 
-                let { path, additionalData: additionalPathData } = SliderPath.fromSlider(rawHitObject);
+                let { path, length: pathLength } = SliderPath.fromSlider(rawHitObject);
                 newObject.path = path;
 
                 let specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
@@ -179,7 +179,7 @@ export class ProcessedBeatmap {
                 if (specialBehavior === SpecialSliderBehavior.Invisible) length = 0;
                 if (length < 0) length = 0;
                 if (rawHitObject.sections.length === 0) length = 0;
-                if (rawHitObject.sections.length > 0 && rawHitObject.length === 0) length = additionalPathData.pathLength; // When the length is 0 in the file, it doesn't mean "zero" length (how could you guess something so outrageous?), but instead means that the path generator will calculate the length based on the control points. More on that in SliderPath.
+                if (rawHitObject.sections.length > 0 && rawHitObject.length === 0) length = pathLength; // When the length is 0 in the file, it doesn't mean "zero" length (how could you guess something so outrageous?), but instead means that the path generator will calculate the length based on the control points. More on that in SliderPath.
                 // TODO: More here?
                 newObject.length = length;
 

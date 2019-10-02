@@ -585,8 +585,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private updateSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
         if (completion === 0) return;
 
-        let { headedHitObjectTextureFactor } = gameState.currentPlay;
-
         let sliderBallPos = this.toRelativeCoord(this.path.getPosFromPercentage(MathUtil.mirror(completion)));
 
         if (currentTime < this.endTime) {
