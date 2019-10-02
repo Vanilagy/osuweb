@@ -114,7 +114,7 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
         // Define _f_ to be the factor a distorted axis has to be scaled by for it to be exactly 32768 pixels long. So, if the slider is 65536 pixels wide, f is 32768/65536 = 0.5.
         // Distortion can be done per-axis; the two axes don't interfere with each other. Therefore, let's cover both axes separately, starting with the x-axis:
         // If the slider texture is more than 32768 pixels wide, the following two things can happen: If any part of the slider intersects the left edge of the screen, then the slider is scaled along the x-axis by f, with the scaling being centered on the left screen edge. If the slider does NOT intersect the left edge of the screen, then the slider is scaled by f with the center being at the left-most point of the slider.
-        // Scaling along the y-axis works almost identically, now using the top edge, not the left edge. The exception is that top-edge scaling does NOT happen if the slider ALSO intersects the bottom edge of the screen. In the case where the slider only intersects the top edge, no scaling is done at all.
+        // Scaling along the y-axis works almost identically, now using the top edge, not the left edge. The exception is that top-edge scaling only happens if the slider ALSO intersects the bottom edge of the screen. In the case where the slider only intersects the top edge, no scaling is done at all.
 
         let width = window.innerWidth,
             height = window.innerHeight;
