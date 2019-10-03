@@ -7,7 +7,10 @@ import { PlayEvent, PlayEventType } from "./play_events";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
 import { ScoringValue } from "./scoring_value";
 
-const CLICK_IMMUNITY_THRESHOLD = 350; // This many millisecond before the perfect hit time will the object start to even become clickable. Before that, it should do the little shaky-shake, implying it was clicked WAY too early.
+// This many millisecond before the perfect hit time will the object start to even
+// become clickable. Before that, it should do the little shaky-shake, implying it
+// was clicked WAY too early.
+const CLICK_IMMUNITY_THRESHOLD = 350;
 
 export interface HitObjectHeadScoring {
     hit: ScoringValue,

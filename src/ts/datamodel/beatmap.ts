@@ -6,7 +6,6 @@ import { Color } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 import { Spinner } from "./spinner";
-import { VirtualFile } from "../file_system/virtual_file";
 
 class BeatmapCreationOptions {
     text: string;
@@ -139,14 +138,8 @@ export class Beatmap {
 
             if (line.startsWith("osu file format v")) {
                 this.version = line.substr(line.length - 2, 2);
-
-                //Console.verbose("Beatmap version: "+this.version);
-
-                //if(!line.endsWith("14")) Console.warn("The beatmap version seems to be older than supported. We could run into issue here!");
             } else if(line.startsWith("[") && line.endsWith("]")) {
-                section = line.substr(1,line.length-2).toLowerCase();
-
-                //Console.verbose("Reading new section: "+line);
+                section = line.substr(1, line.length-2).toLowerCase();
             } else if (section === "colours") {
                 this.parseComboColor(line);
             } else if (section === "timingpoints") {
@@ -185,8 +178,6 @@ export class Beatmap {
                 else if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(line.split(':')[1].trim()); this.ARFound = true;}
                 else if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(line.split(':')[1].trim());
                 else if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(line.split(':')[1].trim());
-
-                //Console.verbose("Read header property: "+line);
             }
         }
 
@@ -196,11 +187,6 @@ export class Beatmap {
         this.events.sort((a, b) => a.time - b.time);
         this.hitObjects.sort((a, b) => a.time - b.time);
         this.timingPoints.sort((a, b) => a.offset - b.offset);
-
-        //Console.debug("Finished Beatmap parsing! (Circles: "+this.circles+", Sliders: "+this.sliders+", Spinners: "+this.spinners+" ("+(this.circles+this.sliders+this.spinners)+" Total) - TimingPoints: "+this.timingPoints.length+")");
-        //Console.verbose("--- BEATMAP LOADING FINISHED ---");
-
-        //this._stars = new DifficultyCalculator(this).calculate(null);
     }
 
     parseComboColor(line: string) {
@@ -211,17 +197,20 @@ export class Beatmap {
             g: parseInt(col[1]),
             b: parseInt(col[2]),
         });
-
-        //Console.verbose("Added color #" + this.colors.length + ": " + col);
-        //return col; Why this return?
     }
 
     parseTimingPoint(line: string) {
         let values = line.split(',');
 
         let offset = parseInt(values[0]);
+
+        // From the osu! website:
+        // 
+        // The offset is an integral number of milliseconds, from the start
+        // of the song. It defines when the timing point starts. A timing point
+        // ends when the next one starts. The first timing point starts at 0,
+        // disregarding its offset.
         if (this.timingPoints.length === 0) offset = 0;
-        // From the osu! website: The offset is an integral number of milliseconds, from the start of the song. It defines when the timing point starts. A timing point ends when the next one starts. The first timing point starts at 0, disregarding its offset.
 
         let msPerBeat = parseFloat(values[1]);
 
@@ -237,8 +226,6 @@ export class Beatmap {
             inheritable: values[6] === "1", // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
             kiai: Boolean(parseInt(values[7])),
         });
-
-        //Console.verbose("Added timing point #" + this.timingPoints.length + ": " + JSON.stringify(this.timingPoints[this.timingPoints.length - 1]));
     }
 
     parseHitObject(line: string) {
@@ -249,23 +236,18 @@ export class Beatmap {
         if ((hitObjectData & 1) !== 0) { // It's a circle if the 1 bit is set
             if (!this.loadFlat) {
                 this.hitObjects.push(new Circle(values));
-                //Console.verbose("Circle added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.circleCount++;
         } else if ((hitObjectData & 2) !== 0) { // It's a slider if the 2 bit is set
             if (!this.loadFlat) {
                 this.hitObjects.push(new Slider(values));
-                //Console.verbose("Slider added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.sliderCount++;
-        } else if ((hitObjectData & 8) !== 0) { // It's a spinner if the 8 bit is set (not 4)
+        } else if ((hitObjectData & 8) !== 0) {
             if (!this.loadFlat) {
                 this.hitObjects.push(new Spinner(values));
-                //Console.verbose("Spinner added: " + JSON.stringify(this.hitObjects[this.hitObjects.length - 1]));
             }
             this.spinnerCount++;
-        } else {
-            //Console.verbose("Unrecognized HitObject-type! (peppy plz)");
         }
     }
 
@@ -309,8 +291,6 @@ export class Beatmap {
                 this.events.push(event);
             }; break;
         }
-
-        //{let evt = this.events[this.events.length - 1]; if(evt !== null && evt !== undefined) Console.verbose("Added \""+evt.type+"\" event (#"+this.events.length+"): "+evt); }
     }
 
     getNextNonInheritedTimingPoint(num: number) {
