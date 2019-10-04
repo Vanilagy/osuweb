@@ -579,7 +579,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
     }
 
-    score() {
+    score(time: number) {
         let resultingRawScore = 0;
 
         if (this.specialBehavior === SpecialSliderBehavior.Invisible) {
@@ -608,7 +608,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         if (this.scoring.end || resultingRawScore === 300) gameState.currentGameplaySkin.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
 
-        gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true, this, this.endTime);
+        gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true, this, time);
     }
 
     hitHead(time: number, judgementOverride?: number) {

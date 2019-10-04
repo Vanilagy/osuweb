@@ -432,7 +432,7 @@ export class Play {
                     if (primitive) HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
 
                     // Score the slider, no matter if the end was hit or not (obviously) 
-                    slider.score();
+                    slider.score(playEvent.time);
                 }; break;
                 case PlayEventType.SliderRepeat: {
                     let slider = playEvent.hitObject as DrawableSlider;
