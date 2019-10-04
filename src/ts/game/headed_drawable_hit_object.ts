@@ -109,7 +109,8 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
         playEventArray.push({
             type: PlayEventType.PerfectHeadHit,
             hitObject: this,
-            time: this.startTime
+            time: this.startTime,
+            position: this.startPoint
         });
 
         playEventArray.push({

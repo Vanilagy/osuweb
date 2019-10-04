@@ -2,7 +2,7 @@ import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableCircle } from "./drawable_circle";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO, SpecialSliderBehavior } from "./drawable_slider";
-import { mainRender, followPointContainer, scorePopupContainer, softwareCursor } from "../visuals/rendering";
+import { mainRender, followPointContainer, scorePopupContainer, softwareCursor, sliderBodyContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
@@ -371,6 +371,7 @@ export class Play {
     tick(currentTimeOverride?: number) {
         let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
+        let buttonPressed = anyGameButtonIsPressed();
         
         for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
             let playEvent = this.playEvents[this.currentPlayEvent];
@@ -390,7 +391,16 @@ export class Play {
                 }; break;
                 case PlayEventType.PerfectHeadHit: {
                     if (playEvent.hitObject instanceof DrawableSlider) {
-                        playEvent.hitObject.beginSliderSlideSound();
+                        let slider = playEvent.hitObject;
+
+                        slider.beginSliderSlideSound();
+
+                        let distance = pointDistance(osuMouseCoordinates, playEvent.position);
+                        let hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
+
+                        if (!hit) {
+                            slider.releaseFollowCircle(playEvent.time);
+                        }
                     }
 
                     if (!this.autohit) break;
@@ -402,10 +412,13 @@ export class Play {
                     let slider = playEvent.hitObject as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                    if ((anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit) {
+                    let hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
+
+                    if (hit) {
                         slider.scoring.end = true;
                     } else {
                         slider.scoring.end = false;
+                        slider.releaseFollowCircle(playEvent.time);
                     }
 
                     if (slider.scoring.head.hit === ScoringValue.NotHit) {
@@ -443,16 +456,18 @@ export class Play {
                         hit = slider.scoring.end;
                     } else {
                         let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
+                        hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
                     }
 
                     if (hit) {
                         slider.scoring.repeats++;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
+                        slider.pulseFollowCircle(playEvent.time);
 
                         gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
+                        slider.releaseFollowCircle(playEvent.time);
                     }
 
                     let primitive = slider.sliderEnds[playEvent.i];
@@ -467,16 +482,18 @@ export class Play {
                         hit = slider.scoring.end;
                     } else {
                         let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-                        hit = (anyGameButtonIsPressed() && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
+                        hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
                     }
 
                     if (hit) {
                         slider.scoring.ticks++;
                         this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
+                        slider.pulseFollowCircle(playEvent.time);
 
                         gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
+                        slider.releaseFollowCircle(playEvent.time);
                     }
                 }; break;
                 case PlayEventType.SpinnerEnd: {
@@ -497,13 +514,18 @@ export class Play {
             switch (playEvent.type) {
                 case PlayEventType.SliderSlide: {
                     let slider = playEvent.hitObject as DrawableSlider;
-                    let currentPosition = slider.path.getPosFromPercentage(MathUtil.mirror(slider.calculateCurrentCompletion(currentTime)));
+                    let currentPosition = slider.path.getPosFromPercentage(MathUtil.mirror(slider.calculateCompletionAtTime(currentTime)));
                     let pan = calculatePanFromOsuCoordinates(currentPosition);
 
                     // Update the pan on the slider slide emitters
                     for (let i = 0; i < slider.slideEmitters.length; i++) {
                         let emitter = slider.slideEmitters[i];
                         emitter.setPan(pan);
+                    }
+                    
+                    let distanceToCursor = pointDistance(osuMouseCoordinates, currentPosition);
+                    if ((buttonPressed && distanceToCursor <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit) {
+                        slider.holdFollowCircle(currentTime);
                     }
                 }; break;
             }

@@ -39,9 +39,9 @@ export class BeatmapDifficulty {
     }
 
     static getJudgementForHitDelta(OD: number, hitDelta: number) {
-        if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 300) >= hitDelta) return 300;
-        if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 100) >= hitDelta) return 100;
-        if(BeatmapDifficulty.getHitDeltaForJudgement(OD, 50) >= hitDelta) return 50;
+        if (BeatmapDifficulty.getHitDeltaForJudgement(OD, 300) >= hitDelta) return 300;
+        if (BeatmapDifficulty.getHitDeltaForJudgement(OD, 100) >= hitDelta) return 100;
+        if (BeatmapDifficulty.getHitDeltaForJudgement(OD, 50) >= hitDelta) return 50;
         return 0;
     }
 

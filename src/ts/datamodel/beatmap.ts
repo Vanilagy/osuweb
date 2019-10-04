@@ -136,7 +136,7 @@ export class Beatmap {
 
             if (line.startsWith("osu file format v")) {
                 this.version = line.substr(line.length - 2, 2);
-            } else if(line.startsWith("[") && line.endsWith("]")) {
+            } else if (line.startsWith("[") && line.endsWith("]")) {
                 section = line.substr(1, line.length-2).toLowerCase();
             } else if (section === "colours") {
                 this.parseComboColor(line);
@@ -291,9 +291,9 @@ export class Beatmap {
         }
     }
 
-    getNextNonInheritedTimingPoint(num: number) {
-        for(let i = num + 1; i < this.timingPoints.length; i++) {
-            if(!this.timingPoints[i].inheritable) return this.timingPoints[i];
+    getNextInheritableTimingPoint(num: number) {
+        for (let i = num + 1; i < this.timingPoints.length; i++) {
+            if (this.timingPoints[i].inheritable) return this.timingPoints[i];
         }
 
         return null;

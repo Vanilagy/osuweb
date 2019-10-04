@@ -22,6 +22,7 @@ export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on t
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
 const FOLLOW_CIRCLE_SCALE_OUT_DURATION = 200;
 const FOLLOW_CIRCLE_PULSE_DURATION = 200;
+const FOLLOW_CIRCLE_RELEASE_DURATION = 200;
 const MAX_SLIDER_BALL_SLIDER_VELOCITY = 0.25; // In osu pixels per millisecond. This variable is used to cap the rotation speed on slider balls for very fast sliders.
 const HIDDEN_TICK_FADE_OUT_DURATION = 400;
 
@@ -56,6 +57,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private tickElements: (PIXI.Container | null)[];
     private followCircle: PIXI.Container;
     private followCircleAnimator: AnimatedOsuSprite;
+    private followCircleHoldStartTime: number = null;
+    private followCircleReleaseStartTime: number = null;
+    private followCirclePulseStartTime: number = -Infinity;
     private hitCirclePrimitiveContainer: PIXI.Container;
     private reverseArrowContainer: PIXI.Container;
     public sliderEnds: HitCirclePrimitive[] = [];
@@ -579,6 +583,27 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
     }
 
+    holdFollowCircle(time: number) {
+        if (this.followCircleHoldStartTime !== null) return;
+
+        this.followCircleHoldStartTime = Math.max(this.startTime, time);
+        this.followCircleReleaseStartTime = null;
+        this.followCirclePulseStartTime = null;
+    }
+    
+    releaseFollowCircle(time: number) {
+        if (this.followCircleReleaseStartTime !== null || time >= this.endTime) return;
+
+        this.followCircleHoldStartTime = null;
+        this.followCircleReleaseStartTime = time;
+    }
+
+    pulseFollowCircle(time: number) {
+        if (time >= this.endTime) return;
+
+        this.followCirclePulseStartTime = time;
+    }
+
     score(time: number) {
         let resultingRawScore = 0;
 
@@ -635,6 +660,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         if (judgement !== 0) {
             gameState.currentGameplaySkin.playHitSound(this.hitSounds[0]);
             accuracyMeter.addAccuracyLine(timeInaccuracy, time);
+            this.holdFollowCircle(time);
         }
         // The if here is because not all sliders have heads, like edge-case invisible sliders.
         if (this.head) HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
@@ -643,7 +669,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     applyStackPosition() {
         super.applyStackPosition();
 
-        if (true /* This was if(fullCalc) before */) {
+        if (true /* This was if (fullCalc) before */) {
             this.bounds.minX += this.stackHeight * -4;
             this.bounds.minY += this.stackHeight * -4;
             this.bounds.maxX += this.stackHeight * -4;
@@ -701,16 +727,16 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.sliderBodyHasBeenRendered = true;
     }
 
-    calculateCurrentCompletion(currentTime: number) {
-        let currentSliderTime = currentTime - this.hitObject.time;
-        let completion = (this.velocity * currentSliderTime) / this.length;
+    calculateCompletionAtTime(time: number) {
+        let sliderTime = time - this.hitObject.time;
+        let completion = (this.velocity * sliderTime) / this.length;
         completion = MathUtil.clamp(completion, 0, this.repeat);
 
         return completion;
     }
 
     private updateSubelements(currentTime: number) {
-        let completion = this.calculateCurrentCompletion(currentTime);
+        let completion = this.calculateCompletionAtTime(currentTime);
         let currentSliderTime = currentTime - this.hitObject.time;
 
         this.updateSliderEnds(currentTime);
@@ -763,46 +789,44 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.followCircle.x = sliderBallPos.x;
         this.followCircle.y = sliderBallPos.y;
 
-        let enlargeCompletion = (currentTime - this.startTime) / FOLLOW_CIRCLE_SCALE_IN_DURATION;
-        enlargeCompletion = MathUtil.clamp(enlargeCompletion, 0, 1);
-        enlargeCompletion = MathUtil.ease(EaseType.EaseOutQuad, enlargeCompletion);
+        let followCircleSizeFactor = 0.0;
+        let followCircleAlpha = 1.0;
 
-        let followCircleSizeFactor = 0;
-        followCircleSizeFactor += (2 - 1) * enlargeCompletion; // Enlarge to 2 on start
+        if (this.followCircleReleaseStartTime !== null) {
+            let releaseCompletion = (currentTime - this.followCircleReleaseStartTime) / FOLLOW_CIRCLE_RELEASE_DURATION;
+            releaseCompletion = MathUtil.clamp(releaseCompletion, 0, 1);
 
-        let biggestCurrentTickCompletion = -Infinity;
-        let biggestCurrentRepeatCompletion = -Infinity;
-        for (let c of this.tickCompletions) {
-            if (c > completion) break;
-            biggestCurrentTickCompletion = c;
+            // This condition is false when the slider was released right when it began, aka wasn't held when it began. In that case, the follow circle stays hidden :thinking:
+            if (this.followCircleReleaseStartTime > this.startTime) {
+                followCircleSizeFactor = MathUtil.lerp(1, 2, releaseCompletion);
+            }
+            followCircleAlpha = 1 - releaseCompletion;
+        } else if (this.followCircleHoldStartTime !== null) {
+            let enlargeCompletion = (currentTime - this.followCircleHoldStartTime) / FOLLOW_CIRCLE_SCALE_IN_DURATION;
+            enlargeCompletion = MathUtil.clamp(enlargeCompletion, 0, 1);
+            enlargeCompletion = MathUtil.ease(EaseType.EaseOutQuad, enlargeCompletion);
+
+            followCircleSizeFactor += MathUtil.lerp(0.5, 1.0, enlargeCompletion);
+            followCircleAlpha = enlargeCompletion;
+
+            if (this.followCirclePulseStartTime !== null) {
+                let pulseFactor = (currentSliderTime - this.followCirclePulseStartTime) / FOLLOW_CIRCLE_PULSE_DURATION;
+                pulseFactor = MathUtil.clamp(pulseFactor, 0, 1);
+                pulseFactor = 1 - MathUtil.ease(EaseType.EaseOutQuad, pulseFactor);
+                pulseFactor *= 0.10;
+
+                followCircleSizeFactor += pulseFactor;
+            }
+
+            let shrinkCompletion = (currentTime - this.endTime) / FOLLOW_CIRCLE_SCALE_OUT_DURATION;
+            shrinkCompletion = MathUtil.clamp(shrinkCompletion, 0, 1);
+            shrinkCompletion = MathUtil.ease(EaseType.EaseOutQuad, shrinkCompletion);
+
+            followCircleSizeFactor *= MathUtil.lerp(1, 0.75, shrinkCompletion); // Shrink on end, to 0.75x
         }
-        biggestCurrentRepeatCompletion = Math.floor(completion);
-        if (biggestCurrentRepeatCompletion === 0 || biggestCurrentRepeatCompletion === this.repeat)
-            biggestCurrentRepeatCompletion = null; // We don't want the "pulse" on slider beginning and end, only on hitting repeats
 
-        outer:
-        if (biggestCurrentTickCompletion !== null || biggestCurrentRepeatCompletion !== null) {
-            let biggestCompletion = Math.max(biggestCurrentTickCompletion, biggestCurrentRepeatCompletion);
-            if (biggestCompletion === -Infinity) break outer; // Breaking ifs, yay! Tbh, it's a useful thing.
-
-            // Time of the slider tick or the reverse, relative to the slider start time
-            let time = biggestCompletion * this.length / this.velocity;
-
-            let pulseFactor = (currentSliderTime - time) / FOLLOW_CIRCLE_PULSE_DURATION;
-            pulseFactor = 1 - MathUtil.ease(EaseType.EaseOutQuad, MathUtil.clamp(pulseFactor, 0, 1));
-            pulseFactor *= 0.20;
-
-            followCircleSizeFactor += pulseFactor;
-        }
-
-        let shrinkCompletion = (currentTime - this.endTime) / FOLLOW_CIRCLE_SCALE_OUT_DURATION;
-        shrinkCompletion = MathUtil.clamp(shrinkCompletion, 0, 1);
-        shrinkCompletion = MathUtil.ease(EaseType.EaseOutQuad, shrinkCompletion);
-
-        followCircleSizeFactor *= 1 * (1 - shrinkCompletion) + 0.75 * shrinkCompletion; // Shrink on end, to 1.5x
-        followCircleSizeFactor += 1; // Base. Never get smaller than this.
-
-        this.followCircle.scale.set(followCircleSizeFactor / 2);
+        this.followCircle.scale.set(followCircleSizeFactor);
+        this.followCircle.alpha = followCircleAlpha;
 
         if (this.followCircleAnimator) this.followCircleAnimator.update(currentTime);
     }
