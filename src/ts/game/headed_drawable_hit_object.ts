@@ -56,10 +56,6 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     public stackHeight: number = 0;
     public scoring: CircleScoring | SliderScoring;
 
-    constructor(hitObject: HitObject) {
-        super(hitObject);
-    }
-
     applyStackPosition() {
         this.startPoint.x += this.stackHeight * -4;
         this.startPoint.y += this.stackHeight * -4;

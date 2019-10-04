@@ -8,30 +8,32 @@ interface SoundEmitterOptions {
 }
 
 export class SoundEmitter {
-    private volume: number = 1; // !???!
-    private playbackRate: number = 1;
     private sourceNode: AudioBufferSourceNode = null;
     private gainNode: GainNode;
-    private audioStartTime: number = null;
+    private pannerNode: StereoPannerNode;
+
     private buffer: AudioBuffer = null;
+    private playbackRate: number = 1;
     private offset: number = 0;
     private loop: boolean = false;
+
+    private audioStartTime: number = null;
     private playing: boolean = false;
 
-    constructor(options: SoundEmitterOptions) {
-        if (options.buffer) this.setBuffer(options.buffer);
-        if (options.volume) this.volume = options.volume;
-        if (options.playbackRate) this.playbackRate = options.playbackRate;
-
+    constructor(destination: AudioNode) {
         this.gainNode = audioContext.createGain();
-        this.setVolume(this.volume);
+        this.pannerNode = audioContext.createStereoPanner();
 
-        this.gainNode.connect(options.destination);
+        this.gainNode.connect(this.pannerNode);
+        this.pannerNode.connect(destination);
     }
 
-    setVolume(newVolume: number) {
-        this.volume = newVolume;
-        this.gainNode.gain.value = this.volume;
+    setVolume(volume: number) {
+        this.gainNode.gain.value = volume;
+    }
+
+    setPan(newPan: number) {
+        this.pannerNode.pan.value = newPan;
     }
 
     setBuffer(buffer: AudioBuffer) {

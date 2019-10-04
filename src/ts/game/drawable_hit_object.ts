@@ -1,10 +1,10 @@
 import { HitObject } from "../datamodel/hit_object";
-import { ComboInfo } from "./processed_beatmap";
+import { ComboInfo, CurrentTimingPointInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
 import { PlayEvent } from "./play_events";
 
 export abstract class DrawableHitObject {
-    public index: number = 0;
+    public index: number = null;
     public comboInfo: ComboInfo;
     public hitObject: HitObject;
     public container: PIXI.Container;
@@ -19,18 +19,20 @@ export abstract class DrawableHitObject {
     /** When true, the hit object has ended its short life as a graphical element and need not be rendered anymore. */
     public renderFinished: boolean;
 
-    constructor(hitObject: HitObject) {
+    constructor(hitObject: HitObject, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
         this.hitObject = hitObject;
         this.container = new PIXI.Container();
 
-        this.startPoint = {
+        this.startPoint = { // It is important that we "duplicate" the point here. This decouples the raw hitObject from the drawable.
             x: this.hitObject.x,
             y: this.hitObject.y
-        }; // It is important that we "duplicate" the point here. This decouples the raw hitObject from the drawable.
+        };
         this.startTime = this.hitObject.time;
+
+        this.comboInfo = comboInfo;
     }
 
-    abstract init(): void;
+    protected abstract initSounds(hitObject: HitObject, timingInfo: CurrentTimingPointInfo): void;
 
     abstract draw(): void;
 

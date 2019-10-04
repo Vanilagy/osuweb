@@ -6,6 +6,7 @@ import { Color } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 import { Spinner } from "./spinner";
+import { last } from "../util/misc_util";
 
 class BeatmapCreationOptions {
     text: string;
@@ -91,7 +92,6 @@ export class Beatmap {
     public beatmapSetID: number = null;
 
     constructor(options: BeatmapCreationOptions) {
-        //Console.verbose("--- START BEATMAP LOADING ---");
         this.beatmapSet = options.beatmapSet;
         this.difficulty = new BeatmapDifficulty();
         this.loadFlat = options.loadFlat;
@@ -125,8 +125,6 @@ export class Beatmap {
     }
 
     parseBeatmap(text: string) {
-        //Console.debug("Start beatmap parsing...");
-
         let lines = text.split('\n');
 
         let section = "header";
@@ -243,7 +241,7 @@ export class Beatmap {
                 this.hitObjects.push(new Slider(values));
             }
             this.sliderCount++;
-        } else if ((hitObjectData & 8) !== 0) {
+        } else if ((hitObjectData & 8) !== 0) { // It's a spinner if the 8 bit is set (not 4)
             if (!this.loadFlat) {
                 this.hitObjects.push(new Spinner(values));
             }
@@ -299,5 +297,15 @@ export class Beatmap {
         }
 
         return null;
+    }
+
+    getClosestTimingPointTo(time: number, fromIndex = 0) {
+        time = Math.round(time);
+
+        for (let i = fromIndex; i < this.timingPoints.length-1; i++) {
+            if (this.timingPoints[i+1].offset > time) return this.timingPoints[i];
+        }
+
+        return last(this.timingPoints);
     }
 }

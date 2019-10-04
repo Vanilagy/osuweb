@@ -79,14 +79,16 @@ export function toFloat32(f64: number) {
 }
 
 /** Returns the index of the last occurance of the element less than or equal to the key, or -1 if none was found. Adapted from https://www.geeksforgeeks.org/variants-of-binary-search/ */
-export function binarySearchLessOrEqual(arr: number[], key: number) {
+export function binarySearchLessOrEqual(arr: number[], key: number): number;
+export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter: (x: T) => number): number;
+export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter?: (x: T) => number) {
     let ans = -1,
         low = 0,
         high = arr.length-1;
 
     while (low <= high) {
         let mid = (low + (high - low + 1) / 2) | 0;
-        let midVal = arr[mid];
+        let midVal = valueGetter? valueGetter(arr[mid]) : arr[mid] as unknown as number;
 
         if (midVal <= key) {
             ans = mid;

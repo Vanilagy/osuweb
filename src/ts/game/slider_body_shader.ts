@@ -134,7 +134,7 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
         if (isDistortedSlider) {
             intersectsLeftEdge = gameState.currentPlay.toScreenCoordinatesX(sliderBounds.minX + adjustedCircleRadius, false) <= 0;
             intersectsTopEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.minY + adjustedCircleRadius, false) <= 0;
-            intersectsBottomEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.maxX + adjustedCircleRadius, false) >= window.innerHeight;
+            intersectsBottomEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.maxY + adjustedCircleRadius, false) >= window.innerHeight;
 
             // Do left-edge scaling
             if (intersectsLeftEdge) glMatrix.mat3.scale(matrix, matrix, new Float32Array([shrinkFactorX, 1.0]));

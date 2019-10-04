@@ -4,20 +4,19 @@ import { HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT }
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { HitSoundInfo } from "./skin";
+import { HitSoundInfo, generateHitSoundInfo } from "./skin";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
+import { ComboInfo, CurrentTimingPointInfo } from "./processed_beatmap";
 
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;
     public scoring: CircleScoring;
     public hitSound: HitSoundInfo;
 
-    constructor(hitObject: Circle) {
-        super(hitObject);
-    }
+    constructor(circle: Circle, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
+        super(circle, comboInfo, timingInfo);
 
-    init() {
         this.endTime = this.startTime;
         this.endPoint = {
             x: this.hitObject.x,
@@ -25,6 +24,14 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         };
 
         this.scoring = getDefaultCircleScoring();
+
+        this.initSounds(circle, timingInfo);
+    }
+
+    protected initSounds(circle: Circle, timingInfo: CurrentTimingPointInfo) {
+        let currentTimingPoint = timingInfo.timingPoint;
+
+        this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this.startPoint);
     }
 
     draw() {

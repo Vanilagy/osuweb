@@ -20,7 +20,7 @@ import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin";
+import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, calculatePanFromOsuCoordinates } from "./skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_primitive";
 import { ScoringValue } from "./scoring_value";
@@ -62,6 +62,7 @@ export class Play {
     public lastRenderInfoLogTime: number = null;
 
     public playEvents: PlayEvent[] = [];
+    public currentSustainedEvents: PlayEvent[] = [];
     public currentPlayEvent: number = 0;
     public scoreCounter: ScoreCounter;
     public activeMods: Set<Mod>;
@@ -375,6 +376,11 @@ export class Play {
             let playEvent = this.playEvents[this.currentPlayEvent];
             if (playEvent.time > currentTime) break;
 
+            if (playEvent.endTime !== undefined) {
+                this.currentSustainedEvents.push(playEvent);
+                continue;
+            }
+
             switch (playEvent.type) {
                 case PlayEventType.HeadHitWindowEnd: {
                     let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
@@ -477,6 +483,28 @@ export class Play {
                     let spinner = playEvent.hitObject as DrawableSpinner;
 
                     spinner.score();
+                }; break;
+            }
+        }
+
+        for (let i = 0; i < this.currentSustainedEvents.length; i++) {
+            let playEvent = this.currentSustainedEvents[i];
+            if (currentTime >= playEvent.endTime) {
+                this.currentSustainedEvents.splice(i--, 1);
+                continue;
+            }
+
+            switch (playEvent.type) {
+                case PlayEventType.SliderSlide: {
+                    let slider = playEvent.hitObject as DrawableSlider;
+                    let currentPosition = slider.path.getPosFromPercentage(MathUtil.mirror(slider.calculateCurrentCompletion(currentTime)));
+                    let pan = calculatePanFromOsuCoordinates(currentPosition);
+
+                    // Update the pan on the slider slide emitters
+                    for (let i = 0; i < slider.slideEmitters.length; i++) {
+                        let emitter = slider.slideEmitters[i];
+                        emitter.setPan(pan);
+                    }
                 }; break;
             }
         }
@@ -609,7 +637,7 @@ export class Play {
                 break outer;
             }
 
-            let completion = (slider.timingInfo.sliderVelocity * (currentTime - slider.startTime)) / slider.length;
+            let completion = (slider.velocity * (currentTime - slider.startTime)) / slider.length;
             completion = MathUtil.clamp(completion, 0, slider.repeat);
 
             cursorPlayfieldPos = slider.path.getPosFromPercentage(MathUtil.mirror(completion));

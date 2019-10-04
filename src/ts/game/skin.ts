@@ -8,9 +8,12 @@ import { createAudioBuffer, soundEffectsNode } from "../audio/audio";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { uploadTexture } from "../visuals/rendering";
 import { MathUtil } from "../util/math_util";
+import { Point } from "../util/point";
+import { TimingPoint } from "../datamodel/beatmap";
+import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/vaxei";
+let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -19,6 +22,7 @@ export const IGNORE_BEATMAP_HIT_SOUNDS = false;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
+const HIT_SOUND_PAN_DIVISOR = 800; // How many osu!pixels from the center of the screen one has to move for the hit sound to be fully on either the left or right audio channel
 
 export class OsuTexture {
     private sdBase: PIXI.Texture = null;
@@ -270,7 +274,8 @@ export interface HitSoundInfo {
     base: HitSoundType,
     additions?: HitSoundType[],
     volume: number,
-    index?: number
+    index?: number,
+    position?: Point
 }
 
 export function getHitSoundTypesFromSampleSetAndBitfield(sampleSet: number, bitfield: number) {
@@ -331,6 +336,26 @@ export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitfield: nu
 
 export function normSampleSet(sampleSet: number) {
     return MathUtil.clamp(sampleSet, 1, 3);
+}
+
+export function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, index: number, timingPoint: TimingPoint, position?: Point) {
+    baseSet = normSampleSet(baseSet || timingPoint.sampleSet || 1)
+    additionSet = normSampleSet(additionSet || baseSet); // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+    volume = volume || timingPoint.volume;
+    index = index || timingPoint.sampleIndex || 1;
+
+    let baseType = getHitSoundTypesFromSampleSetAndBitfield(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
+    let additionTypes = getHitSoundTypesFromSampleSetAndBitfield(additionSet, hitSound & ~1);
+
+    let info: HitSoundInfo = {
+        base: baseType,
+        additions: additionTypes,
+        volume: volume,
+        index: index,
+        position: position
+    };
+    
+    return info;
 }
 
 export class HitSound {
@@ -400,27 +425,33 @@ export class HitSound {
         }
     }
 
-    getEmitter(volume: number, index = 1) {
+    getEmitter(volume: number, index = 1, pan: number = 0) {
         let buffer = this.audioBuffers[index];
         if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
         if (!buffer) return null;
 
         // TODO: How correct is this? Eeeeeeh
-        volume = MathUtil.clamp(volume, 10, 10000);
+        volume = MathUtil.clamp(volume, 5, 10000);
 
-        let emitter = new SoundEmitter({
-            destination: soundEffectsNode,
-            buffer: buffer,
-            volume: volume/100
-        });
+        let emitter = new SoundEmitter(soundEffectsNode);
+        emitter.setBuffer(buffer);
+        emitter.setVolume(volume/100);
+        emitter.setPan(pan);
 
         return emitter;
     }
 
-    play(volume: number, index = 1) {
-        let emitter = this.getEmitter(volume, index);
+    play(volume: number, index = 1, pan: number = 0) {
+        let emitter = this.getEmitter(volume, index, pan);
         if (emitter) emitter.start();
     }
+}
+
+export function calculatePanFromOsuCoordinates(position: Point) {
+    if (!position) return 0.0;
+
+    let x = position.x - PLAYFIELD_DIMENSIONS.width/2;
+    return MathUtil.clamp(x/HIT_SOUND_PAN_DIVISOR, -1.0, 1.0);
 }
 
 export enum HitSoundType {
@@ -628,13 +659,15 @@ export class Skin {
     }
 
     playHitSound(info: HitSoundInfo) {
+        let pan = calculatePanFromOsuCoordinates(info.position);
+
         let baseSound = this.sounds[info.base];
-        baseSound.play(info.volume, info.index);
+        baseSound.play(info.volume, info.index, pan);
 
         if (info.additions) {
             for (let i = 0; i < info.additions.length; i++) {
                 let additionSound = this.sounds[info.additions[i]];
-                additionSound.play(info.volume, info.index);
+                additionSound.play(info.volume, info.index, pan);
             }
         }
     }

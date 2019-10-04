@@ -385,7 +385,6 @@ export class SliderPath {
     
         // Monstrata plz
         if (pointsAreEqual(points[0], points[2])) { // case one
-            //Console.warn("Converted P to B-slider due to case one.");
             sections = jsonClone(sections); // Since we're modifying the sections here, we have to decouple them from the raw hit object.
     
             sections[0] = {values: [points[0], points[1]]};
@@ -398,7 +397,6 @@ export class SliderPath {
     
         // Slider seems to have all points on one line. Parsing it as linear slider instead
         if (!isFinite(centerPos.x) || !isFinite(centerPos.y)) { // case two
-            //Console.warn("Converted P to L-slider due to case two.");
             sections = jsonClone(sections);
         
             // Remove middle point
@@ -463,7 +461,7 @@ export class SliderPath {
 
         outputPoints.push(additionalPoint);
 
-        // TODO: Since length includes the full distance along the arc, but this method only counts the lengths of the chords (https://en.wikipedia.org/wiki/Chord_(geometry)), is it necessary to subtract the length we're missing?
+        // TODO: Since length includes the full distance along the arc, but when this method travels along the circle trace points, it'll only count the sum of the chord lengths (https://en.wikipedia.org/wiki/Chord_(geometry)), is it necessary to subtract the length we're missing?
         let pathCompletions = fitPolylineToLength(outputPoints, length);
 
         return {

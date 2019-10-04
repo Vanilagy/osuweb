@@ -150,9 +150,6 @@ export class ModHelper {
     static generateAutoPlaythroughInstructions(play: Play) {
         console.time("Auto playthrough instruction generation");
 
-        //Console.debug(DEBUG_PREFIX+"Generating auto playthrough instructions...");
-        //let startTime = window.performance.now();
-
         /* Generates waypoints from start and end positions aswell as slider ticks and spinners.
            Will be used to construct movement instructions.
          */
@@ -175,9 +172,9 @@ export class ModHelper {
                     hitObject: hitObject
                 });
 
-                for (let j = 0; j < hitObject.sliderTickCompletions.length; j++) {
-                    let tickMs = hitObject.startTime + hitObject.sliderTickCompletions[j] * hitObject.length / hitObject.timingInfo.sliderVelocity;
-                    let tickPosition = hitObject.path.getPosFromPercentage(MathUtil.mirror(hitObject.sliderTickCompletions[j]));
+                for (let j = 0; j < hitObject.tickCompletions.length; j++) {
+                    let tickMs = hitObject.startTime + hitObject.tickCompletions[j] * hitObject.length / hitObject.velocity;
+                    let tickPosition = hitObject.path.getPosFromPercentage(MathUtil.mirror(hitObject.tickCompletions[j]));
 
                     waypoints.push({
                         type: WaypointType.SliderTick,
@@ -188,7 +185,7 @@ export class ModHelper {
                 }
 
                 for (let j = 1; j <= hitObject.repeat; j++) {
-                    let repeatMs = hitObject.startTime + j * hitObject.length / hitObject.timingInfo.sliderVelocity;
+                    let repeatMs = hitObject.startTime + j * hitObject.length / hitObject.velocity;
                     let repeatPosition = (j % 2) ? hitObject.tailPoint : hitObject.startPoint;
 
                     waypoints.push({
@@ -210,11 +207,8 @@ export class ModHelper {
                     hitObject: hitObject
                 }); // Used to decrement active spinner count
             }
-
-            //Console.verbose(DEBUG_PREFIX+"Added waypoint: " + waypoints[waypoints.length - 1]);
         }
         waypoints.sort((a, b) => a.time - b.time); // TODO: Isn't it already sorted? :thinking:
-        //Console.debug(DEBUG_PREFIX+"Generated waypoints in " + (window.performance.now() - startTime).toFixed(3) + "ms");
 
         //let instructionsStartTime = window.performance.now();
         let instructions: AutoInstruction[] = [];
@@ -284,10 +278,6 @@ export class ModHelper {
             } else if (waypoint.type === WaypointType.SpinnerEnd) {
                 activeSpinnerCount--;
             }
-
-            if (waypoint.type !== WaypointType.SpinnerEnd) {
-                //Console.verbose(DEBUG_PREFIX+"Added instruction: " + instructions[instructions.length - 1]);
-            }
         }
 
         // Remove repeated followSlider instructions all linking to the same slider
@@ -298,7 +288,6 @@ export class ModHelper {
                 }
             }
         }
-        //Console.debug(DEBUG_PREFIX+"Removed repeated followSlider instructions");
 
         // Merge simulatenous spinners into one instruction
         for (let i = 0; i < instructions.length-1; i++) {
@@ -309,7 +298,6 @@ export class ModHelper {
                 }
             }
         }
-        //Console.debug(DEBUG_PREFIX+"Merged simultaneous spinners");
 
         // Remove unnecessary instructions with same starting time
         for (let i = 0; i < instructions.length-1; i++) {
@@ -317,7 +305,6 @@ export class ModHelper {
                 instructions.splice(i, 1);
             }
         }
-        //Console.debug(DEBUG_PREFIX+"Removed unnecessary instructions");
 
         function getLastInstructionPosition(time: number) {
             let lastInstruction = instructions[instructions.length - 1];
@@ -329,7 +316,7 @@ export class ModHelper {
             } else if (lastInstruction.type === AutoInstructionType.Follow) {
                 let slider = lastInstruction.hitObject as DrawableSlider;
 
-                let completion = ((slider.timingInfo.sliderVelocity * (time - slider.startTime)) / slider.length) || 0; // || 0 to catch NaN
+                let completion = ((slider.velocity * (time - slider.startTime)) / slider.length) || 0; // || 0 to catch NaN
                 completion = MathUtil.clamp(completion, 0, slider.repeat);
                 let pos = slider.path.getPosFromPercentage(MathUtil.mirror(completion));
 
@@ -354,8 +341,6 @@ export class ModHelper {
 
         console.timeEnd("Auto playthrough instruction generation");
 
-        //Console.debug(DEBUG_PREFIX+"Generated instructions in " + (window.performance.now() - instructionsStartTime).toFixed(3) + "ms");
-        //Console.debug(DEBUG_PREFIX+"Algorithm completed in " + (window.performance.now() - startTime).toFixed(3) + "ms");
         return instructions;
     }
 

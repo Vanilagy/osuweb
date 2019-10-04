@@ -8,11 +8,12 @@ import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
 import { PLAYFIELD_DIMENSIONS, DrawingMode, DRAWING_MODE, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
 import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../util/graphics_util";
-import { HitSoundInfo, HitSoundType } from "./skin";
+import { HitSoundInfo, HitSoundType, generateHitSoundInfo } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { Mod } from "./mods";
 import { accuracyMeter } from "./hud";
+import { CurrentTimingPointInfo, ComboInfo } from "./processed_beatmap";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -71,11 +72,9 @@ export class DrawableSpinner extends DrawableHitObject {
     // TODO: Clean this up. Ergh. Disgusting.
     public bonusSoundVolume: number;
 
-    constructor(hitObject: Spinner) {
-        super(hitObject);
-    }
+    constructor(spinner: Spinner, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
+        super(spinner, comboInfo, timingInfo);
 
-    init() {
         let { processedBeatmap } = gameState.currentPlay;
 
         this.startTime = this.hitObject.time;
@@ -88,9 +87,24 @@ export class DrawableSpinner extends DrawableHitObject {
         this.cleared = false;
         this.bonusSpins = 0;
 
-        if (this.spinSoundEmitter) {
-            this.spinSoundEmitter.setLoopState(true);
+        this.initSounds(spinner, timingInfo);
+    }
+
+    protected initSounds(spinner: Spinner, timingInfo: CurrentTimingPointInfo) {
+        let currentTimingPoint = timingInfo.timingPoint;
+
+        this.hitSound = generateHitSoundInfo(spinner.hitSound, spinner.extras.sampleSet, spinner.extras.additionSet, spinner.extras.sampleVolume, spinner.extras.customIndex, currentTimingPoint);
+
+        let volume = spinner.extras.sampleVolume || currentTimingPoint.volume,
+            index = spinner.extras.customIndex || currentTimingPoint.sampleIndex || 1;
+
+        let emitter = gameState.currentGameplaySkin.sounds[HitSoundType.SpinnerSpin].getEmitter(volume, index);
+        if (emitter && emitter.getBuffer().duration >= 0.01) {
+            emitter.setLoopState(true);
+            this.spinSoundEmitter = emitter;
         }
+
+        this.bonusSoundVolume = volume;
     }
 
     draw() {
