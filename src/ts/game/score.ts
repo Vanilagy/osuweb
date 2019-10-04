@@ -79,8 +79,6 @@ export class ScoreCounter {
 
         this.resetGekiAndKatu();
 
-        console.log(this.difficultyMultiplier, this.modMultiplier);
-
         scoreDisplay.setValue(0);
         accuracyDisplay.setValue(100);
         phantomComboDisplay.setValue(0);
@@ -102,8 +100,6 @@ export class ScoreCounter {
         let scoreGain = rawAmount;
         if (!raw) scoreGain = rawAmount + (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25));
         scoreGain = Math.floor(toFloat32(scoreGain)); // Especially with a mod multiplier, gain can be decimal, so floor here. Assuming ppy uses float and double for this calculation, we have to convert to float first to get an accurate result. (not doing so has yielded some bs)
-
-        console.log( (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25)))
 
         this.score.points += scoreGain;
 
