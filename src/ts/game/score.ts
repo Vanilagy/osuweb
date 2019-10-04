@@ -98,8 +98,8 @@ export class ScoreCounter {
         let effectiveCombo = Math.max(0, this.currentCombo - 1);
 
         let scoreGain = rawAmount;
-        if (!raw) scoreGain = rawAmount + (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25));
-        scoreGain = Math.floor(toFloat32(scoreGain)); // Especially with a mod multiplier, gain can be decimal, so floor here. Assuming ppy uses float and double for this calculation, we have to convert to float first to get an accurate result. (not doing so has yielded some bs)
+        if (!raw) scoreGain = rawAmount + (rawAmount * (effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25);
+        scoreGain = Math.floor(scoreGain); // Especially with a mod multiplier, gain can be decimal, so floor here.
 
         this.score.points += scoreGain;
 
