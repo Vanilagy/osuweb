@@ -31,37 +31,38 @@ export enum SpecialSliderBehavior {
 }
 
 export class DrawableSlider extends HeadedDrawableHitObject {
-    public baseSprite: PIXI.Sprite;
-    public overlayContainer: PIXI.Container;
-    public sliderBall: SliderBall;
-    public tickickContainer: PIXI.Container;
-    private followCircle: PIXI.Container;
-    private followCircleAnimator: AnimatedOsuSprite;
-    public sliderEnds: HitCirclePrimitive[] = [];
-    public hitCirclePrimitiveContainer: PIXI.Container;
-    public reverseArrowContainer: PIXI.Container;
-
+    public hitObject: Slider;
     /** The "visual other end" of the slider. Not necessarily where the slider ends (because of repeats); for that, refer to endPoint instead. */
     public tailPoint: Point;
     public duration: number;
     public repeat: number; // Contains the adjusted value of repeats in case the file was doing something funky.
     public length: number; // Same info as for repeat.
+    public velocity: number; // In osu!pixels per millisecond
+    private specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
+    public scoring: SliderScoring;
+
     public path: SliderPath;
     public bounds: SliderBounds;
-    public velocity: number; // In osu!pixels per millisecond
-    public hitObject: Slider;
-    public tickCompletions: number[];
-    public tickElements: (PIXI.Container | null)[];
-    public scoring: SliderScoring;
-    public hitSounds: HitSoundInfo[];
-    public tickSounds: HitSoundInfo[];
-    public slideEmitters: SoundEmitter[];
-    public specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
-
+    private baseSprite: PIXI.Sprite;
     public hasFullscreenBaseSprite: boolean = false; // If a slider is really big, like bigger-than-the-screen big, we change slider body rendering to happen in relation to the entire screen rather than a local slider texture. This way, we don't get WebGL errors from trying to draw to too big of a texture buffer, and it allows us to support slider distortions with some matrix magic.
-    public sliderBodyMesh: PIXI.Mesh;
-    public sliderBodyHasBeenRendered = false;
-    public lastGeneratedSnakingCompletion = 0;
+    private sliderBodyMesh: PIXI.Mesh;
+    private sliderBodyHasBeenRendered = false;
+    private lastGeneratedSnakingCompletion = 0;
+    
+    private overlayContainer: PIXI.Container;
+    private sliderBall: SliderBall;
+    private tickContainer: PIXI.Container;
+    public tickCompletions: number[];
+    private tickElements: (PIXI.Container | null)[];
+    private followCircle: PIXI.Container;
+    private followCircleAnimator: AnimatedOsuSprite;
+    private hitCirclePrimitiveContainer: PIXI.Container;
+    private reverseArrowContainer: PIXI.Container;
+    public sliderEnds: HitCirclePrimitive[] = [];
+    
+    private hitSounds: HitSoundInfo[];
+    private tickSounds: HitSoundInfo[];
+    public slideEmitters: SoundEmitter[];
 
     constructor(slider: Slider, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
         super(slider, comboInfo, timingInfo);
@@ -358,7 +359,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
         this.followCircle.visible = false;
 
-        this.tickickContainer = new PIXI.Container();
+        this.tickContainer = new PIXI.Container();
         this.tickElements = [];
 
         for (let i = 0; i < this.tickCompletions.length; i++) {
@@ -401,12 +402,12 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             tickElement.x = ctxPos.x;
             tickElement.y = ctxPos.y;
 
-            this.tickickContainer.addChild(tickElement);
+            this.tickContainer.addChild(tickElement);
             this.tickElements.push(tickElement);
         }
 
         this.overlayContainer = new PIXI.Container();
-        if (this.tickCompletions.length > 0) this.overlayContainer.addChild(this.tickickContainer);
+        if (this.tickCompletions.length > 0) this.overlayContainer.addChild(this.tickContainer);
         this.overlayContainer.addChild(this.sliderBall.container);
         this.overlayContainer.addChild(this.followCircle);
 
