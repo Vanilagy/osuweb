@@ -1,11 +1,11 @@
 import { Slider, SliderType } from "../datamodel/slider";
 import { MathUtil, EaseType } from "../util/math_util";
-import { Point, interpolatePointInPointArray, pointDistance } from "../util/point";
+import { Point, interpolatePointInPointArray, pointDistance, stackShiftPoint } from "../util/point";
 import { gameState } from "./game_state";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../util/constants";
 import { colorToHexNumber, Colors, colorToHexString } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
-import { assert, last, toFloat32 } from "../util/misc_util";
+import { assert, last, toFloat32, jsonClone } from "../util/misc_util";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
@@ -223,12 +223,27 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.slideEmitters = sliderSlideEmitters;
     }
 
+    applyStackPosition() {
+        stackShiftPoint(this.startPoint, this.stackHeight);
+        stackShiftPoint(this.tailPoint, this.stackHeight);
+
+        stackShiftPoint(this.bounds.min, this.stackHeight);
+        stackShiftPoint(this.bounds.max, this.stackHeight);
+
+        this.path.applyStackPosition(this.stackHeight);
+
+        for (let i = 0; i < this.tickSounds.length; i++) {
+            let sound = this.tickSounds[i];
+            stackShiftPoint(sound.position, this.stackHeight);
+        }
+    }
+
     toRelativeCoord(pos: Point): Point {
         let { pixelRatio, circleRadius } = gameState.currentPlay;
 
         return {
-            x: (pos.x - this.bounds.minX) * pixelRatio + circleRadius,
-            y: (pos.y - this.bounds.minY) * pixelRatio + circleRadius
+            x: (pos.x - this.bounds.min.x) * pixelRatio + circleRadius,
+            y: (pos.y - this.bounds.min.y) * pixelRatio + circleRadius
         };
     }
 
@@ -249,8 +264,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             type: HitCirclePrimitiveType.SliderHead
         });
 
-        let relativeStartPos = this.toRelativeCoord({x: this.startPoint.x, y: this.startPoint.y});
-        let relativeEndPos = this.toRelativeCoord({x: this.tailPoint.x, y: this.tailPoint.y});
+        let relativeStartPos = this.toRelativeCoord(this.startPoint);
+        let relativeTailPos = this.toRelativeCoord(this.tailPoint);
 
         this.head.container.x = relativeStartPos.x;
         this.head.container.y = relativeStartPos.y;
@@ -265,7 +280,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.sliderEnds = [];
         let msPerRepeatCycle = this.length / this.velocity;
         for (let i = 0; i < this.repeat; i++) {
-            let pos = (i % 2 === 0)? relativeEndPos : relativeStartPos;
+            let pos = (i % 2 === 0)? relativeTailPos : relativeStartPos;
             
             let fadeInStart: number;
             if (i === 0) {
@@ -435,8 +450,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         let { circleRadiusOsuPx } = gameState.currentPlay;
 
-        let screenX = gameState.currentPlay.toScreenCoordinatesX(this.bounds.minX - circleRadiusOsuPx);
-        let screenY = gameState.currentPlay.toScreenCoordinatesY(this.bounds.minY - circleRadiusOsuPx);
+        let screenX = gameState.currentPlay.toScreenCoordinatesX(this.bounds.min.x - circleRadiusOsuPx);
+        let screenY = gameState.currentPlay.toScreenCoordinatesY(this.bounds.min.y - circleRadiusOsuPx);
 
         this.container.position.set(screenX, screenY);
 
@@ -538,7 +553,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let repeatCycleDuration = this.duration / this.repeat;
 
             for (let i = 1; i < this.repeat; i++) {
-                let position = (i % 2 === 0)? this.startPoint : this.endPoint;
+                let position = (i % 2 === 0)? this.startPoint : this.tailPoint;
 
                 playEventArray.push({
                     type: PlayEventType.SliderRepeat,
@@ -664,19 +679,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
         // The if here is because not all sliders have heads, like edge-case invisible sliders.
         if (this.head) HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
-    }
-
-    applyStackPosition() {
-        super.applyStackPosition();
-
-        if (true /* This was if (fullCalc) before */) {
-            this.bounds.minX += this.stackHeight * -4;
-            this.bounds.minY += this.stackHeight * -4;
-            this.bounds.maxX += this.stackHeight * -4;
-            this.bounds.maxY += this.stackHeight * -4;
-
-            this.path.applyStackPosition(this.stackHeight);
-        }
     }
 
     private getLowestTickCompletionFromCurrentRepeat(completion: number) {

@@ -6,7 +6,7 @@ export let currentMousePosition: Point = {
     y: window.innerHeight / 2
 };
 
-window.onmousemove = (e) => {
+window.onmousemove = (e: MouseEvent) => {
     currentMousePosition.x = e.clientX;
     currentMousePosition.y = e.clientY;
 

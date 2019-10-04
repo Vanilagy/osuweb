@@ -65,12 +65,8 @@ export interface AutoInstruction {
 }
 
 function hardRockFlipPoint(point: Point) {
-    point.y = hardRockFlipY(point.y);
-}
-
-function hardRockFlipY(y: number) {
     // Mirror the point on the horizontal line that goes through the playfield center.
-    return PLAYFIELD_DIMENSIONS.height - y;
+    point.y = PLAYFIELD_DIMENSIONS.height - point.y;
 }
 
 export class ModHelper {
@@ -128,13 +124,13 @@ export class ModHelper {
                     hardRockFlipPoint(path.points[i]);
                 }
 
-                hitObject.bounds.minY = hardRockFlipY(hitObject.bounds.minY);
-                hitObject.bounds.maxY = hardRockFlipY(hitObject.bounds.maxY);
+                hardRockFlipPoint(hitObject.bounds.min);
+                hardRockFlipPoint(hitObject.bounds.max);
 
                 // Because we flipped them, we need to swap 'em now too:
-                let temp = hitObject.bounds.minY;
-                hitObject.bounds.minY = hitObject.bounds.maxY;
-                hitObject.bounds.maxY = temp;
+                let temp = hitObject.bounds.min.y;
+                hitObject.bounds.min.y = hitObject.bounds.max.y;
+                hitObject.bounds.max.y = temp;
             }
         }
     }

@@ -6,6 +6,7 @@ import { Point, pointDistance } from "../util/point";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
 import { ScoringValue } from "./scoring_value";
+import { assert } from "../util/misc_util";
 
 // This many millisecond before the perfect hit time will the object start to even
 // become clickable. Before that, it should do the little shaky-shake, implying it
@@ -56,12 +57,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     public stackHeight: number = 0;
     public scoring: CircleScoring | SliderScoring;
 
-    applyStackPosition() {
-        this.startPoint.x += this.stackHeight * -4;
-        this.startPoint.y += this.stackHeight * -4;
-        this.endPoint.x += this.stackHeight * -4;
-        this.endPoint.y += this.stackHeight * -4;
-    }
+    abstract applyStackPosition(): void;
 
     show(currentTime: number) {
         mainHitObjectContainer.addChildAt(this.container, 0);

@@ -1,4 +1,4 @@
-import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength } from "../util/point";
+import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength, stackShiftPoint } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
 import { last, jsonClone, assert, binarySearchLessOrEqual } from "../util/misc_util";
@@ -26,10 +26,8 @@ interface VertexBufferGenerationData {
 }
 
 export interface SliderBounds {
-    minX: number,
-    maxX: number,
-    minY: number,
-    maxY: number,
+    min: Point,
+    max: Point
     width: number,
     height: number,
     screenWidth: number,
@@ -105,12 +103,14 @@ export class SliderPath {
     }
 
     getPosFromPercentage(percentage: number) {
-        if (this.points.length <= 1) return this.points[0] || null;
+        // We need to make sure we return a new instance of Point here, because whatever this function returns might be manipulated. We don't want that to change the path!
+
+        if (this.points.length <= 1) return clonePoint(this.points[0]) || null;
 
         let p1Index = binarySearchLessOrEqual(this.completions, percentage);
         let p1Completion = this.completions[p1Index];
 
-        if (p1Completion === percentage) return this.points[p1Index];
+        if (p1Completion === percentage) return clonePoint(this.points[p1Index]);
 
         let p1 = this.points[p1Index],
             p2 = this.points[p1Index+1],
@@ -131,9 +131,7 @@ export class SliderPath {
     applyStackPosition(stackHeight: number) {
         for (let i = 0; i < this.points.length; i++) {
             let point = this.points[i];
-
-            point.x += stackHeight * -4;
-            point.y += stackHeight * -4;
+            stackShiftPoint(point, stackHeight);
         }
     }
 
@@ -262,23 +260,21 @@ export class SliderPath {
         let firstPoint = points[0];
 
         let bounds = {
-            minX: firstPoint.x,
-            maxX: firstPoint.x,
-            minY: firstPoint.y,
-            maxY: firstPoint.y
+            min: clonePoint(firstPoint),
+            max: clonePoint(firstPoint)
         } as SliderBounds;
 
         for (let i = 1; i < points.length; i++) {
             let point = points[i];
 
-            if (point.x < bounds.minX) bounds.minX = point.x;
-            if (point.x > bounds.maxX) bounds.maxX = point.x;
-            if (point.y < bounds.minY) bounds.minY = point.y;
-            if (point.y > bounds.maxY) bounds.maxY = point.y;
+            if (point.x < bounds.min.x) bounds.min.x = point.x;
+            if (point.x > bounds.max.x) bounds.max.x = point.x;
+            if (point.y < bounds.min.y) bounds.min.y = point.y;
+            if (point.y > bounds.max.y) bounds.max.y = point.y;
         }
         
-        bounds.width = bounds.maxX - bounds.minX + circleDiameterOsuPx;
-        bounds.height = bounds.maxY - bounds.minY + circleDiameterOsuPx;
+        bounds.width = bounds.max.x - bounds.min.x + circleDiameterOsuPx;
+        bounds.height = bounds.max.y - bounds.min.y + circleDiameterOsuPx;
         bounds.screenWidth = bounds.width * pixelRatio;
         bounds.screenHeight = bounds.height * pixelRatio;
 

@@ -1,3 +1,5 @@
+const OFFSET_PER_STACK_HEIGHT = -4;
+
 export interface Point {
     x: number,
     y: number
@@ -54,7 +56,7 @@ export function pointsAreEqual(p1: Point, p2: Point) {
 }
 
 export function clonePoint(p: Point): Point {
-    return {x: p.x, y: p.y};
+    return p && {x: p.x, y: p.y};
 }
 
 export function calculateTotalPointArrayArcLength(arr: Point[]) {
@@ -128,4 +130,9 @@ export function fitPolylineToLength(points: Point[], arcLength: number) {
     }
 
     return completions;
+}
+
+export function stackShiftPoint(p: Point, stackHeight: number) {
+    p.x += stackHeight * OFFSET_PER_STACK_HEIGHT;
+    p.y += stackHeight * OFFSET_PER_STACK_HEIGHT;
 }

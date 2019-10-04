@@ -8,6 +8,7 @@ import { HitSoundInfo, generateHitSoundInfo } from "./skin";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
 import { ComboInfo, CurrentTimingPointInfo } from "./processed_beatmap";
+import { stackShiftPoint } from "../util/point";
 
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;
@@ -18,10 +19,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         super(circle, comboInfo, timingInfo);
 
         this.endTime = this.startTime;
-        this.endPoint = {
-            x: this.hitObject.x,
-            y: this.hitObject.y
-        };
+        this.endPoint = this.startPoint;
 
         this.scoring = getDefaultCircleScoring();
 
@@ -32,6 +30,11 @@ export class DrawableCircle extends HeadedDrawableHitObject {
         let currentTimingPoint = timingInfo.timingPoint;
 
         this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this.startPoint);
+    }
+
+    applyStackPosition() {
+        // Since start point == end point, this changes both points
+        stackShiftPoint(this.startPoint, this.stackHeight);
     }
 
     draw() {

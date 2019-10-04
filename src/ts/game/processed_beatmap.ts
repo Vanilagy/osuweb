@@ -60,8 +60,6 @@ export class ProcessedBeatmap {
     init() {
         this.generateHitObjects();
         this.generateBreaks();
-
-        console.log(this);
     }
 
     generateHitObjects() {

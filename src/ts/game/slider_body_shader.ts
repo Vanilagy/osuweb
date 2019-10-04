@@ -105,7 +105,7 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 
         glMatrix.mat3.translate(matrix, matrix, new Float32Array([circleRadius, circleRadius])); // Okay, at this point, we'll have projected the coordinate into slider-relative space.
         glMatrix.mat3.scale(matrix, matrix, new Float32Array([pixelRatio, pixelRatio]));
-        glMatrix.mat3.translate(matrix, matrix, new Float32Array([-sliderBounds.minX, -sliderBounds.minY]));
+        glMatrix.mat3.translate(matrix, matrix, new Float32Array([-sliderBounds.min.x, -sliderBounds.min.y]));
     } else {
         // The slider base sprite is fullscreen because the slider is likely very big, at least bigger than the device's screen. In rare cases, this can trigger sliders to get distorted. This behavior is accurately faked here.
 
@@ -132,9 +132,9 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
         let isDistortedSlider = shrinkFactorX < 1.0 || shrinkFactorY < 1.0;
 
         if (isDistortedSlider) {
-            intersectsLeftEdge = gameState.currentPlay.toScreenCoordinatesX(sliderBounds.minX + adjustedCircleRadius, false) <= 0;
-            intersectsTopEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.minY + adjustedCircleRadius, false) <= 0;
-            intersectsBottomEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.maxY + adjustedCircleRadius, false) >= window.innerHeight;
+            intersectsLeftEdge = gameState.currentPlay.toScreenCoordinatesX(sliderBounds.min.x + adjustedCircleRadius, false) <= 0;
+            intersectsTopEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.min.y + adjustedCircleRadius, false) <= 0;
+            intersectsBottomEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.max.y + adjustedCircleRadius, false) >= window.innerHeight;
 
             // Do left-edge scaling
             if (intersectsLeftEdge) glMatrix.mat3.scale(matrix, matrix, new Float32Array([shrinkFactorX, 1.0]));
@@ -150,16 +150,16 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
         // More slider distortion code:
         if (!intersectsLeftEdge) {
             // Scale from the left-most part of the slider
-            glMatrix.mat3.translate(matrix, matrix, new Float32Array([sliderBounds.minX - adjustedCircleRadius, 0]));
+            glMatrix.mat3.translate(matrix, matrix, new Float32Array([sliderBounds.min.x - adjustedCircleRadius, 0]));
             glMatrix.mat3.scale(matrix, matrix, new Float32Array([shrinkFactorX, 1.0]));
-            glMatrix.mat3.translate(matrix, matrix, new Float32Array([-sliderBounds.minX + adjustedCircleRadius, 0])); // Why plus here, and not minus? :thinking:
+            glMatrix.mat3.translate(matrix, matrix, new Float32Array([-sliderBounds.min.x + adjustedCircleRadius, 0])); // Why plus here, and not minus? :thinking:
         }
 
         if (!intersectsTopEdge) {
             // Scale from the top-most part of the slider
-            glMatrix.mat3.translate(matrix, matrix, new Float32Array([0, sliderBounds.minY - adjustedCircleRadius]));
+            glMatrix.mat3.translate(matrix, matrix, new Float32Array([0, sliderBounds.min.y - adjustedCircleRadius]));
             glMatrix.mat3.scale(matrix, matrix, new Float32Array([1.0, shrinkFactorY]));
-            glMatrix.mat3.translate(matrix, matrix, new Float32Array([0, -sliderBounds.minY + adjustedCircleRadius]));
+            glMatrix.mat3.translate(matrix, matrix, new Float32Array([0, -sliderBounds.min.y + adjustedCircleRadius]));
         }
     }
 
