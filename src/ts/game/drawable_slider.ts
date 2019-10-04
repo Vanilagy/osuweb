@@ -40,8 +40,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     public velocity: number; // In osu!pixels per millisecond
     private specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
     public scoring: SliderScoring;
-
+    public tickCompletions: number[];
     public path: SliderPath;
+
     public bounds: SliderBounds;
     private baseSprite: PIXI.Sprite;
     public hasFullscreenBaseSprite: boolean = false; // If a slider is really big, like bigger-than-the-screen big, we change slider body rendering to happen in relation to the entire screen rather than a local slider texture. This way, we don't get WebGL errors from trying to draw to too big of a texture buffer, and it allows us to support slider distortions with some matrix magic.
@@ -52,7 +53,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private overlayContainer: PIXI.Container;
     private sliderBall: SliderBall;
     private tickContainer: PIXI.Container;
-    public tickCompletions: number[];
     private tickElements: (PIXI.Container | null)[];
     private followCircle: PIXI.Container;
     private followCircleAnimator: AnimatedOsuSprite;

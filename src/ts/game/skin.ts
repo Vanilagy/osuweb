@@ -13,7 +13,7 @@ import { TimingPoint } from "../datamodel/beatmap";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/yugen";
+let baseSkinPath = "./assets/skins/seoul";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 

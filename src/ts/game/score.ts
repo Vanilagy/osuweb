@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { MathUtil, EaseType } from "../util/math_util";
 import { scoreDisplay, phantomComboDisplay, accuracyDisplay, comboDisplay } from "./hud";
-import { padNumberWithZeroes, toPercentageString, assert } from "../util/misc_util";
+import { padNumberWithZeroes, toPercentageString, assert, toFloat32 } from "../util/misc_util";
 import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { gameState } from "./game_state";
 import { Point } from "../util/point";
@@ -79,6 +79,8 @@ export class ScoreCounter {
 
         this.resetGekiAndKatu();
 
+        console.log(this.difficultyMultiplier, this.modMultiplier);
+
         scoreDisplay.setValue(0);
         accuracyDisplay.setValue(100);
         phantomComboDisplay.setValue(0);
@@ -97,11 +99,13 @@ export class ScoreCounter {
 
         let effectiveCombo = Math.max(0, this.currentCombo - 1);
 
-        let gain = rawAmount;
-        if (!raw) gain = rawAmount + (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25));
-        gain = Math.floor(gain); // Especially with a mod multiplier, gain can be decimal, so floor here.
+        let scoreGain = rawAmount;
+        if (!raw) scoreGain = rawAmount + (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25));
+        scoreGain = Math.floor(toFloat32(scoreGain)); // Especially with a mod multiplier, gain can be decimal, so floor here. Assuming ppy uses float and double for this calculation, we have to convert to float first to get an accurate result. (not doing so has yielded some bs)
 
-        this.score.points += gain;
+        console.log( (rawAmount * ((effectiveCombo * this.difficultyMultiplier * this.modMultiplier) / 25)))
+
+        this.score.points += scoreGain;
 
         if (affectCombo) {
             if (rawAmount === 0) { // Meaning miss
