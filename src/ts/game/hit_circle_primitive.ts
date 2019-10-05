@@ -1,6 +1,6 @@
 import { ComboInfo } from "./processed_beatmap";
 import { gameState } from "./game_state";
-import { DRAWING_MODE, DrawingMode, PROCEDURAL_HEAD_INNER_TYPE, CIRCLE_BORDER_WIDTH, NUMBER_HEIGHT_CS_RATIO, DEFAULT_HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
+import { DEFAULT_HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
 import { colorToHexNumber } from "../util/graphics_util";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { MathUtil, EaseType } from "../util/math_util";
@@ -61,170 +61,143 @@ export class HitCirclePrimitive {
         this.reverseArrow = null;
         this.renderFinished = false;
 
-        this.draw();
+        this.init();
     }
 
-    private draw() {
-        let { circleDiameter, headedHitObjectTextureFactor } = gameState.currentPlay;
-
-        let base: PIXI.Container;
-        if (DRAWING_MODE === DrawingMode.Procedural) {
-            let canvas = document.createElement('canvas');
-            canvas.setAttribute('width', String(Math.ceil(circleDiameter)));
-            canvas.setAttribute('height', String(Math.ceil(circleDiameter)));
-            let ctx = canvas.getContext('2d');
-            drawHitObjectHead(ctx, 0, 0, this.options.comboInfo);
-
-            let sprite = new PIXI.Sprite(PIXI.Texture.from(canvas));
-            sprite.anchor.set(0.5, 0.5);
-
-            base = sprite;
-        } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let osuTexture = gameState.currentGameplaySkin.textures["hitCircle"];
-
-            if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-                let startTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
-                if (!startTex.isEmpty()) osuTexture = startTex;
-            } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-                let endTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
-                if (!endTex.isEmpty()) osuTexture = endTex;
-            }
-
-            let sprite = new PIXI.Sprite();
-            osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
-
-            sprite.tint = colorToHexNumber(this.options.comboInfo.color);
-            sprite.anchor.set(0.5, 0.5);
-
-            let wrapper = new PIXI.Container();
-            wrapper.addChild(sprite);
-
-            base = wrapper;
-        }
-
-        this.base = base;
-
-        let overlay: PIXI.Container;
-        if (DRAWING_MODE === DrawingMode.Skin) {
-            let osuTexture: OsuTexture = null;
-
-            if (this.options.type === HitCirclePrimitiveType.HitCircle) {
-                osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"];
-            } else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-                let baseTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
-
-                if (!baseTex.isEmpty()) {
-                    let overlayTex = gameState.currentGameplaySkin.textures["sliderStartCircleOverlay"];
-                    if (!overlayTex.isEmpty()) osuTexture = overlayTex;
-                } else {
-                    osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
-                }
-            } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-                let baseTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
-
-                if (!baseTex.isEmpty()) {
-                    let overlayTex = gameState.currentGameplaySkin.textures["sliderEndCircleOverlay"];
-                    if (!overlayTex.isEmpty()) osuTexture = overlayTex;
-                } else {
-                    osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
-                }
-            }
-
-            let sprite: PIXI.Sprite;
-
-            if (osuTexture) {
-                let animator = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
-                animator.setFps(2); // From the website: "Animation rate: 2 FPS (4 FPS max)." "This rate is affected by the half time and double time/nightcore the game modifiers."
-                animator.play(this.options.fadeInStart);
-                sprite = animator.sprite;
-
-                this.overlayAnimator = animator;
-            } else {
-                sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
-            }
-
-            let wrapper = new PIXI.Container();
-            wrapper.addChild(sprite);
-
-            overlay = wrapper;
-        }
-
-        this.overlay = overlay;
-
-        let number: PIXI.Container;
-        if (this.options.hasNumber) {
-            if (DRAWING_MODE === DrawingMode.Skin) {
-                let text = new SpriteNumber({
-                    textures: gameState.currentGameplaySkin.hitCircleNumberTextures,
-                    horizontalAlign: "center",
-                    verticalAlign: "middle",
-                    overlap: gameState.currentGameplaySkin.config.fonts.hitCircleOverlap,
-                    scaleFactor: headedHitObjectTextureFactor * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
-                });
-                text.setValue(this.options.comboInfo.n);
-
-                number = text.container;
-
-                this.number = number;
-            }
-        }
-
-        let reverseArrow: PIXI.Container = null;
-        if (this.options.reverseArrowAngle !== undefined) {
-            if (DRAWING_MODE === DrawingMode.Skin) {
-                let osuTexture = gameState.currentGameplaySkin.textures["reverseArrow"];
-                let sprite = new PIXI.Sprite();
-                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
-
-                sprite.anchor.set(0.5, 0.5);
-                sprite.rotation = this.options.reverseArrowAngle;
-
-                let wrapper = new PIXI.Container();
-                wrapper.addChild(sprite);
-
-                reverseArrow = wrapper;
-            }
-        }
-
-        this.reverseArrow = reverseArrow;
-
-        if (this.options.hasApproachCircle) {
-            if (DRAWING_MODE === DrawingMode.Procedural) {
-                let approachCircle = new PIXI.Graphics();
-                let actualApproachCircleWidth = CIRCLE_BORDER_WIDTH * circleDiameter / 2; // Should be as wide as circle border once it hits it
-                approachCircle.lineStyle(actualApproachCircleWidth, colorToHexNumber(this.options.comboInfo.color));
-                approachCircle.drawCircle(0, 0, (circleDiameter - actualApproachCircleWidth) / 2); 
-    
-                this.approachCircle = approachCircle;
-            } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let osuTexture = gameState.currentGameplaySkin.textures["approachCircle"];
-                let sprite = new PIXI.Sprite();
-                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
-
-                sprite.anchor.set(0.5, 0.5);
-                sprite.tint = colorToHexNumber(this.options.comboInfo.color);
-
-                let wrapper = new PIXI.Container();
-                wrapper.addChild(sprite);
-    
-                this.approachCircle = wrapper;
-            }
-        }
+    private init() {
+        this.initBase();
+        this.initOverlay();
+        if (this.options.hasNumber) this.initNumber();
+        if (this.options.reverseArrowAngle !== undefined) this.initReverseArrow();
+        if (this.options.hasApproachCircle) this.initApproachCircle();
 
         let container = new PIXI.Container();
-        container.addChild(base);
+        container.addChild(this.base);
 
         if (gameState.currentGameplaySkin.config.general.hitCircleOverlayAboveNumber) {
-            if (number) container.addChild(number);
-            if (overlay) container.addChild(overlay);
+            if (this.number) container.addChild(this.number);
+            container.addChild(this.overlay);
         } else {
-            if (overlay) container.addChild(overlay);
-            if (number) container.addChild(number);
+            container.addChild(this.overlay);
+            if (this.number) container.addChild(this.number);
         }
 
         if (this.options.baseElementsHidden) container.visible = false;
-
         this.container = container;
+    }
+
+    private initBase() {
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
+        let osuTexture = gameState.currentGameplaySkin.textures["hitCircle"];
+
+        if (this.options.type === HitCirclePrimitiveType.SliderHead) {
+            let startTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
+            if (!startTex.isEmpty()) osuTexture = startTex;
+        } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
+            let endTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
+            if (!endTex.isEmpty()) osuTexture = endTex;
+        }
+
+        let sprite = new PIXI.Sprite();
+        osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+
+        sprite.tint = colorToHexNumber(this.options.comboInfo.color);
+        sprite.anchor.set(0.5, 0.5);
+
+        let wrapper = new PIXI.Container();
+        wrapper.addChild(sprite);
+
+        this.base = wrapper;
+    }
+
+    private initOverlay() {
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
+        let osuTexture: OsuTexture = null;
+
+        if (this.options.type === HitCirclePrimitiveType.HitCircle) {
+            osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"];
+        } else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
+            let baseTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
+
+            if (!baseTex.isEmpty()) {
+                let overlayTex = gameState.currentGameplaySkin.textures["sliderStartCircleOverlay"];
+                if (!overlayTex.isEmpty()) osuTexture = overlayTex;
+            } else {
+                osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+            }
+        } else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
+            let baseTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
+
+            if (!baseTex.isEmpty()) {
+                let overlayTex = gameState.currentGameplaySkin.textures["sliderEndCircleOverlay"];
+                if (!overlayTex.isEmpty()) osuTexture = overlayTex;
+            } else {
+                osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+            }
+        }
+
+        let sprite: PIXI.Sprite;
+
+        if (osuTexture) {
+            let animator = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
+            animator.setFps(2); // From the website: "Animation rate: 2 FPS (4 FPS max)." "This rate is affected by the half time and double time/nightcore the game modifiers."
+            animator.play(this.options.fadeInStart);
+            sprite = animator.sprite;
+
+            this.overlayAnimator = animator;
+        } else {
+            sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+        }
+
+        let wrapper = new PIXI.Container();
+        wrapper.addChild(sprite);
+
+        this.overlay = wrapper;
+    }
+
+    private initNumber() {
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
+
+        let text = new SpriteNumber({
+            textures: gameState.currentGameplaySkin.hitCircleNumberTextures,
+            horizontalAlign: "center",
+            verticalAlign: "middle",
+            overlap: gameState.currentGameplaySkin.config.fonts.hitCircleOverlap,
+            scaleFactor: headedHitObjectTextureFactor * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
+        });
+        text.setValue(this.options.comboInfo.n);
+
+        this.number = text.container;
+    }
+
+    private initReverseArrow() {
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
+        let osuTexture = gameState.currentGameplaySkin.textures["reverseArrow"];
+        let sprite = new PIXI.Sprite();
+        osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+
+        sprite.anchor.set(0.5, 0.5);
+        sprite.rotation = this.options.reverseArrowAngle;
+
+        let wrapper = new PIXI.Container();
+        wrapper.addChild(sprite);
+
+        this.reverseArrow = wrapper;
+    }
+
+    private initApproachCircle() {
+        let { headedHitObjectTextureFactor } = gameState.currentPlay;
+        let osuTexture = gameState.currentGameplaySkin.textures["approachCircle"];
+        let sprite = new PIXI.Sprite();
+        osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+
+        sprite.anchor.set(0.5, 0.5);
+        sprite.tint = colorToHexNumber(this.options.comboInfo.color);
+
+        let wrapper = new PIXI.Container();
+        wrapper.addChild(sprite);
+
+        this.approachCircle = wrapper;
     }
 
     update(currentTime: number) {
@@ -395,47 +368,5 @@ export class HitCirclePrimitive {
                 time: time
             });
         }
-    }
-}
-
-/** Draws a hit object head procedurally, complete with base, overlay and number. */
-export function drawHitObjectHead(context: CanvasRenderingContext2D, x: number, y: number, comboInfo: ComboInfo) {
-    let { circleDiameter } = gameState.currentPlay;
-
-    let color = comboInfo.color;
-
-    context.beginPath(); // Draw circle base (will become border)
-    context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2, 0, Math.PI * 2);
-    context.fillStyle = "white";
-    context.fill();
-
-    let colorString = "rgb(" + Math.round(color.r * 0.68) + "," + Math.round(color.g * 0.68) + "," + Math.round(color.b * 0.68) + ")";
-    let darkColorString = "rgb(" + Math.round(color.r * 0.2) + "," + Math.round(color.g * 0.2) + "," + Math.round(color.b * 0.2) + ")";
-
-    let radialGradient = context.createRadialGradient(x + circleDiameter / 2, y + circleDiameter / 2, 0, x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2);
-    radialGradient.addColorStop(0, colorString);
-    radialGradient.addColorStop(1, darkColorString);
-
-    context.beginPath(); // Draw circle body with radial gradient
-    context.arc(x + circleDiameter / 2, y + circleDiameter / 2, (circleDiameter / 2) * (1 - CIRCLE_BORDER_WIDTH), 0, Math.PI * 2);
-    context.fillStyle = radialGradient;
-    context.fill();
-    context.fillStyle = "rgba(255, 255, 255, 0.5)";
-    context.globalCompositeOperation = "destination-out"; // Transparency
-    context.fill();
-
-    context.globalCompositeOperation = "source-over";
-
-    if (PROCEDURAL_HEAD_INNER_TYPE === "number") {
-        context.font = (circleDiameter * 0.41) + "px 'Nunito'";
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-        context.fillStyle = "white";
-        context.fillText(String(comboInfo.n), x + circleDiameter / 2, y + circleDiameter / 2 * 1.06); // 1.06 = my attempt to make it centered.
-    } else if (PROCEDURAL_HEAD_INNER_TYPE === "dot") {
-        context.beginPath();
-        context.arc(x + circleDiameter / 2, y + circleDiameter / 2, circleDiameter / 2 * 0.25, 0, Math.PI * 2);
-        context.fillStyle = "white";
-        context.fill();
     }
 }

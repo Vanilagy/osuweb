@@ -7,15 +7,12 @@ import { gameState } from "./game_state";
 import { Point } from "../util/point";
 import { scorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
-import { DRAWING_MODE, DrawingMode } from "../util/constants";
 import { AnimatedOsuSprite, HitSoundType } from "./skin";
 import { ModHelper } from "./mod_helper";
 import { ScoringValue } from "./scoring_value";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
-const SCORE_POPUP_CS_RATIO = 1;
-const HIDE_300s = false; // Enable this if 300 popups get too annoying
 
 export class Score {
     public points: number;
@@ -284,49 +281,31 @@ export class ScorePopup {
         this.startTime = startTime;
 
         let currentPlay = gameState.currentPlay;
-        let { pixelRatio, headedHitObjectTextureFactor } = currentPlay;
+        let { headedHitObjectTextureFactor } = currentPlay;
 
-        if (DRAWING_MODE === DrawingMode.Procedural) {
-            let popup = new PIXI.Text(scorePopupTypeToString.get(type), {
-                fontFamily: "Nunito",
-                fontSize: 28 * pixelRatio,
-                fill: scorePopupTypeToColor.get(type)
-            });
-    
-            popup.anchor.set(0.5, 0.5);
-    
-            if (HIDE_300s && (
-                type === ScorePopupType.Hit300 ||
-                type === ScorePopupType.Geki ||
-                type === ScorePopupType.Katu300
-            )) popup.visible = false;
-    
-            this.container = popup;
-        } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let name: string;
-            switch (type) {
-                case ScorePopupType.Miss: name = "hit0"; break;
-                case ScorePopupType.Hit50: name = "hit50"; break;
-                case ScorePopupType.Hit100: name = "hit100"; break;
-                case ScorePopupType.Katu100: name = "hit100k"; break;
-                case ScorePopupType.Hit300: name = "hit300"; break;
-                case ScorePopupType.Katu300: name = "hit300k"; break;
-                case ScorePopupType.Geki: name = "hit300g"; break;
-            }
-
-            let osuTexture = gameState.currentGameplaySkin.textures[name];
-
-            let animatedSprite = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
-            animatedSprite.loop = false;
-            animatedSprite.setFps(60); // "Animation rate is fixed to 60 FPS."
-            animatedSprite.play(startTime);
-            this.animatedSprite = animatedSprite;
-
-            let wrapper = new PIXI.Container();
-            wrapper.addChild(animatedSprite.sprite);
-
-            this.container = wrapper;
+        let name: string;
+        switch (type) {
+            case ScorePopupType.Miss: name = "hit0"; break;
+            case ScorePopupType.Hit50: name = "hit50"; break;
+            case ScorePopupType.Hit100: name = "hit100"; break;
+            case ScorePopupType.Katu100: name = "hit100k"; break;
+            case ScorePopupType.Hit300: name = "hit300"; break;
+            case ScorePopupType.Katu300: name = "hit300k"; break;
+            case ScorePopupType.Geki: name = "hit300g"; break;
         }
+
+        let osuTexture = gameState.currentGameplaySkin.textures[name];
+
+        let animatedSprite = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
+        animatedSprite.loop = false;
+        animatedSprite.setFps(60); // "Animation rate is fixed to 60 FPS."
+        animatedSprite.play(startTime);
+        this.animatedSprite = animatedSprite;
+
+        let wrapper = new PIXI.Container();
+        wrapper.addChild(animatedSprite.sprite);
+
+        this.container = wrapper;
 
         this.container.x = currentPlay.toScreenCoordinatesX(osuPosition.x);
         this.container.y = currentPlay.toScreenCoordinatesY(osuPosition.y);

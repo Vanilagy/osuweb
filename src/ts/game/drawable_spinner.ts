@@ -6,7 +6,7 @@ import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Point } from "../util/point";
 import { anyGameButtonIsPressed } from "../input/input";
-import { PLAYFIELD_DIMENSIONS, DrawingMode, DRAWING_MODE, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
 import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../util/graphics_util";
 import { HitSoundInfo, HitSoundType, generateHitSoundInfo } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
@@ -138,7 +138,8 @@ export class DrawableSpinner extends DrawableHitObject {
         this.isNewStyle = backgroundTexture.isEmpty();
 
         if (this.isNewStyle) {
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner glow
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerGlow"];
                 let sprite = new PIXI.Sprite();
 
@@ -151,7 +152,8 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerGlow = sprite;
             }
     
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner bottom
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerBottom"];
                 let sprite = new PIXI.Sprite();
 
@@ -162,7 +164,8 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerBottom = sprite;
             }
     
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner top
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerTop"];
                 let sprite = new PIXI.Sprite();
 
@@ -173,7 +176,8 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerTop = sprite;
             }
     
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner middle2
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle2"];
                 let sprite = new PIXI.Sprite();
 
@@ -184,7 +188,8 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerMiddle2 = sprite;
             }
     
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner middle
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle"];
                 let sprite = new PIXI.Sprite();
 
@@ -195,7 +200,8 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerMiddle = sprite;
             }
         } else {
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner approach circle
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerApproachCircle"];
                 let width = osuTexture.getWidth() * spinnerPixelRatio;
                 let height = osuTexture.getHeight() * spinnerPixelRatio;
@@ -214,7 +220,8 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerApproachCircle = wrapper;
             }
 
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner background
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];
                 let sprite = new PIXI.Sprite();
                 
@@ -227,8 +234,9 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerBackground = sprite;
             }
     
+            // Add spinner meter
             this.spinnerMeterMask = new PIXI.Graphics();
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerMeter"];
                 let sprite = new PIXI.Sprite();
                 
@@ -242,7 +250,8 @@ export class DrawableSpinner extends DrawableHitObject {
                 this.spinnerMeter = sprite;
             }
     
-            if (DRAWING_MODE === DrawingMode.Skin) {
+            // Add spinner circle
+            {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerCircle"];
                 let sprite = new PIXI.Sprite();
                 
@@ -254,7 +263,8 @@ export class DrawableSpinner extends DrawableHitObject {
             }
         }
 
-        if (DRAWING_MODE === DrawingMode.Skin) {
+        // Add spinner RPM display
+        {
             let osuTexture = gameState.currentGameplaySkin.textures["spinnerRpm"];
             let sprite = new PIXI.Sprite();
                 
@@ -267,6 +277,7 @@ export class DrawableSpinner extends DrawableHitObject {
             this.spinnerRpm = sprite;
         }
 
+        // Add RPM number
         let spinnerRpmNumber = new SpriteNumber({
             textures: gameState.currentGameplaySkin.scoreNumberTextures,
             scaleFactor: spinnerPixelRatio * 0.85,
@@ -281,7 +292,8 @@ export class DrawableSpinner extends DrawableHitObject {
         spinnerRpmNumber.setValue(0);
         this.spinnerRpmNumber = spinnerRpmNumber;
 
-        if (DRAWING_MODE === DrawingMode.Skin) {
+        // Add "spin" text
+        {
             let osuTexture = gameState.currentGameplaySkin.textures["spinnerSpin"];
             let sprite = new PIXI.Sprite();
                 
@@ -293,7 +305,8 @@ export class DrawableSpinner extends DrawableHitObject {
             this.spinnerSpin = sprite;
         }
 
-        if (DRAWING_MODE === DrawingMode.Skin) {
+        // Add "clear" text
+        {
             let osuTexture = gameState.currentGameplaySkin.textures["spinnerClear"];
             let sprite = new PIXI.Sprite();
                 
@@ -308,6 +321,7 @@ export class DrawableSpinner extends DrawableHitObject {
             this.spinnerClear = wrapper;
         }
 
+        // Add spinner bonus popup
         let spinnerBonus = new SpriteNumber({
             textures: gameState.currentGameplaySkin.scoreNumberTextures,
             scaleFactor: spinnerPixelRatio * 2,

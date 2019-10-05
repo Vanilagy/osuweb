@@ -16,12 +16,6 @@ export const SLIDER_TICK_APPEARANCE_ANIMATION_DURATION = 200; // In ms
 export const FOLLOW_CIRCLE_THICKNESS_FACTOR = 0.045; // in circle diameters
 export const SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT = true;
 
-export enum DrawingMode {
-    Procedural, // Draw everything, use no image assetss
-    Skin // Use only image assets
-}
-
-export const DRAWING_MODE: DrawingMode = DrawingMode.Skin;
 export const CIRCLE_BORDER_WIDTH = 1.75 / 16;
 export const SLIDER_BODY_INSIDE_TO_TOTAL_RATIO = 0.9;
 export const NUMBER_HEIGHT_CS_RATIO = 52 / 128; // Determined empirically by comparing asset dimensions.

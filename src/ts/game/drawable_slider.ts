@@ -2,7 +2,7 @@ import { Slider, SliderType } from "../datamodel/slider";
 import { MathUtil, EaseType } from "../util/math_util";
 import { Point, interpolatePointInPointArray, pointDistance, stackShiftPoint } from "../util/point";
 import { gameState } from "./game_state";
-import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, DRAWING_MODE, DrawingMode, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../util/constants";
+import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, FOLLOW_CIRCLE_THICKNESS_FACTOR, HIT_OBJECT_FADE_OUT_TIME, CIRCLE_BORDER_WIDTH, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../util/constants";
 import { colorToHexNumber, Colors, colorToHexString } from "../util/graphics_util";
 import { PlayEvent, PlayEventType } from "./play_events";
 import { assert, last, toFloat32, jsonClone } from "../util/misc_util";
@@ -357,25 +357,16 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.sliderBall = new SliderBall(this);
         this.sliderBall.container.visible = false;
 
-        if (DRAWING_MODE === DrawingMode.Procedural) {
-            let followCircle = new PIXI.Graphics();
-            let thickness = FOLLOW_CIRCLE_THICKNESS_FACTOR * circleDiameter;
-            followCircle.lineStyle(thickness, 0xFFFFFF);
-            followCircle.drawCircle(0, 0, (circleDiameter - thickness) / 2);
+        let followCircleOsuTexture = gameState.currentGameplaySkin.textures["followCircle"];
+        let followCircleAnimator = new AnimatedOsuSprite(followCircleOsuTexture, headedHitObjectTextureFactor);
+        followCircleAnimator.setFps(gameState.currentGameplaySkin.config.general.animationFramerate);
+        followCircleAnimator.play(this.startTime);
 
-            this.followCircle = followCircle;
-        } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let osuTexture = gameState.currentGameplaySkin.textures["followCircle"];
-            let animator = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
-            animator.setFps(gameState.currentGameplaySkin.config.general.animationFramerate);
-            animator.play(this.startTime);
+        let followCircleWrapper = new PIXI.Container();
+        followCircleWrapper.addChild(followCircleAnimator.sprite);
 
-            let wrapper = new PIXI.Container();
-            wrapper.addChild(animator.sprite);
-
-            this.followCircle = wrapper;
-            this.followCircleAnimator = animator;
-        }
+        this.followCircle = followCircleWrapper;
+        this.followCircleAnimator = followCircleAnimator;
         this.followCircle.visible = false;
 
         this.tickContainer = new PIXI.Container();
@@ -394,35 +385,22 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 continue;
             }
 
-            let tickElement: PIXI.Container;
-            if (DRAWING_MODE === DrawingMode.Procedural) {
-                let graphics = new PIXI.Graphics();
+            let tickOsuTexture = gameState.currentGameplaySkin.textures["sliderTick"];
+            let tickSprite = new PIXI.Sprite();
+            tickSprite.anchor.set(0.5, 0.5);
 
-                graphics.beginFill(0xFFFFFF);
-                graphics.drawCircle(0, 0, circleDiameter * 0.038);
-                graphics.endFill();
+            tickOsuTexture.applyToSprite(tickSprite, headedHitObjectTextureFactor);
 
-                tickElement = graphics;
-            } else if (DRAWING_MODE === DrawingMode.Skin) {
-                let osuTexture = gameState.currentGameplaySkin.textures["sliderTick"];
-                let sprite = new PIXI.Sprite();
-                sprite.anchor.set(0.5, 0.5);
-
-                osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
-
-                let wrapper = new PIXI.Container();
-                wrapper.addChild(sprite);
-
-                tickElement = wrapper;
-            }
+            let tickWrapper = new PIXI.Container();
+            tickWrapper.addChild(tickSprite);
 
             let ctxPos = this.toRelativeCoord(sliderTickPos);
 
-            tickElement.x = ctxPos.x;
-            tickElement.y = ctxPos.y;
+            tickWrapper.x = ctxPos.x;
+            tickWrapper.y = ctxPos.y;
 
-            this.tickContainer.addChild(tickElement);
-            this.tickElements.push(tickElement);
+            this.tickContainer.addChild(tickWrapper);
+            this.tickElements.push(tickWrapper);
         }
 
         this.overlayContainer = new PIXI.Container();
@@ -742,7 +720,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         let currentSliderTime = currentTime - this.hitObject.time;
 
         this.updateSliderEnds(currentTime);
-        this.updateSliderBall(completion, currentTime, currentSliderTime);
+        this.updateSliderBall(completion, currentTime);
         if (this.tickCompletions.length > 0) this.updateSliderTicks(completion, currentSliderTime);
     }
 
@@ -753,7 +731,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
     }
 
-    private updateSliderBall(completion: number, currentTime: number, currentSliderTime: number) {
+    private updateSliderBall(completion: number, currentTime: number) {
         if (completion === 0) return;
 
         let sliderBallPos = this.toRelativeCoord(this.path.getPosFromPercentage(MathUtil.mirror(completion)));
@@ -812,7 +790,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             followCircleAlpha = enlargeCompletion;
 
             if (this.followCirclePulseStartTime !== null) {
-                let pulseFactor = (currentSliderTime - this.followCirclePulseStartTime) / FOLLOW_CIRCLE_PULSE_DURATION;
+                let pulseFactor = (currentTime - this.followCirclePulseStartTime) / FOLLOW_CIRCLE_PULSE_DURATION;
                 pulseFactor = MathUtil.clamp(pulseFactor, 0, 1);
                 pulseFactor = 1 - MathUtil.ease(EaseType.EaseOutQuad, pulseFactor);
                 pulseFactor *= 0.10;
@@ -910,49 +888,38 @@ class SliderBall {
         this.container = new PIXI.Container();
         let baseElement: PIXI.Container;
 
-        if (DRAWING_MODE === DrawingMode.Procedural) {
-            let sliderBall = new PIXI.Graphics();
-            sliderBall = new PIXI.Graphics();
-            sliderBall.beginFill(colorToHexNumber(slider.comboInfo.color));
-            sliderBall.lineStyle(0);
-            //sliderBall.drawCircle(0, 0, slider.sliderBodyRadius);
-            sliderBall.endFill();
+        let osuTexture = gameState.currentGameplaySkin.textures["sliderBall"];
 
-            baseElement = sliderBall;
-        } else if (DRAWING_MODE === DrawingMode.Skin) {
-            let osuTexture = gameState.currentGameplaySkin.textures["sliderBall"];
+        this.base = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
+        let baseSprite = this.base.sprite;
+        baseElement = baseSprite;
 
-            this.base = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
-            let baseSprite = this.base.sprite;
-            baseElement = baseSprite;
+        if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.comboInfo.color);
+        else baseSprite.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.sliderBall);
 
-            if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.comboInfo.color);
-            else baseSprite.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.sliderBall);
+        if (!osuTexture.hasActualBase()) {
+            let bgTexture = gameState.currentGameplaySkin.textures["sliderBallBg"];
 
-            if (!osuTexture.hasActualBase()) {
-                let bgTexture = gameState.currentGameplaySkin.textures["sliderBallBg"];
-
-                if (!bgTexture.isEmpty()) {
-                    let sprite = new PIXI.Sprite();
-                    sprite.anchor.set(0.5, 0.5);
-                    sprite.tint = 0x000000; // Always tinted black.
-
-                    bgTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
-
-                    this.background = sprite;
-                }
-            }
-
-            let specTexture = gameState.currentGameplaySkin.textures["sliderBallSpec"];
-            if (!specTexture.isEmpty()) {
+            if (!bgTexture.isEmpty()) {
                 let sprite = new PIXI.Sprite();
                 sprite.anchor.set(0.5, 0.5);
-                sprite.blendMode = PIXI.BLEND_MODES.ADD;
+                sprite.tint = 0x000000; // Always tinted black.
 
-                specTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+                bgTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
-                this.spec = sprite;
+                this.background = sprite;
             }
+        }
+
+        let specTexture = gameState.currentGameplaySkin.textures["sliderBallSpec"];
+        if (!specTexture.isEmpty()) {
+            let sprite = new PIXI.Sprite();
+            sprite.anchor.set(0.5, 0.5);
+            sprite.blendMode = PIXI.BLEND_MODES.ADD;
+
+            specTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+
+            this.spec = sprite;
         }
 
         if (this.background) this.container.addChild(this.background);
