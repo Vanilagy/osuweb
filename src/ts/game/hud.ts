@@ -1,8 +1,6 @@
 import { hudContainer } from "../visuals/rendering";
-import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
-import { Interpolator } from "../util/graphics_util";
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
 import { baseSkin } from "./skin";
 

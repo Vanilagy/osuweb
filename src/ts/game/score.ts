@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { MathUtil, EaseType } from "../util/math_util";
 import { scoreDisplay, phantomComboDisplay, accuracyDisplay, comboDisplay } from "./hud";
-import { padNumberWithZeroes, toPercentageString, assert, toFloat32 } from "../util/misc_util";
+import { assert } from "../util/misc_util";
 import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { gameState } from "./game_state";
 import { Point } from "../util/point";

@@ -1,9 +1,9 @@
 import { Circle } from "../datamodel/circle";
 import { gameState } from "./game_state";
-import { HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../util/constants";
+import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../util/constants";
 import { accuracyMeter } from "./hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
-import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
+import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { HitSoundInfo, generateHitSoundInfo } from "./skin";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";

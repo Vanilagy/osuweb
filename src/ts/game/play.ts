@@ -1,12 +1,10 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
-import { DrawableCircle } from "./drawable_circle";
-import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO, SpecialSliderBehavior } from "./drawable_slider";
-import { mainRender, followPointContainer, scorePopupContainer, softwareCursor, sliderBodyContainer } from "../visuals/rendering";
+import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
+import { mainRender, scorePopupContainer, softwareCursor } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
-import { readFileAsArrayBuffer, readFileAsLocalResourceUrl, readFileAsDataUrl } from "../util/file_util";
+import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
@@ -22,12 +20,10 @@ import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
 import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, calculatePanFromOsuCoordinates } from "./skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
-import { HitCirclePrimitiveFadeOutType, HitCirclePrimitive } from "./hit_circle_primitive";
+import { HitCirclePrimitive } from "./hit_circle_primitive";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mod_helper";
-import { processJobs, processJob } from "../multithreading/job_system";
-import { JobTask, DrawSliderByIndexJob } from "../multithreading/job";
 
 const LOG_RENDER_INFO = true;
 const LOG_RENDER_INFO_INTERVAL = 5000; // In ms

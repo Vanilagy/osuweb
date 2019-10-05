@@ -1,7 +1,7 @@
 import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength, stackShiftPoint } from "../util/point";
 import { gameState } from "./game_state";
 import { MathUtil } from "../util/math_util";
-import { last, jsonClone, assert, binarySearchLessOrEqual } from "../util/misc_util";
+import { last, jsonClone, binarySearchLessOrEqual } from "../util/misc_util";
 import { Slider, SliderType, SliderCurveSection } from "../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?

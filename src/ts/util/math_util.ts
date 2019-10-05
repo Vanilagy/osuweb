@@ -1,5 +1,5 @@
 import { Point, pointDistanceSquared, Vector2 } from "./point";
-import { jsonClone, last } from "./misc_util";
+import { last } from "./misc_util";
 
 export enum EaseType {
     Linear,
