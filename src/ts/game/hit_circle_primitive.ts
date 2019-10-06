@@ -283,7 +283,7 @@ export class HitCirclePrimitive {
             this.renderFinished = (!this.approachCircle || this.approachCircle.visible === false) && (this.container.alpha === 0 || this.container.visible === false);
         }
 
-        if (this.options.type === HitCirclePrimitiveType.HitCircle) {
+        if (this.options.type === HitCirclePrimitiveType.HitCircle) { // Shaking only happens for normal hit circles, not slider heads!
             // Apply the shaking effect:
             let shakeCompletion = (currentTime - this.shakeStartTime) / SHAKE_DURATION;
             shakeCompletion = MathUtil.clamp(shakeCompletion, 0, 1);

@@ -92,6 +92,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
             } else {
                 // Display a shaking animation to indicate that the click was way too early or the note is still locked
                 this.head.shake(currentTime);
+                return true;
             }
         }
 
