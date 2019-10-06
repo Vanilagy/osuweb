@@ -273,8 +273,8 @@ export class ProcessedBeatmap {
     getAllPlayEvents(): PlayEvent[] {
         let events: PlayEvent[] = [];
 
-        for (let hitObject of this.hitObjects) {
-            hitObject.addPlayEvents(events);
+        for (let i = 0; i < this.hitObjects.length; i++) {
+            this.hitObjects[i].addPlayEvents(events);
         }
 
         events.sort((a, b) => a.time - b.time); // Sort by time, ascending
@@ -283,7 +283,8 @@ export class ProcessedBeatmap {
     }
 
     generateBreaks() {
-        for (let event of this.beatmap.events) {
+        for (let i = 0; i < this.beatmap.events.length; i++) {
+            let event = this.beatmap.events[i];
             if (event.type !== BeatmapEventType.Break) continue;
 
             let breakEvent = event as BeatmapEventBreak;
@@ -320,7 +321,9 @@ export class ProcessedBeatmap {
                 outer: if (ho2.startTime - ho1.endTime >= IMPLICIT_BREAK_THRESHOLD) {
                     // Check if there's already a break starting between the two hit object
 
-                    for (let breakEvent of this.breaks) {
+                    for (let j = 0; j < this.breaks.length; j++) {
+                        let breakEvent = this.breaks[j];
+
                         if (breakEvent.startTime >= ho1.endTime && breakEvent.startTime <= ho2.startTime) {
                             break outer;
                         }
@@ -354,7 +357,8 @@ export class ProcessedBeatmap {
     getTotalBreakTime() {
         let total = 0;
 
-        for (let breakEvent of this.breaks) {
+        for (let i = 0; i < this.breaks.length; i++) {
+            let breakEvent = this.breaks[i];
             total += breakEvent.endTime - breakEvent.startTime;
         }
 

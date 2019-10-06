@@ -557,14 +557,14 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     beginSliderSlideSound() {
         if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-        for (let emitter of this.slideEmitters) {
-            emitter.start();
+        for (let i = 0; i < this.slideEmitters.length; i++) {
+            this.slideEmitters[i].start();
         }
     }
 
     stopSliderSlideSound() {
-        for (let emitter of this.slideEmitters) {
-            emitter.stop();
+        for (let i = 0; i < this.slideEmitters.length; i++) {
+            this.slideEmitters[i].stop();
         }
     }
 
