@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { mainRender, scorePopupContainer, softwareCursor } from "../visuals/rendering";
+import { scorePopupContainer, softwareCursor, addRenderingTask } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
@@ -13,7 +13,7 @@ import { PlayEvent, PlayEventType } from "./play_events";
 import "./hud";
 import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
-import { currentMousePosition, anyGameButtonIsPressed } from "../input/input";
+import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } from "../input/input";
 import { progressIndicator, accuracyMeter } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
@@ -30,7 +30,7 @@ const LOG_RENDER_INFO_INTERVAL = 5000; // In ms
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
 const BREAK_FADE_TIME = 1250; // In ms
-const BACKGROUND_DIM = 0.8; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
+const BACKGROUND_DIM = 1.0; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const SPINNER_REFERENCE_SCREEN_HEIGHT = 768;
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
@@ -184,8 +184,11 @@ export class Play {
 
         if (this.activeMods.has(Mod.Auto)) softwareCursor.visible = true;
 
-        this.render();
-        setInterval(this.tick.bind(this), 0);
+        addRenderingTask(() => this.render());
+        setInterval(() => this.tick(), 0);
+
+        inputEventEmitter.addListener('mouseMove', () => this.handleMouseMove());
+        inputEventEmitter.addListener('gameButtonDown', () => this.handleButtonDown());
     }
 
     render() {
@@ -331,11 +334,6 @@ export class Play {
 
         // Update the cursor position if rocking AT
         if (this.activeMods.has(Mod.Auto)) this.handlePlaythroughInstructions(currentTime);
-
-        // Let PIXI draw it all to the canvas
-        mainRender();
-
-        requestAnimationFrame(this.render.bind(this));
 
         if (!LOG_RENDER_INFO) return;
 
@@ -585,6 +583,8 @@ export class Play {
     }
 
     getOsuMouseCoordinatesFromCurrentMousePosition(): Point {
+        let currentMousePosition = getCurrentMousePosition();
+
         return {
             x: this.toOsuCoordinatesX(currentMousePosition.x),
             y: this.toOsuCoordinatesY(currentMousePosition.y)

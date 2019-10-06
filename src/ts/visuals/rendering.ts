@@ -22,8 +22,31 @@ export let stage = new PIXI.Container();
 
 (renderer.framebuffer as any).writeDepthTexture = true; // OKAY SO. WHAT THE FUCK. WHY IS THIS FALSE IN THE FIRST PLACE. Absolute hack. Don't know if this has any side-effects. Maybe it's how the renderer is created?
 
-export function mainRender() {
+let renderingTasks: Function[] = [];
+export function mainRenderingLoop() {
+    requestAnimationFrame(mainRenderingLoop);
+    //setTimeout(mainRenderingLoop, 0);
+
+    for (let i = 0; i < renderingTasks.length; i++) {
+        renderingTasks[i]();
+    }
+
     renderer.render(stage);
+}
+requestAnimationFrame(mainRenderingLoop);
+
+export function addRenderingTask(task: Function) {
+    let index = renderingTasks.findIndex((a) => a === task);
+    if (index !== -1) return;
+
+    renderingTasks.push(task);
+}
+
+export function removeRenderingTask(task: Function) {
+    let index = renderingTasks.findIndex((a) => a === task);
+    if (index === -1) return;
+
+    renderingTasks.splice(index, 1);
 }
 
 // TODO: Maybe disable PIXI GC?
@@ -33,6 +56,7 @@ export function uploadTexture(tex: PIXI.Texture) {
 
 export let softwareCursor = new PIXI.Sprite(PIXI.Texture.from("./assets/img/cursor.png"));
 softwareCursor.anchor.set(0.5, 0.5);
+softwareCursor.scale.set(1.0, 1.0);
 softwareCursor.visible = false;
 
 let softwareCursorContainer = new PIXI.Container();
@@ -44,6 +68,7 @@ export let sliderBodyContainer = new PIXI.Container();
 export let followPointContainer = new PIXI.Container();
 export let scorePopupContainer = new PIXI.Container();
 export let hudContainer = new PIXI.Container();
+export let cursorRippleGraphics = new PIXI.Graphics();
 
 // The order of these is important, 'cause z-index 'n' stuff.
 stage.addChild(scorePopupContainer);
@@ -53,3 +78,4 @@ stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
 stage.addChild(hudContainer);
 stage.addChild(softwareCursorContainer);
+stage.addChild(cursorRippleGraphics);

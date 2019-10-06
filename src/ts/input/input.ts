@@ -1,19 +1,20 @@
-import { Point } from "../util/point";
-import { gameState } from "../game/game_state";
+import { Point, clonePoint } from "../util/point";
+import { CustomEventEmitter } from "../util/custom_event_dispatcher";
 
-export let currentMousePosition: Point = {
+let currentMousePosition: Point = {
     x: window.innerWidth / 2, // Before any events, just center the mouse
     y: window.innerHeight / 2
 };
+
+export function getCurrentMousePosition() {
+    return clonePoint(currentMousePosition);
+}
 
 window.onmousemove = (e: MouseEvent) => {
     currentMousePosition.x = e.clientX;
     currentMousePosition.y = e.clientY;
 
-    // Ergh. Unclean. Input shouldn't know about Play.
-    if (gameState.currentPlay) {
-        gameState.currentPlay.handleMouseMove();
-    }
+    inputEventEmitter.emit('mouseMove');
 };
 
 const PREVENT_NATIVE_CONTEXT_MENU = true;
@@ -62,7 +63,7 @@ window.addEventListener('keydown', (e) => {
     if (functionalInputState[mappedFunctionalInput] !== true) {
         functionalInputState[mappedFunctionalInput] = true;
         if (gameKeys.includes(mappedFunctionalInput)) {
-            handleGameButtonPress(mappedFunctionalInput);
+            handleGameButtonDown(mappedFunctionalInput);
         }
     }
 });
@@ -87,7 +88,7 @@ window.addEventListener('mousedown', (e) => {
 
     if (functionalInputState[mappedFunctionalInput] !== true) {
         functionalInputState[mappedFunctionalInput] = true;
-        handleGameButtonPress(mappedFunctionalInput);
+        handleGameButtonDown(mappedFunctionalInput);
     }
 });
 
@@ -107,38 +108,35 @@ window.addEventListener('contextmenu', (e) => {
     if (PREVENT_NATIVE_CONTEXT_MENU) e.preventDefault(); 
 });
 
-function handleGameButtonPress(button: FunctionalInput) {
+function handleGameButtonDown(button: FunctionalInput) {
     switch (button) {
         case FunctionalInput.GameKeyA: {
             // Keys can't cause a game button press if their respective mouse version is being pressed right now
             if (functionalInputState[FunctionalInput.GameMouseButtonA] === false) {
-                emitGameButtonPress();
+                emitGameButtonDown();
             }
         }; break;
         case FunctionalInput.GameKeyB: {
             if (functionalInputState[FunctionalInput.GameMouseButtonB] === false) {
-                emitGameButtonPress();
+                emitGameButtonDown();
             }
         }; break;
         case FunctionalInput.GameMouseButtonA: {
             // Similarly, mouse button can't cause a game button press if their respective key version is being pressed right now
             if (functionalInputState[FunctionalInput.GameKeyA] === false) {
-                emitGameButtonPress();
+                emitGameButtonDown();
             }
         }; break;
         case FunctionalInput.GameMouseButtonB: {
             if (functionalInputState[FunctionalInput.GameKeyB] === false) {
-                emitGameButtonPress();
+                emitGameButtonDown();
             }
         }; break;
     }
 }
 
-function emitGameButtonPress() {
-    // TEMP! This isn't clean. This doesn't isolate the input class.
-    if (gameState.currentPlay) {
-        gameState.currentPlay.handleButtonDown();
-    }
+function emitGameButtonDown() {
+    inputEventEmitter.emit('gameButtonDown');
 }
 
 export function anyGameButtonIsPressed() {
@@ -147,3 +145,5 @@ export function anyGameButtonIsPressed() {
         functionalInputState[FunctionalInput.GameMouseButtonA] ||
         functionalInputState[FunctionalInput.GameMouseButtonB];
 }
+
+export let inputEventEmitter = new CustomEventEmitter();
