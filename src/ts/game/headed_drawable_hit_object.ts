@@ -66,11 +66,10 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     }
 
     position() {
-        let screenX = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
-        let screenY = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
+        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
 
-        this.head.container.position.set(screenX, screenY);
-        if (this.head.approachCircle) this.head.approachCircle.position.set(screenX, screenY);
+        this.head.container.position.set(screenCoordinates.x, screenCoordinates.y);
+        if (this.head.approachCircle) this.head.approachCircle.position.set(screenCoordinates.x, screenCoordinates.y);
     }
 
     remove() {

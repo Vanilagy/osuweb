@@ -306,9 +306,9 @@ export class ScorePopup {
         wrapper.addChild(animatedSprite.sprite);
 
         this.container = wrapper;
-
-        this.container.x = currentPlay.toScreenCoordinatesX(osuPosition.x);
-        this.container.y = currentPlay.toScreenCoordinatesY(osuPosition.y);
+        
+        let screenCoordinates = currentPlay.toScreenCoordinates(osuPosition);
+        this.container.position.set(screenCoordinates.x, screenCoordinates.y);
 
         if (type === ScorePopupType.Miss) {
             this.container.rotation = (2 * (Math.random() - 0.5)) * Math.PI * 0.05; // Random tilt for miss popup

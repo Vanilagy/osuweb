@@ -247,8 +247,7 @@ export class DrawableSpinner extends DrawableHitObject {
                 osuTexture.applyToSprite(sprite, spinnerPixelRatio);
     
                 sprite.anchor.set(0.0, 0.0);
-                sprite.x = window.innerWidth/2 - 512 * spinnerPixelRatio;
-                sprite.y = 46 * spinnerPixelRatio;
+                sprite.position.set(window.innerWidth/2 - 512 * spinnerPixelRatio, 46 * spinnerPixelRatio);
                 sprite.mask = this.spinnerMeterMask;
     
                 this.spinnerMeter = sprite;
@@ -275,8 +274,7 @@ export class DrawableSpinner extends DrawableHitObject {
             osuTexture.applyToSprite(sprite, spinnerPixelRatio);
 
             sprite.anchor.set(0.0, 0.0);
-            sprite.y = window.innerHeight - 56 * spinnerPixelRatio;
-            sprite.x = window.innerWidth/2 - 139 * spinnerPixelRatio;
+            sprite.position.set(window.innerHeight - 56 * spinnerPixelRatio, window.innerWidth/2 - 139 * spinnerPixelRatio);
 
             this.spinnerRpm = sprite;
         }
@@ -290,8 +288,7 @@ export class DrawableSpinner extends DrawableHitObject {
             overlap: gameState.currentGameplaySkin.config.fonts.scoreOverlap,
             overlapAtEnd: false
         });
-        spinnerRpmNumber.container.x = window.innerWidth/2 + 122 * spinnerPixelRatio;
-        spinnerRpmNumber.container.y = window.innerHeight - 50 * spinnerPixelRatio;
+        spinnerRpmNumber.container.position.set(window.innerWidth/2 + 122 * spinnerPixelRatio, window.innerHeight - 50 * spinnerPixelRatio);
         spinnerRpmNumber.container.visible = false;
         spinnerRpmNumber.setValue(0);
         this.spinnerRpmNumber = spinnerRpmNumber;
@@ -374,9 +371,10 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     position() {
+        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
+
         // Position it in the center
-        this.componentContainer.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
-        this.componentContainer.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
+        this.componentContainer.position.set(screenCoordinates.x, screenCoordinates.y);
         this.componentContainer2.position.copyFrom(this.componentContainer.position);
     }
 

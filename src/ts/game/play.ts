@@ -682,8 +682,8 @@ export class Play {
             }
         }
 
-        softwareCursor.x = this.toScreenCoordinatesX(cursorPlayfieldPos.x, false);
-        softwareCursor.y = this.toScreenCoordinatesY(cursorPlayfieldPos.y, false);
+        let screenCoordinates = this.toScreenCoordinates(cursorPlayfieldPos, false);
+        softwareCursor.position.set(screenCoordinates.x, screenCoordinates.y);
     }
 }
 

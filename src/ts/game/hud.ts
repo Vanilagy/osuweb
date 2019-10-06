@@ -54,8 +54,8 @@ export async function initHud() {
         textures: baseSkin.scoreNumberTextures,
         hasX: true
     });
-    phantomComboDisplay.container.y = Math.floor(window.innerHeight - window.innerHeight * 0.005);
     phantomComboDisplay.container.x = Math.floor(window.innerHeight * 0.005);
+    phantomComboDisplay.container.y = Math.floor(window.innerHeight - window.innerHeight * 0.005);
     phantomComboDisplay.container.alpha = 0.5;
 
     comboDisplay = new SpriteNumber({
@@ -66,8 +66,8 @@ export async function initHud() {
         textures: baseSkin.scoreNumberTextures,
         hasX: true
     });
-    comboDisplay.container.y = phantomComboDisplay.container.y;
     comboDisplay.container.x = phantomComboDisplay.container.x;
+    comboDisplay.container.y = phantomComboDisplay.container.y;
 
     progressIndicator = new ProgressIndicator(window.innerHeight * 0.045);
     // SO UNCLEAN OMG! TEMP! TODO!!

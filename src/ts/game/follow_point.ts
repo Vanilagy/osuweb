@@ -76,8 +76,8 @@ export class FollowPoint {
     }
 
     position() {
-        this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
-        this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
+        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
+        this.container.position.set(screenCoordinates.x, screenCoordinates.y);
     }
 
     remove() {
