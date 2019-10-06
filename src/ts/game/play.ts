@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { scorePopupContainer, softwareCursor, addRenderingTask } from "../visuals/rendering";
+import { scorePopupContainer, softwareCursor, addRenderingTask, mainHitObjectContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
@@ -572,6 +572,13 @@ export class Play {
         return floor? (coord | 0) : coord;
     }
 
+    toScreenCoordinates(osuCoordiate: Point, floor = true) {
+        return {
+            x: this.toScreenCoordinatesX(osuCoordiate.x, floor),
+            y: this.toScreenCoordinatesY(osuCoordiate.y, floor)
+        };
+    }
+
     // Inverse of toScreenCoordinatesX
     toOsuCoordinatesX(screenCoordinateX: number) {
         return (screenCoordinateX - window.innerWidth*0.5) / this.pixelRatio + PLAYFIELD_DIMENSIONS.width/2;
@@ -580,6 +587,13 @@ export class Play {
     // Inverse of toScreenCoordinatesY
     toOsuCoordinatesY(screenCoordinateY: number) {
         return (screenCoordinateY - window.innerHeight*0.510) / this.pixelRatio + PLAYFIELD_DIMENSIONS.height/2;
+    }
+
+    toOsuCoordinates(screenCoordinate: Point) {
+        return {
+            x: this.toOsuCoordinatesX(screenCoordinate.x),
+            y: this.toOsuCoordinatesY(screenCoordinate.y)
+        };
     }
 
     getOsuMouseCoordinatesFromCurrentMousePosition(): Point {

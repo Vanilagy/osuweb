@@ -58,7 +58,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     abstract applyStackPosition(): void;
 
     show(currentTime: number) {
-        mainHitObjectContainer.addChildAt(this.container, 0);
+        mainHitObjectContainer.addChild(this.head.container);
         if (this.head.approachCircle) approachCircleContainer.addChild(this.head.approachCircle);
 
         this.position();
@@ -66,14 +66,15 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     }
 
     position() {
-        if (this.head.approachCircle) {
-            this.head.approachCircle.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
-            this.head.approachCircle.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
-        }
+        let screenX = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
+        let screenY = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
+
+        this.head.container.position.set(screenX, screenY);
+        if (this.head.approachCircle) this.head.approachCircle.position.set(screenX, screenY);
     }
 
     remove() {
-        mainHitObjectContainer.removeChild(this.container);
+        mainHitObjectContainer.removeChild(this.head.container);
         approachCircleContainer.removeChild(this.head.approachCircle);
     }
 

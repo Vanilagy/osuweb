@@ -2,12 +2,12 @@ import { HitObject } from "../datamodel/hit_object";
 import { ComboInfo, CurrentTimingPointInfo } from "./processed_beatmap";
 import { Point } from "../util/point";
 import { PlayEvent } from "./play_events";
+import { mainHitObjectContainer } from "../visuals/rendering";
 
 export abstract class DrawableHitObject {
     public index: number = null;
     public comboInfo: ComboInfo;
     public hitObject: HitObject;
-    public container: PIXI.Container;
 
     public startPoint: Point;
     public endPoint: Point;
@@ -21,7 +21,6 @@ export abstract class DrawableHitObject {
 
     constructor(hitObject: HitObject, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
         this.hitObject = hitObject;
-        this.container = new PIXI.Container();
 
         this.startPoint = { // It is important that we "duplicate" the point here. This decouples the raw hitObject from the drawable.
             x: this.hitObject.x,

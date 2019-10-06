@@ -248,7 +248,7 @@ export class ProcessedBeatmap {
 
             if (hitObject.stackHeight !== 0) hitObject.applyStackPosition();
         }
-    }
+    }    
 
     draw() {
         for (let i = 0; i < this.hitObjects.length; i++) {

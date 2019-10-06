@@ -26,6 +26,7 @@ const SPINNER_METER_STEP_HEIGHT = 69; // ( ͡° ͜ʖ ͡°)
 export class DrawableSpinner extends DrawableHitObject {
     public hitObject: Spinner;
     public hitSound: HitSoundInfo;
+    private container: PIXI.Container;
     private componentContainer: PIXI.Container;
     private componentContainer2: PIXI.Container; // It's like 1, but better
 
@@ -111,6 +112,9 @@ export class DrawableSpinner extends DrawableHitObject {
         let { spinnerPixelRatio, activeMods } = gameState.currentPlay;
 
         this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
+
+        this.container = new PIXI.Container();
+        this.container.zIndex = -1e10; // Sliders are always behind everything
 
         this.componentContainer = new PIXI.Container();
         this.componentContainer2 = new PIXI.Container();
@@ -363,7 +367,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     show(currentTime: number) {
-        mainHitObjectContainer.addChildAt(this.container, 0);
+        mainHitObjectContainer.addChild(this.container);
 
         this.position();
         this.update(currentTime);

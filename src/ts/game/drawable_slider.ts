@@ -11,7 +11,7 @@ import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from 
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { HitSoundInfo, AnimatedOsuSprite, normSampleSet, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, generateHitSoundInfo, calculatePanFromOsuCoordinates } from "./skin";
 import { SoundEmitter } from "../audio/sound_emitter";
-import { sliderBodyContainer, renderer } from "../visuals/rendering";
+import { renderer, mainHitObjectContainer } from "../visuals/rendering";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
@@ -51,6 +51,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private sliderBodyHasBeenRendered = false;
     private lastGeneratedSnakingCompletion = 0;
     
+    private container: PIXI.Container;
     private overlayContainer: PIXI.Container;
     private sliderBall: SliderBall;
     private tickContainer: PIXI.Container;
@@ -60,7 +61,6 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private followCircleHoldStartTime: number = null;
     private followCircleReleaseStartTime: number = null;
     private followCirclePulseStartTime: number = -Infinity;
-    private hitCirclePrimitiveContainer: PIXI.Container;
     private reverseArrowContainer: PIXI.Container;
     public sliderEnds: HitCirclePrimitive[] = [];
     
@@ -103,6 +103,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.velocity = sliderVelocityInOsuPixelsPerMillisecond;
 
         this.endTime = this.startTime + this.repeat * this.length / this.velocity;
+        this.endTime = toFloat32(this.endTime);
         this.duration = this.endTime - this.startTime;
         this.tailPoint = this.path.getPosFromPercentage(1.0);
     
@@ -238,19 +239,10 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
     }
 
-    toRelativeCoord(pos: Point): Point {
-        let { pixelRatio, circleRadius } = gameState.currentPlay;
-
-        return {
-            x: (pos.x - this.bounds.min.x) * pixelRatio + circleRadius,
-            y: (pos.y - this.bounds.min.y) * pixelRatio + circleRadius
-        };
-    }
-
     draw() {
         if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-        let { circleDiameter, approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
+        let { approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
 
         let hasHidden = activeMods.has(Mod.Hidden);
 
@@ -263,24 +255,19 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             hasNumber: true,
             type: HitCirclePrimitiveType.SliderHead
         });
+        this.head.container.zIndex = -this.startTime;
 
-        let relativeStartPos = this.toRelativeCoord(this.startPoint);
-        let relativeTailPos = this.toRelativeCoord(this.tailPoint);
+        let screenStartPos = gameState.currentPlay.toScreenCoordinates(this.startPoint);
+        let screenTailPos = gameState.currentPlay.toScreenCoordinates(this.tailPoint);
 
-        this.head.container.x = relativeStartPos.x;
-        this.head.container.y = relativeStartPos.y;
-
-        this.hitCirclePrimitiveContainer = new PIXI.Container();
-        this.hitCirclePrimitiveContainer.addChild(this.head.container);
         this.reverseArrowContainer = new PIXI.Container();
 
         this.path.generatePointData();
-        this.path.generateBaseVertexBuffer();
 
         this.sliderEnds = [];
         let msPerRepeatCycle = this.length / this.velocity;
         for (let i = 0; i < this.repeat; i++) {
-            let pos = (i % 2 === 0)? relativeTailPos : relativeStartPos;
+            let pos = (i % 2 === 0)? screenTailPos : screenStartPos;
             
             let fadeInStart: number;
             if (i === 0) {
@@ -316,21 +303,18 @@ export class DrawableSlider extends HeadedDrawableHitObject {
                 baseElementsHidden: hasHidden && i > 0
             });
 
-            primitive.container.x = pos.x;
-            primitive.container.y = pos.y;
+            primitive.container.position.set(pos.x, pos.y);
+            primitive.container.zIndex = -Math.min(fadeInStart + approachTime, this.endTime); // Math.min is necessary, because without it, for some sliders, the end circle would end up BELOW the slider body. No good!
 
             this.sliderEnds.push(primitive);
-            this.hitCirclePrimitiveContainer.addChildAt(primitive.container, 0);
 
             if (primitive.reverseArrow !== null) {
-                primitive.reverseArrow.x = pos.x;
-                primitive.reverseArrow.y = pos.y;
+                primitive.reverseArrow.position.set(pos.x, pos.y);
                 this.reverseArrowContainer.addChildAt(primitive.reverseArrow, 0);
             }
         }
 
         this.hasFullscreenBaseSprite = Math.max(this.bounds.screenWidth, this.bounds.screenHeight) >= Math.max(window.innerWidth, window.innerHeight);
-        //this.hasFullscreenBaseSprite = true;
 
         let renderTex = PIXI.RenderTexture.create({
             width: this.hasFullscreenBaseSprite? window.innerWidth : this.bounds.screenWidth,
@@ -345,7 +329,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         this.baseSprite = new PIXI.Sprite(renderTex);
         this.baseSprite.filters = [aaFilter];
+        this.baseSprite.zIndex = -this.endTime;
 
+        this.path.generateBaseVertexBuffer();
         let sliderBodyDefaultSnake = SLIDER_SETTINGS.snaking? 0.0 : 1.0;
         let sliderBodyGeometry = this.path.generateGeometry(sliderBodyDefaultSnake);
         this.lastGeneratedSnakingCompletion = sliderBodyDefaultSnake;
@@ -394,10 +380,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             let tickWrapper = new PIXI.Container();
             tickWrapper.addChild(tickSprite);
 
-            let ctxPos = this.toRelativeCoord(sliderTickPos);
-
-            tickWrapper.x = ctxPos.x;
-            tickWrapper.y = ctxPos.y;
+            let screenPos = gameState.currentPlay.toScreenCoordinates(sliderTickPos);
+            tickWrapper.position.set(screenPos.x, screenPos.y);
 
             this.tickContainer.addChild(tickWrapper);
             this.tickElements.push(tickWrapper);
@@ -408,15 +392,21 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.overlayContainer.addChild(this.sliderBall.container);
         this.overlayContainer.addChild(this.followCircle);
 
-        this.container.addChild(this.hitCirclePrimitiveContainer);
+        this.container = new PIXI.Container();
         this.container.addChild(this.reverseArrowContainer);
         this.container.addChild(this.overlayContainer);
+
+        this.container.zIndex = -this.startTime;
     }
     
     show(currentTime: number) {
         if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-        sliderBodyContainer.addChildAt(this.baseSprite, 0);
+        mainHitObjectContainer.addChild(this.baseSprite);
+        mainHitObjectContainer.addChild(this.container);
+        for (let i = 0; i < this.sliderEnds.length; i++) {
+            mainHitObjectContainer.addChild(this.sliderEnds[i].container);
+        }
 
         super.show(currentTime);
     }
@@ -427,11 +417,9 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         super.position(); // Haha, superposition. Yes. This joke is funny and not funny at the same time. Until observed, of course.
 
         let { circleRadiusOsuPx } = gameState.currentPlay;
-
+ 
         let screenX = gameState.currentPlay.toScreenCoordinatesX(this.bounds.min.x - circleRadiusOsuPx);
         let screenY = gameState.currentPlay.toScreenCoordinatesY(this.bounds.min.y - circleRadiusOsuPx);
-
-        this.container.position.set(screenX, screenY);
 
         if (this.hasFullscreenBaseSprite) this.baseSprite.position.set(0, 0);
         else this.baseSprite.position.set(screenX, screenY);
@@ -478,7 +466,11 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         super.remove();
 
-        sliderBodyContainer.removeChild(this.baseSprite);
+        mainHitObjectContainer.removeChild(this.baseSprite);
+        mainHitObjectContainer.removeChild(this.container);
+        for (let i = 0; i < this.sliderEnds.length; i++) {
+            mainHitObjectContainer.removeChild(this.sliderEnds[i].container);
+        }
 
         // CLEAN UP THAT DARN VRAM! GIMME VRAM!
         this.baseSprite.texture.destroy(true);
@@ -734,14 +726,13 @@ export class DrawableSlider extends HeadedDrawableHitObject {
     private updateSliderBall(completion: number, currentTime: number) {
         if (completion === 0) return;
 
-        let sliderBallPos = this.toRelativeCoord(this.path.getPosFromPercentage(MathUtil.mirror(completion)));
+        let sliderBallPos = gameState.currentPlay.toScreenCoordinates(this.path.getPosFromPercentage(MathUtil.mirror(completion)));
 
         if (currentTime < this.endTime) {
             let baseElement = this.sliderBall.base.sprite;
 
             this.sliderBall.container.visible = true;
-            this.sliderBall.container.x = sliderBallPos.x;
-            this.sliderBall.container.y = sliderBallPos.y;
+            this.sliderBall.container.position.set(sliderBallPos.x, sliderBallPos.y);
             baseElement.rotation = this.path.getAngleFromPercentage(MathUtil.mirror(completion));
 
             let osuTex = gameState.currentGameplaySkin.textures["sliderBall"];
@@ -766,8 +757,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         }
 
         this.followCircle.visible = true;
-        this.followCircle.x = sliderBallPos.x;
-        this.followCircle.y = sliderBallPos.y;
+        this.followCircle.position.set(sliderBallPos.x, sliderBallPos.y);
 
         let followCircleSizeFactor = 0.0;
         let followCircleAlpha = 1.0;

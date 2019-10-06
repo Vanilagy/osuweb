@@ -63,8 +63,8 @@ let softwareCursorContainer = new PIXI.Container();
 softwareCursorContainer.addChild(softwareCursor);
 
 export let mainHitObjectContainer = new PIXI.Container();
+mainHitObjectContainer.sortableChildren = true;
 export let approachCircleContainer = new PIXI.Container();
-export let sliderBodyContainer = new PIXI.Container();
 export let followPointContainer = new PIXI.Container();
 export let scorePopupContainer = new PIXI.Container();
 export let hudContainer = new PIXI.Container();
@@ -73,7 +73,6 @@ export let cursorRippleGraphics = new PIXI.Graphics();
 // The order of these is important, 'cause z-index 'n' stuff.
 stage.addChild(scorePopupContainer);
 stage.addChild(followPointContainer);
-stage.addChild(sliderBodyContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
 stage.addChild(hudContainer);

@@ -49,15 +49,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
             hasNumber: true,
             type: HitCirclePrimitiveType.HitCircle
         });
-
-        this.container.addChild(this.head.container);
-    }
-
-    position() {
-        super.position(); // See DrawableSlider for the joke
-
-        this.container.x = gameState.currentPlay.toScreenCoordinatesX(this.startPoint.x);
-        this.container.y = gameState.currentPlay.toScreenCoordinatesY(this.startPoint.y);
+        this.head.container.zIndex = -this.startTime;
     }
 
     update(currentTime: number) {
