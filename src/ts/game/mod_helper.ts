@@ -278,27 +278,34 @@ export class ModHelper {
 
         // Remove repeated followSlider instructions all linking to the same slider
         for (let i = 0; i < instructions.length-1; i++) {
-            if (instructions[i].type === AutoInstructionType.Follow) {
-                while (instructions[i + 1] && instructions[i + 1].type === AutoInstructionType.Follow && instructions[i + 1].hitObject === instructions[i].hitObject) {
-                    instructions.splice(i + 1, 1);
-                }
+            let thisInstruction = instructions[i];
+            if (thisInstruction.type !== AutoInstructionType.Follow) continue;
+
+            while (instructions[i+1] && instructions[i+1].type === AutoInstructionType.Follow && instructions[i+1].hitObject === thisInstruction.hitObject) {
+                instructions.splice(i+1, 1);
             }
         }
 
         // Merge simulatenous spinners into one instruction
         for (let i = 0; i < instructions.length-1; i++) {
-            if (instructions[i].type === AutoInstructionType.Spin) {
-                while (instructions[i + 1] && instructions[i + 1].type === AutoInstructionType.Spin) {
-                    instructions[i].endTime = Math.max(instructions[i].endTime, instructions[i + 1].endTime);
-                    instructions.splice(i + 1, 1);
-                }
-            }
+            let thisInstruction = instructions[i];
+            if (thisInstruction.type !== AutoInstructionType.Spin) continue;
+
+            let nextInstruction = instructions[i+1];
+            if (!nextInstruction || nextInstruction.type !== AutoInstructionType.Spin) continue;
+            if (nextInstruction.time > thisInstruction.endTime) continue;
+
+            thisInstruction.endTime = Math.max(thisInstruction.endTime, nextInstruction.endTime);
+            instructions.splice(i+1, 1);
+            i--; // Check the same spinner again as there might be another spinner that we need to merge with
         }
 
         // Remove unnecessary instructions with same starting time
         for (let i = 0; i < instructions.length-1; i++) {
-            while (instructions[i + 1] && instructions[i + 1].time === instructions[i].time) {
-                instructions.splice(i, 1);
+            let thisInstruction = instructions[i];
+            
+            while (instructions[i+1] && instructions[i+1].time === thisInstruction.time) {
+                instructions.splice(i+1, 1);
             }
         }
 

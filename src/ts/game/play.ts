@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { scorePopupContainer, softwareCursor, addRenderingTask, mainHitObjectContainer } from "../visuals/rendering";
+import { scorePopupContainer, softwareCursor, addRenderingTask, mainHitObjectContainer, enableRenderTimeInfoLog } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
@@ -25,8 +25,6 @@ import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mod_helper";
 
-const LOG_RENDER_INFO = true;
-const LOG_RENDER_INFO_INTERVAL = 5000; // In ms
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
 const BREAK_FADE_TIME = 1250; // In ms
@@ -186,6 +184,7 @@ export class Play {
 
         addRenderingTask(() => this.render());
         setInterval(() => this.tick(), 0);
+        enableRenderTimeInfoLog();
 
         inputEventEmitter.addListener('mouseMove', () => this.handleMouseMove());
         inputEventEmitter.addListener('gameButtonDown', () => this.handleButtonDown());
@@ -334,32 +333,6 @@ export class Play {
 
         // Update the cursor position if rocking AT
         if (this.activeMods.has(Mod.Auto)) this.handlePlaythroughInstructions(currentTime);
-
-        if (!LOG_RENDER_INFO) return;
-
-        // Frame time logger:
-        let now = performance.now();
-        let elapsedTime = now - startTime;
-        this.frameTimes.push(elapsedTime);
-        if (this.lastFrameTime !== null) {
-            this.inbetweenFrameTimes.push(now - this.lastFrameTime);
-        }
-        this.lastFrameTime = now;
-
-        if ((now - this.lastRenderInfoLogTime) >= LOG_RENDER_INFO_INTERVAL && this.frameTimes.length > 0 && this.inbetweenFrameTimes.length > 0) {
-            let data1 = MathUtil.getAggregateValuesFromArray(this.frameTimes),
-                data2 = MathUtil.getAggregateValuesFromArray(this.inbetweenFrameTimes);
-                
-            console.log("---");
-            console.log(`Frame time info: Average: ${data1.avg.toFixed(3)}ms, Shortest: ${data1.min.toFixed(3)}ms, Longest: ${data1.max.toFixed(3)}ms`);
-            console.log(`Frame period info: Average: ${data2.avg.toFixed(3)}ms, Shortest: ${data2.min.toFixed(3)}ms, Longest: ${data2.max.toFixed(3)}ms`);
-
-            this.frameTimes.length = 0;
-            this.inbetweenFrameTimes.length = 0;
-            this.lastRenderInfoLogTime = now;
-        }
-
-        if (this.lastRenderInfoLogTime === null) this.lastRenderInfoLogTime = now;
     }
 
     tick(currentTimeOverride?: number) {

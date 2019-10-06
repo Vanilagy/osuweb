@@ -56,7 +56,7 @@ export async function initHud() {
     });
     phantomComboDisplay.container.x = Math.floor(window.innerHeight * 0.005);
     phantomComboDisplay.container.y = Math.floor(window.innerHeight - window.innerHeight * 0.005);
-    phantomComboDisplay.container.alpha = 0.5;
+    phantomComboDisplay.container.alpha = 0.333;
 
     comboDisplay = new SpriteNumber({
         scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
