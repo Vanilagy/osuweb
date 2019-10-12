@@ -12,6 +12,7 @@ export enum PlayEventType {
     HeadHitWindowEnd,
     PerfectHeadHit,
     SpinnerEnd,
+    SpinnerSpin, // sustained event
     DrawSlider,
 }
 

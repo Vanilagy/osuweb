@@ -13,7 +13,7 @@ import { stackShiftPoint } from "../util/point";
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;
     public scoring: CircleScoring;
-    public hitSound: HitSoundInfo;
+    private hitSound: HitSoundInfo;
 
     constructor(circle: Circle, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
         super(circle, comboInfo, timingInfo);

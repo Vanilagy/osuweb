@@ -14,6 +14,7 @@ import { SoundEmitter } from "../audio/sound_emitter";
 import { Mod } from "./mods";
 import { accuracyMeter } from "./hud";
 import { CurrentTimingPointInfo, ComboInfo } from "./processed_beatmap";
+import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -22,6 +23,8 @@ const SPIN_TEXT_FADE_OUT_TIME = 200; // In ms
 const SPINNER_GLOW_TINT: Color = {r: 2, g: 170, b: 255}; // Same color as default slider ball tint
 const SPINNER_METER_STEPS = 10;
 const SPINNER_METER_STEP_HEIGHT = 69; // ( ͡° ͜ʖ ͡°)
+const SPINNER_ACCELERATION = 0.00015; // In radians/ms^2
+const DELAY_UNTIL_SPINNER_DECELERATION = 20; // In ms
 
 export class DrawableSpinner extends DrawableHitObject {
     public hitObject: Spinner;
@@ -63,11 +66,13 @@ export class DrawableSpinner extends DrawableHitObject {
     private duration: number;
     private lastSpinPosition: Point = null;
     private lastInputTime: number = null;
+    private lastAccelerationTime: number = null;
     private spinnerAngle = 0;
     private totalRadiansSpun = 0; // The sum of all absolute angles this spinner has been spun (the total "angular distance")
     private requiredSpins: number;
     private cleared: boolean;
     private bonusSpins: number;
+    private angularVelocity = 0;
 
     public spinSoundEmitter: SoundEmitter = null;
     // TODO: Clean this up. Ergh. Disgusting.
@@ -83,8 +88,11 @@ export class DrawableSpinner extends DrawableHitObject {
         this.endPoint = this.startPoint;
 
         this.duration = this.endTime - this.startTime;
-        // 1 Spin = 1 Revolution
-        this.requiredSpins = (100 + processedBeatmap.difficulty.OD * 15) * this.duration / 60000 * 0.88; // This shit's approximate af. But I mean it's ppy.
+
+        // 1 Spin = 1 Revolution. This calculation is taken straight from lazer's source:
+        this.requiredSpins = Math.floor(this.duration / 1000 * BeatmapDifficulty.difficultyRange(processedBeatmap.difficulty.OD, 3, 5, 7.5));
+        this.requiredSpins = Math.floor(Math.max(1, this.requiredSpins * 0.6)); // "spinning doesn't match 1:1 with stable, so let's fudge them easier for the time being."
+
         this.cleared = false;
         this.bonusSpins = 0;
 
@@ -476,32 +484,27 @@ export class DrawableSpinner extends DrawableHitObject {
         let bonusSpinsCompletion = this.bonusSpinsInterpolator.getCurrentValue(currentTime);
         this.spinnerBonus.container.scale.set(MathUtil.lerp(1.0, 0.666, bonusSpinsCompletion));
         this.spinnerBonus.container.alpha = 1 - bonusSpinsCompletion;
-
-        if (this.lastInputTime === null || (currentTime - this.lastInputTime) >= 100) {
-            if (this.spinSoundEmitter) this.spinSoundEmitter.stop(); // After 100ms of receiving no input, stop the spinning sound.
-            if (currentTime < this.endTime) this.spinnerRpmNumber.setValue(0);
-        }
     }
 
     score() {
         let currentPlay = gameState.currentPlay;
 
         let spinsSpun = this.getSpinsSpun();
-        if (spinsSpun < this.requiredSpins) {
-            currentPlay.scoreCounter.add(0, false, true, true, this, this.endTime);
-        } else {
-            let judgement = (() => {
-                if (spinsSpun >= this.requiredSpins + 0.5) {
-                    return 300;
-                } else if (spinsSpun >= this.requiredSpins + 0.25) {
-                    return 100;
-                } else {
-                    return 50;
-                }
-            })();
+        let progress = spinsSpun/this.requiredSpins;
+        let judgement = (() => {
+            if (progress >= 1.0) {
+                return 300;
+            } else if (progress > 0.9) {
+                return 100;
+            } else if (progress > 0.75) {
+                return 50;
+            }
+            return 0;
+        })();
 
-            currentPlay.scoreCounter.add(judgement, false, true, true, this, this.endTime);
-            if (judgement !== 0) gameState.currentGameplaySkin.playHitSound(this.hitSound);
+        currentPlay.scoreCounter.add(judgement, false, true, true, this, this.endTime);
+        if (judgement !== 0) {
+            gameState.currentGameplaySkin.playHitSound(this.hitSound);
         }
 
         if (this.spinSoundEmitter) this.spinSoundEmitter.stop();
@@ -519,7 +522,6 @@ export class DrawableSpinner extends DrawableHitObject {
         if (!pressed) {
             if (this.lastSpinPosition !== null) {
                 this.lastSpinPosition = null;
-                this.lastInputTime = null;
             }
             
             return;
@@ -537,73 +539,61 @@ export class DrawableSpinner extends DrawableHitObject {
             angle2 = Math.atan2(p1.y - PLAYFIELD_DIMENSIONS.height/2, p1.x - PLAYFIELD_DIMENSIONS.width/2);
         let theta = MathUtil.getNormalizedAngleDelta(angle1, angle2);
         
-        let timeDelta = (currentTime - this.lastInputTime) / 1000; // In seconds
-        if (timeDelta <= 0) return; // WTF? TODO!
-        // Ergh. current time can jump backwards. fuuuck
+        let timeDelta = currentTime - this.lastInputTime; // In ms
+        if (timeDelta <= 0) return;
 
-        /*
-        // If we change direction, stop immediately
-        if (Math.sign(this.lastAngularVelocity) !== Math.sign(theta)) {
-            this.lastAngularVelocity = 0;
-        }
-
-        let absTheta = Math.abs(theta);
-        let absThetaPerSecond = absTheta /= timeDelta;
-        let lastAbs = Math.abs(this.lastAngularVelocity);
-
-        if (false && absThetaPerSecond < lastAbs) {
-            let diff = lastAbs - absThetaPerSecond;
-            let newAbsoluteVelocity = lastAbs - diff / 3;
-            this.lastAngularVelocity = newAbsoluteVelocity * Math.sign(theta);
-            console.log("Whackass!");
-        } else {
-            // 20 radians per second threshold
-            let dist = MathUtil.clamp(lastAbs / 40, 0, 1);
-            console.log(dist);
-
-            let newAbsoluteVelocity = Math.min(lastAbs + timeDelta * Math.PI*0.05, absThetaPerSecond);
-
-            let weighted = (1 - dist) * newAbsoluteVelocity + dist * absThetaPerSecond;
-
-            //newAbsoluteVelocity = absThetaPerSecond;
-            this.lastAngularVelocity = weighted * Math.sign(theta);
-        }
-        
-        this.spinnerAngle += this.lastAngularVelocity * timeDelta;
-        */
-
-        // ALL POINTLESS!
-
-        this.spin(theta, currentTime);
-
-        //this.spinnerAngle += theta;
-        //this.totalRadiansSpun += Math.abs(theta);
-
-        //console.log(this.lastAngularVelocity);
+        this.spin(theta, currentTime, timeDelta);
 
         this.lastSpinPosition = osuMouseCoordinates;
-        //this.lastInputTime = currentTime;
     }
 
-    spin(radians: number, currentTime: number) {
+    /** Spins the spinner by a certain amount in a certain timeframe. */
+    spin(radians: number, currentTime: number, dt: number) {
         if (currentTime < this.startTime || currentTime >= this.endTime) return;
-
-        let currentPlay = gameState.currentPlay;
+        if (!dt) return;
 
         accuracyMeter.fadeOutNow(currentTime);
 
-        if (this.lastInputTime === null) {
-            this.lastInputTime = currentTime;
-            return;
+        let radiansAbs = Math.abs(radians);
+        let velocityAbs = Math.abs(this.angularVelocity);
+        let radiansPerMs = radiansAbs/dt;
+
+        if (radiansPerMs >= velocityAbs && (Math.sign(radians) === Math.sign(this.angularVelocity) || this.angularVelocity === 0)) {
+            let thing = Math.min(radiansPerMs, velocityAbs + SPINNER_ACCELERATION * dt);
+            this.angularVelocity = thing * Math.sign(radians);
+            this.lastAccelerationTime = currentTime;
+        } else {
+            this.tryDecelerate(currentTime, dt, (Math.sign(radians) === Math.sign(this.angularVelocity))? radiansPerMs : 0);
         }
 
-        let timeDif = currentTime - this.lastInputTime;
-        if (timeDif <= 0) return;
-        
-        let angle = Math.sign(radians) * Math.min(Math.abs(radians), 0.05 * timeDif); // MAX 0.05 radians / ms, 'cause 477 limit!
-        let spinsPerMinute = Math.abs(angle) / timeDif * 1000 * 60 / (Math.PI*2);
-        this.spinnerRpmNumber.setValue(spinsPerMinute | 0);
-        
+        // Limit angular velocity to 0.05 radians/ms, because of the 477 RPM limit!
+        this.angularVelocity = Math.sign(this.angularVelocity) * Math.min(Math.abs(this.angularVelocity), 0.05);
+
+        this.lastInputTime = currentTime;
+    }
+
+    private tryDecelerate(currentTime: number, dt: number, minVelocity: number) {
+        if (this.lastAccelerationTime !== null && currentTime - this.lastAccelerationTime >= DELAY_UNTIL_SPINNER_DECELERATION) {
+            let previousTime = currentTime-dt;
+            let adjustedDt = currentTime - Math.max(previousTime, this.lastAccelerationTime + DELAY_UNTIL_SPINNER_DECELERATION); // We need to adjust here to be tick-frequency independent
+
+            let abs = Math.abs(this.angularVelocity);
+            let thing = Math.max(0, abs - SPINNER_ACCELERATION * adjustedDt);
+            this.angularVelocity = Math.max(thing, minVelocity) * Math.sign(this.angularVelocity);
+        }
+    }
+
+    tick(currentTime: number, dt: number) {
+        if (!dt) return;
+
+        let { scoreCounter } = gameState.currentPlay;
+
+        this.tryDecelerate(currentTime, dt, 0);
+
+        let angle = this.angularVelocity * dt;
+        let spinsPerMinute = Math.abs(this.angularVelocity) * 1000 * 60 / (Math.PI*2);
+        this.spinnerRpmNumber.setValue(Math.floor(spinsPerMinute));
+
         let prevSpinsSpun = this.getSpinsSpun();
 
         this.spinnerAngle += angle;
@@ -613,7 +603,7 @@ export class DrawableSpinner extends DrawableHitObject {
         let wholeDif = Math.floor(spinsSpunNow) - Math.floor(prevSpinsSpun);
         if (wholeDif > 0) {
             // Give 100 raw score for every spin
-            currentPlay.scoreCounter.add(wholeDif * 100, true, false, false, this, currentTime);
+            scoreCounter.add(wholeDif * 100, true, false, false, this, currentTime);
         }
         if (spinsSpunNow >= this.requiredSpins && !this.cleared) {
             this.cleared = true;
@@ -622,10 +612,9 @@ export class DrawableSpinner extends DrawableHitObject {
         let bonusSpins = Math.floor(spinsSpunNow - this.requiredSpins);
         if (bonusSpins > 0 && bonusSpins > this.bonusSpins) {
             let dif = bonusSpins - this.bonusSpins;
-            currentPlay.scoreCounter.add(dif * 1000, true, false, false, this, currentTime)
+            scoreCounter.add(dif * 1000, true, false, false, this, currentTime);
 
             this.bonusSpins = bonusSpins;
-            //this.bonusSpinsElement.text = String(this.bonusSpins * 1000);
             this.spinnerBonus.setValue(this.bonusSpins * 1000);
             this.bonusSpinsInterpolator.start(currentTime);
             this.glowInterpolator.start(currentTime);
@@ -639,12 +628,11 @@ export class DrawableSpinner extends DrawableHitObject {
         }
 
         if (this.spinSoundEmitter) {
-            if (!this.spinSoundEmitter.isPlaying()) this.spinSoundEmitter.start();
+            if (!this.spinSoundEmitter.isPlaying() && this.angularVelocity !== 0) this.spinSoundEmitter.start();
+            if (this.angularVelocity === 0) this.spinSoundEmitter.stop();
 
             if (gameState.currentGameplaySkin.config.general.spinnerFrequencyModulate) this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
         }
-
-        this.lastInputTime = currentTime;
     }
 
     remove() {
@@ -653,11 +641,20 @@ export class DrawableSpinner extends DrawableHitObject {
 
     addPlayEvents(playEventArray: PlayEvent[]) {
         playEventArray.push({
+            type: PlayEventType.SpinnerSpin,
+            hitObject: this,
+            time: this.startTime,
+            endTime: this.endTime
+        });
+
+        playEventArray.push({
             type: PlayEventType.SpinnerEnd,
             hitObject: this,
             time: this.endTime
         });
     }
 
-    handleButtonDown() {return false;}
+    handleButtonDown() {
+        return false;
+    }
 }

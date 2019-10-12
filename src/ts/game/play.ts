@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { scorePopupContainer, softwareCursor, addRenderingTask, mainHitObjectContainer, enableRenderTimeInfoLog } from "../visuals/rendering";
+import { scorePopupContainer, softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
@@ -28,7 +28,7 @@ import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBA
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
 const BREAK_FADE_TIME = 1250; // In ms
-const BACKGROUND_DIM = 1.0; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
+const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const SPINNER_REFERENCE_SCREEN_HEIGHT = 768;
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
@@ -36,11 +36,25 @@ const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
     public preludeTime: number;
-    public currentHitObjectId: number;
-    public onscreenObjects: { [s: string]: DrawableHitObject };
-    public followPoints: FollowPoint[];
-    public onscreenFollowPoints: FollowPoint[];
-    public scorePopups: ScorePopup[];
+
+    private currentHitObjectId: number;
+    private onscreenHitObjects: DrawableHitObject[];
+    private followPoints: FollowPoint[];
+    private onscreenFollowPoints: FollowPoint[];
+    private showHitObjectsQueue: DrawableHitObject[]; // New hit objects that have to get added to the scene next frame
+    private scorePopups: ScorePopup[];
+
+    public scoreCounter: ScoreCounter;
+    public activeMods: Set<Mod>;
+
+    private lastTickTime: number = null;
+    private playEvents: PlayEvent[] = [];
+    private currentSustainedEvents: PlayEvent[] = [];
+    private currentPlayEvent: number = 0;
+    private currentFollowPointIndex = 0; // is this dirty? idk
+    private currentBreakIndex = 0;
+    
+    // Draw stuffz:
     public pixelRatio: number;
     public spinnerPixelRatio: number;
     public circleDiameterOsuPx: number;
@@ -49,19 +63,6 @@ export class Play {
     public circleRadius: number;
     public headedHitObjectTextureFactor: number;
     public approachTime: number;
-
-    public frameTimes: number[] = [];
-    public inbetweenFrameTimes: number[] = [];
-    public lastFrameTime: number = null;
-    public lastRenderInfoLogTime: number = null;
-
-    public playEvents: PlayEvent[] = [];
-    public currentSustainedEvents: PlayEvent[] = [];
-    public currentPlayEvent: number = 0;
-    public scoreCounter: ScoreCounter;
-    public activeMods: Set<Mod>;
-    private currentFollowPointIndex = 0; // is this dirty? idk
-    private currentBreakIndex = 0;
 
     // AT stuffz:
     private playthroughInstructions: AutoInstruction[];
@@ -74,9 +75,10 @@ export class Play {
 
         this.preludeTime = 0;
         this.currentHitObjectId = 0;
-        this.onscreenObjects = {};
+        this.onscreenHitObjects = [];
         this.followPoints = [];
         this.onscreenFollowPoints = [];
+        this.showHitObjectsQueue = [];
         this.scorePopups = [];
         this.activeMods = new Set();
 
@@ -184,6 +186,7 @@ export class Play {
 
         addRenderingTask(() => this.render());
         setInterval(() => this.tick(), 0);
+        this.tick();
         enableRenderTimeInfoLog();
 
         inputEventEmitter.addListener('mouseMove', () => this.handleMouseMove());
@@ -191,44 +194,32 @@ export class Play {
     }
 
     render() {
-        let startTime = performance.now();
         let currentTime = this.getCurrentSongTime();
 
         // Run a game tick right before rendering
         this.tick(currentTime);
 
         // Update hit objects on screen, or remove them if necessary
-        for (let id in this.onscreenObjects) {
-            let hitObject = this.onscreenObjects[id];
+        for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+            let hitObject = this.onscreenHitObjects[i];
 
             hitObject.update(currentTime);
-
-            // TEMP! DIRTY! REMOVE THIS! TODO!
-            if (hitObject instanceof DrawableSpinner) {
-                let spinner = hitObject as DrawableSpinner;
-                
-                // Spin counter-clockwise as fast as possible. Clockwise just looks shit.
-                if (this.autohit || this.activeMods.has(Mod.SpunOut)) spinner.spin(-1e9, currentTime);
-            }
 
             if (hitObject.renderFinished) {
                 // Hit object can now safely be removed from the screen
 
                 hitObject.remove();
-                delete this.onscreenObjects[id];
+                this.onscreenHitObjects.splice(i--, 1);
 
                 continue;
             }
         }
 
-        // Add new hit objects to screen
-        for (this.currentHitObjectId; this.currentHitObjectId < this.processedBeatmap.hitObjects.length; this.currentHitObjectId++) {
-            let hitObject = this.processedBeatmap.hitObjects[this.currentHitObjectId];
-            if (currentTime < hitObject.renderStartTime) break;
-
-            this.onscreenObjects[this.currentHitObjectId] = hitObject;
-            hitObject.show(currentTime);
+        // Show new hit objects
+        for (let i = 0; i < this.showHitObjectsQueue.length; i++) {
+            this.showHitObjectsQueue[i].show(currentTime);
         }
+        this.showHitObjectsQueue.length = 0;
 
         // Render follow points
         //followPointContainer.removeChildren(); // Families in Syria be like
@@ -337,8 +328,26 @@ export class Play {
 
     tick(currentTimeOverride?: number) {
         let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
+
+        if (this.lastTickTime === null) {
+            this.lastTickTime = currentTime;
+            return;
+        }
+        /** Time since the last tick */
+        let dt = currentTime - this.lastTickTime;
+        this.lastTickTime = currentTime;
+
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
         let buttonPressed = anyGameButtonIsPressed();
+
+        // Add new hit objects to screen
+        for (this.currentHitObjectId; this.currentHitObjectId < this.processedBeatmap.hitObjects.length; this.currentHitObjectId++) {
+            let hitObject = this.processedBeatmap.hitObjects[this.currentHitObjectId];
+            if (currentTime < hitObject.renderStartTime) break;
+
+            this.onscreenHitObjects.push(hitObject);
+            this.showHitObjectsQueue.push(hitObject);
+        }
         
         for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
             let playEvent = this.playEvents[this.currentPlayEvent];
@@ -495,6 +504,13 @@ export class Play {
                         slider.holdFollowCircle(currentTime);
                     }
                 }; break;
+                case PlayEventType.SpinnerSpin: {
+                    let spinner = playEvent.hitObject as DrawableSpinner;
+                    spinner.tick(currentTime, dt);
+
+                    // Spin counter-clockwise as fast as possible. Clockwise just looks shit.
+                    if (this.autohit || this.activeMods.has(Mod.SpunOut)) spinner.spin(-1e9, currentTime, 1);
+                }; break;
             }
         }
     }
@@ -505,8 +521,8 @@ export class Play {
         let currentTime = this.getCurrentSongTime();
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
 
-        for (let id in this.onscreenObjects) {
-            let hitObject = this.onscreenObjects[id];
+        for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+            let hitObject = this.onscreenHitObjects[i];
             let handled = hitObject.handleButtonDown(osuMouseCoordinates, currentTime);
 
             if (handled) break; // One button press can only affect one hit object.
@@ -519,8 +535,8 @@ export class Play {
         let currentTime = this.getCurrentSongTime();
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
 
-        for (let id in this.onscreenObjects) {
-            let hitObject = this.onscreenObjects[id];
+        for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+            let hitObject = this.onscreenHitObjects[i];
 
             if (hitObject instanceof DrawableSpinner && !this.activeMods.has(Mod.SpunOut)) {
                 let spinner = hitObject as DrawableSpinner;

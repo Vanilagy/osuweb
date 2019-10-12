@@ -83,4 +83,21 @@ export class BeatmapDifficulty {
 
         return newDifficulty;
     }
+
+    // Taken from https://github.com/ppy/osu/blob/e39604619d470f68c1ca57e9df297f475a130896/osu.Game/Beatmaps/BeatmapDifficulty.cs
+    /**
+     * Maps a difficulty value [0, 10] to a two-piece linear range of values.
+     * @param difficulty The difficulty value to be mapped.
+     * @param min Minimum of the resulting range which will be achieved by a difficulty value of 0.
+     * @param mid Midpoint of the resulting range which will be achieved by a difficulty value of 5.
+     * @param max Maximum of the resulting range which will be achieved by a difficulty value of 10.
+     */
+    static difficultyRange(difficulty: number, min: number, mid: number, max: number) {
+        if (difficulty > 5)
+            return mid + (max - mid) * (difficulty - 5) / 5;
+        if (difficulty < 5)
+            return mid - (mid - min) * (5 - difficulty) / 5;
+
+        return mid;
+    }
 }
