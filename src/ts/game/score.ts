@@ -13,6 +13,7 @@ import { ScoringValue } from "./scoring_value";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
+const MISS_POPUP_DROPDOWN_ACCERELATION = 0.00009; // in osu!pixels per ms^2
 
 export class Score {
     public points: number;
@@ -273,11 +274,15 @@ scorePopupTypeToColor.set(ScorePopupType.Katu100, '#57e11a'); // Same color as H
 
 export class ScorePopup {
     public container: PIXI.Container;
-    private startTime: number = null;
-    public renderingFinished: boolean = false;
     private animatedSprite: AnimatedOsuSprite;
+    private startTime: number = null;
+    private osuPosition: Point;
+    private type: ScorePopupType;
+    public renderingFinished: boolean = false;
 
     constructor(type: ScorePopupType, osuPosition: Point, startTime: number) {
+        this.type = type;
+        this.osuPosition = osuPosition;
         this.startTime = startTime;
 
         let currentPlay = gameState.currentPlay;
@@ -321,14 +326,16 @@ export class ScorePopup {
             return;
         }
 
+        let elapsedTime = currentTime - this.startTime;
+
         if (this.animatedSprite.getFrameCount() === 0) {
             // If there are zero frames in the animation, apply a custom scale-up animation:
 
-            let appearanceCompletion = (currentTime - this.startTime) / SCORE_POPUP_APPEARANCE_TIME;
+            let appearanceCompletion = elapsedTime / SCORE_POPUP_APPEARANCE_TIME;
             appearanceCompletion = MathUtil.clamp(appearanceCompletion, 0, 1);
             appearanceCompletion = MathUtil.ease(EaseType.EaseOutElastic, appearanceCompletion, 0.55);
     
-            let gradualScaleUp = (currentTime - this.startTime) / SCORE_POPUP_FADE_OUT_TIME;
+            let gradualScaleUp = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
     
             // At the end of the fade out, the thing should be at 1.12x the start size.
             let factor = appearanceCompletion + gradualScaleUp * 0.12;
@@ -337,11 +344,17 @@ export class ScorePopup {
             this.animatedSprite.update(currentTime);
         }
 
-        let fadeOutCompletion = (currentTime - this.startTime) / SCORE_POPUP_FADE_OUT_TIME;
+        let fadeOutCompletion = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
             fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
             fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
         
         this.container.alpha = 1 - fadeOutCompletion;
+
+        if (this.type === ScorePopupType.Miss) {
+            let droppedDistance = 0.5 * MISS_POPUP_DROPDOWN_ACCERELATION * elapsedTime**2; // s(t) = 0.5*a*t^2
+            let osuY = this.osuPosition.y + droppedDistance;
+            this.container.y = gameState.currentPlay.toScreenCoordinatesY(osuY, false);
+        }
     }
 
     remove() {
