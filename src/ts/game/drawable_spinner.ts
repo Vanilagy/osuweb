@@ -371,11 +371,10 @@ export class DrawableSpinner extends DrawableHitObject {
         this.container.addChild(this.spinnerRpmNumber.container); // Above all other elements
     }
 
-    show(currentTime: number) {
+    show() {
         mainHitObjectContainer.addChild(this.container);
 
         this.position();
-        this.update(currentTime);
     }
 
     position() {

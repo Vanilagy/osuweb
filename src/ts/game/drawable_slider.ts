@@ -399,7 +399,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.container.zIndex = -this.startTime;
     }
     
-    show(currentTime: number) {
+    show() {
         if (this.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
         mainHitObjectContainer.addChild(this.baseSprite);
@@ -408,7 +408,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
             mainHitObjectContainer.addChild(this.sliderEnds[i].container);
         }
 
-        super.show(currentTime);
+        super.show();
     }
 
     position() {

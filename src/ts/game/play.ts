@@ -199,6 +199,12 @@ export class Play {
         // Run a game tick right before rendering
         this.tick(currentTime);
 
+        // Show new hit objects
+        for (let i = 0; i < this.showHitObjectsQueue.length; i++) {
+            this.showHitObjectsQueue[i].show(currentTime);
+        }
+        this.showHitObjectsQueue.length = 0;
+
         // Update hit objects on screen, or remove them if necessary
         for (let i = 0; i < this.onscreenHitObjects.length; i++) {
             let hitObject = this.onscreenHitObjects[i];
@@ -214,12 +220,6 @@ export class Play {
                 continue;
             }
         }
-
-        // Show new hit objects
-        for (let i = 0; i < this.showHitObjectsQueue.length; i++) {
-            this.showHitObjectsQueue[i].show(currentTime);
-        }
-        this.showHitObjectsQueue.length = 0;
 
         // Render follow points
         //followPointContainer.removeChildren(); // Families in Syria be like

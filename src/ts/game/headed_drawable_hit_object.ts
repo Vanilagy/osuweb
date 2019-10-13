@@ -57,12 +57,11 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
 
     abstract applyStackPosition(): void;
 
-    show(currentTime: number) {
+    show() {
         mainHitObjectContainer.addChild(this.head.container);
         if (this.head.approachCircle) approachCircleContainer.addChild(this.head.approachCircle);
 
         this.position();
-        this.update(currentTime);
     }
 
     position() {
