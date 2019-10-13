@@ -79,7 +79,7 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
-// Eventually add touch support. Eventually.
+// TODO: Eventually add touch support. Eventually.
 window.addEventListener('mousedown', (e) => {
     let button = e.button;
 

@@ -189,8 +189,14 @@ export class Play {
         this.tick();
         enableRenderTimeInfoLog();
 
-        inputEventEmitter.addListener('mouseMove', () => this.handleMouseMove());
-        inputEventEmitter.addListener('gameButtonDown', () => this.handleButtonDown());
+        inputEventEmitter.addListener('mouseMove', () => {
+            this.tick();
+            this.handleMouseMove()
+        });
+        inputEventEmitter.addListener('gameButtonDown', () => {
+            this.tick();
+            this.handleButtonDown()
+        });
     }
 
     render() {
