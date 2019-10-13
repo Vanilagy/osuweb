@@ -503,7 +503,8 @@ export class SliderPath {
     
                 while (true) {
                     let curvature = MathUtil.curvatureOfBézierCurve(points, t, lastPoint);
-                    t += Math.min(0.25, 0.01 / Math.sqrt(curvature * 300)); // Move smaller steps based on curvature
+                    let increment = Math.min(0.2, 0.01 / Math.sqrt(curvature * 300)); // Move smaller steps based on curvature. Min 0.02 guarantees we sample each curve at least 50 times.
+                    t += increment;
                     if (t >= 1) break;
     
                     lastPoint = MathUtil.pointOnBézierCurve(points, t);
