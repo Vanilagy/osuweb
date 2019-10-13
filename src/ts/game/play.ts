@@ -118,7 +118,7 @@ export class Play {
         if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrSecondPass(this.processedBeatmap);
 
         console.time('Stack shift');
-        this.processedBeatmap.applyStackShift(false);
+        this.processedBeatmap.applyStackShift();
         console.timeEnd('Stack shift');
 
         console.time("Beatmap draw");
@@ -615,7 +615,7 @@ export class Play {
     }
 
     /** Handles playthrough instructions for AT. */
-    handlePlaythroughInstructions(currentTime: number) {
+    private handlePlaythroughInstructions(currentTime: number) {
         if (this.currentPlaythroughInstruction >= this.playthroughInstructions.length) return;
 
         if (this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {

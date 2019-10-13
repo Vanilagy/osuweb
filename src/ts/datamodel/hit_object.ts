@@ -30,7 +30,7 @@ export abstract class HitObject {
         this.hitSound = parseInt(data[4]);
     }
 
-    parseExtras(data: string) {
+    protected parseExtras(data: string) {
         if (data) {
             let values = data.split(":");
 

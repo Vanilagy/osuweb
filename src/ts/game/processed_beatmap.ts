@@ -144,8 +144,7 @@ export class ProcessedBeatmap {
         }
     }
 
-    applyStackShift(fullCalc: boolean) {
-        let lastStackEnd = 0;
+    applyStackShift() {
         let stackThreshold = this.difficulty.getApproachTime() * this.difficulty.SL;
         let stackSnapDistance = 3;
 

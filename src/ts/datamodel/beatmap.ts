@@ -124,7 +124,7 @@ export class Beatmap {
         return this.beatmapSet.directory.getFileByName(fileName);
     }
 
-    parseBeatmap(text: string) {
+    private parseBeatmap(text: string) {
         let lines = text.split('\n');
 
         let section = "header";
@@ -187,7 +187,7 @@ export class Beatmap {
         this.timingPoints.sort((a, b) => a.offset - b.offset);
     }
 
-    parseComboColor(line: string) {
+    private parseComboColor(line: string) {
         let col = line.split(':')[1].trim().split(',');
 
         this.colors.push({
@@ -197,7 +197,7 @@ export class Beatmap {
         });
     }
 
-    parseTimingPoint(line: string) {
+    private parseTimingPoint(line: string) {
         let values = line.split(',');
 
         let offset = parseInt(values[0]);
@@ -226,7 +226,7 @@ export class Beatmap {
         });
     }
 
-    parseHitObject(line: string) {
+    private parseHitObject(line: string) {
         let values = line.split(',');
 
         let hitObjectData = parseInt(values[3]);
@@ -249,7 +249,7 @@ export class Beatmap {
         }
     }
 
-    parseEvent(line: string) {
+    private parseEvent(line: string) {
         let values = line.split(',');
 
         switch (values[0]) {
@@ -291,7 +291,7 @@ export class Beatmap {
         }
     }
 
-    getNextInheritableTimingPoint(num: number) {
+    private getNextInheritableTimingPoint(num: number) {
         for (let i = num + 1; i < this.timingPoints.length; i++) {
             if (this.timingPoints[i].inheritable) return this.timingPoints[i];
         }
