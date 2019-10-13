@@ -11,13 +11,13 @@ export let accuracyDisplay: SpriteNumber;
 export let progressIndicator: ProgressIndicator;
 export let accuracyMeter: AccuracyMeter;
 
-const ACCURACY_METER_FADE_OUT_DELAY = 3000; // In ms
+const ACCURACY_METER_FADE_OUT_DELAY = 4000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 
-export async function initHud() {
-    let scoreHeight = window.innerHeight * 0.06,
-        accuracyHeight = window.innerHeight * 0.036,
-        comboHeight = window.innerHeight * 0.08;
+export function initHud() {
+    let scoreHeight = window.innerHeight * 0.0575,
+        accuracyHeight = window.innerHeight * 0.0345,
+        comboHeight = window.innerHeight * 0.0730;
 
     scoreDisplay = new SpriteNumber({
         scaleFactor: scoreHeight / USUAL_SCORE_DIGIT_HEIGHT,
@@ -29,7 +29,9 @@ export async function initHud() {
         textures: baseSkin.scoreNumberTextures,
         leftPad: 8
     });
-    scoreDisplay.container.x = window.innerWidth;
+    scoreDisplay.container.x = Math.floor(window.innerWidth - scoreHeight * 0.2);
+    scoreDisplay.container.y = 0;
+    scoreDisplay.setValue(0);
 
     accuracyDisplay = new SpriteNumber({
         scaleFactor: accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT,
@@ -42,9 +44,13 @@ export async function initHud() {
         fixedDecimals: 2,
         hasPercent: true
     });
-    accuracyDisplay.setValue(100); // Hacky. TODO.
-    accuracyDisplay.container.x = scoreDisplay.container.x;
-    accuracyDisplay.container.y = Math.floor(scoreHeight + window.innerHeight * 0.008);
+    accuracyDisplay.setValue(100);
+    accuracyDisplay.container.x = Math.floor(window.innerWidth - accuracyHeight * 0.37);
+    accuracyDisplay.container.y = Math.floor(scoreDisplay.container.height + window.innerHeight * 0.0075);
+
+    progressIndicator = new ProgressIndicator(window.innerHeight * 0.043);
+    progressIndicator.container.x = Math.floor(accuracyDisplay.container.x - accuracyDisplay.lastComputedWidth - window.innerHeight * 0.035 - (baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
+    progressIndicator.container.y = Math.floor(accuracyDisplay.container.y + Math.min(accuracyHeight/2, accuracyDisplay.lastComputedHeight/2));
 
     phantomComboDisplay = new SpriteNumber({
         scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
@@ -55,8 +61,9 @@ export async function initHud() {
         hasX: true
     });
     phantomComboDisplay.container.x = Math.floor(window.innerHeight * 0.005);
-    phantomComboDisplay.container.y = Math.floor(window.innerHeight - window.innerHeight * 0.005);
+    phantomComboDisplay.container.y = Math.floor(window.innerHeight);
     phantomComboDisplay.container.alpha = 0.333;
+    phantomComboDisplay.setValue(0);
 
     comboDisplay = new SpriteNumber({
         scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
@@ -68,11 +75,7 @@ export async function initHud() {
     });
     comboDisplay.container.x = phantomComboDisplay.container.x;
     comboDisplay.container.y = phantomComboDisplay.container.y;
-
-    progressIndicator = new ProgressIndicator(window.innerHeight * 0.045);
-    // SO UNCLEAN OMG! TEMP! TODO!!
-    progressIndicator.container.x = Math.floor(accuracyDisplay.container.x - accuracyDisplay.container.width - window.innerHeight * 0.04);
-    progressIndicator.container.y = Math.floor(accuracyDisplay.container.y + accuracyHeight/2);
+    comboDisplay.setValue(0);
 
     accuracyMeter = new AccuracyMeter();
     accuracyMeter.container.x = window.innerWidth / 2;
@@ -131,7 +134,7 @@ class ProgressIndicator {
             startAngle = endAngle;
             endAngle = temp;
 
-            ctx.strokeStyle = '#799634';
+            ctx.strokeStyle = '#7ba632'; // Some green
         }
 
         ctx.lineWidth = radius - lineWidth / 2;
@@ -168,7 +171,6 @@ class AccuracyMeter {
     private height: number;
     private accuracyLines: PIXI.Graphics[];
     private accuracyLineSpawnTimes: WeakMap<PIXI.Graphics, number>;
-    private lastLineTime: number;
     private fadeOutStart: number;
     private time50: number; // If you don't know what it means, just look where it's assigned.
     private alphaFilter: PIXI.filters.AlphaFilter; // We need to use an alpha filter here, because fading out without one looks weird due to the additive blend mode of the accuracy lines. Using the filter, everything fades out as if it were one.
@@ -190,7 +192,6 @@ class AccuracyMeter {
     init() {
         let { processedBeatmap } = gameState.currentPlay;
 
-        this.lastLineTime = -Infinity;
         this.fadeOutStart = -Infinity;
         this.time50 = processedBeatmap.difficulty.getHitDeltaForJudgement(50);
 
@@ -288,7 +289,6 @@ class AccuracyMeter {
         this.accuracyLines.push(line);
         this.accuracyLineSpawnTimes.set(line, currentTime);
 
-        this.lastLineTime = currentTime;
         this.fadeOutStart = currentTime + ACCURACY_METER_FADE_OUT_DELAY;
     }
 

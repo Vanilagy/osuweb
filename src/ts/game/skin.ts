@@ -13,7 +13,7 @@ import { TimingPoint } from "../datamodel/beatmap";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/yugen";
+let baseSkinPath = "./assets/skins/selyu";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -23,6 +23,8 @@ const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8",
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
 const HIT_SOUND_PAN_DIVISOR = 800; // How many osu!pixels from the center of the screen one has to move for the hit sound to be fully on either the left or right audio channel
+
+export type OsuTextureResolution = 'sd' | 'hd';
 
 export class OsuTexture {
     private sdBase: PIXI.Texture = null;
@@ -86,16 +88,21 @@ export class OsuTexture {
         return this.getSd(animationIndex) || this.getHd(animationIndex);
     }
 
-    getDynamic(size: number, animationIndex?: number) {
+    getForResolution(resolution: OsuTextureResolution, animationIndex?: number) {
+        if (resolution === 'sd') return this.getSd(animationIndex) || this.getHd(animationIndex); // HD fallback
+        else if (resolution === 'hd') return this.getHd(animationIndex) || this.getSd(animationIndex); // SD fallback
+    }
+
+    getOptimalResolution(size: number, animationIndex?: number): OsuTextureResolution {
         let sd = this.getSd(animationIndex),
             hd = this.getHd(animationIndex);
 
         if (!sd && !hd) return null;
-        if (!sd) return hd;
-        if (!hd) return sd;
+        if (!sd) return 'hd';
+        if (!hd) return 'sd';
 
-        if (size <= sd.width && size <= sd.height) return sd;
-        else return hd;
+        if (size <= sd.width && size <= sd.height) return 'sd';
+        else return 'hd';
     }
 
     /** Returns the width of the standard definition version. */
@@ -118,8 +125,32 @@ export class OsuTexture {
         return null;
     }
 
-    getBiggestDimension(animationIndex?: number) {
-        return Math.max(this.getWidth(animationIndex), this.getHeight(animationIndex));
+    getWidthForResolution(resolution: OsuTextureResolution, animationIndex?: number) {
+        if (resolution === 'sd') {
+            let sd = this.getSd(animationIndex);
+            if (!sd) return this.getHd(animationIndex).width/2; // TODO: /2 correct here?
+            return sd.width;
+        } else if (resolution === 'hd') {
+            let hd = this.getHd(animationIndex);
+            if (!hd) return this.getSd(animationIndex).width/2; // SD fallback
+            return hd.width/2;
+        }
+    }
+
+    getHeightForResolution(resolution: OsuTextureResolution, animationIndex?: number) {
+        if (resolution === 'sd') {
+            let sd = this.getSd(animationIndex);
+            if (!sd) return this.getHd(animationIndex).height/2;
+            return sd.height;
+        } else if (resolution === 'hd') {
+            let hd = this.getHd(animationIndex);
+            if (!hd) return this.getSd(animationIndex).height/2;
+            return hd.height/2;
+        }
+    }
+
+    getBiggestDimension(scalingFactor = 1, animationIndex?: number) {
+        return Math.max(this.getWidth(animationIndex) * scalingFactor, this.getHeight(animationIndex) * scalingFactor);
     }
 
     getDownsizedDimensions(maxDimension: number, animationIndex?: number): Dimensions {
@@ -150,16 +181,13 @@ export class OsuTexture {
         for (let tex of this.hd) uploadTexture(tex);
     }
 
-    applyToSprite(sprite: PIXI.Sprite, scalingFactor: number, frame?: number) {
-        let width = this.getWidth(frame) * scalingFactor,
-            height = this.getHeight(frame) * scalingFactor;
-        let maxDimension = Math.max(width, height);
-
-        let tex = this.getDynamic(maxDimension, frame);
+    applyToSprite(sprite: PIXI.Sprite, scalingFactor: number, frame?: number, maxDimensionFactor: number = 1.0) {
+        let resolution = this.getOptimalResolution(this.getBiggestDimension(scalingFactor * maxDimensionFactor), frame);
+        let tex = this.getForResolution(resolution, frame);
 
         sprite.texture = tex;
-        sprite.width = width;
-        sprite.height = height;
+        sprite.width = this.getWidthForResolution(resolution, frame) * scalingFactor;
+        sprite.height = this.getHeightForResolution(resolution, frame) * scalingFactor;
     }
 
     static async fromFiles(directory: VirtualDirectory, name: string, extension: string, hd = false, animationName: string = null) {
@@ -230,10 +258,10 @@ export class AnimatedOsuSprite {
         if (frame === this.currentFrame) return;
         this.currentFrame = frame;
 
-        let width = this.osuTexture.getWidth(frame) * this.scalingFactor,
-            height = this.osuTexture.getHeight(frame) * this.scalingFactor;
-
-        let tex = this.osuTexture.getDynamic(Math.max(width, height), frame);
+        let resolution = this.osuTexture.getOptimalResolution(this.osuTexture.getBiggestDimension(this.scalingFactor, frame), frame);
+        let tex = this.osuTexture.getForResolution(resolution, frame);
+        let width = this.osuTexture.getWidthForResolution(resolution, frame) * this.scalingFactor;
+        let height = this.osuTexture.getHeightForResolution(resolution, frame) * this.scalingFactor;
 
         this.sprite.texture = tex;
         this.sprite.width = width;

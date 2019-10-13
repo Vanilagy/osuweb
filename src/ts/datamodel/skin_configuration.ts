@@ -93,12 +93,13 @@ export const DEFAULT_SKIN_CONFIG: SkinConfiguration = {
         combo8: null,
     },
     fonts: {
+        // Note: The Google doc marks these to be -2 by default, but that has not been observed.
         hitCirclePrefix: 'default',
-        hitCircleOverlap: -2,
+        hitCircleOverlap: 0,
         scorePrefix: 'score',
-        scoreOverlap: -2,
+        scoreOverlap: 0,
         comboPrefix: 'score',
-        comboOverlap: -2
+        comboOverlap: 0
     }
 
     // TODO: Add CTB and Mania.

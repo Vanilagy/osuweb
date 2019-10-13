@@ -49,10 +49,10 @@ export class FollowPoint {
         let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
         let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
 
-        let width = osuTexture.getWidth() * headedHitObjectTextureFactor;
-        let height = osuTexture.getHeight() * headedHitObjectTextureFactor;
-
-        let texture = osuTexture.getDynamic(Math.max(width, height));
+        let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor));
+        let texture = osuTexture.getForResolution(resolution);
+        let width = osuTexture.getWidthForResolution(resolution) * headedHitObjectTextureFactor;
+        let height = osuTexture.getHeightForResolution(resolution) * headedHitObjectTextureFactor;
 
         for (let i = 0; i < partCount; i++) {
             let sprite = new PIXI.Sprite(texture);
@@ -129,10 +129,11 @@ export class FollowPoint {
                     frame = Math.floor((1 - fadeOutCompletion) * (frameCount - 1));
                 }
 
-                let width = osuTexture.getWidth(frame) * headedHitObjectTextureFactor;
-                let height = osuTexture.getHeight(frame) * headedHitObjectTextureFactor;
+                let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor), frame);
+                let texture = osuTexture.getForResolution(resolution, frame);
+                let width = osuTexture.getWidthForResolution(resolution, frame) * headedHitObjectTextureFactor;
+                let height = osuTexture.getHeightForResolution(resolution, frame) * headedHitObjectTextureFactor;
 
-                let texture = osuTexture.getDynamic(Math.max(width, height), frame);
                 sprite.texture = texture;
                 sprite.width = width;
                 sprite.height = height;

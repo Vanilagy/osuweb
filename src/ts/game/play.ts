@@ -14,7 +14,7 @@ import "./hud";
 import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
 import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } from "../input/input";
-import { progressIndicator, accuracyMeter } from "./hud";
+import { progressIndicator, accuracyMeter, initHud } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
@@ -129,6 +129,7 @@ export class Play {
         this.playEvents = this.processedBeatmap.getAllPlayEvents();
         console.timeEnd("Play event generation");
 
+        initHud();
         this.scoreCounter.init();
 
         this.generateFollowPoints();

@@ -4,5 +4,6 @@ src/js/worker_bundle.js
 src/assets/test_maps
 src/assets/yugen
 src/assets/skins
+src/assets/img/screenshot*.png
 .rpt2_cache
 todo.txt

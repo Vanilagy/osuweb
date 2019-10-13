@@ -1,4 +1,4 @@
-import { OsuTexture } from "../game/skin";
+import { OsuTexture, OsuTextureResolution } from "../game/skin";
 import { charIsDigit } from "../util/misc_util";
 
 export const USUAL_SCORE_DIGIT_HEIGHT = 46;
@@ -39,6 +39,10 @@ export class SpriteNumber {
     private options: SpriteNumberOptions;
     private sprites: PIXI.Sprite[];
     private maxDigitWidth: number = 0;
+    /** The resolution used for all sprites in the number. This is done so that we don't mix SD/HD for differently-sized textures. */
+    private resolution: OsuTextureResolution = 'sd';
+    public lastComputedWidth: number = null;
+    public lastComputedHeight: number = null;
 
     constructor(options: SpriteNumberOptions) {
         this.options = options;
@@ -46,13 +50,23 @@ export class SpriteNumber {
 
         this.container = new PIXI.Container();
         this.sprites = [];
-        
+
+        for (let i = 0; i <= 9; i++) {
+            let texture = this.options.textures[i as keyof SpriteNumberTextures];
+
+            // If any texture would end up in HD with the current scaling factor, make all textures use HD.
+            if (texture.getOptimalResolution(texture.getBiggestDimension(this.options.scaleFactor)) === 'hd') this.resolution = 'hd';
+        }
+
         if (this.options.equalWidthDigits) {
-            // Find the width of the digit with the biggest width. We'll use that for spacing.
             for (let i = 0; i <= 9; i++) {
                 let texture = this.options.textures[i as keyof SpriteNumberTextures];
-                this.maxDigitWidth = Math.max(this.maxDigitWidth, texture.getWidth());
+
+                // Find the width of the digit with the biggest width. We'll use that for spacing.
+                this.maxDigitWidth = Math.max(this.maxDigitWidth, texture.getWidthForResolution(this.resolution));
             }
+
+            this.maxDigitWidth = Math.floor(this.maxDigitWidth)
         }
     }
 
@@ -81,7 +95,7 @@ export class SpriteNumber {
                 continue;
             }
 
-            let texture =  this.options.textures[char as keyof SpriteNumberTextures];
+            let texture = this.options.textures[char as keyof SpriteNumberTextures];
             osuTextures.push(texture);
         }
         if (this.options.hasX) {
@@ -110,40 +124,45 @@ export class SpriteNumber {
         let totalWidth = 0;
         let totalHeight = 0;
         let currentX = 0;
-        let overlapX = this.options.overlap / 2 * 2; // Ah, yes. Enslaved *1.
 
         for (let i = 0; i < osuTextures.length; i++) {
             let isDigit = charIsDigit(str.charAt(i));
 
             let osuTexture = osuTextures[i];
-            let texture = osuTexture.getDynamic(osuTexture.getBiggestDimension() * this.options.scaleFactor);
+            let texture = osuTexture.getForResolution(this.resolution);
+            let textureWidth = osuTexture.getWidthForResolution(this.resolution);
+            let textureHeight = osuTexture.getHeightForResolution(this.resolution);
 
             let sprite = this.sprites[i];
 
             sprite.texture = texture;
-            sprite.width = Math.floor(osuTexture.getWidth() * this.options.scaleFactor);
-            sprite.height = Math.floor(osuTexture.getHeight() * this.options.scaleFactor);
+            sprite.width = Math.floor(textureWidth * this.options.scaleFactor);
+            sprite.height = Math.floor(textureHeight * this.options.scaleFactor);
 
             totalHeight = Math.max(totalHeight, sprite.height);
 
             sprite.position.x = currentX;
 
             if (this.options.equalWidthDigits && isDigit) {
-                sprite.position.x += (this.maxDigitWidth - osuTexture.getWidth()) / 2 * this.options.scaleFactor;
-                currentX += (this.maxDigitWidth - overlapX) * this.options.scaleFactor;
+                sprite.position.x += (this.maxDigitWidth - textureWidth) / 2 * this.options.scaleFactor;
+                currentX += (this.maxDigitWidth - this.options.overlap) * this.options.scaleFactor;
                 totalWidth += this.maxDigitWidth * this.options.scaleFactor;
             } else {
-                currentX += (osuTexture.getWidth() - overlapX) * this.options.scaleFactor;
-                totalWidth += sprite.width;
+                if (i === osuTextures.length-1 && this.options.hasPercent) {
+                    textureWidth = osuTexture.getWidth(); // The percent width is always the width of the sd version. Aaaah. This code is the result of one long and annoying evening of trying shit out.
+                }
+
+                currentX += (Math.floor(textureWidth) - this.options.overlap) * this.options.scaleFactor;
+                totalWidth += Math.floor(textureWidth) * this.options.scaleFactor;
             }
 
             sprite.position.x = Math.floor(sprite.position.x);
-            currentX = Math.floor(currentX);
         }
 
-        totalWidth -= (str.length - 1) * overlapX * this.options.scaleFactor;
-        // If negative overlap (which means "push digits away from each other"), add it to totalWidth
-        if (this.options.overlapAtEnd && overlapX < 0) totalWidth += -overlapX * this.options.scaleFactor;
+        totalWidth -= (osuTextures.length - 1) * this.options.overlap * this.options.scaleFactor;
+
+        // Add another overlap at the end, if specified
+        if (this.options.overlapAtEnd) totalWidth -= this.options.overlap * this.options.scaleFactor;
 
         switch (this.options.horizontalAlign) {
             case "left": {
@@ -168,5 +187,8 @@ export class SpriteNumber {
                 this.container.pivot.y = Math.floor(totalHeight);
             }; break;
         }
+
+        this.lastComputedWidth = totalWidth;
+        this.lastComputedHeight = totalHeight;
     }
 }

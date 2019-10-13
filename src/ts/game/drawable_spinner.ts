@@ -215,14 +215,10 @@ export class DrawableSpinner extends DrawableHitObject {
             // Add spinner approach circle
             {
                 let osuTexture = gameState.currentGameplaySkin.textures["spinnerApproachCircle"];
-                let width = osuTexture.getWidth() * spinnerPixelRatio;
-                let height = osuTexture.getHeight() * spinnerPixelRatio;
-                let maxSize = Math.max(width*2, height*2);
-    
-                let sprite = new PIXI.Sprite(osuTexture.getDynamic(maxSize));
+                let sprite = new PIXI.Sprite();
+
+                osuTexture.applyToSprite(sprite, spinnerPixelRatio, undefined, 2.0); // Since the approach circle starts out at ~2.0x the scale, use that as the reference for texture quality.
                 sprite.anchor.set(0.5, 0.5);
-                sprite.width = width;
-                sprite.height = height;
     
                 let wrapper = new PIXI.Container();
                 wrapper.addChild(sprite);

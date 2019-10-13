@@ -67,7 +67,7 @@ export class Slider extends HitObject {
         this.parseExtras(data[10]);
     }
 
-    parseSections(data: string[]) {
+    private parseSections(data: string[]) {
         let sliderPoints = data[5].split("|");
 
         let sliderType = sliderPoints[0];
@@ -114,7 +114,7 @@ export class Slider extends HitObject {
         return sliderSections;
     }
 
-    finishSection(sliderSectionPoints: Point[], sliderSections: SliderCurveSection[]) {
+    private finishSection(sliderSectionPoints: Point[], sliderSections: SliderCurveSection[]) {
         if (sliderSectionPoints.length > 1) sliderSections.push({
             values: sliderSectionPoints
         });
