@@ -644,6 +644,9 @@ export class Skin {
         this.textures["scorebarBackground"] = await OsuTexture.fromFiles(this.directory, "scorebar-bg", "png", true);
         this.textures["scorebarColor"] = await OsuTexture.fromFiles(this.directory, "scorebar-colour", "png", true, "scorebar-colour-{n}");
         this.textures["scorebarMarker"] = await OsuTexture.fromFiles(this.directory, "scorebar-marker", "png", true);
+        this.textures["scorebarKi"] = await OsuTexture.fromFiles(this.directory, "scorebar-ki", "png", true);
+        this.textures["scorebarKiDanger"] = await OsuTexture.fromFiles(this.directory, "scorebar-kidanger", "png", true);
+        this.textures["scorebarKiDanger2"] = await OsuTexture.fromFiles(this.directory, "scorebar-kidanger2", "png", true);
 
         // Hit circle numbers
         this.hitCircleNumberTextures = {} as SpriteNumberTextures;

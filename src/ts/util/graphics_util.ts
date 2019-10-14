@@ -1,5 +1,10 @@
 import { MathUtil, EaseType } from "./math_util";
 
+export interface Dimensions {
+    width: number,
+    height: number
+}
+
 export interface Color {
     r: number, // 0-255
     g: number, // 0-255
@@ -87,6 +92,10 @@ export class InterpolatedCounter {
         this.duration = this.getDuration();
     }
 
+    getCurrentGoal() {
+        return this.end;
+    }
+
     reset(to: number) {
         this.start = to;
         this.end = to;
@@ -138,11 +147,6 @@ export class Interpolator {
         completion = MathUtil.clamp(completion, 0, 1);
         completion = MathUtil.ease(this.options.ease, completion);
 
-        return (1 - completion) * this.options.from + completion * this.options.to;
+        return MathUtil.lerp(this.options.from, this.options.to, completion);
     }
-}
-
-export interface Dimensions {
-    width: number,
-    height: number
 }

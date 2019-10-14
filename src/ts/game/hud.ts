@@ -2,7 +2,7 @@ import { hudContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
-import { baseSkin } from "./skin";
+import { baseSkin, OsuTexture } from "./skin";
 import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 
 export let scoreDisplay: SpriteNumber;
@@ -15,6 +15,8 @@ export let scorebar: Scorebar;
 
 const ACCURACY_METER_FADE_OUT_DELAY = 4000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
+const SCOREBAR_KI_DANGER_THRESHOLD = 0.5;
+const SCOREBAR_KI_DANGER2_THRESHOLD = 0.25;
 
 export function initHud() {
     let scoreHeight = window.innerHeight * 0.0575,
@@ -308,40 +310,38 @@ class Scorebar {
     private colorLayer: PIXI.Sprite; // The part that actually changes with health
     private colorLayerMask: PIXI.Graphics;
     private progressInterpolator: InterpolatedCounter;
-    private marker: PIXI.Container;
-    private hasMarker: boolean = false;
+    private marker: PIXI.Container; // The marker at the end of the HP thing. Can refer to the marker texture, but also scorebar-ki, scorebar-kidanger and scorebar-kidanger2
+    private hasPureMarker: boolean = false; // Marks if the scorebar uses the scorebar-marker texture for its marker
     private markerInterpolator: Interpolator;
 
     constructor() {
         this.container = new PIXI.Container();
         
         let markerTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
-        this.hasMarker = !markerTexture.isEmpty();
+        this.hasPureMarker = !markerTexture.isEmpty();
 
         this.initBackgroundLayer();
         this.initColorLayer();
         this.initMask();
-        if (this.hasMarker) this.initMarker();
+        this.initMarker();
 
         this.container.addChild(this.backgroundLayer);
         this.container.addChild(this.colorLayer);
         this.container.addChild(this.colorLayerMask);
-        if (this.hasMarker) this.container.addChild(this.marker);
+        this.container.addChild(this.marker);
 
         this.progressInterpolator = new InterpolatedCounter({
             initial: 1.0,
-            duration: 250,
+            duration: 200,
             ease: EaseType.EaseOutQuad
         });
 
-        if (this.hasMarker) {
-            this.markerInterpolator = new Interpolator({
-                ease: EaseType.EaseOutQuad,
-                from: 1.5,
-                to: 1.0,
-                duration: 250
-            });
-        }
+        this.markerInterpolator = new Interpolator({
+            ease: EaseType.EaseOutQuad,
+            from: 1.5,
+            to: 1.0,
+            duration: 200
+        });
     }
 
     private initBackgroundLayer() {
@@ -362,7 +362,7 @@ class Scorebar {
         osuTexture.applyToSprite(sprite, factor);
 
         let x: number, y: number;
-        if (this.hasMarker) {
+        if (this.hasPureMarker) {
             x = 12;
             y = 13;
         } else {
@@ -388,14 +388,20 @@ class Scorebar {
     }
 
     private initMarker() {
-        let osuTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
+        let osuTexture: OsuTexture;
+        if (this.hasPureMarker) {
+            osuTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
+        } else {
+            osuTexture = gameState.currentGameplaySkin.textures["scorebarKi"];
+        }
+
         let sprite = new PIXI.Sprite();
 
         let factor = gameState.currentPlay.screenPixelRatio;
         osuTexture.applyToSprite(sprite, factor);
 
         sprite.anchor.set(0.5, 0.5);
-        sprite.blendMode = PIXI.BLEND_MODES.ADD;
+        if (this.hasPureMarker) sprite.blendMode = PIXI.BLEND_MODES.ADD;
 
         let wrapper = new PIXI.Container();
         wrapper.addChild(sprite);
@@ -410,19 +416,27 @@ class Scorebar {
 
         this.colorLayerMask.pivot.x = Math.floor((1-currentPercentage) * this.colorLayer.width);
 
-        if (this.hasMarker) {
-            this.marker.x = 12 * factor + Math.floor(currentPercentage * this.colorLayer.width);
-            this.marker.scale.set(this.markerInterpolator.getCurrentValue(currentTime));
+        this.marker.x = 12 * factor + Math.floor(currentPercentage * this.colorLayer.width);
+        this.marker.scale.set(this.markerInterpolator.getCurrentValue(currentTime));
+
+        // Update the texture of the marker based on current percentage
+        if (!this.hasPureMarker) {
+            let markerSprite = this.marker.children[0] as PIXI.Sprite;
+            let textureName = "scorebarKi";
+
+            if (currentPercentage < SCOREBAR_KI_DANGER2_THRESHOLD) textureName = "scorebarKiDanger2";
+            else if (currentPercentage < SCOREBAR_KI_DANGER_THRESHOLD) textureName = "scorebarKiDanger";
+
+            let osuTexture = gameState.currentGameplaySkin.textures[textureName];
+            let factor = gameState.currentPlay.screenPixelRatio;
+            osuTexture.applyToSprite(markerSprite, factor);
         }
     }
 
     setAmount(percentage: number, currentTime: number) {
-        this.progressInterpolator.setGoal(percentage, currentTime);
+        let isGain = percentage > this.progressInterpolator.getCurrentGoal();
 
-        if (this.hasMarker) {
-            let current = this.progressInterpolator.getCurrentValue(currentTime);
-            let isGain = percentage > current;
-            if (isGain) this.markerInterpolator.start(currentTime);
-        }
+        this.progressInterpolator.setGoal(percentage, currentTime);
+        if (isGain) this.markerInterpolator.start(currentTime);
     }
 }
