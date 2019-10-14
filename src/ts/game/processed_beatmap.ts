@@ -287,7 +287,6 @@ export class ProcessedBeatmap {
             if (event.type !== BeatmapEventType.Break) continue;
 
             let breakEvent = event as BeatmapEventBreak;
-            console.log(breakEvent)
 
             this.breaks.push({
                 startTime: breakEvent.time,

@@ -1,4 +1,4 @@
-import { Color } from "../util/graphics_util";
+import { Color, Colors } from "../util/graphics_util";
 import { jsonClone } from "../util/misc_util";
 
 export interface SkinConfiguration {
@@ -74,14 +74,14 @@ export const DEFAULT_SKIN_CONFIG: SkinConfiguration = {
         spinnerFrequencyModulate: true
     },
     colors: {
-        songSelectActiveText: {r: 0, g: 0, b: 0},
+        songSelectActiveText: Colors.Black,
         songSelectInactiveText: {r: 255, g: 255, b: 255},
         menuGlow: {r: 0, g: 78, b: 155},
         starBreakAdditive: {r: 255, g: 182, b: 193},
-        inputOverlayText: {r: 0, g: 0, b: 0},
-        sliderBall: {r: 2, g: 170, b: 255},
+        inputOverlayText: Colors.Black,
+        sliderBall: Colors.White,
         sliderTrackOverride: null,
-        sliderBorder: {r: 255, g: 255, b: 255},
+        sliderBorder: Colors.White,
         spinnerBackground: {r: 100, g: 100, b: 100},
         combo1: {r: 255, g: 192, b: 0},
         combo2: {r: 0, g: 202, b: 0},

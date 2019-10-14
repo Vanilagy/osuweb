@@ -28,13 +28,13 @@ export function lerpColors(c1: Color, c2: Color, t: number) {
     };
 }
 
-export const Colors: { [name: string]: Color } = {
-    White: {r: 255, g: 255, b: 255},
-    Black: {r: 0, g: 0, b: 0},
-    Red: {r: 255, g: 0, b: 0},
-    Green: {r: 0, g: 255, b: 0},
-    Blue: {r: 0, g: 0, b: 255},
-    Yellow: {r: 255, g: 255, b: 0}
+export const Colors = {
+    White: {r: 255, g: 255, b: 255} as Color,
+    Black: {r: 0, g: 0, b: 0} as Color,
+    Red: {r: 255, g: 0, b: 0} as Color,
+    Green: {r: 0, g: 255, b: 0} as Color,
+    Blue: {r: 0, g: 0, b: 255} as Color,
+    Yellow: {r: 255, g: 255, b: 0} as Color
 };
 
 type InterpolatedCounterDurationCallback = (distanceToGoal: number) => number;
