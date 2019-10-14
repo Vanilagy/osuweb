@@ -12,7 +12,7 @@ import { HitSoundInfo, HitSoundType, generateHitSoundInfo } from "./skin";
 import { SpriteNumber } from "../visuals/sprite_number";
 import { SoundEmitter } from "../audio/sound_emitter";
 import { Mod } from "./mods";
-import { accuracyMeter } from "./hud";
+import { accuracyMeter, scorebar } from "./hud";
 import { CurrentTimingPointInfo, ComboInfo } from "./processed_beatmap";
 import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 

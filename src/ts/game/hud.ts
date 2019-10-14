@@ -3,6 +3,7 @@ import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
 import { baseSkin } from "./skin";
+import { InterpolatedCounter } from "../util/graphics_util";
 
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;
@@ -10,6 +11,7 @@ export let comboDisplay: SpriteNumber;
 export let accuracyDisplay: SpriteNumber;
 export let progressIndicator: ProgressIndicator;
 export let accuracyMeter: AccuracyMeter;
+export let scorebar: Scorebar;
 
 const ACCURACY_METER_FADE_OUT_DELAY = 4000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
@@ -81,6 +83,9 @@ export function initHud() {
     accuracyMeter.container.x = window.innerWidth / 2;
     accuracyMeter.container.y = window.innerHeight;
 
+    scorebar = new Scorebar();
+
+    hudContainer.addChild(scorebar.container);
     hudContainer.addChild(accuracyMeter.container);
     hudContainer.addChild(scoreDisplay.container);
     hudContainer.addChild(phantomComboDisplay.container);
@@ -294,5 +299,70 @@ class AccuracyMeter {
 
     fadeOutNow(currentTime: number) {
         if (this.fadeOutStart > currentTime) this.fadeOutStart = currentTime;
+    }
+}
+
+class Scorebar {
+    public container: PIXI.Container;
+    private backgroundLayer: PIXI.Sprite;
+    private colorLayer: PIXI.Sprite; // The part that actually changes with health
+    private colorLayerMask: PIXI.Graphics;
+    private interpolator: InterpolatedCounter;
+
+    constructor() {
+        this.container = new PIXI.Container();
+
+        this.initBackgroundLayer();
+        this.initColorLayer();
+        this.initMask();
+
+        this.container.addChild(this.backgroundLayer);
+        this.container.addChild(this.colorLayer);
+        this.container.addChild(this.colorLayerMask);
+
+        this.interpolator = new InterpolatedCounter({
+            initial: 1.0,
+            duration: 250,
+            ease: EaseType.EaseOutQuad
+        });
+    }
+
+    private initBackgroundLayer() {
+        let osuTexture = gameState.currentGameplaySkin.textures["scorebarBackground"];
+        let sprite = new PIXI.Sprite();
+
+        let factor = gameState.currentPlay.spinnerPixelRatio; // Let's use this for now. TODO: Correct?
+        osuTexture.applyToSprite(sprite, factor);
+
+        this.backgroundLayer = sprite;
+    }
+
+    private initColorLayer() {
+        let osuTexture = gameState.currentGameplaySkin.textures["scorebarColor"];
+        let sprite = new PIXI.Sprite();
+
+        let factor = gameState.currentPlay.spinnerPixelRatio; // Let's use this for now. TODO: Correct?
+        osuTexture.applyToSprite(sprite, factor);
+
+        this.colorLayer = sprite;
+    }
+
+    private initMask() {
+        let mask = new PIXI.Graphics();
+        mask.beginFill(0xFF0000);
+        mask.drawRect(0, 0, this.colorLayer.width, window.innerHeight);
+        mask.endFill();
+
+        this.colorLayer.mask = mask;
+        this.colorLayerMask = mask;
+    }
+
+    update(currentTime: number) {
+        let currentPercentage = this.interpolator.getCurrentValue(currentTime);
+        this.colorLayerMask.x = -Math.floor((1-currentPercentage) * this.colorLayer.width);
+    }
+
+    setAmount(percentage: number, currentTime: number) {
+        this.interpolator.setGoal(percentage, currentTime);
     }
 }

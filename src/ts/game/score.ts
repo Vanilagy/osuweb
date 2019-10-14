@@ -117,6 +117,8 @@ export class ScoreCounter {
         this.score.accuracy = this.calculateAccuracy();
         accuracyInterpolator.setGoal(this.score.accuracy, time);
 
+        gameState.currentPlay.gainHealth(rawAmount/300 * 0.2, time);
+
         if (!raw) {
             if (rawAmount === ScoringValue.Hit300) this.score.hits300++;
             else if (rawAmount === ScoringValue.Hit100) this.score.hits100++;

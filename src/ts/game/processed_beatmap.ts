@@ -287,6 +287,7 @@ export class ProcessedBeatmap {
             if (event.type !== BeatmapEventType.Break) continue;
 
             let breakEvent = event as BeatmapEventBreak;
+            console.log(breakEvent)
 
             this.breaks.push({
                 startTime: breakEvent.time,
@@ -362,5 +363,14 @@ export class ProcessedBeatmap {
         }
 
         return total;
+    }
+
+    isInBreak(time: number) {
+        // Do a naive linear search for now. Given that songs almost always have less than 10 breaks, this shouldn't be a performance issue. But look into this!
+        for (let i = 0; i < this.breaks.length; i++) {
+            let osuBreak = this.breaks[i];
+            if (time >= osuBreak.startTime && time < osuBreak.endTime) return true;
+        }
+        return false;
     }
 }

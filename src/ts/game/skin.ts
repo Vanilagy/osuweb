@@ -13,7 +13,7 @@ import { TimingPoint } from "../datamodel/beatmap";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/selyu";
+let baseSkinPath = "./assets/skins/Seoul";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -626,6 +626,10 @@ export class Skin {
         this.textures["hit300"] = await OsuTexture.fromFiles(this.directory, "hit300", "png", true, "hit300-{n}");
         this.textures["hit300k"] = await OsuTexture.fromFiles(this.directory, "hit300k", "png", true, "hit300k-{n}");
         this.textures["hit300g"] = await OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
+
+        // Scorebar
+        this.textures["scorebarBackground"] = await OsuTexture.fromFiles(this.directory, "scorebar-bg", "png", true);
+        this.textures["scorebarColor"] = await OsuTexture.fromFiles(this.directory, "scorebar-colour", "png", true, "scorebar-colour-{n}");
 
         // Hit circle numbers
         this.hitCircleNumberTextures = {} as SpriteNumberTextures;

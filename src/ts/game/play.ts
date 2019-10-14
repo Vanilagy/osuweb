@@ -14,7 +14,7 @@ import "./hud";
 import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
 import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } from "../input/input";
-import { progressIndicator, accuracyMeter, initHud } from "./hud";
+import { progressIndicator, accuracyMeter, initHud, scorebar } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
@@ -44,6 +44,8 @@ export class Play {
     private showHitObjectsQueue: DrawableHitObject[]; // New hit objects that have to get added to the scene next frame
     private scorePopups: ScorePopup[];
 
+    private passiveHealthDrain: number; // In health/ms
+    public currentHealth: number;
     public scoreCounter: ScoreCounter;
     public activeMods: Set<Mod>;
 
@@ -135,6 +137,9 @@ export class Play {
         this.generateFollowPoints();
 
         accuracyMeter.init();
+
+        this.passiveHealthDrain = 0.00005;
+        this.currentHealth = 1.0;
 
         this.autohit = AUTOHIT_OVERRIDE;
         if (this.activeMods.has(Mod.Auto)) {
@@ -291,6 +296,9 @@ export class Play {
             }
         }
 
+        // Update scorebar
+        scorebar.update(currentTime);
+
         // Handle breaks
         while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
             // Can't call this variable "break" because reserved keyword, retarded.
@@ -346,6 +354,9 @@ export class Play {
 
         let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
         let buttonPressed = anyGameButtonIsPressed();
+
+        // Update health
+        if (!this.processedBeatmap.isInBreak(currentTime)) this.gainHealth(-this.passiveHealthDrain * dt, currentTime); // "Gain" negative health
 
         // Add new hit objects to screen
         for (this.currentHitObjectId; this.currentHitObjectId < this.processedBeatmap.hitObjects.length; this.currentHitObjectId++) {
@@ -604,6 +615,15 @@ export class Play {
     addScorePopup(popup: ScorePopup) {
         this.scorePopups.push(popup);
         scorePopupContainer.addChild(popup.container);
+    }
+
+    gainHealth(gain: number, currentTime: number) {
+        this.setHealth(this.currentHealth + gain, currentTime);
+    }
+
+    setHealth(to: number, currentTime: number) {
+        this.currentHealth = MathUtil.clamp(to, 0, 1);
+        scorebar.setAmount(this.currentHealth, currentTime);
     }
 
     /** Headed hit objects can only be hit when the previous one has already been assigned a judgement. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
