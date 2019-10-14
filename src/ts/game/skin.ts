@@ -13,7 +13,7 @@ import { TimingPoint } from "../datamodel/beatmap";
 import { PLAYFIELD_DIMENSIONS } from "../util/constants";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/Seoul";
+let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 
@@ -128,11 +128,17 @@ export class OsuTexture {
     getWidthForResolution(resolution: OsuTextureResolution, animationIndex?: number) {
         if (resolution === 'sd') {
             let sd = this.getSd(animationIndex);
-            if (!sd) return this.getHd(animationIndex).width/2; // TODO: /2 correct here?
+            if (!sd) {
+                let hd = this.getHd(animationIndex);
+                return hd && hd.width/2; // TODO: /2 correct here?
+            }
             return sd.width;
         } else if (resolution === 'hd') {
             let hd = this.getHd(animationIndex);
-            if (!hd) return this.getSd(animationIndex).width/2; // SD fallback
+            if (!hd) {
+                let sd = this.getSd(animationIndex); // SD fallback
+                return sd && sd.width/2; 
+            }
             return hd.width/2;
         }
     }
@@ -140,11 +146,17 @@ export class OsuTexture {
     getHeightForResolution(resolution: OsuTextureResolution, animationIndex?: number) {
         if (resolution === 'sd') {
             let sd = this.getSd(animationIndex);
-            if (!sd) return this.getHd(animationIndex).height/2;
+            if (!sd) {
+                let hd = this.getHd(animationIndex);
+                return hd && hd.height/2;
+            }
             return sd.height;
         } else if (resolution === 'hd') {
             let hd = this.getHd(animationIndex);
-            if (!hd) return this.getSd(animationIndex).height/2;
+            if (!hd) {
+                let sd = this.getSd(animationIndex);
+                return sd && sd.height/2; 
+            }
             return hd.height/2;
         }
     }
@@ -184,6 +196,7 @@ export class OsuTexture {
     applyToSprite(sprite: PIXI.Sprite, scalingFactor: number, frame?: number, maxDimensionFactor: number = 1.0) {
         let resolution = this.getOptimalResolution(this.getBiggestDimension(scalingFactor * maxDimensionFactor), frame);
         let tex = this.getForResolution(resolution, frame);
+        if (!tex) return;
 
         sprite.texture = tex;
         sprite.width = this.getWidthForResolution(resolution, frame) * scalingFactor;
@@ -630,6 +643,7 @@ export class Skin {
         // Scorebar
         this.textures["scorebarBackground"] = await OsuTexture.fromFiles(this.directory, "scorebar-bg", "png", true);
         this.textures["scorebarColor"] = await OsuTexture.fromFiles(this.directory, "scorebar-colour", "png", true, "scorebar-colour-{n}");
+        this.textures["scorebarMarker"] = await OsuTexture.fromFiles(this.directory, "scorebar-marker", "png", true);
 
         // Hit circle numbers
         this.hitCircleNumberTextures = {} as SpriteNumberTextures;

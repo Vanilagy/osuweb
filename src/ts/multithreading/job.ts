@@ -24,7 +24,7 @@ export interface DrawSliderJob extends Job {
         points?: Point[]
     },
     canvas: HTMLCanvasElement | OffscreenCanvas,
-    pixelRatio: number,
+    screenPixelRatio: number,
     circleDiameter: number,
     minX: number,
     minY: number,

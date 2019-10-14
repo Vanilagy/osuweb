@@ -5,7 +5,7 @@ import { scorePopupContainer, softwareCursor, addRenderingTask, enableRenderTime
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
-import { loadMainBackgroundImage, setMainBackgroundImageOpacity } from "../visuals/ui";
+import { setMainBackgroundImageOpacity, MAIN_BACKGROUND_IMAGE_CONTAINER } from "../visuals/ui";
 import { DrawableSpinner } from "./drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./follow_point";
@@ -30,7 +30,7 @@ const MODCODE_OVERRIDE = '';
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
-const SPINNER_REFERENCE_SCREEN_HEIGHT = 768;
+const REFERENCE_SCREEN_HEIGHT = 768; // For a lot of full-screen textures, the reference height is 768.
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 
 export class Play {
@@ -57,8 +57,8 @@ export class Play {
     private currentBreakIndex = 0;
     
     // Draw stuffz:
-    public pixelRatio: number;
-    public spinnerPixelRatio: number;
+    public hitObjectPixelRatio: number;
+    public screenPixelRatio: number;
     public circleDiameterOsuPx: number;
     public circleDiameter: number;
     public circleRadiusOsuPx: number;
@@ -84,15 +84,15 @@ export class Play {
         this.scorePopups = [];
         this.activeMods = new Set();
 
-        this.pixelRatio = null;
+        this.hitObjectPixelRatio = null;
         this.circleDiameter = null;
     }
     
     async init() {
         let screenHeight = window.innerHeight * 1; // The factor was determined through experimentation. Makes sense it's 1.
         let screenWidth = screenHeight * (STANDARD_SCREEN_DIMENSIONS.width / STANDARD_SCREEN_DIMENSIONS.height);
-        this.pixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
-        this.spinnerPixelRatio = screenHeight / SPINNER_REFERENCE_SCREEN_HEIGHT;
+        this.hitObjectPixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
+        this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
 
         if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
             gameState.currentGameplaySkin = baseSkin;
@@ -108,7 +108,7 @@ export class Play {
 
         this.approachTime = this.processedBeatmap.difficulty.getApproachTime();
         this.circleDiameterOsuPx = this.processedBeatmap.difficulty.getCirclePixelSize();
-        this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.pixelRatio);
+        this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.hitObjectPixelRatio);
         this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
         this.circleRadius = this.circleDiameter / 2;
         this.headedHitObjectTextureFactor = this.circleDiameter / 128;
@@ -176,7 +176,10 @@ export class Play {
         let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
         if (backgroundImageFile) {
             let url = await backgroundImageFile.readAsResourceUrl();
-            loadMainBackgroundImage(url);
+            MAIN_BACKGROUND_IMAGE_CONTAINER.src = url;
+            MAIN_BACKGROUND_IMAGE_CONTAINER.style.display = 'block';
+        } else {
+            MAIN_BACKGROUND_IMAGE_CONTAINER.style.display = 'none';
         }
 
         // TODO: Apply pitch changes and percussion
@@ -568,13 +571,13 @@ export class Play {
     }
 
     toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
-        let coord = window.innerWidth*SCREEN_COORDINATES_X_FACTOR + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.pixelRatio;
+        let coord = window.innerWidth*SCREEN_COORDINATES_X_FACTOR + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.hitObjectPixelRatio;
 
         return floor? (coord | 0) : coord; // "Cast" to int
     }
 
     toScreenCoordinatesY(osuCoordinateY: number, floor = true) {
-        let coord = window.innerHeight*SCREEN_COORDINATES_Y_FACTOR + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.pixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
+        let coord = window.innerHeight*SCREEN_COORDINATES_Y_FACTOR + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.hitObjectPixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
 
         return floor? (coord | 0) : coord;
     }
@@ -588,12 +591,12 @@ export class Play {
 
     // Inverse of toScreenCoordinatesX
     toOsuCoordinatesX(screenCoordinateX: number) {
-        return (screenCoordinateX - window.innerWidth*0.5) / this.pixelRatio + PLAYFIELD_DIMENSIONS.width/2;
+        return (screenCoordinateX - window.innerWidth*0.5) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.width/2;
     }
     
     // Inverse of toScreenCoordinatesY
     toOsuCoordinatesY(screenCoordinateY: number) {
-        return (screenCoordinateY - window.innerHeight*0.510) / this.pixelRatio + PLAYFIELD_DIMENSIONS.height/2;
+        return (screenCoordinateY - window.innerHeight*0.510) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.height/2;
     }
 
     toOsuCoordinates(screenCoordinate: Point) {

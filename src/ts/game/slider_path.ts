@@ -255,7 +255,7 @@ export class SliderPath {
     }
 
     static calculateBounds(points: Point[]) {
-        let { pixelRatio, circleDiameterOsuPx } = gameState.currentPlay;
+        let { hitObjectPixelRatio, circleDiameterOsuPx } = gameState.currentPlay;
 
         let firstPoint = points[0];
 
@@ -275,8 +275,8 @@ export class SliderPath {
         
         bounds.width = bounds.max.x - bounds.min.x + circleDiameterOsuPx;
         bounds.height = bounds.max.y - bounds.min.y + circleDiameterOsuPx;
-        bounds.screenWidth = bounds.width * pixelRatio;
-        bounds.screenHeight = bounds.height * pixelRatio;
+        bounds.screenWidth = bounds.width * hitObjectPixelRatio;
+        bounds.screenHeight = bounds.height * hitObjectPixelRatio;
 
         return bounds;
     }

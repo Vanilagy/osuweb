@@ -3,7 +3,7 @@ import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
 import { baseSkin } from "./skin";
-import { InterpolatedCounter } from "../util/graphics_util";
+import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;
@@ -307,31 +307,48 @@ class Scorebar {
     private backgroundLayer: PIXI.Sprite;
     private colorLayer: PIXI.Sprite; // The part that actually changes with health
     private colorLayerMask: PIXI.Graphics;
-    private interpolator: InterpolatedCounter;
+    private progressInterpolator: InterpolatedCounter;
+    private marker: PIXI.Container;
+    private hasMarker: boolean = false;
+    private markerInterpolator: Interpolator;
 
     constructor() {
         this.container = new PIXI.Container();
+        
+        let markerTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
+        this.hasMarker = !markerTexture.isEmpty();
 
         this.initBackgroundLayer();
         this.initColorLayer();
         this.initMask();
+        if (this.hasMarker) this.initMarker();
 
         this.container.addChild(this.backgroundLayer);
         this.container.addChild(this.colorLayer);
         this.container.addChild(this.colorLayerMask);
+        if (this.hasMarker) this.container.addChild(this.marker);
 
-        this.interpolator = new InterpolatedCounter({
+        this.progressInterpolator = new InterpolatedCounter({
             initial: 1.0,
             duration: 250,
             ease: EaseType.EaseOutQuad
         });
+
+        if (this.hasMarker) {
+            this.markerInterpolator = new Interpolator({
+                ease: EaseType.EaseOutQuad,
+                from: 1.5,
+                to: 1.0,
+                duration: 250
+            });
+        }
     }
 
     private initBackgroundLayer() {
         let osuTexture = gameState.currentGameplaySkin.textures["scorebarBackground"];
         let sprite = new PIXI.Sprite();
 
-        let factor = gameState.currentPlay.spinnerPixelRatio; // Let's use this for now. TODO: Correct?
+        let factor = gameState.currentPlay.screenPixelRatio;
         osuTexture.applyToSprite(sprite, factor);
 
         this.backgroundLayer = sprite;
@@ -341,8 +358,19 @@ class Scorebar {
         let osuTexture = gameState.currentGameplaySkin.textures["scorebarColor"];
         let sprite = new PIXI.Sprite();
 
-        let factor = gameState.currentPlay.spinnerPixelRatio; // Let's use this for now. TODO: Correct?
+        let factor = gameState.currentPlay.screenPixelRatio;
         osuTexture.applyToSprite(sprite, factor);
+
+        let x: number, y: number;
+        if (this.hasMarker) {
+            x = 12;
+            y = 13;
+        } else {
+            x = 5;
+            y = 16;
+        }
+
+        sprite.position.set(Math.floor(x * factor), Math.floor(y * factor));
 
         this.colorLayer = sprite;
     }
@@ -353,16 +381,48 @@ class Scorebar {
         mask.drawRect(0, 0, this.colorLayer.width, window.innerHeight);
         mask.endFill();
 
+        mask.position.copyFrom(this.colorLayer.position);
+
         this.colorLayer.mask = mask;
         this.colorLayerMask = mask;
     }
 
+    private initMarker() {
+        let osuTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
+        let sprite = new PIXI.Sprite();
+
+        let factor = gameState.currentPlay.screenPixelRatio;
+        osuTexture.applyToSprite(sprite, factor);
+
+        sprite.anchor.set(0.5, 0.5);
+        sprite.blendMode = PIXI.BLEND_MODES.ADD;
+
+        let wrapper = new PIXI.Container();
+        wrapper.addChild(sprite);
+        wrapper.position.set(Math.floor(12 * factor), Math.floor(18 * factor));
+
+        this.marker = wrapper;
+    }
+
     update(currentTime: number) {
-        let currentPercentage = this.interpolator.getCurrentValue(currentTime);
-        this.colorLayerMask.x = -Math.floor((1-currentPercentage) * this.colorLayer.width);
+        let currentPercentage = this.progressInterpolator.getCurrentValue(currentTime);
+        let factor = gameState.currentPlay.screenPixelRatio;
+
+        this.colorLayerMask.pivot.x = Math.floor((1-currentPercentage) * this.colorLayer.width);
+
+        if (this.hasMarker) {
+            this.marker.x = 12 * factor + Math.floor(currentPercentage * this.colorLayer.width);
+            this.marker.scale.set(this.markerInterpolator.getCurrentValue(currentTime));
+        }
     }
 
     setAmount(percentage: number, currentTime: number) {
-        this.interpolator.setGoal(percentage, currentTime);
+        this.progressInterpolator.setGoal(percentage, currentTime);
+
+        if (this.hasMarker) {
+            let current = this.progressInterpolator.getCurrentValue(currentTime);
+            let isGain = percentage > current;
+            if (isGain) this.markerInterpolator.start(currentTime);
+        }
     }
 }

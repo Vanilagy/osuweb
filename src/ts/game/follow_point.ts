@@ -90,7 +90,7 @@ export class FollowPoint {
             return;
         }
 
-        let { headedHitObjectTextureFactor, pixelRatio } = gameState.currentPlay;
+        let { headedHitObjectTextureFactor, hitObjectPixelRatio } = gameState.currentPlay;
 
         let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
         let frameCount = osuTexture.getAnimationFrameCount();
@@ -100,7 +100,7 @@ export class FollowPoint {
             let part = this.parts[i];
 
             let x = (i + 1.5) * POINT_DISTANCE; // First point is at 1.5 * POINT_DISTANCE
-            part.x = x * pixelRatio;
+            part.x = x * hitObjectPixelRatio;
 
             let fadeOutBeginning = MathUtil.lerp(this.startTime, this.endTime, x/this.length);
             let fadeInBeginning = fadeOutBeginning - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
@@ -114,7 +114,7 @@ export class FollowPoint {
 
             if (frameCount === 0) {
                 // This animates the follow points in a certain way. Check the default skin for reference.
-                part.x -= (1 - easedFadeInCompletion) * POINT_DISTANCE*2 * pixelRatio;
+                part.x -= (1 - easedFadeInCompletion) * POINT_DISTANCE*2 * hitObjectPixelRatio;
                 part.scale.set(1 + (1 - easedFadeInCompletion)*0.75);
                 part.alpha = fadeInCompletion;
                 part.alpha -= fadeOutCompletion;

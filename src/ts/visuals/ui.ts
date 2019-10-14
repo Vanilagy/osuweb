@@ -3,14 +3,9 @@ import { Point } from "../util/point";
 import { getCurrentMousePosition, inputEventEmitter } from "../input/input";
 import { MathUtil } from "../util/math_util";
 
-const MAIN_BACKGROUND_IMAGE_CONTAINER: HTMLImageElement = document.querySelector('#mainBackgroundImage');
+export const MAIN_BACKGROUND_IMAGE_CONTAINER: HTMLImageElement = document.querySelector('#mainBackgroundImage');
 const CURSOR_RIPPLE_DURATION = 1500;
 const CURSOR_RIPPLES = false;
-
-export function loadMainBackgroundImage(url: string) {
-    MAIN_BACKGROUND_IMAGE_CONTAINER.src = url;
-    //MAIN_BACKGROUND_IMAGE_CONTAINER.style.opacity = "0.1";
-}
 
 export function setMainBackgroundImageOpacity(opacity: number) {
     MAIN_BACKGROUND_IMAGE_CONTAINER.style.opacity = String(opacity);

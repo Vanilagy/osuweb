@@ -25,14 +25,14 @@ workerGlobalScope.onmessage = (e: MessageEvent) => {
             case JobTask.DrawSlider: {
                 let drawSliderJob = job as DrawSliderJob;
 
-                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.pixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
+                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.screenPixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
 
                 //workerGlobalScope.postMessage(drawSliderJob.id);
             }; break;
             case JobTask.DrawSliderByIndex: {
                 let drawSliderJob = sliderCurveStorage[(job as DrawSliderByIndexJob).sliderIndex] as DrawSliderJob;
 
-                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.pixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
+                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.screenPixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
 
                 //workerGlobalScope.postMessage(drawSliderJob.id);
             }; break;

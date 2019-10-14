@@ -83,7 +83,7 @@ export function createSliderBodyShader(slider: DrawableSlider) {
 }
 
 export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sliderBounds: SliderBounds) { // The reason the bounds is given as a separate argument here is that bounds can change dynamically for very large, snaking sliders.
-    let { pixelRatio, circleRadius, circleRadiusOsuPx } = gameState.currentPlay;
+    let { hitObjectPixelRatio, circleRadius, circleRadiusOsuPx } = gameState.currentPlay;
 
     let matrix = new Float32Array(9);
     glMatrix.mat3.identity(matrix);
@@ -103,7 +103,7 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
         glMatrix.mat3.scale(matrix, matrix, new Float32Array([2 / width, 2 / height])); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
 
         glMatrix.mat3.translate(matrix, matrix, new Float32Array([circleRadius, circleRadius])); // Okay, at this point, we'll have projected the coordinate into slider-relative space.
-        glMatrix.mat3.scale(matrix, matrix, new Float32Array([pixelRatio, pixelRatio]));
+        glMatrix.mat3.scale(matrix, matrix, new Float32Array([hitObjectPixelRatio, hitObjectPixelRatio]));
         glMatrix.mat3.translate(matrix, matrix, new Float32Array([-sliderBounds.min.x, -sliderBounds.min.y]));
     } else {
         // The slider base sprite is fullscreen because the slider is likely very big, at least bigger than the device's screen. In rare cases, this can trigger sliders to get distorted. This behavior is accurately faked here.
@@ -143,7 +143,7 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 
         // These lines project from osu coordinates into screen coordinates:
         glMatrix.mat3.translate(matrix, matrix, new Float32Array([width * SCREEN_COORDINATES_X_FACTOR, height * SCREEN_COORDINATES_Y_FACTOR])); // At this point, we'll have projected the coordinate into screen-relative space.
-        glMatrix.mat3.scale(matrix, matrix, new Float32Array([pixelRatio, pixelRatio]));
+        glMatrix.mat3.scale(matrix, matrix, new Float32Array([hitObjectPixelRatio, hitObjectPixelRatio]));
         glMatrix.mat3.translate(matrix, matrix, new Float32Array([-PLAYFIELD_DIMENSIONS.width/2, -PLAYFIELD_DIMENSIONS.height/2]));
 
         // More slider distortion code:
