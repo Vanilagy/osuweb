@@ -1,20 +1,20 @@
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PlayEvent, PlayEventType } from "./play_events";
-import { Spinner } from "../datamodel/spinner";
-import { mainHitObjectContainer } from "../visuals/rendering";
-import { gameState } from "./game_state";
-import { MathUtil, EaseType } from "../util/math_util";
-import { Point } from "../util/point";
-import { anyGameButtonIsPressed } from "../input/input";
-import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../util/constants";
-import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../util/graphics_util";
-import { HitSoundInfo, HitSoundType, generateHitSoundInfo } from "./skin";
-import { SpriteNumber } from "../visuals/sprite_number";
-import { SoundEmitter } from "../audio/sound_emitter";
-import { Mod } from "./mods";
-import { accuracyMeter } from "./hud";
-import { CurrentTimingPointInfo, ComboInfo } from "./processed_beatmap";
-import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
+import { PlayEvent, PlayEventType } from "../play_events";
+import { Spinner } from "../../datamodel/spinner";
+import { mainHitObjectContainer } from "../../visuals/rendering";
+import { gameState } from "../game_state";
+import { MathUtil, EaseType } from "../../util/math_util";
+import { Point } from "../../util/point";
+import { anyGameButtonIsPressed } from "../../input/input";
+import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../../util/constants";
+import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../../util/graphics_util";
+import { SpriteNumber } from "../../visuals/sprite_number";
+import { SoundEmitter } from "../../audio/sound_emitter";
+import { Mod } from "../mods/mods";
+import { accuracyMeter } from "../hud";
+import { CurrentTimingPointInfo, ComboInfo } from "../processed_beatmap";
+import { BeatmapDifficulty } from "../../datamodel/beatmap_difficulty";
+import { HitSoundInfo, generateHitSoundInfo, HitSoundType } from "../skin/sound";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms

@@ -1,6 +1,6 @@
 import './visuals/ui';
 import './visuals/simple_beatmap_selector';
-import { baseSkin } from './game/skin';
+import { baseSkin } from './game/skin/skin';
 import { showChooseFile } from './visuals/simple_beatmap_selector';
 
 const osu: string | null = 'ORERU!';

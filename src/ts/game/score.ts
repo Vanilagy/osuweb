@@ -6,11 +6,12 @@ import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { gameState } from "./game_state";
 import { Point } from "../util/point";
 import { scorePopupContainer, secondScorePopupContainer } from "../visuals/rendering";
-import { DrawableHitObject } from "./drawable_hit_object";
-import { AnimatedOsuSprite, HitSoundType } from "./skin";
-import { ModHelper } from "./mod_helper";
+import { DrawableHitObject } from "./drawables/drawable_hit_object";
+import { ModHelper } from "./mods/mod_helper";
 import { ScoringValue } from "./scoring_value";
 import { transferBasicProperties, transferBasicSpriteProperties } from "../util/pixi_util";
+import { HitSoundType } from "./skin/sound";
+import { AnimatedOsuSprite } from "./skin/animated_sprite";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;

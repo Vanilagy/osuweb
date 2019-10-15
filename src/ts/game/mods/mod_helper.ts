@@ -1,12 +1,12 @@
-import { Play } from "./play";
-import { DrawableHitObject } from "./drawable_hit_object";
-import { DrawableCircle } from "./drawable_circle";
-import { Point } from "../util/point";
-import { DrawableSlider } from "./drawable_slider";
-import { MathUtil, EaseType } from "../util/math_util";
-import { DrawableSpinner } from "./drawable_spinner";
-import { PLAYFIELD_DIMENSIONS } from "../util/constants";
-import { ProcessedBeatmap } from "./processed_beatmap";
+import { Play } from "../play";
+import { DrawableHitObject } from "../drawables/drawable_hit_object";
+import { DrawableCircle } from "../drawables/drawable_circle";
+import { Point } from "../../util/point";
+import { DrawableSlider } from "../drawables/drawable_slider";
+import { MathUtil, EaseType } from "../../util/math_util";
+import { DrawableSpinner } from "../drawables/drawable_spinner";
+import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
+import { ProcessedBeatmap } from "../processed_beatmap";
 import { Mod } from "./mods";
 
 const DEFAULT_SPIN_RADIUS = 45;

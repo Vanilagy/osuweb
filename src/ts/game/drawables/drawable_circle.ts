@@ -1,14 +1,14 @@
-import { Circle } from "../datamodel/circle";
-import { gameState } from "./game_state";
-import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../util/constants";
-import { accuracyMeter } from "./hud";
+import { Circle } from "../../datamodel/circle";
+import { gameState } from "../game_state";
+import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../../util/constants";
+import { accuracyMeter } from "../hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { HitSoundInfo, generateHitSoundInfo } from "./skin";
-import { ScoringValue } from "./scoring_value";
-import { Mod } from "./mods";
-import { ComboInfo, CurrentTimingPointInfo } from "./processed_beatmap";
-import { stackShiftPoint } from "../util/point";
+import { ScoringValue } from "../scoring_value";
+import { Mod } from "../mods/mods";
+import { ComboInfo, CurrentTimingPointInfo } from "../processed_beatmap";
+import { stackShiftPoint } from "../../util/point";
+import { HitSoundInfo, generateHitSoundInfo } from "../skin/sound";
 
 export class DrawableCircle extends HeadedDrawableHitObject {
     public hitObject: Circle;

@@ -1,6 +1,6 @@
-import { DrawableHitObject } from "./drawable_hit_object";
+import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { Point } from "../util/point";
-import { HitSoundInfo } from "./skin";
+import { HitSoundInfo } from "./skin/sound";
 
 export enum PlayEventType {
     SliderHead,

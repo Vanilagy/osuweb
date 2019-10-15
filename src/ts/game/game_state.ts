@@ -1,5 +1,5 @@
 import { Play } from "./play";
-import { Skin } from "./skin";
+import { Skin } from "./skin/skin";
 
 export let gameState = {
     currentPlay: null as Play,

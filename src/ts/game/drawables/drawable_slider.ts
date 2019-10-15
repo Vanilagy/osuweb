@@ -1,22 +1,23 @@
-import { Slider, SliderType } from "../datamodel/slider";
-import { MathUtil, EaseType } from "../util/math_util";
-import { Point, pointDistance, stackShiftPoint } from "../util/point";
-import { gameState } from "./game_state";
-import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../util/constants";
-import { colorToHexNumber } from "../util/graphics_util";
-import { PlayEvent, PlayEventType } from "./play_events";
-import { assert, last, toFloat32 } from "../util/misc_util";
-import { accuracyMeter } from "./hud";
+import { Slider, SliderType } from "../../datamodel/slider";
+import { MathUtil, EaseType } from "../../util/math_util";
+import { Point, pointDistance, stackShiftPoint } from "../../util/point";
+import { gameState } from "../game_state";
+import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../../util/constants";
+import { colorToHexNumber } from "../../util/graphics_util";
+import { PlayEvent, PlayEventType } from "../play_events";
+import { assert, last, toFloat32 } from "../../util/misc_util";
+import { accuracyMeter } from "../hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { HitSoundInfo, AnimatedOsuSprite, normSampleSet, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, generateHitSoundInfo, calculatePanFromOsuCoordinates } from "./skin";
-import { SoundEmitter } from "../audio/sound_emitter";
-import { renderer, mainHitObjectContainer } from "../visuals/rendering";
-import { ScoringValue } from "./scoring_value";
-import { Mod } from "./mods";
+import { SoundEmitter } from "../../audio/sound_emitter";
+import { renderer, mainHitObjectContainer } from "../../visuals/rendering";
+import { ScoringValue } from "../scoring_value";
+import { Mod } from "../mods/mods";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
 import { SliderPath, SliderBounds } from "./slider_path";
-import { ComboInfo, CurrentTimingPointInfo } from "./processed_beatmap";
+import { ComboInfo, CurrentTimingPointInfo } from "../processed_beatmap";
+import { AnimatedOsuSprite } from "../skin/animated_sprite";
+import { HitSoundInfo, normSampleSet, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates } from "../skin/sound";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;

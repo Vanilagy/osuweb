@@ -1,11 +1,12 @@
-import { ComboInfo } from "./processed_beatmap";
-import { gameState } from "./game_state";
-import { DEFAULT_HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME } from "../util/constants";
-import { colorToHexNumber } from "../util/graphics_util";
-import { SpriteNumber } from "../visuals/sprite_number";
-import { MathUtil, EaseType } from "../util/math_util";
-import { OsuTexture, AnimatedOsuSprite } from "./skin";
-import { Mod } from "./mods";
+import { ComboInfo } from "../processed_beatmap";
+import { gameState } from "../game_state";
+import { DEFAULT_HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME } from "../../util/constants";
+import { colorToHexNumber } from "../../util/graphics_util";
+import { SpriteNumber } from "../../visuals/sprite_number";
+import { MathUtil, EaseType } from "../../util/math_util";
+import { Mod } from "../mods/mods";
+import { AnimatedOsuSprite } from "../skin/animated_sprite";
+import { OsuTexture } from "../skin/texture";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 50;
 const HIT_CIRCLE_FADE_OUT_TIME_ON_MISS = 75;

@@ -2,8 +2,9 @@ import { hudContainer } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { MathUtil, EaseType } from "../util/math_util";
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number";
-import { baseSkin, OsuTexture } from "./skin";
+import { baseSkin } from "./skin/skin";
 import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
+import { OsuTexture } from "./skin/texture";
 
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;

@@ -1,7 +1,7 @@
 import { isOsuBeatmapFile } from "../util/file_util";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
-import { Skin } from "../game/skin";
+import { Skin } from "../game/skin/skin";
 
 export class BeatmapSet {
     public directory: VirtualDirectory;

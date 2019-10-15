@@ -1,8 +1,8 @@
-import { HitObject } from "../datamodel/hit_object";
-import { ComboInfo, CurrentTimingPointInfo } from "./processed_beatmap";
-import { Point } from "../util/point";
-import { PlayEvent } from "./play_events";
-import { mainHitObjectContainer } from "../visuals/rendering";
+import { HitObject } from "../../datamodel/hit_object";
+import { ComboInfo, CurrentTimingPointInfo } from "../processed_beatmap";
+import { Point } from "../../util/point";
+import { PlayEvent } from "../play_events";
+import { mainHitObjectContainer } from "../../visuals/rendering";
 
 export abstract class DrawableHitObject {
     public index: number = null;

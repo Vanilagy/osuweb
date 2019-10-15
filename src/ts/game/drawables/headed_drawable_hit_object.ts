@@ -1,10 +1,10 @@
 import { DrawableHitObject } from "./drawable_hit_object";
-import { gameState } from "./game_state";
-import { mainHitObjectContainer, approachCircleContainer } from "../visuals/rendering";
-import { Point, pointDistance } from "../util/point";
-import { PlayEvent, PlayEventType } from "./play_events";
+import { gameState } from "../game_state";
+import { mainHitObjectContainer, approachCircleContainer } from "../../visuals/rendering";
+import { Point, pointDistance } from "../../util/point";
+import { PlayEvent, PlayEventType } from "../play_events";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
-import { ScoringValue } from "./scoring_value";
+import { ScoringValue } from "../scoring_value";
 
 // This many millisecond before the perfect hit time will the object start to even
 // become clickable. Before that, it should do the little shaky-shake, implying it

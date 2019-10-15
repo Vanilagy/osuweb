@@ -1,14 +1,14 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
-import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
+import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
 import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
 import { gameState } from "./game_state";
-import { DrawableHitObject } from "./drawable_hit_object";
+import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { setMainBackgroundImageOpacity, MAIN_BACKGROUND_IMAGE_CONTAINER } from "../visuals/ui";
-import { DrawableSpinner } from "./drawable_spinner";
+import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
-import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./follow_point";
+import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./drawables/follow_point";
 import { PlayEvent, PlayEventType } from "./play_events";
 import "./hud";
 import "../input/input";
@@ -17,13 +17,14 @@ import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } fr
 import { progressIndicator, accuracyMeter, initHud, scorebar } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
-import { HeadedDrawableHitObject } from "./headed_drawable_hit_object";
-import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, calculatePanFromOsuCoordinates } from "./skin";
+import { HeadedDrawableHitObject } from "./drawables/headed_drawable_hit_object";
+import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin/skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
-import { HitCirclePrimitive } from "./hit_circle_primitive";
+import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
 import { ScoringValue } from "./scoring_value";
-import { Mod } from "./mods";
-import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mod_helper";
+import { Mod } from "./mods/mods";
+import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
+import { calculatePanFromOsuCoordinates } from "./skin/sound";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';

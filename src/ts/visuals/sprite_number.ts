@@ -1,5 +1,5 @@
-import { OsuTexture, OsuTextureResolution } from "../game/skin";
 import { charIsDigit } from "../util/misc_util";
+import { OsuTexture, OsuTextureResolution } from "../game/skin/texture";
 
 export const USUAL_SCORE_DIGIT_HEIGHT = 46;
 
