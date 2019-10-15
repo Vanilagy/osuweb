@@ -5,14 +5,16 @@ import { assert } from "../util/misc_util";
 import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { gameState } from "./game_state";
 import { Point } from "../util/point";
-import { scorePopupContainer } from "../visuals/rendering";
+import { scorePopupContainer, secondScorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { AnimatedOsuSprite, HitSoundType } from "./skin";
 import { ModHelper } from "./mod_helper";
 import { ScoringValue } from "./scoring_value";
+import { transferBasicProperties, transferBasicSpriteProperties } from "../util/pixi_utils";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
+const SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME = 250; // In ms
 const MISS_POPUP_DROPDOWN_ACCERELATION = 0.00009; // in osu!pixels per ms^2
 
 export class Score {
@@ -276,6 +278,9 @@ scorePopupTypeToColor.set(ScorePopupType.Katu100, '#57e11a'); // Same color as H
 
 export class ScorePopup {
     public container: PIXI.Container;
+    public secondContainer: PIXI.Container; // Is shown ontop of all hit objects for a fraction of the total score popup time. That's just how it is!
+    private secondSprite: PIXI.Sprite;
+
     private animatedSprite: AnimatedOsuSprite;
     private startTime: number = null;
     private osuPosition: Point;
@@ -290,18 +295,18 @@ export class ScorePopup {
         let currentPlay = gameState.currentPlay;
         let { headedHitObjectTextureFactor } = currentPlay;
 
-        let name: string;
+        let textureName: string;
         switch (type) {
-            case ScorePopupType.Miss: name = "hit0"; break;
-            case ScorePopupType.Hit50: name = "hit50"; break;
-            case ScorePopupType.Hit100: name = "hit100"; break;
-            case ScorePopupType.Katu100: name = "hit100k"; break;
-            case ScorePopupType.Hit300: name = "hit300"; break;
-            case ScorePopupType.Katu300: name = "hit300k"; break;
-            case ScorePopupType.Geki: name = "hit300g"; break;
+            case ScorePopupType.Miss: textureName = "hit0"; break;
+            case ScorePopupType.Hit50: textureName = "hit50"; break;
+            case ScorePopupType.Hit100: textureName = "hit100"; break;
+            case ScorePopupType.Katu100: textureName = "hit100k"; break;
+            case ScorePopupType.Hit300: textureName = "hit300"; break;
+            case ScorePopupType.Katu300: textureName = "hit300k"; break;
+            case ScorePopupType.Geki: textureName = "hit300g"; break;
         }
 
-        let osuTexture = gameState.currentGameplaySkin.textures[name];
+        let osuTexture = gameState.currentGameplaySkin.textures[textureName];
 
         let animatedSprite = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
         animatedSprite.loop = false;
@@ -313,6 +318,13 @@ export class ScorePopup {
         wrapper.addChild(animatedSprite.sprite);
 
         this.container = wrapper;
+
+        let secondWrapper = new PIXI.Container();
+        let secondSprite = new PIXI.Sprite();
+        secondWrapper.addChild(secondSprite);
+        secondSprite.blendMode = PIXI.BLEND_MODES.ADD;
+        this.secondContainer = secondWrapper;
+        this.secondSprite = secondSprite;
         
         let screenCoordinates = currentPlay.toScreenCoordinates(osuPosition);
         this.container.position.set(screenCoordinates.x, screenCoordinates.y);
@@ -320,6 +332,9 @@ export class ScorePopup {
         if (type === ScorePopupType.Miss) {
             this.container.rotation = (2 * (Math.random() - 0.5)) * Math.PI * 0.05; // Random tilt for miss popup
         }
+
+        transferBasicProperties(this.container, this.secondContainer);
+        transferBasicSpriteProperties(this.animatedSprite.sprite, this.secondSprite);
     }
 
     update(currentTime: number) {
@@ -347,8 +362,8 @@ export class ScorePopup {
         }
 
         let fadeOutCompletion = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
-            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-            fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
+        fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+        fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
         
         this.container.alpha = 1 - fadeOutCompletion;
 
@@ -357,9 +372,24 @@ export class ScorePopup {
             let osuY = this.osuPosition.y + droppedDistance;
             this.container.y = gameState.currentPlay.toScreenCoordinatesY(osuY, false);
         }
+
+        transferBasicProperties(this.container, this.secondContainer);
+        transferBasicSpriteProperties(this.animatedSprite.sprite, this.secondSprite);
+
+        let secondContainerFadeOutCompletion = elapsedTime / SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME;
+        secondContainerFadeOutCompletion = MathUtil.clamp(secondContainerFadeOutCompletion, 0, 1);
+        secondContainerFadeOutCompletion = MathUtil.ease(EaseType.Linear, secondContainerFadeOutCompletion);
+
+        this.secondContainer.alpha = 1 - secondContainerFadeOutCompletion;
+    }
+
+    show() {
+        scorePopupContainer.addChild(this.container);
+        secondScorePopupContainer.addChild(this.secondContainer);
     }
 
     remove() {
         scorePopupContainer.removeChild(this.container);
+        secondScorePopupContainer.removeChild(this.secondContainer);
     }
 }

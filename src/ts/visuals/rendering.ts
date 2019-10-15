@@ -113,6 +113,8 @@ mainHitObjectContainer.sortableChildren = true;
 export let approachCircleContainer = new PIXI.Container();
 export let followPointContainer = new PIXI.Container();
 export let scorePopupContainer = new PIXI.Container();
+/** Every score popup is momentarily shown ontop of all hit objects, using an additive blending mode. This container holds those. */
+export let secondScorePopupContainer = new PIXI.Container();
 export let hudContainer = new PIXI.Container();
 export let cursorRippleGraphics = new PIXI.Graphics();
 
@@ -121,6 +123,7 @@ stage.addChild(scorePopupContainer);
 stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
+stage.addChild(secondScorePopupContainer);
 stage.addChild(hudContainer);
 stage.addChild(cursorRippleGraphics);
 stage.addChild(softwareCursorContainer);

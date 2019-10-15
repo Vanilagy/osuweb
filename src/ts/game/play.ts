@@ -1,7 +1,7 @@
 import { ProcessedBeatmap } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawable_slider";
-import { scorePopupContainer, softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
+import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
@@ -617,7 +617,7 @@ export class Play {
 
     addScorePopup(popup: ScorePopup) {
         this.scorePopups.push(popup);
-        scorePopupContainer.addChild(popup.container);
+        popup.show();
     }
 
     gainHealth(gain: number, currentTime: number) {
