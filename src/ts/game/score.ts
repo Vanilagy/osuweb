@@ -10,7 +10,7 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { AnimatedOsuSprite, HitSoundType } from "./skin";
 import { ModHelper } from "./mod_helper";
 import { ScoringValue } from "./scoring_value";
-import { transferBasicProperties, transferBasicSpriteProperties } from "../util/pixi_utils";
+import { transferBasicProperties, transferBasicSpriteProperties } from "../util/pixi_util";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -322,7 +322,7 @@ export class ScorePopup {
         let secondWrapper = new PIXI.Container();
         let secondSprite = new PIXI.Sprite();
         secondWrapper.addChild(secondSprite);
-        secondSprite.blendMode = PIXI.BLEND_MODES.ADD;
+        //secondSprite.blendMode = PIXI.BLEND_MODES.ADD;
         this.secondContainer = secondWrapper;
         this.secondSprite = secondSprite;
         
@@ -354,8 +354,8 @@ export class ScorePopup {
     
             let gradualScaleUp = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
     
-            // At the end of the fade out, the thing should be at 1.12x the start size.
-            let factor = appearanceCompletion + gradualScaleUp * 0.12;
+            // At the end of the fade out, the thing should be at 1.10x the start size.
+            let factor = appearanceCompletion + gradualScaleUp * 0.10;
             this.container.scale.set(factor);
         } else {
             this.animatedSprite.update(currentTime);
