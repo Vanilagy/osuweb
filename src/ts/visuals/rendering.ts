@@ -122,5 +122,5 @@ stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
 stage.addChild(hudContainer);
-stage.addChild(softwareCursorContainer);
 stage.addChild(cursorRippleGraphics);
+stage.addChild(softwareCursorContainer);
