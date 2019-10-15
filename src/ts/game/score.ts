@@ -5,17 +5,18 @@ import { assert } from "../util/misc_util";
 import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { gameState } from "./game_state";
 import { Point } from "../util/point";
-import { scorePopupContainer, secondScorePopupContainer } from "../visuals/rendering";
+import { lowerScorePopupContainer, upperScorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { ModHelper } from "./mods/mod_helper";
 import { ScoringValue } from "./scoring_value";
 import { transferBasicProperties, transferBasicSpriteProperties } from "../util/pixi_util";
 import { HitSoundType } from "./skin/sound";
 import { AnimatedOsuSprite } from "./skin/animated_sprite";
+import { OsuTexture } from "./skin/texture";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
-const SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME = 250; // In ms
+const SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME = 300; // In ms
 const MISS_POPUP_DROPDOWN_ACCERELATION = 0.00009; // in osu!pixels per ms^2
 
 export class Score {
@@ -277,6 +278,15 @@ scorePopupTypeToColor.set(ScorePopupType.Geki, '#38b8e8'); // Same color as Hit3
 scorePopupTypeToColor.set(ScorePopupType.Katu300, '#38b8e8'); // Same color as Hit300 and Geki
 scorePopupTypeToColor.set(ScorePopupType.Katu100, '#57e11a'); // Same color as Hit100
 
+let scorePopupTypeToJudgementValue = new Map<ScorePopupType, number>();
+scorePopupTypeToJudgementValue.set(ScorePopupType.Hit300, 300);
+scorePopupTypeToJudgementValue.set(ScorePopupType.Hit100, 100);
+scorePopupTypeToJudgementValue.set(ScorePopupType.Hit50, 50);
+scorePopupTypeToJudgementValue.set(ScorePopupType.Miss, 0);
+scorePopupTypeToJudgementValue.set(ScorePopupType.Geki, 300);
+scorePopupTypeToJudgementValue.set(ScorePopupType.Katu300, 300);
+scorePopupTypeToJudgementValue.set(ScorePopupType.Katu100, 100);
+
 export class ScorePopup {
     public container: PIXI.Container;
     public secondContainer: PIXI.Container; // Is shown ontop of all hit objects for a fraction of the total score popup time. That's just how it is!
@@ -287,6 +297,7 @@ export class ScorePopup {
     private osuPosition: Point;
     private type: ScorePopupType;
     public renderingFinished: boolean = false;
+    private particleTexture: OsuTexture = null;
 
     constructor(type: ScorePopupType, osuPosition: Point, startTime: number) {
         this.type = type;
@@ -306,8 +317,13 @@ export class ScorePopup {
             case ScorePopupType.Katu300: textureName = "hit300k"; break;
             case ScorePopupType.Geki: textureName = "hit300g"; break;
         }
-
         let osuTexture = gameState.currentGameplaySkin.textures[textureName];
+
+        let judgementValue = scorePopupTypeToJudgementValue.get(type);
+        // Set the correct particle texture
+        if (judgementValue === 50) this.particleTexture = gameState.currentGameplaySkin.textures["particle50"];
+        else if (judgementValue === 100) this.particleTexture = gameState.currentGameplaySkin.textures["particle100"];
+        else if (judgementValue === 300) this.particleTexture = gameState.currentGameplaySkin.textures["particle300"];
 
         let animatedSprite = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
         animatedSprite.loop = false;
@@ -323,7 +339,8 @@ export class ScorePopup {
         let secondWrapper = new PIXI.Container();
         let secondSprite = new PIXI.Sprite();
         secondWrapper.addChild(secondSprite);
-        //secondSprite.blendMode = PIXI.BLEND_MODES.ADD;
+        secondSprite.blendMode = PIXI.BLEND_MODES.ADD;
+        secondSprite.alpha = 0.666; // To not be too extreme
         this.secondContainer = secondWrapper;
         this.secondSprite = secondSprite;
         
@@ -338,6 +355,10 @@ export class ScorePopup {
         transferBasicSpriteProperties(this.animatedSprite.sprite, this.secondSprite);
     }
 
+    private hasParticles() {
+        return !!this.particleTexture && !this.particleTexture.isEmpty();
+    }
+
     update(currentTime: number) {
         if (currentTime >= this.startTime + SCORE_POPUP_FADE_OUT_TIME) {
             this.renderingFinished = true;
@@ -347,17 +368,20 @@ export class ScorePopup {
         let elapsedTime = currentTime - this.startTime;
 
         if (this.animatedSprite.getFrameCount() === 0) {
-            // If there are zero frames in the animation, apply a custom scale-up animation:
-
+            // If the popup has no animation, animate it bouncing in:
             let appearanceCompletion = elapsedTime / SCORE_POPUP_APPEARANCE_TIME;
             appearanceCompletion = MathUtil.clamp(appearanceCompletion, 0, 1);
             appearanceCompletion = MathUtil.ease(EaseType.EaseOutElastic, appearanceCompletion, 0.55);
-    
-            let gradualScaleUp = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
-    
-            // At the end of the fade out, the thing should be at 1.10x the start size.
-            let factor = appearanceCompletion + gradualScaleUp * 0.10;
-            this.container.scale.set(factor);
+
+            let sizeFactor = appearanceCompletion;
+
+            if (this.hasParticles()) {
+                // If the popup has particles, apply an additional gradual scale-up animation:
+                let gradualScaleUp = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
+                sizeFactor += gradualScaleUp * 0.10; // At the end of the fade out, the thing should be at 1.10x the start size.
+            }
+
+            this.container.scale.set(sizeFactor);
         } else {
             this.animatedSprite.update(currentTime);
         }
@@ -385,12 +409,16 @@ export class ScorePopup {
     }
 
     show() {
-        scorePopupContainer.addChild(this.container);
-        secondScorePopupContainer.addChild(this.secondContainer);
+        if (this.hasParticles()) {
+            lowerScorePopupContainer.addChild(this.container);
+            upperScorePopupContainer.addChild(this.secondContainer);
+        } else {
+            upperScorePopupContainer.addChild(this.container);
+        }
     }
 
     remove() {
-        scorePopupContainer.removeChild(this.container);
-        secondScorePopupContainer.removeChild(this.secondContainer);
+        lowerScorePopupContainer.removeChild(this.container);
+        upperScorePopupContainer.removeChild(this.secondContainer);
     }
 }

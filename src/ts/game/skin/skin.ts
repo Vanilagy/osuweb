@@ -1,16 +1,8 @@
 import { SpriteNumberTextures } from "../../visuals/sprite_number";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
-import { VirtualFile } from "../../file_system/virtual_file";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../../datamodel/skin_configuration";
-import { Dimensions, Color } from "../../util/graphics_util";
-import { charIsDigit, promiseAllSettled, assert, jsonClone, shallowObjectClone } from "../../util/misc_util";
-import { createAudioBuffer, soundEffectsNode } from "../../audio/audio";
-import { SoundEmitter } from "../../audio/sound_emitter";
-import { uploadTexture } from "../../visuals/rendering";
-import { MathUtil } from "../../util/math_util";
-import { Point } from "../../util/point";
-import { TimingPoint } from "../../datamodel/beatmap";
-import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
+import { Color } from "../../util/graphics_util";
+import { assert, jsonClone, shallowObjectClone } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
 import { HitSoundType, HitSound, hitSoundFileNames, calculatePanFromOsuCoordinates, HitSoundInfo } from "./sound";
 
@@ -108,6 +100,9 @@ export class Skin {
         this.textures["hit300"] = await OsuTexture.fromFiles(this.directory, "hit300", "png", true, "hit300-{n}");
         this.textures["hit300k"] = await OsuTexture.fromFiles(this.directory, "hit300k", "png", true, "hit300k-{n}");
         this.textures["hit300g"] = await OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
+        this.textures["particle50"] = await OsuTexture.fromFiles(this.directory, "particle50", "png", true);
+        this.textures["particle100"] = await OsuTexture.fromFiles(this.directory, "particle100", "png", true);
+        this.textures["particle300"] = await OsuTexture.fromFiles(this.directory, "particle300", "png", true);
 
         // Scorebar
         this.textures["scorebarBackground"] = await OsuTexture.fromFiles(this.directory, "scorebar-bg", "png", true);

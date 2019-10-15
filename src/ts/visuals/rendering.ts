@@ -112,18 +112,17 @@ export let mainHitObjectContainer = new PIXI.Container();
 mainHitObjectContainer.sortableChildren = true;
 export let approachCircleContainer = new PIXI.Container();
 export let followPointContainer = new PIXI.Container();
-export let scorePopupContainer = new PIXI.Container();
-/** Every score popup is momentarily shown ontop of all hit objects, using an additive blending mode. This container holds those. */
-export let secondScorePopupContainer = new PIXI.Container();
+export let lowerScorePopupContainer = new PIXI.Container(); // The parts of score popups shown BELOW hit objects
+export let upperScorePopupContainer = new PIXI.Container(); // The parts of score popups shown ABOVE hit objects
 export let hudContainer = new PIXI.Container();
 export let cursorRippleGraphics = new PIXI.Graphics();
 
 // The order of these is important, 'cause z-index 'n' stuff.
-stage.addChild(scorePopupContainer);
+stage.addChild(lowerScorePopupContainer);
 stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
-stage.addChild(secondScorePopupContainer);
+stage.addChild(upperScorePopupContainer);
 stage.addChild(hudContainer);
 stage.addChild(cursorRippleGraphics);
 stage.addChild(softwareCursorContainer);
