@@ -151,6 +151,10 @@ export class MathUtil {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
+    static randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+    }
+
     static getNormalizedAngleDelta(theta1: number, theta2: number) {
         let difference = theta2 - theta1;
         if (-difference < -Math.PI) {

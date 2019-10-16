@@ -136,3 +136,21 @@ export function stackShiftPoint(p: Point, stackHeight: number) {
     p.x += stackHeight * OFFSET_PER_STACK_HEIGHT;
     p.y += stackHeight * OFFSET_PER_STACK_HEIGHT;
 }
+
+/** Rotates the point around 0|0 by an angle. */
+export function rotatePoint(point: Point, angle: number) {
+    let oldX = point.x,
+        oldY = point.y,
+        sin = Math.sin(angle),
+        cos = Math.cos(angle);
+
+    point.x = cos*oldX - sin*oldY;
+    point.y = sin*oldX + cos*oldY;
+}
+
+export function addPoints(p1: Point, p2: Point): Point {
+    return {
+        x: p1.x + p2.x,
+        y: p1.y + p2.y
+    };
+}

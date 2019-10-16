@@ -13,6 +13,7 @@ import { transferBasicProperties, transferBasicSpriteProperties } from "../util/
 import { HitSoundType } from "./skin/sound";
 import { AnimatedOsuSprite } from "./skin/animated_sprite";
 import { OsuTexture } from "./skin/texture";
+import { ParticleEmitter } from "../visuals/particle_emitter";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -298,6 +299,7 @@ export class ScorePopup {
     private type: ScorePopupType;
     public renderingFinished: boolean = false;
     private particleTexture: OsuTexture = null;
+    private particleEmitter: ParticleEmitter;
 
     constructor(type: ScorePopupType, osuPosition: Point, startTime: number) {
         this.type = type;
@@ -353,6 +355,19 @@ export class ScorePopup {
 
         transferBasicProperties(this.container, this.secondContainer);
         transferBasicSpriteProperties(this.animatedSprite.sprite, this.secondSprite);
+
+        if (this.hasParticles()) {
+            let emitter = new ParticleEmitter([this.particleTexture]);
+            emitter.setCountBehavior(1000, 1000);
+            emitter.setTravelBehavior(0, 200, EaseType.EaseOutQuad);
+            emitter.setLongevityBehavior(500, 800);
+            emitter.setScale(headedHitObjectTextureFactor);
+            emitter.container.position.copyFrom(this.container.position);
+
+            emitter.emit(startTime);
+
+            this.particleEmitter = emitter;
+        }
     }
 
     private hasParticles() {
@@ -386,6 +401,8 @@ export class ScorePopup {
             this.animatedSprite.update(currentTime);
         }
 
+        if (this.particleEmitter) this.particleEmitter.update(currentTime);
+
         let fadeOutCompletion = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
         fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
         fadeOutCompletion = MathUtil.ease(EaseType.EaseInCubic, fadeOutCompletion);
@@ -410,6 +427,7 @@ export class ScorePopup {
 
     show() {
         if (this.hasParticles()) {
+            lowerScorePopupContainer.addChild(this.particleEmitter.container);
             lowerScorePopupContainer.addChild(this.container);
             upperScorePopupContainer.addChild(this.secondContainer);
         } else {
@@ -420,5 +438,7 @@ export class ScorePopup {
     remove() {
         lowerScorePopupContainer.removeChild(this.container);
         upperScorePopupContainer.removeChild(this.secondContainer);
+
+        if (this.particleEmitter) lowerScorePopupContainer.removeChild(this.particleEmitter.container);
     }
 }
