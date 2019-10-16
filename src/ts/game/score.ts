@@ -17,7 +17,7 @@ import { ParticleEmitter } from "../visuals/particle_emitter";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
-const SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME = 300; // In ms
+const SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME = 250; // In ms
 const MISS_POPUP_DROPDOWN_ACCERELATION = 0.00009; // in osu!pixels per ms^2
 
 export class Score {
@@ -342,7 +342,7 @@ export class ScorePopup {
         let secondSprite = new PIXI.Sprite();
         secondWrapper.addChild(secondSprite);
         secondSprite.blendMode = PIXI.BLEND_MODES.ADD;
-        secondSprite.alpha = 0.666; // To not be too extreme
+        secondSprite.alpha = 0.6; // To not be too extreme
         this.secondContainer = secondWrapper;
         this.secondSprite = secondSprite;
         
@@ -358,13 +358,14 @@ export class ScorePopup {
 
         if (this.hasParticles()) {
             let emitter = new ParticleEmitter([this.particleTexture]);
-            emitter.setCountBehavior(1000, 1000);
-            emitter.setTravelBehavior(0, 200, EaseType.EaseOutQuad);
-            emitter.setLongevityBehavior(500, 800);
+            emitter.setTravelBehavior(0, 80, EaseType.EaseOutQuad);
+            emitter.setLongevityBehavior(500, 1000);
             emitter.setScale(headedHitObjectTextureFactor);
+            emitter.setBlendMode(PIXI.BLEND_MODES.ADD);
             emitter.container.position.copyFrom(this.container.position);
 
-            emitter.emit(startTime);
+            //emitter.emit(startTime, 100, 100);
+            emitter.start(startTime, 500, 200);
 
             this.particleEmitter = emitter;
         }
