@@ -67,7 +67,7 @@ export class ProcessedBeatmap {
             colorArray = gameState.currentGameplaySkin.colors;
             if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
         } else {
-            colorArray = this.beatmap.colors;
+            colorArray = this.beatmap.colors.comboColors;
             if (colorArray.length === 0) colorArray = gameState.currentGameplaySkin.colors;
             if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
         }

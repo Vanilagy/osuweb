@@ -6,7 +6,7 @@ import { Color } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 import { Spinner } from "./spinner";
-import { last } from "../util/misc_util";
+import { last, unholeArray } from "../util/misc_util";
 
 class BeatmapCreationOptions {
     text: string;
@@ -55,13 +55,20 @@ export interface BeatmapEventBreak extends BeatmapEvent {
     endTime: number
 }
 
+interface BeatmapColorInfo {
+    comboColors: Color[],
+    sliderBody?: Color, // Listed in the .osu file docs, but no clue what it does / what it's used for.
+    sliderTrackOverride?: Color,
+    sliderBorder?: Color
+}
+
 export class Beatmap {
     public loadFlat: boolean;
 
     public events: BeatmapEvent[] = [];
     public timingPoints: TimingPoint[] = [];
     public hitObjects: HitObject[] = [];
-    public colors: Color[] = [];
+    public colors: BeatmapColorInfo = {comboColors: [], sliderBody: null, sliderTrackOverride: null, sliderBorder: null};
 
     public beatmapSet: BeatmapSet;
     public difficulty: BeatmapDifficulty;
@@ -126,7 +133,6 @@ export class Beatmap {
 
     private parseBeatmap(text: string) {
         let lines = text.split('\n');
-
         let section = "header";
 
         for (let i = 0; i < lines.length; i++) {
@@ -139,7 +145,8 @@ export class Beatmap {
             } else if (line.startsWith("[") && line.endsWith("]")) {
                 section = line.substr(1, line.length-2).toLowerCase();
             } else if (section === "colours") {
-                this.parseComboColor(line);
+                // I find the British (Australian) to American English conversion that happens here kinda funny, haha
+                this.parseColor(line);
             } else if (section === "timingpoints") {
                 this.parseTimingPoint(line);
             } else if (section === "events") {
@@ -181,20 +188,35 @@ export class Beatmap {
 
         if (!this.ARFound) this.difficulty.AR = this.difficulty.OD;
 
+        // Sicne the beatmap colors could be given in arbitrary order, including skipping over a color, like Combo1 -> Combo3, we have to remove all holes in the array
+        unholeArray(this.colors.comboColors);
+
         // These arrays are not guaranteed to be in-order in the file, so we sort 'em:
         this.events.sort((a, b) => a.time - b.time);
         this.hitObjects.sort((a, b) => a.time - b.time);
         this.timingPoints.sort((a, b) => a.offset - b.offset);
     }
 
-    private parseComboColor(line: string) {
-        let col = line.split(':')[1].trim().split(',');
-
-        this.colors.push({
-            r: parseInt(col[0]),
-            g: parseInt(col[1]),
-            b: parseInt(col[2]),
-        });
+    private parseColor(line: string) {
+        let parts = line.split(':');
+        let property = parts[0];
+        let colStrings = parts[1].trim().split(',');
+        let color: Color = {
+            r: parseInt(colStrings[0]),
+            g: parseInt(colStrings[1]),
+            b: parseInt(colStrings[2])
+        }
+        
+        if (property.startsWith("Combo")) {
+            let n = parseInt(property.slice(5));
+            this.colors.comboColors[n-1] = color; // n-1 because the first one is 'Combo1'
+        } else if (property.startsWith("SliderBody")) {
+            this.colors.sliderBody = color;
+        } else if (property.startsWith("SliderTrackOverride")) {
+            this.colors.sliderTrackOverride = color;
+        } else if (property.startsWith("SliderBorder")) {
+            this.colors.sliderBorder = color;
+        }
     }
 
     private parseTimingPoint(line: string) {

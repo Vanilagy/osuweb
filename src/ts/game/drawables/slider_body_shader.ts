@@ -4,6 +4,7 @@ import { Color } from "../../util/graphics_util";
 import { DrawableSlider } from "./drawable_slider";
 import { MathUtil } from "../../util/math_util";
 import { SliderBounds } from "./slider_path";
+import { IGNORE_BEATMAP_SKIN } from "../skin/skin";
 
 declare const glMatrix: any; // Why? Because TypeScript made it goddamn hard to get actual good and correct types for glMatrix. AND HELL NAW DO I WANNA IMPORT IT VIA FUCKING NPM.
 
@@ -57,20 +58,21 @@ void main() {
 let sliderBodyProgram = new PIXI.Program(vertexShaderSource, fragmentShaderSource, "sliderBodyProgram");
 
 export function createSliderBodyShader(slider: DrawableSlider) {
-    let borderColor = gameState.currentGameplaySkin.config.colors.sliderBorder;
+    let beatmap = gameState.currentPlay.processedBeatmap.beatmap;
 
-    let sliderBodyColor: Color;
-    if (gameState.currentGameplaySkin.config.colors.sliderTrackOverride) {
-        sliderBodyColor = gameState.currentGameplaySkin.config.colors.sliderTrackOverride;
-    } else {
-        sliderBodyColor = slider.comboInfo.color;
-    }
+    let borderColor: Color = null;
+    if (!IGNORE_BEATMAP_SKIN) borderColor = beatmap.colors.sliderBorder;
+    if (borderColor === null) borderColor = gameState.currentGameplaySkin.config.colors.sliderBorder;
+
+    let sliderBodyColor: Color = null;
+    if (!IGNORE_BEATMAP_SKIN) sliderBodyColor = beatmap.colors.sliderTrackOverride;
+    if (sliderBodyColor === null) sliderBodyColor = gameState.currentGameplaySkin.config.colors.sliderTrackOverride;
+    if (sliderBodyColor === null) sliderBodyColor = slider.comboInfo.color;
 
     let targetRed = Math.min(255, sliderBodyColor.r * 1.125 + 75),
         targetGreen = Math.min(255, sliderBodyColor.g * 1.125 + 75),
         targetBlue = Math.min(255, sliderBodyColor.b * 1.125 + 75);
 
-    // TODO: Is this definition even right?
     let pixiUniforms = {} as any;
     pixiUniforms.matrix = createSliderBodyTransformationMatrix(slider, slider.bounds);
     pixiUniforms.insideToTotalRatio = SLIDER_BODY_INSIDE_TO_TOTAL_RATIO;

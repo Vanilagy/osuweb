@@ -100,3 +100,10 @@ export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter?: 
 
     return ans;
 }
+
+/** Remove all undefined elements from an array. */
+export function unholeArray<T>(arr: T[]) {
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] === undefined) arr.splice(i--, 1);
+    }
+}

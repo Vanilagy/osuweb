@@ -358,14 +358,14 @@ export class ScorePopup {
 
         if (this.hasParticles()) {
             let emitter = new ParticleEmitter([this.particleTexture]);
-            emitter.setTravelBehavior(0, 75, EaseType.Linear, DistanceDistribution.Normal);
+            emitter.setTravelBehavior(0, 72, EaseType.Linear, DistanceDistribution.Normal);
             emitter.setLongevityBehavior(400, SCORE_POPUP_FADE_OUT_TIME);
             emitter.setAlphaBehavior(1, 0, EaseType.EaseInQuad);
             emitter.setScale(headedHitObjectTextureFactor);
             emitter.setBlendMode(PIXI.BLEND_MODES.ADD);
             emitter.container.position.copyFrom(this.container.position);
 
-            emitter.emit(startTime, 190, 190);
+            emitter.emit(startTime, 170, 170);
 
             this.particleEmitter = emitter;
         }
