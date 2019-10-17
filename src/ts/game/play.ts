@@ -5,7 +5,7 @@ import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../vi
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
-import { setMainBackgroundImageOpacity, MAIN_BACKGROUND_IMAGE_CONTAINER } from "../visuals/ui";
+import { MAIN_BACKGROUND_IMAGE_CONTAINER, MAIN_BACKGROUND_VIDEO_CONTAINER, BEATMAP_BACKGROUND_ELEMENT } from "../visuals/ui";
 import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./drawables/follow_point";
@@ -33,10 +33,14 @@ const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, t
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const REFERENCE_SCREEN_HEIGHT = 768; // For a lot of full-screen textures, the reference height is 768.
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
+const DISABLE_VIDEO = false;
+const VIDEO_FADE_IN_DURATION = 1000; // In ms
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
     public preludeTime: number;
+    private playbackRate: number = 1.0;
+    private hasVideo: boolean = false;
 
     private currentHitObjectId: number;
     private onscreenHitObjects: DrawableHitObject[];
@@ -179,13 +183,27 @@ export class Play {
             let url = await backgroundImageFile.readAsResourceUrl();
             MAIN_BACKGROUND_IMAGE_CONTAINER.src = url;
             MAIN_BACKGROUND_IMAGE_CONTAINER.style.display = 'block';
-        } else {
-            MAIN_BACKGROUND_IMAGE_CONTAINER.style.display = 'none';
+        }
+        
+        let backgroundVideoFile = await this.processedBeatmap.beatmap.getBackgroundVideoFile();
+        if (backgroundVideoFile && !DISABLE_VIDEO) {
+            let url = await backgroundVideoFile.readAsResourceUrl();
+            MAIN_BACKGROUND_VIDEO_CONTAINER.src = url;
+            MAIN_BACKGROUND_VIDEO_CONTAINER.style.display = 'block';
+
+            // Wait until the video is marked okay for playback
+            await new Promise((resolve) => MAIN_BACKGROUND_VIDEO_CONTAINER.addEventListener('canplaythrough', resolve));
+
+            this.hasVideo = true;
+
+            //MAIN_BACKGROUND_VIDEO_CONTAINER.play();
         }
 
         // TODO: Apply pitch changes and percussion
-        if (this.activeMods.has(Mod.HalfTime) || this.activeMods.has(Mod.Daycore)) mainMusicMediaPlayer.setPlaybackRate(HALF_TIME_PLAYBACK_RATE);
-        if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) mainMusicMediaPlayer.setPlaybackRate(DOUBLE_TIME_PLAYBACK_RATE);
+        if (this.activeMods.has(Mod.HalfTime) || this.activeMods.has(Mod.Daycore)) this.playbackRate = HALF_TIME_PLAYBACK_RATE;
+        if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) this.playbackRate = DOUBLE_TIME_PLAYBACK_RATE;
+
+        mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
         mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
@@ -336,10 +354,32 @@ export class Play {
             x = MathUtil.ease(EaseType.EaseInOutQuad, x);
 
             // Go from 1.0 opacity to (1 - background dim) opacity
-            setMainBackgroundImageOpacity(x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY));
+            let opacityString = String(x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY));
+            BEATMAP_BACKGROUND_ELEMENT.style.opacity = opacityString;
 
             break;
         }
+
+        if (this.hasVideo) {
+            // Take care of the video fading in in the first second of the audio
+            let videoFadeInCompletion = currentTime / VIDEO_FADE_IN_DURATION;
+            videoFadeInCompletion = MathUtil.clamp(videoFadeInCompletion, 0, 1);
+            MAIN_BACKGROUND_VIDEO_CONTAINER.style.opacity = String(videoFadeInCompletion);
+
+            // Sync the video to the audio
+            let offsetDifference = Math.abs((MAIN_BACKGROUND_VIDEO_CONTAINER.currentTime * 1000) - currentTime);
+            if (offsetDifference >= 30 && currentTime >= 0) {
+                MAIN_BACKGROUND_VIDEO_CONTAINER.currentTime = currentTime/1000;
+            }
+
+            // Start the video when it's due
+            if (currentTime >= 0 && MAIN_BACKGROUND_VIDEO_CONTAINER.paused) {
+                MAIN_BACKGROUND_VIDEO_CONTAINER.playbackRate = this.playbackRate;
+                MAIN_BACKGROUND_VIDEO_CONTAINER.play();
+            }
+        }
+
+        
 
         // Update the cursor position if rocking AT
         if (this.activeMods.has(Mod.Auto)) this.handlePlaythroughInstructions(currentTime);

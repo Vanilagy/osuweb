@@ -5,18 +5,17 @@
         <title>osu! - Browser Edition</title>
         <link rel="stylesheet" href="./css/main.css">
         <link rel="shortcut icon" href="./assets/img/1024px-Red_x.svg.png">
-        <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700&display=swap" rel="stylesheet">
     </head>
     <body>
+        <div id="beatmapBackground">
+            <img id="mainBackgroundImage">
+            <video id="mainBackgroundVideo" muted></video>
+        </div>
+
         <input type="file" id="beatmapSelect" webkitdirectory style="display: none;">
-
-        <!-- Preload this font -->
-        <div style="font-family: Nunito; visibility: hidden;">Preload</div>
-        <div style="font-family: Bitmap; visibility: hidden;">Preload</div>
-
-        <img id="mainBackgroundImage">
+        
         <!--<img src="./assets/img/screenshot096.png" style="display: block; position: absolute; top: 0; left: 0; z-index: -5000;">-->
-        <canvas id="mainCanvas"></canvas>
+        <canvas id="mainCanvas"></canvas> <!-- It has to be made sure that this canvas is above everything; otherwise, desynchronized: true won't work. -->
 
         <script src="./lib/pixiv5.js" defer></script>
         <script src="./lib/jszip.min.js" defer></script>

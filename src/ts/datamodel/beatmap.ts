@@ -126,8 +126,25 @@ export class Beatmap {
         return null;
     }
 
+    getBackgroundVideoName() {
+        for (let key in this.events) {
+            let evt = this.events[key];
+
+            if (evt.type === BeatmapEventType.Video) {
+                return (evt as BeatmapEventVideo).file;
+            }
+        }
+
+        return null;
+    }
+
     getBackgroundImageFile() {
         let fileName = this.getBackgroundImageName();
+        return this.beatmapSet.directory.getFileByName(fileName);
+    }
+
+    getBackgroundVideoFile() {
+        let fileName = this.getBackgroundVideoName();
         return this.beatmapSet.directory.getFileByName(fileName);
     }
 

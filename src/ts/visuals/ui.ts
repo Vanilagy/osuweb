@@ -3,13 +3,11 @@ import { Point } from "../util/point";
 import { getCurrentMousePosition, inputEventEmitter } from "../input/input";
 import { MathUtil } from "../util/math_util";
 
+export const BEATMAP_BACKGROUND_ELEMENT: HTMLDivElement = document.querySelector('#beatmapBackground');
 export const MAIN_BACKGROUND_IMAGE_CONTAINER: HTMLImageElement = document.querySelector('#mainBackgroundImage');
+export const MAIN_BACKGROUND_VIDEO_CONTAINER: HTMLVideoElement = document.querySelector('#mainBackgroundVideo');
 const CURSOR_RIPPLE_DURATION = 1500;
 const CURSOR_RIPPLES = false;
-
-export function setMainBackgroundImageOpacity(opacity: number) {
-    MAIN_BACKGROUND_IMAGE_CONTAINER.style.opacity = String(opacity);
-}
 
 function onResize() {
     let width = window.innerWidth,
