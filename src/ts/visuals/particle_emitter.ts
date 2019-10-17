@@ -56,7 +56,7 @@ export class ParticleEmitter {
     setAlphaBehavior(start: number, end: number, ease: EaseType = EaseType.Linear) {
         this.alphaStart = start;
         this.alphaEnd = end;
-        this.alphaEnd = ease;
+        this.alphaEase = ease;
     }
 
     setLongevityBehavior(low: number, high: number) {

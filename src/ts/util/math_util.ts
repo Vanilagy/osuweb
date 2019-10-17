@@ -206,41 +206,41 @@ export class MathUtil {
 	        */
 
             case EaseType.Linear: // no easing, no acceleration
-                return val; break;
+                return val;
             case EaseType.EaseInQuad: // accelerating from zero velocity
-                return val * val; break;
+                return val * val;
             case EaseType.EaseOutQuad: // decelerating to zero velocity
-                return val * (2 - val); break;
+                return val * (2 - val);
             case EaseType.EaseInOutQuad: // acceleration until halfway, then deceleration
-                return val < 0.5 ? 2 * val * val : -1 + (4 - 2 * val) * val; break;
+                return val < 0.5 ? 2 * val * val : -1 + (4 - 2 * val) * val;
             case EaseType.EaseInCubic: // accelerating from zero velocity
-                return val * val * val; break;
+                return val * val * val;
             case EaseType.EaseOutCubic: // decelerating to zero velocity
-                return (--val) * val * val + 1; break;
+                return (--val) * val * val + 1;
             case EaseType.EaseInOutCubic: // acceleration until halfway, then deceleration
-                return val < 0.5 ? 4 * val * val * val : (val - 1) * (2 * val - 2) * (2 * val - 2) + 1; break;
+                return val < 0.5 ? 4 * val * val * val : (val - 1) * (2 * val - 2) * (2 * val - 2) + 1;
             case EaseType.EaseInQuart: // accelerating from zero velocity
-                return val * val * val * val; break;
+                return val * val * val * val;
             case EaseType.EaseOutQuart: // decelerating to zero velocity
-                return 1-(--val) * val * val * val; break;
+                return 1-(--val) * val * val * val;
             case EaseType.EaseInOutQuart: // acceleration until halfway, then deceleration
-                return val < 0.5 ? 8 * val * val * val * val : 1 - 8 * (--val) * val * val * val; break;
+                return val < 0.5 ? 8 * val * val * val * val : 1 - 8 * (--val) * val * val * val;
             case EaseType.EaseInQuint: // accelerating from zero velocity
-                return val * val * val * val * val; break;
+                return val * val * val * val * val;
             case EaseType.EaseOutQuint: // decelerating to zero velocity
-                return 1+(--val) * val * val * val * val; break;
+                return 1+(--val) * val * val * val * val;
             case EaseType.EaseInOutQuint: // acceleration until halfway, then deceleration
-                return val < 0.5 ? 16 * val * val * val * val * val : 1 + 16*(--val) * val * val * val * val; break;
+                return val < 0.5 ? 16 * val * val * val * val * val : 1 + 16*(--val) * val * val * val * val;
             case EaseType.EaseOutElastic: // Cartoon-like elastic effect
-                return Math.pow(2,-10*val) * Math.sin((val-p/4)*(2*Math.PI)/p) + 1; break;
+                return Math.pow(2,-10*val) * Math.sin((val-p/4)*(2*Math.PI)/p) + 1;
             case EaseType.EaseInSine: // accelerating from zero velocity, using trig.
-                return -1 * Math.cos(val * (Math.PI / 2)) + 1; break;
+                return -1 * Math.cos(val * (Math.PI / 2)) + 1;
             case EaseType.EaseOutSine: // decelerating to zero velocity, using trig.
-                return Math.sin(val * (Math.PI / 2)); break;
+                return Math.sin(val * (Math.PI / 2));
             case EaseType.EaseInOutSine: // acceleration until halfway, then deceleration, using trig.
-                return Math.cos(Math.PI * val) * -0.5 + 0.5; break;
+                return Math.cos(Math.PI * val) * -0.5 + 0.5;
             case EaseType.EaseInExpo: // Accelerate exponentially until finish
-                return val === 0 ? 0 : Math.pow(2, 10 * (val - 1)); break;
+                return val === 0 ? 0 : Math.pow(2, 10 * (val - 1));
             case EaseType.EaseOutExpo: // Initial exponential acceleration slowing to stop
                 return val === 1 ? 1 : (-Math.pow(2, -10 * val) + 1);
             case EaseType.EaseInOutExpo: // Exponential acceleration and deceleration
