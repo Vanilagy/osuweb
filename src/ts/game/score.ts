@@ -13,7 +13,7 @@ import { transferBasicProperties, transferBasicSpriteProperties } from "../util/
 import { HitSoundType } from "./skin/sound";
 import { AnimatedOsuSprite } from "./skin/animated_sprite";
 import { OsuTexture } from "./skin/texture";
-import { ParticleEmitter } from "../visuals/particle_emitter";
+import { ParticleEmitter, DistanceDistribution } from "../visuals/particle_emitter";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -358,7 +358,7 @@ export class ScorePopup {
 
         if (this.hasParticles()) {
             let emitter = new ParticleEmitter([this.particleTexture]);
-            emitter.setTravelBehavior(0, 80, EaseType.EaseOutQuad);
+            emitter.setTravelBehavior(0, 80, EaseType.EaseOutQuad, DistanceDistribution.UniformInCircle);
             emitter.setLongevityBehavior(500, 1000);
             emitter.setScale(headedHitObjectTextureFactor);
             emitter.setBlendMode(PIXI.BLEND_MODES.ADD);

@@ -11,6 +11,11 @@ interface Particle {
     longevity: number
 }
 
+export enum DistanceDistribution {
+    Normal,
+    UniformInCircle // Creates uniformly distributed points in the circle
+}
+
 export class ParticleEmitter {
     public container: PIXI.Container;
     private textures: OsuTexture[];
@@ -35,6 +40,7 @@ export class ParticleEmitter {
     private particleDistanceLow: number = 100;
     private particleDistanceHigh: number = 100;
     private particleTravelEase: EaseType = EaseType.Linear;
+    private particleDistanceDistribution: DistanceDistribution = DistanceDistribution.Normal;
 
     private currentStartTime: number = null;
     private currentDuration: number = null;
@@ -69,10 +75,11 @@ export class ParticleEmitter {
         this.emissionSpreadAngle = spreadAngle;
     }
 
-    setTravelBehavior(distanceLow: number, distanceHigh: number, ease: EaseType) {
+    setTravelBehavior(distanceLow: number, distanceHigh: number, ease: EaseType, distanceDistribution: DistanceDistribution) {
         this.particleDistanceLow = distanceLow;
         this.particleDistanceHigh = distanceHigh;
         this.particleTravelEase = ease;
+        this.particleDistanceDistribution = distanceDistribution;
     }
 
     setScale(scale: number) {
@@ -104,8 +111,10 @@ export class ParticleEmitter {
         rotatePoint(origin, this.emitterOrientation);
 
         let directionAngle = this.emissionDirection + (Math.random() - 0.5) * this.emissionSpreadAngle;
-        let weightedRandom = Math.sqrt(Math.random());
-        let directionDistance = MathUtil.lerp(this.particleDistanceLow, this.particleDistanceHigh, weightedRandom);//MathUtil.randomInRange(this.particleDistanceLow, this.particleDistanceHigh);
+        let weightedRandom: number;
+        if (this.particleDistanceDistribution === DistanceDistribution.Normal) weightedRandom = Math.random();
+        else if (this.particleDistanceDistribution === DistanceDistribution.UniformInCircle) weightedRandom = Math.sqrt(Math.random());
+        let directionDistance = MathUtil.lerp(this.particleDistanceLow, this.particleDistanceHigh, weightedRandom);MathUtil.randomInRange(this.particleDistanceLow, this.particleDistanceHigh);
         let direction: Vector2 = {
             x: Math.cos(directionAngle) * directionDistance,
             y: Math.sin(directionAngle) * directionDistance
