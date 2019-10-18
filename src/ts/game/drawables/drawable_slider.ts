@@ -217,7 +217,7 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         for (let i = 0; i < sliderSlideTypes.length; i++) {
             let type = sliderSlideTypes[i];
             let emitter = gameState.currentGameplaySkin.sounds[type].getEmitter(volume, index, sliderSlideStartPan);
-            if (!emitter || emitter.getBuffer().duration < 0.01) continue;
+            if (!emitter || emitter.isReallyShort()) continue;
 
             emitter.setLoopState(true);
             sliderSlideEmitters.push(emitter);

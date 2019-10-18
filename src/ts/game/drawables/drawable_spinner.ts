@@ -14,7 +14,7 @@ import { Mod } from "../mods/mods";
 import { accuracyMeter } from "../hud";
 import { CurrentTimingPointInfo, ComboInfo } from "../processed_beatmap";
 import { BeatmapDifficulty } from "../../datamodel/beatmap_difficulty";
-import { HitSoundInfo, generateHitSoundInfo, HitSoundType } from "../skin/sound";
+import { HitSoundInfo, generateHitSoundInfo, OsuSoundType } from "../skin/sound";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -107,8 +107,8 @@ export class DrawableSpinner extends DrawableHitObject {
         let volume = spinner.extras.sampleVolume || currentTimingPoint.volume,
             index = spinner.extras.customIndex || currentTimingPoint.sampleIndex || 1;
 
-        let emitter = gameState.currentGameplaySkin.sounds[HitSoundType.SpinnerSpin].getEmitter(volume, index);
-        if (emitter && emitter.getBuffer().duration >= 0.01) {
+        let emitter = gameState.currentGameplaySkin.sounds[OsuSoundType.SpinnerSpin].getEmitter(volume, index);
+        if (emitter && !emitter.isReallyShort()) {
             emitter.setLoopState(true);
             this.spinSoundEmitter = emitter;
         }
@@ -614,7 +614,7 @@ export class DrawableSpinner extends DrawableHitObject {
             this.bonusSpinsInterpolator.start(currentTime);
             this.glowInterpolator.start(currentTime);
 
-            gameState.currentGameplaySkin.sounds[HitSoundType.SpinnerBonus].play(this.bonusSoundVolume);
+            gameState.currentGameplaySkin.sounds[OsuSoundType.SpinnerBonus].play(this.bonusSoundVolume);
         }
 
         let spinCompletion = spinsSpunNow / this.requiredSpins;

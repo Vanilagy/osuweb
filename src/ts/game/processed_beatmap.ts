@@ -373,3 +373,7 @@ export class ProcessedBeatmap {
         return false;
     }
 }
+
+export function getBreakMidpoint(osuBreak: Break) {
+    return (osuBreak.startTime + osuBreak.endTime) / 2;
+}

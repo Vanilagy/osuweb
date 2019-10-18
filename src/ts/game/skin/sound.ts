@@ -11,63 +11,63 @@ import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
 const HIT_SOUND_PAN_DIVISOR = 800; // How many osu!pixels from the center of the screen one has to move for the hit sound to be fully on either the left or right audio channel
 
 export interface HitSoundInfo {
-    base: HitSoundType,
-    additions?: HitSoundType[],
+    base: OsuSoundType,
+    additions?: OsuSoundType[],
     volume: number,
     index?: number,
     position?: Point
 }
 
 export function getHitSoundTypesFromSampleSetAndBitfield(sampleSet: number, bitfield: number) {
-    let types: HitSoundType[] = [];
+    let types: OsuSoundType[] = [];
 
     if ((bitfield & 1) !== 0) {
-        if (sampleSet === 1) types.push(HitSoundType.NormalHitNormal);
-        else if (sampleSet === 2) types.push(HitSoundType.SoftHitNormal);
-        else if (sampleSet === 3) types.push(HitSoundType.DrumHitNormal);
+        if (sampleSet === 1) types.push(OsuSoundType.NormalHitNormal);
+        else if (sampleSet === 2) types.push(OsuSoundType.SoftHitNormal);
+        else if (sampleSet === 3) types.push(OsuSoundType.DrumHitNormal);
     }
 
     if ((bitfield & 2) !== 0) {
-        if (sampleSet === 1) types.push(HitSoundType.NormalHitWhistle);
-        else if (sampleSet === 2) types.push(HitSoundType.SoftHitWhistle);
-        else if (sampleSet === 3) types.push(HitSoundType.DrumHitWhistle);
+        if (sampleSet === 1) types.push(OsuSoundType.NormalHitWhistle);
+        else if (sampleSet === 2) types.push(OsuSoundType.SoftHitWhistle);
+        else if (sampleSet === 3) types.push(OsuSoundType.DrumHitWhistle);
     }
 
     if ((bitfield & 4) !== 0) {
-        if (sampleSet === 1) types.push(HitSoundType.NormalHitFinish);
-        else if (sampleSet === 2) types.push(HitSoundType.SoftHitFinish);
-        else if (sampleSet === 3) types.push(HitSoundType.DrumHitFinish);
+        if (sampleSet === 1) types.push(OsuSoundType.NormalHitFinish);
+        else if (sampleSet === 2) types.push(OsuSoundType.SoftHitFinish);
+        else if (sampleSet === 3) types.push(OsuSoundType.DrumHitFinish);
     }
     
     if ((bitfield & 8) !== 0) {
-        if (sampleSet === 1) types.push(HitSoundType.NormalHitClap);
-        else if (sampleSet === 2) types.push(HitSoundType.SoftHitClap);
-        else if (sampleSet === 3) types.push(HitSoundType.DrumHitClap);
+        if (sampleSet === 1) types.push(OsuSoundType.NormalHitClap);
+        else if (sampleSet === 2) types.push(OsuSoundType.SoftHitClap);
+        else if (sampleSet === 3) types.push(OsuSoundType.DrumHitClap);
     }
 
     return types;
 }
 
 export function getTickHitSoundTypeFromSampleSet(sampleSet: number) {
-    if (sampleSet === 1) return HitSoundType.NormalSliderTick;
-    else if (sampleSet === 2) return HitSoundType.SoftSliderTick;
-    else if (sampleSet === 3) return HitSoundType.DrumSliderTick;
+    if (sampleSet === 1) return OsuSoundType.NormalSliderTick;
+    else if (sampleSet === 2) return OsuSoundType.SoftSliderTick;
+    else if (sampleSet === 3) return OsuSoundType.DrumSliderTick;
 }
 
 export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitfield: number) {
-    let types: HitSoundType[] = [];
+    let types: OsuSoundType[] = [];
 
     bitfield |= 1; // Normal sound is always played
 
     if ((bitfield & 1) !== 0) {
-        if (sampleSet === 1) types.push(HitSoundType.NormalSliderSlide);
-        else if (sampleSet === 2) types.push(HitSoundType.SoftSliderSlide);
-        else if (sampleSet === 3) types.push(HitSoundType.DrumSliderSlide);
+        if (sampleSet === 1) types.push(OsuSoundType.NormalSliderSlide);
+        else if (sampleSet === 2) types.push(OsuSoundType.SoftSliderSlide);
+        else if (sampleSet === 3) types.push(OsuSoundType.DrumSliderSlide);
     }
     if ((bitfield & 2) !== 0) {
-        if (sampleSet === 1) types.push(HitSoundType.NormalSliderWhistle);
-        else if (sampleSet === 2) types.push(HitSoundType.SoftSliderWhistle);
-        else if (sampleSet === 3) types.push(HitSoundType.DrumSliderWhistle);
+        if (sampleSet === 1) types.push(OsuSoundType.NormalSliderWhistle);
+        else if (sampleSet === 2) types.push(OsuSoundType.SoftSliderWhistle);
+        else if (sampleSet === 3) types.push(OsuSoundType.DrumSliderWhistle);
     }
     // Only normal and whistle are supported, so ignore finish and clap.
 
@@ -98,7 +98,7 @@ export function generateHitSoundInfo(hitSound: number, baseSet: number, addition
     return info;
 }
 
-export class HitSound {
+export class OsuSound {
     private files: { [index: number]: VirtualFile };
     private audioBuffers: { [index: number]: AudioBuffer };
 
@@ -194,7 +194,7 @@ export function calculatePanFromOsuCoordinates(position: Point) {
     return MathUtil.clamp(x/HIT_SOUND_PAN_DIVISOR, -1.0, 1.0);
 }
 
-export enum HitSoundType {
+export enum OsuSoundType {
     NormalHitNormal,
     NormalHitWhistle,
     NormalHitFinish,
@@ -222,35 +222,41 @@ export enum HitSoundType {
     SpinnerSpin,
     SpinnerBonus,
 
-    ComboBreak
+    ComboBreak,
+
+    SectionPass,
+    SectionFail
 }
 
-export let hitSoundFileNames: Map<HitSoundType, string> = new Map();
-hitSoundFileNames.set(HitSoundType.NormalHitNormal, "normal-hitnormal");
-hitSoundFileNames.set(HitSoundType.NormalHitWhistle, "normal-hitwhistle");
-hitSoundFileNames.set(HitSoundType.NormalHitFinish, "normal-hitfinish");
-hitSoundFileNames.set(HitSoundType.NormalHitClap, "normal-hitclap");
-hitSoundFileNames.set(HitSoundType.NormalSliderSlide, "normal-sliderslide");
-hitSoundFileNames.set(HitSoundType.NormalSliderWhistle, "normal-sliderwhistle");
-hitSoundFileNames.set(HitSoundType.NormalSliderTick, "normal-slidertick");
+export let osuSoundFileNames: Map<OsuSoundType, string> = new Map();
+osuSoundFileNames.set(OsuSoundType.NormalHitNormal, "normal-hitnormal");
+osuSoundFileNames.set(OsuSoundType.NormalHitWhistle, "normal-hitwhistle");
+osuSoundFileNames.set(OsuSoundType.NormalHitFinish, "normal-hitfinish");
+osuSoundFileNames.set(OsuSoundType.NormalHitClap, "normal-hitclap");
+osuSoundFileNames.set(OsuSoundType.NormalSliderSlide, "normal-sliderslide");
+osuSoundFileNames.set(OsuSoundType.NormalSliderWhistle, "normal-sliderwhistle");
+osuSoundFileNames.set(OsuSoundType.NormalSliderTick, "normal-slidertick");
 //
-hitSoundFileNames.set(HitSoundType.SoftHitNormal, "soft-hitnormal");
-hitSoundFileNames.set(HitSoundType.SoftHitWhistle, "soft-hitwhistle");
-hitSoundFileNames.set(HitSoundType.SoftHitFinish, "soft-hitfinish");
-hitSoundFileNames.set(HitSoundType.SoftHitClap, "soft-hitclap");
-hitSoundFileNames.set(HitSoundType.SoftSliderSlide, "soft-sliderslide");
-hitSoundFileNames.set(HitSoundType.SoftSliderWhistle, "soft-sliderwhistle");
-hitSoundFileNames.set(HitSoundType.SoftSliderTick, "soft-slidertick");
+osuSoundFileNames.set(OsuSoundType.SoftHitNormal, "soft-hitnormal");
+osuSoundFileNames.set(OsuSoundType.SoftHitWhistle, "soft-hitwhistle");
+osuSoundFileNames.set(OsuSoundType.SoftHitFinish, "soft-hitfinish");
+osuSoundFileNames.set(OsuSoundType.SoftHitClap, "soft-hitclap");
+osuSoundFileNames.set(OsuSoundType.SoftSliderSlide, "soft-sliderslide");
+osuSoundFileNames.set(OsuSoundType.SoftSliderWhistle, "soft-sliderwhistle");
+osuSoundFileNames.set(OsuSoundType.SoftSliderTick, "soft-slidertick");
 //
-hitSoundFileNames.set(HitSoundType.DrumHitNormal, "drum-hitnormal");
-hitSoundFileNames.set(HitSoundType.DrumHitWhistle, "drum-hitwhistle");
-hitSoundFileNames.set(HitSoundType.DrumHitFinish, "drum-hitfinish");
-hitSoundFileNames.set(HitSoundType.DrumHitClap, "drum-hitclap");
-hitSoundFileNames.set(HitSoundType.DrumSliderSlide, "drum-sliderslide");
-hitSoundFileNames.set(HitSoundType.DrumSliderWhistle, "drum-sliderwhistle");
-hitSoundFileNames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
+osuSoundFileNames.set(OsuSoundType.DrumHitNormal, "drum-hitnormal");
+osuSoundFileNames.set(OsuSoundType.DrumHitWhistle, "drum-hitwhistle");
+osuSoundFileNames.set(OsuSoundType.DrumHitFinish, "drum-hitfinish");
+osuSoundFileNames.set(OsuSoundType.DrumHitClap, "drum-hitclap");
+osuSoundFileNames.set(OsuSoundType.DrumSliderSlide, "drum-sliderslide");
+osuSoundFileNames.set(OsuSoundType.DrumSliderWhistle, "drum-sliderwhistle");
+osuSoundFileNames.set(OsuSoundType.DrumSliderTick, "drum-slidertick");
 //
-hitSoundFileNames.set(HitSoundType.SpinnerSpin, "spinnerspin");
-hitSoundFileNames.set(HitSoundType.SpinnerBonus, "spinnerbonus");
+osuSoundFileNames.set(OsuSoundType.SpinnerSpin, "spinnerspin");
+osuSoundFileNames.set(OsuSoundType.SpinnerBonus, "spinnerbonus");
 //
-hitSoundFileNames.set(HitSoundType.ComboBreak, "combobreak");
+osuSoundFileNames.set(OsuSoundType.ComboBreak, "combobreak");
+//
+osuSoundFileNames.set(OsuSoundType.SectionPass, "sectionpass");
+osuSoundFileNames.set(OsuSoundType.SectionFail, "sectionfail");

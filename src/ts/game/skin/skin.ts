@@ -4,7 +4,7 @@ import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "
 import { Color } from "../../util/graphics_util";
 import { assert, jsonClone, shallowObjectClone } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
-import { HitSoundType, HitSound, hitSoundFileNames, calculatePanFromOsuCoordinates, HitSoundInfo } from "./sound";
+import { OsuSoundType, OsuSound, osuSoundFileNames, calculatePanFromOsuCoordinates, HitSoundInfo } from "./sound";
 
 // This is all temp:
 let baseSkinPath = "./assets/skins/default";
@@ -26,7 +26,7 @@ export class Skin {
     public scoreNumberTextures: SpriteNumberTextures;
     public comboNumberTextures: SpriteNumberTextures;
     public colors: Color[];
-    public sounds: { [key in keyof typeof HitSoundType]?: HitSound };
+    public sounds: { [key in keyof typeof OsuSoundType]?: OsuSound };
 
     constructor(directory: VirtualDirectory) {
         this.directory = directory;
@@ -112,6 +112,10 @@ export class Skin {
         this.textures["scorebarKiDanger"] = await OsuTexture.fromFiles(this.directory, "scorebar-kidanger", "png", true);
         this.textures["scorebarKiDanger2"] = await OsuTexture.fromFiles(this.directory, "scorebar-kidanger2", "png", true);
 
+        // Section fail/pass
+        this.textures["sectionPass"] = await OsuTexture.fromFiles(this.directory, "section-pass", "png", true);
+        this.textures["sectionFail"] = await OsuTexture.fromFiles(this.directory, "section-fail", "png", true);
+        
         // Hit circle numbers
         this.hitCircleNumberTextures = {} as SpriteNumberTextures;
         for (let suffix of HIT_CIRCLE_NUMBER_SUFFIXES) {
@@ -136,18 +140,18 @@ export class Skin {
 
         let hitSoundReadyPromises: Promise<void>[] = [];
 
-        for (let key in HitSoundType) {
+        for (let key in OsuSoundType) {
             if (isNaN(Number(key))) continue;
 
-            let type = Number(key) as HitSoundType;
-            let fileName = hitSoundFileNames.get(type);
+            let type = Number(key) as OsuSoundType;
+            let fileName = osuSoundFileNames.get(type);
 
             if (this.directory.networkFallbackUrl) {
                 await this.directory.getFileByName(fileName + '.wav');
                 await this.directory.getFileByName(fileName + '.mp3');
             }
 
-            let hitSound = new HitSound(this.directory, fileName);
+            let hitSound = new OsuSound(this.directory, fileName);
             hitSoundReadyPromises.push(hitSound.ready());
 
             this.sounds[key] = hitSound;

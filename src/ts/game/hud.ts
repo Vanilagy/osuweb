@@ -5,6 +5,7 @@ import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../visuals/sprite_number
 import { baseSkin } from "./skin/skin";
 import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { OsuTexture } from "./skin/texture";
+import { OsuSound, OsuSoundType } from "./skin/sound";
 
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;
@@ -13,11 +14,14 @@ export let accuracyDisplay: SpriteNumber;
 export let progressIndicator: ProgressIndicator;
 export let accuracyMeter: AccuracyMeter;
 export let scorebar: Scorebar;
+export let sectionStateDisplayer: SectionStateDisplayer;
 
 const ACCURACY_METER_FADE_OUT_DELAY = 4000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 const SCOREBAR_KI_DANGER_THRESHOLD = 0.5;
 const SCOREBAR_KI_DANGER2_THRESHOLD = 0.25;
+const SECTION_STATE_DISPLAY_BLINK_DURATION = 250; // In ms
+const SECTION_STATE_DISPLAY_BLINK_AMOUNT = 2;
 
 export function initHud() {
     let scoreHeight = window.innerHeight * 0.0575,
@@ -88,6 +92,9 @@ export function initHud() {
 
     scorebar = new Scorebar();
 
+    sectionStateDisplayer = new SectionStateDisplayer();
+
+    hudContainer.addChild(sectionStateDisplayer.container);
     hudContainer.addChild(scorebar.container);
     hudContainer.addChild(accuracyMeter.container);
     hudContainer.addChild(scoreDisplay.container);
@@ -439,5 +446,61 @@ class Scorebar {
 
         this.progressInterpolator.setGoal(percentage, currentTime);
         if (isGain) this.markerInterpolator.start(currentTime);
+    }
+}
+
+// Displays the section pass and section fail thing you see in breaks.
+class SectionStateDisplayer {
+    public container: PIXI.Container;
+    private sprite: PIXI.Sprite;
+    private lastPopUpTime: number = -Infinity;
+
+    constructor() {
+        this.container = new PIXI.Container();
+        this.sprite = new PIXI.Sprite();
+        this.container.addChild(this.sprite);
+
+        this.sprite.anchor.set(0.5, 0.5);
+        this.container.position.set(window.innerWidth/2, window.innerHeight/2);
+    }
+
+    getLastPopUpTime() {
+        return this.lastPopUpTime;
+    }
+
+    popUp(pass: boolean, currentTime: number) {
+        this.lastPopUpTime = currentTime;
+
+        let { screenPixelRatio } = gameState.currentPlay;
+        let osuTexture: OsuTexture, osuSound: OsuSound;
+
+        if (pass) {
+            osuTexture = gameState.currentGameplaySkin.textures["sectionPass"];
+            osuSound = gameState.currentGameplaySkin.sounds[OsuSoundType.SectionPass];
+        } else {
+            osuTexture = gameState.currentGameplaySkin.textures["sectionFail"];
+            osuSound = gameState.currentGameplaySkin.sounds[OsuSoundType.SectionFail];
+        }
+
+        osuTexture.applyToSprite(this.sprite, screenPixelRatio);
+        osuSound.play(100);        
+    }
+
+    update(currentTime: number) {
+        let elapsedTime = currentTime - this.lastPopUpTime;
+
+        if (elapsedTime < SECTION_STATE_DISPLAY_BLINK_DURATION) {
+            let blinkCompletion = elapsedTime / SECTION_STATE_DISPLAY_BLINK_DURATION;
+            let sine = Math.sin((SECTION_STATE_DISPLAY_BLINK_AMOUNT * blinkCompletion) * (Math.PI*2));
+
+            this.container.visible = sine >= 0;
+            this.container.alpha = 1;
+        } else {
+            this.container.visible = true;
+
+            let fadeOutCompletion = (elapsedTime - 1200) / 400;
+            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+            this.container.alpha = 1 - fadeOutCompletion;
+        }
     }
 }

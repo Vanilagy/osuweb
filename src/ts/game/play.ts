@@ -1,4 +1,4 @@
-import { ProcessedBeatmap } from "./processed_beatmap";
+import { ProcessedBeatmap, getBreakMidpoint } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
 import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
@@ -14,7 +14,7 @@ import "./hud";
 import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
 import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } from "../input/input";
-import { progressIndicator, accuracyMeter, initHud, scorebar } from "./hud";
+import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer } from "./hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./drawables/headed_drawable_hit_object";
@@ -206,7 +206,7 @@ export class Play {
         mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
-        mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
+        mainMusicMediaPlayer.start(25 || -this.preludeTime / 1000);
 
         console.timeEnd("Audio load");
 
@@ -321,6 +321,9 @@ export class Play {
         // Update scorebar
         scorebar.update(currentTime);
 
+        // Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL OMG)
+        sectionStateDisplayer.update(currentTime);
+
         // Handle breaks
         while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
             // Can't call this variable "break" because reserved keyword, retarded.
@@ -379,8 +382,6 @@ export class Play {
             }
         }
 
-        
-
         // Update the cursor position if rocking AT
         if (this.activeMods.has(Mod.Auto)) this.handlePlaythroughInstructions(currentTime);
     }
@@ -401,6 +402,16 @@ export class Play {
 
         // Update health
         if (!this.processedBeatmap.isInBreak(currentTime)) this.gainHealth(-this.passiveHealthDrain * dt, currentTime); // "Gain" negative health
+
+        // Show section pass/pass when necessary
+        let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];
+        if (currentBreak) {
+            let midpoint = getBreakMidpoint(currentBreak);
+            if (isFinite(midpoint) && currentTime >= midpoint && sectionStateDisplayer.getLastPopUpTime() < midpoint) {
+                let isPass = this.currentHealth >= 0.5;
+                sectionStateDisplayer.popUp(isPass, midpoint);
+            }
+        }
 
         // Add new hit objects to screen
         for (this.currentHitObjectId; this.currentHitObjectId < this.processedBeatmap.hitObjects.length; this.currentHitObjectId++) {

@@ -63,6 +63,10 @@ export class SoundEmitter {
     getPlaybackRate() {
         return this.playbackRate;
     }
+
+    isReallyShort() {
+        return this.buffer === null || this.buffer.duration < 0.01; // Buffers shorter than this suck for looping
+    }
  
     private createSourceNode() {
         if (this.buffer === null) return;

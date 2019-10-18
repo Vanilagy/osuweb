@@ -10,7 +10,7 @@ import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { ModHelper } from "./mods/mod_helper";
 import { ScoringValue } from "./scoring_value";
 import { transferBasicProperties, transferBasicSpriteProperties } from "../util/pixi_util";
-import { HitSoundType } from "./skin/sound";
+import { OsuSoundType } from "./skin/sound";
 import { AnimatedOsuSprite } from "./skin/animated_sprite";
 import { OsuTexture } from "./skin/texture";
 import { ParticleEmitter, DistanceDistribution } from "../visuals/particle_emitter";
@@ -19,6 +19,7 @@ const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
 const SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME = 250; // In ms
 const MISS_POPUP_DROPDOWN_ACCERELATION = 0.00009; // in osu!pixels per ms^2
+const SCORE_POPUP_GRADUAL_SCALE_UP_AMOUNT = 0.12;
 
 export class Score {
     public points: number;
@@ -169,7 +170,7 @@ export class ScoreCounter {
         if (this.currentCombo === 0) return;
 
         if (this.currentCombo >= 50) {
-            gameState.currentGameplaySkin.sounds[HitSoundType.ComboBreak].play(100);
+            gameState.currentGameplaySkin.sounds[OsuSoundType.ComboBreak].play(100);
         }
 
         this.currentCombo = 0;
@@ -394,7 +395,7 @@ export class ScorePopup {
             if (this.hasParticles()) {
                 // If the popup has particles, apply an additional gradual scale-up animation:
                 let gradualScaleUp = elapsedTime / SCORE_POPUP_FADE_OUT_TIME;
-                sizeFactor += gradualScaleUp * 0.10; // At the end of the fade out, the thing should be at 1.10x the start size.
+                sizeFactor += gradualScaleUp * SCORE_POPUP_GRADUAL_SCALE_UP_AMOUNT;
             }
 
             this.container.scale.set(sizeFactor);
