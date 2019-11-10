@@ -358,7 +358,7 @@ export class ProcessedBeatmap {
 
         for (let i = 0; i < this.breaks.length; i++) {
             let breakEvent = this.breaks[i];
-            total += breakEvent.endTime - breakEvent.startTime;
+            total += getBreakLength(breakEvent);
         }
 
         return total;
@@ -376,4 +376,8 @@ export class ProcessedBeatmap {
 
 export function getBreakMidpoint(osuBreak: Break) {
     return (osuBreak.startTime + osuBreak.endTime) / 2;
+}
+
+export function getBreakLength(osuBreak: Break) {
+    return osuBreak.endTime - osuBreak.startTime;
 }

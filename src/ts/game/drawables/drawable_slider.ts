@@ -331,6 +331,8 @@ export class DrawableSlider extends HeadedDrawableHitObject {
         this.baseSprite = new PIXI.Sprite(renderTex);
         this.baseSprite.filters = [aaFilter];
         this.baseSprite.zIndex = -this.endTime;
+        //this.baseSprite.width = this.bounds.screenWidth;
+        //this.baseSprite.height = this.bounds.screenHeight;
 
         this.path.generateBaseVertexBuffer();
         let sliderBodyDefaultSnake = SLIDER_SETTINGS.snaking? 0.0 : 1.0;

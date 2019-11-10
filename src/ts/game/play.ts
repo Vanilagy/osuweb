@@ -1,4 +1,4 @@
-import { ProcessedBeatmap, getBreakMidpoint } from "./processed_beatmap";
+import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
 import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
@@ -206,7 +206,7 @@ export class Play {
         mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
-        mainMusicMediaPlayer.start(25 || -this.preludeTime / 1000);
+        mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
 
         console.timeEnd("Audio load");
 
@@ -407,7 +407,9 @@ export class Play {
         let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];
         if (currentBreak) {
             let midpoint = getBreakMidpoint(currentBreak);
-            if (isFinite(midpoint) && currentTime >= midpoint && sectionStateDisplayer.getLastPopUpTime() < midpoint) {
+            let length = getBreakLength(currentBreak);
+
+            if (isFinite(midpoint) && length >= 3000 && currentTime >= midpoint && sectionStateDisplayer.getLastPopUpTime() < midpoint) {
                 let isPass = this.currentHealth >= 0.5;
                 sectionStateDisplayer.popUp(isPass, midpoint);
             }
