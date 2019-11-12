@@ -1,4 +1,4 @@
-import { ProcessedBeatmap, getBreakMidpoint } from "./processed_beatmap";
+import { ProcessedBeatmap, getBreakMidpoint, Break } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
 import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
@@ -10,11 +10,11 @@ import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./drawables/follow_point";
 import { PlayEvent, PlayEventType } from "./play_events";
-import "./hud";
+import "./hud/hud";
 import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
 import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } from "../input/input";
-import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer } from "./hud";
+import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer, gameplayWarningArrows } from "./hud/hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { HeadedDrawableHitObject } from "./drawables/headed_drawable_hit_object";
@@ -35,6 +35,8 @@ const REFERENCE_SCREEN_HEIGHT = 768; // For a lot of full-screen textures, the r
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
+const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -2200; // Both of these are relative to the first hit object after the break
+const GAMEPLAY_WARNING_ARROWS_FLICKER_END = -800;
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -60,6 +62,7 @@ export class Play {
     private currentPlayEvent: number = 0;
     private currentFollowPointIndex = 0; // is this dirty? idk
     private currentBreakIndex = 0;
+    private firstHitObjectAfterBreakIndices: number[] = []; // Used to time the gameplay warning arrows after breaks
     
     // Draw stuffz:
     public hitObjectPixelRatio: number;
@@ -152,6 +155,25 @@ export class Play {
             this.currentPlaythroughInstruction = 0;
             this.autohit = true;
         }
+
+        for (let i = 0; i < this.processedBeatmap.hitObjects.length; i++) {
+            let prevHitObject = this.processedBeatmap.hitObjects[i-1];
+            let currHitObject = this.processedBeatmap.hitObjects[i];
+            if (!prevHitObject) continue;
+
+            let fittingBreak: Break = null;
+            for (let j = 0; j < this.processedBeatmap.breaks.length; j++) {
+                let osuBreak = this.processedBeatmap.breaks[j];
+                if (osuBreak.endTime <= currHitObject.startTime) fittingBreak = osuBreak;
+                else break;
+            }
+
+            if (!fittingBreak) continue;
+
+            if (fittingBreak.endTime > prevHitObject.startTime) {
+                this.firstHitObjectAfterBreakIndices.push(i);
+            }
+        }
     }
 
     private generateFollowPoints() {
@@ -206,7 +228,7 @@ export class Play {
         mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
 
         this.preludeTime = this.processedBeatmap.getPreludeTime();
-        mainMusicMediaPlayer.start(25 || -this.preludeTime / 1000);
+        mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
 
         console.timeEnd("Audio load");
 
@@ -321,8 +343,26 @@ export class Play {
         // Update scorebar
         scorebar.update(currentTime);
 
-        // Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL OMG)
+        // Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL, OMG)
         sectionStateDisplayer.update(currentTime);
+
+        // Guess what this does!
+        
+        let currentGameplayWarningArrowsStartTime: number = null;
+        for (let i = 0; i < this.firstHitObjectAfterBreakIndices.length; i++) {
+            let index = this.firstHitObjectAfterBreakIndices[i];
+            let hitObject = this.processedBeatmap.hitObjects[index];
+            if (currentTime >= hitObject.startTime) continue;
+
+            let time = currentTime - hitObject.startTime;
+            if (time >= GAMEPLAY_WARNING_ARROWS_FLICKER_START && time < GAMEPLAY_WARNING_ARROWS_FLICKER_END) {
+                let previousHitObject = this.processedBeatmap.hitObjects[index-1]; // No need to null-check here, because 'index' will be at least 1
+                let startTime = Math.max(previousHitObject.endTime, hitObject.startTime + GAMEPLAY_WARNING_ARROWS_FLICKER_START);
+
+                currentGameplayWarningArrowsStartTime = startTime;
+            }
+        }
+        gameplayWarningArrows.update(currentTime, currentGameplayWarningArrowsStartTime);
 
         // Handle breaks
         while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
@@ -404,7 +444,7 @@ export class Play {
         if (!this.processedBeatmap.isInBreak(currentTime)) this.gainHealth(-this.passiveHealthDrain * dt, currentTime); // "Gain" negative health
 
         // Show section pass/pass when necessary
-        let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];
+        let currentBreak = this.getCurrentBreak();
         if (currentBreak) {
             let midpoint = getBreakMidpoint(currentBreak);
             if (isFinite(midpoint) && currentTime >= midpoint && sectionStateDisplayer.getLastPopUpTime() < midpoint) {
@@ -687,6 +727,10 @@ export class Play {
         if (!objectBefore || !(objectBefore instanceof HeadedDrawableHitObject)) return false;
 
         return objectBefore.scoring.head.hit === ScoringValue.NotHit;
+    }
+
+    getCurrentBreak() {
+        return this.processedBeatmap.breaks[this.currentBreakIndex] || null;
     }
 
     /** Handles playthrough instructions for AT. */

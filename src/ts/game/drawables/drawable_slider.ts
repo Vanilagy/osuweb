@@ -6,7 +6,7 @@ import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME, SH
 import { colorToHexNumber } from "../../util/graphics_util";
 import { PlayEvent, PlayEventType } from "../play_events";
 import { assert, last, toFloat32 } from "../../util/misc_util";
-import { accuracyMeter } from "../hud";
+import { accuracyMeter } from "../hud/hud";
 import { HeadedDrawableHitObject, SliderScoring, getDefaultSliderScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { SoundEmitter } from "../../audio/sound_emitter";

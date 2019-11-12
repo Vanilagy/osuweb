@@ -1,7 +1,7 @@
 import { Circle } from "../../datamodel/circle";
 import { gameState } from "../game_state";
 import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../../util/constants";
-import { accuracyMeter } from "../hud";
+import { accuracyMeter } from "../hud/hud";
 import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { ScoringValue } from "../scoring_value";

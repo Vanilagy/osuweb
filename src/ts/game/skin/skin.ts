@@ -115,6 +115,10 @@ export class Skin {
         // Section fail/pass
         this.textures["sectionPass"] = await OsuTexture.fromFiles(this.directory, "section-pass", "png", true);
         this.textures["sectionFail"] = await OsuTexture.fromFiles(this.directory, "section-fail", "png", true);
+
+        // Warning arrows
+        this.textures["playWarningArrow"] = await OsuTexture.fromFiles(this.directory, "play-warningarrow", "png", true);
+        this.textures["arrowWarning"] = await OsuTexture.fromFiles(this.directory, "arrow-warning", "png", true);
         
         // Hit circle numbers
         this.hitCircleNumberTextures = {} as SpriteNumberTextures;

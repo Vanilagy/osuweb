@@ -1,12 +1,12 @@
 import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength, stackShiftPoint } from "../../util/point";
 import { gameState } from "../game_state";
-import { MathUtil } from "../../util/math_util";
+import { MathUtil, TAU } from "../../util/math_util";
 import { last, jsonClone, binarySearchLessOrEqual } from "../../util/misc_util";
 import { Slider, SliderType, SliderCurveSection } from "../../datamodel/slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
 const SLIDER_CAPCIRCLE_SEGMENTS = 48;
-const SLIDER_CAP_CIRCLE_SEGMENT_ARC_LENGTH = Math.PI*2 / SLIDER_CAPCIRCLE_SEGMENTS;
+const SLIDER_CAP_CIRCLE_SEGMENT_ARC_LENGTH = TAU / SLIDER_CAPCIRCLE_SEGMENTS;
 const CIRCLE_ARC_SEGMENT_LENGTH = 10; // For P sliders
 const CATMULL_ROM_SECTION_SAMPLE_COUNT = 50;
 
@@ -409,8 +409,8 @@ export class SliderPath {
         let counterClockwise = (a3 < a2 && a2 < a1) || (a1 < a3 && a3 < a2) || (a2 < a1 && a1 < a3);
         
         let fullAngleDifference = MathUtil.getNormalizedAngleDelta(a1, a3);
-        if (fullAngleDifference < 0 && !counterClockwise) fullAngleDifference = Math.PI*2 + fullAngleDifference;
-        if (fullAngleDifference > 0 && counterClockwise) fullAngleDifference = -Math.PI*2 + fullAngleDifference;
+        if (fullAngleDifference < 0 && !counterClockwise) fullAngleDifference = TAU + fullAngleDifference;
+        if (fullAngleDifference > 0 && counterClockwise) fullAngleDifference = -TAU + fullAngleDifference;
 
         let calculatedLength = Math.abs(fullAngleDifference) * radius;
         let hasToBeExtended = length > calculatedLength;

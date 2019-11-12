@@ -3,7 +3,7 @@ import { PlayEvent, PlayEventType } from "../play_events";
 import { Spinner } from "../../datamodel/spinner";
 import { mainHitObjectContainer } from "../../visuals/rendering";
 import { gameState } from "../game_state";
-import { MathUtil, EaseType } from "../../util/math_util";
+import { MathUtil, EaseType, TAU } from "../../util/math_util";
 import { Point } from "../../util/point";
 import { anyGameButtonIsPressed } from "../../input/input";
 import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../../util/constants";
@@ -11,7 +11,7 @@ import { Interpolator, colorToHexNumber, lerpColors, Color, Colors } from "../..
 import { SpriteNumber } from "../../visuals/sprite_number";
 import { SoundEmitter } from "../../audio/sound_emitter";
 import { Mod } from "../mods/mods";
-import { accuracyMeter } from "../hud";
+import { accuracyMeter } from "../hud/hud";
 import { CurrentTimingPointInfo, ComboInfo } from "../processed_beatmap";
 import { BeatmapDifficulty } from "../../datamodel/beatmap_difficulty";
 import { HitSoundInfo, generateHitSoundInfo, OsuSoundType } from "../skin/sound";
@@ -506,7 +506,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     getSpinsSpun() {
-        return this.totalRadiansSpun / (Math.PI * 2);
+        return this.totalRadiansSpun / TAU;
     }
 
     handleMouseMove(osuMouseCoordinates: Point, currentTime: number) {
@@ -586,7 +586,7 @@ export class DrawableSpinner extends DrawableHitObject {
         this.tryDecelerate(currentTime, dt, 0);
 
         let angle = this.angularVelocity * dt;
-        let spinsPerMinute = Math.abs(this.angularVelocity) * 1000 * 60 / (Math.PI*2);
+        let spinsPerMinute = Math.abs(this.angularVelocity) * 1000 * 60 / TAU;
         this.spinnerRpmNumber.setValue(Math.floor(spinsPerMinute));
 
         let prevSpinsSpun = this.getSpinsSpun();
