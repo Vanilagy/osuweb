@@ -1,4 +1,4 @@
-import { ProcessedBeatmap, getBreakMidpoint, Break } from "./processed_beatmap";
+import { ProcessedBeatmap, getBreakMidpoint, Break, getBreakLength } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
 import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
@@ -447,7 +447,9 @@ export class Play {
         let currentBreak = this.getCurrentBreak();
         if (currentBreak) {
             let midpoint = getBreakMidpoint(currentBreak);
-            if (isFinite(midpoint) && currentTime >= midpoint && sectionStateDisplayer.getLastPopUpTime() < midpoint) {
+            let length = getBreakLength(currentBreak);
+
+            if (isFinite(midpoint) && length >= 3000 && currentTime >= midpoint && sectionStateDisplayer.getLastPopUpTime() < midpoint) {
                 let isPass = this.currentHealth >= 0.5;
                 sectionStateDisplayer.popUp(isPass, midpoint);
             }
