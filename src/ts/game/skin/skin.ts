@@ -16,6 +16,7 @@ export const IGNORE_BEATMAP_HIT_SOUNDS = true;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
+const CURRENT_LATEST_SKIN_VERSION = 2.5;
 
 export class Skin {
     private directory: VirtualDirectory;
@@ -205,6 +206,11 @@ export class Skin {
         newSkin.sounds = shallowObjectClone(this.sounds);
 
         return newSkin;
+    }
+
+    getVersionNumber() {
+        if (this.config.general.version === 'latest') return CURRENT_LATEST_SKIN_VERSION;
+        return this.config.general.version;
     }
 }
 

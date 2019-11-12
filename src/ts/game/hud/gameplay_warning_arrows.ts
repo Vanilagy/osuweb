@@ -1,5 +1,6 @@
 import { gameState } from "../game_state";
 import { TAU } from "../../util/math_util";
+import { colorToHexNumber, Colors } from "../../util/graphics_util";
 
 const GAMEPLAY_WARNING_ARROWS_FLICKER_FREQUENCY = 5; // In Hertz
 
@@ -15,9 +16,13 @@ export class GameplayWarningArrows {
         this.container.position.set(window.innerWidth/2, window.innerHeight/2);
         this.container.visible = false;
         
-        let arrowTexture = gameState.currentGameplaySkin.textures["playWarningArrow"];
-        if (arrowTexture.isEmpty()) arrowTexture = gameState.currentGameplaySkin.textures["arrowWarning"]; // Get more generic texture
-        // TODO: Red tint?
+        let arrowTexture = gameState.currentGameplaySkin.textures["arrowWarning"];
+        let doTint = false;
+
+        if (arrowTexture.isEmpty()) {
+            arrowTexture = gameState.currentGameplaySkin.textures["playWarningArrow"];
+            if (gameState.currentGameplaySkin.getVersionNumber() >= 2.0) doTint = true;
+        }
 
         this.sprites = [];
         // Create a sprite for each corner
@@ -32,6 +37,8 @@ export class GameplayWarningArrows {
             if (i >= 2) sprite.x *= -1;
             else sprite.rotation = Math.PI;
             if (i % 2 === 0) sprite.y *= -1;
+
+            if (doTint) sprite.tint = colorToHexNumber(Colors.Red);
 
             this.container.addChild(sprite);
             this.sprites.push(sprite);
