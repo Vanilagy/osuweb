@@ -29,8 +29,8 @@ export class GameplayWarningArrows {
         for (let i = 0; i < 4; i++) {
             let sprite = new PIXI.Sprite();
             sprite.anchor.set(0.5, 0.5);
-            sprite.x = 520;
-            sprite.y = 210;
+            sprite.x = 556 * screenPixelRatio;
+            sprite.y = 224 * screenPixelRatio;
             
             arrowTexture.applyToSprite(sprite, screenPixelRatio);
 

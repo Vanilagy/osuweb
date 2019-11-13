@@ -156,6 +156,7 @@ export class Play {
             this.autohit = true;
         }
 
+		// Compute hit object indices for showing gameplay warning arrows after a break
         for (let i = 0; i < this.processedBeatmap.hitObjects.length; i++) {
             let prevHitObject = this.processedBeatmap.hitObjects[i-1];
             let currHitObject = this.processedBeatmap.hitObjects[i];
@@ -173,7 +174,7 @@ export class Play {
             if (fittingBreak.endTime > prevHitObject.startTime) {
                 this.firstHitObjectAfterBreakIndices.push(i);
             }
-        }
+		}
     }
 
     private generateFollowPoints() {
