@@ -17,7 +17,8 @@ import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { pointDistance } from "../util/point";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
-const IMPLICIT_BREAK_THRESHOLD = 10000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
+const IMPLICIT_BREAK_THRESHOLD = 5000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
+const REQUIRED_MINIMUM_BREAK_LENGTH = 750; // In milliseconds
 
 export interface ComboInfo {
     comboNum: number,
@@ -286,7 +287,8 @@ export class ProcessedBeatmap {
             let event = this.beatmap.events[i];
             if (event.type !== BeatmapEventType.Break) continue;
 
-            let breakEvent = event as BeatmapEventBreak;
+			let breakEvent = event as BeatmapEventBreak;
+			if (breakEvent.endTime - breakEvent.time < REQUIRED_MINIMUM_BREAK_LENGTH) continue;
 
             this.breaks.push({
                 startTime: breakEvent.time,

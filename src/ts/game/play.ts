@@ -35,8 +35,8 @@ const REFERENCE_SCREEN_HEIGHT = 768; // For a lot of full-screen textures, the r
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
-const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -2200; // Both of these are relative to the first hit object after the break
-const GAMEPLAY_WARNING_ARROWS_FLICKER_END = -800;
+const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relative to the end of the break
+const GAMEPLAY_WARNING_ARROWS_FLICKER_END = 400;
 
 export class Play {
     public processedBeatmap: ProcessedBeatmap;
@@ -62,7 +62,7 @@ export class Play {
     private currentPlayEvent: number = 0;
     private currentFollowPointIndex = 0; // is this dirty? idk
     private currentBreakIndex = 0;
-    private firstHitObjectAfterBreakIndices: number[] = []; // Used to time the gameplay warning arrows after breaks
+	private breakEndWarningTimes: number[] = [];
     
     // Draw stuffz:
     public hitObjectPixelRatio: number;
@@ -156,24 +156,13 @@ export class Play {
             this.autohit = true;
         }
 
-		// Compute hit object indices for showing gameplay warning arrows after a break
-        for (let i = 0; i < this.processedBeatmap.hitObjects.length; i++) {
-            let prevHitObject = this.processedBeatmap.hitObjects[i-1];
-            let currHitObject = this.processedBeatmap.hitObjects[i];
-            if (!prevHitObject) continue;
+		// Compute break end warning times
+		for (let i = 0; i < this.processedBeatmap.breaks.length; i++) {
+			let osuBreak = this.processedBeatmap.breaks[i];
+			if (!isFinite(getBreakMidpoint(osuBreak))) continue; // It has to be a bounded break
 
-            let fittingBreak: Break = null;
-            for (let j = 0; j < this.processedBeatmap.breaks.length; j++) {
-                let osuBreak = this.processedBeatmap.breaks[j];
-                if (osuBreak.endTime <= currHitObject.startTime) fittingBreak = osuBreak;
-                else break;
-            }
-
-            if (!fittingBreak) continue;
-
-            if (fittingBreak.endTime > prevHitObject.startTime) {
-                this.firstHitObjectAfterBreakIndices.push(i);
-            }
+			let warningTime = Math.max(osuBreak.startTime, osuBreak.endTime + GAMEPLAY_WARNING_ARROWS_FLICKER_START);
+			this.breakEndWarningTimes.push(warningTime);
 		}
     }
 
@@ -347,22 +336,20 @@ export class Play {
         // Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL, OMG)
         sectionStateDisplayer.update(currentTime);
 
-        // Guess what this does!
-        
-        let currentGameplayWarningArrowsStartTime: number = null;
-        for (let i = 0; i < this.firstHitObjectAfterBreakIndices.length; i++) {
-            let index = this.firstHitObjectAfterBreakIndices[i];
-            let hitObject = this.processedBeatmap.hitObjects[index];
-            if (currentTime >= hitObject.startTime) continue;
+		// Update the gameplay warning arrows
+		let currentGameplayWarningArrowsStartTime: number = null;
+		for (let i = 0; i < this.breakEndWarningTimes.length; i++) {
+			let startTime = this.breakEndWarningTimes[i];
+			if (startTime > currentTime) break;
 
-            let time = currentTime - hitObject.startTime;
-            if (time >= GAMEPLAY_WARNING_ARROWS_FLICKER_START && time < GAMEPLAY_WARNING_ARROWS_FLICKER_END) {
-                let previousHitObject = this.processedBeatmap.hitObjects[index-1]; // No need to null-check here, because 'index' will be at least 1
-                let startTime = Math.max(previousHitObject.endTime, hitObject.startTime + GAMEPLAY_WARNING_ARROWS_FLICKER_START);
+			let flickerDuration = GAMEPLAY_WARNING_ARROWS_FLICKER_END - GAMEPLAY_WARNING_ARROWS_FLICKER_START;
+			let endTime = startTime + flickerDuration;
 
-                currentGameplayWarningArrowsStartTime = startTime;
-            }
-        }
+			if (currentTime >= startTime && currentTime < endTime) {
+				currentGameplayWarningArrowsStartTime = startTime;
+				break;
+			}
+		}
         gameplayWarningArrows.update(currentTime, currentGameplayWarningArrowsStartTime);
 
         // Handle breaks
