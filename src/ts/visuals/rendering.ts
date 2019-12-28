@@ -22,7 +22,8 @@ export let renderer = new PIXI.Renderer({
     width: window.innerWidth,
     height: window.innerHeight,
     context: gl,
-    antialias: true
+	antialias: true,
+	// TODO: Add resolution thing
 });
 export let stage = new PIXI.Container();
 

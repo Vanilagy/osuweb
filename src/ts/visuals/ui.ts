@@ -14,7 +14,7 @@ function onResize() {
         height = window.innerHeight;
 
     mainCanvas.setAttribute('width', String(width));
-    mainCanvas.setAttribute('height', String(height));
+	mainCanvas.setAttribute('height', String(height));
 
     renderer.resize(width, height);
 }

@@ -319,20 +319,16 @@ export class DrawableSlider extends HeadedDrawableHitObject {
 
         let renderTex = PIXI.RenderTexture.create({
             width: this.hasFullscreenBaseSprite? window.innerWidth : this.bounds.screenWidth,
-            height: this.hasFullscreenBaseSprite? window.innerHeight : this.bounds.screenHeight
-        });
+			height: this.hasFullscreenBaseSprite? window.innerHeight : this.bounds.screenHeight,
+			resolution: 2 // For anti-aliasing
+		});
         let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
         renderTexFramebuffer.enableDepth();
         renderTexFramebuffer.addDepthTexture();
 
-        // Good enough for now.
-        let aaFilter = new PIXI.filters.FXAAFilter();
-
         this.baseSprite = new PIXI.Sprite(renderTex);
-        this.baseSprite.filters = [aaFilter];
-        this.baseSprite.zIndex = -this.endTime;
-        //this.baseSprite.width = this.bounds.screenWidth;
-        //this.baseSprite.height = this.bounds.screenHeight;
+        //this.baseSprite.filters = [new PIXI.filters.FXAAFilter()]; // Enable this for FXAA. Makes slider edges look kinda janky, that's why it's disabled.
+		this.baseSprite.zIndex = -this.endTime;
 
         this.path.generateBaseVertexBuffer();
         let sliderBodyDefaultSnake = SLIDER_SETTINGS.snaking? 0.0 : 1.0;
