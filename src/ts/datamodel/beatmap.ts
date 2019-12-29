@@ -8,10 +8,10 @@ import { Point } from "../util/point";
 import { Spinner } from "./spinner";
 import { last, unholeArray } from "../util/misc_util";
 
-class BeatmapCreationOptions {
+interface BeatmapCreationOptions {
     text: string;
     beatmapSet: BeatmapSet;
-    loadFlat?: boolean = false
+    metadataOnly: boolean;
 }
 
 export interface TimingPoint {
@@ -63,8 +63,7 @@ interface BeatmapColorInfo {
 }
 
 export class Beatmap {
-    public loadFlat: boolean;
-
+	public metadataOnly: boolean;
     public events: BeatmapEvent[] = [];
     public timingPoints: TimingPoint[] = [];
     public hitObjects: HitObject[] = [];
@@ -101,7 +100,7 @@ export class Beatmap {
     constructor(options: BeatmapCreationOptions) {
         this.beatmapSet = options.beatmapSet;
         this.difficulty = new BeatmapDifficulty();
-        this.loadFlat = options.loadFlat;
+        this.metadataOnly = options.metadataOnly;
 
         console.time("Beatmap parse");
         this.parseBeatmap(options.text);
@@ -163,15 +162,15 @@ export class Beatmap {
                 section = line.substr(1, line.length-2).toLowerCase();
             } else if (section === "colours") {
                 // I find the British (Australian) to American English conversion that happens here kinda funny, haha
-                this.parseColor(line);
+                if (!this.metadataOnly) this.parseColor(line);
             } else if (section === "timingpoints") {
-                this.parseTimingPoint(line);
+                if (!this.metadataOnly) this.parseTimingPoint(line);
             } else if (section === "events") {
                 if (line.startsWith("//")) continue;
 
                 this.parseEvent(line);
             } else if (section === "hitobjects") {
-                this.parseHitObject(line);
+                if (!this.metadataOnly) this.parseHitObject(line);
             } else {
                 if (line.startsWith("AudioFilename")) this.audioFilename = line.split(':')[1].trim();
                 else if (line.startsWith("AudioLeadIn")) this.audioLeadIn = parseInt(line.split(':')[1].trim());
@@ -270,20 +269,14 @@ export class Beatmap {
 
         let hitObjectData = parseInt(values[3]);
 
-        if ((hitObjectData & 1) !== 0) { // It's a circle if the 1 bit is set
-            if (!this.loadFlat) {
-                this.hitObjects.push(new Circle(values));
-            }
+		if ((hitObjectData & 1) !== 0) { // It's a circle if the 1 bit is set
+			this.hitObjects.push(new Circle(values));
             this.circleCount++;
-        } else if ((hitObjectData & 2) !== 0) { // It's a slider if the 2 bit is set
-            if (!this.loadFlat) {
-                this.hitObjects.push(new Slider(values));
-            }
+		} else if ((hitObjectData & 2) !== 0) { // It's a slider if the 2 bit is set
+			this.hitObjects.push(new Slider(values));
             this.sliderCount++;
-        } else if ((hitObjectData & 8) !== 0) { // It's a spinner if the 8 bit is set (not 4)
-            if (!this.loadFlat) {
-                this.hitObjects.push(new Spinner(values));
-            }
+		} else if ((hitObjectData & 8) !== 0) { // It's a spinner if the 8 bit is set (not 4)
+			this.hitObjects.push(new Spinner(values));
             this.spinnerCount++;
         }
     }

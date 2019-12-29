@@ -2,12 +2,12 @@
 export class CustomEventEmitter {
     private listeners: { [key: string]: Function[] } = {};
 
-    addListener(name: string, func: Function) {
+    addListener(name: string, func: (data?: any) => any) {
         let listeners = this.listeners[name] || (this.listeners[name] = []);
         listeners.push(func);
     }
 
-    removeListener(name: string, func: Function) {
+    removeListener(name: string, func: (data?: any) => any) {
         let listeners = this.listeners[name];
         if (!listeners) return;
 
@@ -17,12 +17,12 @@ export class CustomEventEmitter {
         listeners.splice(index, 1);
     }
 
-    emit(name: string) {
+    emit(name: string, data?: any) {
         let listeners = this.listeners[name];
         if (!listeners) return;
 
         for (let i = 0; i < listeners.length; i++) {
-            listeners[i]();
+            listeners[i](data);
         }
     }
 }

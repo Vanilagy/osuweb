@@ -146,4 +146,12 @@ export function anyGameButtonIsPressed() {
         functionalInputState[FunctionalInput.GameMouseButtonB];
 }
 
+window.addEventListener('wheel', (ev) => {
+	inputEventEmitter.emit('wheel', ev);
+});
+
+window.addEventListener('mousedown', (ev) => {
+	inputEventEmitter.emit('mousedown', ev);
+});
+
 export let inputEventEmitter = new CustomEventEmitter();

@@ -7,7 +7,7 @@ import { OsuTexture } from "./texture";
 import { OsuSoundType, OsuSound, osuSoundFileNames, calculatePanFromOsuCoordinates, HitSoundInfo } from "./sound";
 
 // This is all temp:
-let baseSkinPath = "./assets/skins/default";
+let baseSkinPath = "./assets/skins/yugen";
 let baseSkinDirectory = new VirtualDirectory("root");
 baseSkinDirectory.networkFallbackUrl = baseSkinPath;
 

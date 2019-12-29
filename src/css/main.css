@@ -3,6 +3,17 @@
     src: url("../assets/fonts/VCR_OSD_MONO_1.001.ttf");
 }
 
+/*
+@font-face {
+	font-family: "Nunito";
+	src: url("../assets/fonts/Nunito/Nunito-Regular.ttf");
+}*/
+
+@font-face {
+	font-family: "Exo2";
+	src: url("../assets/fonts/Exo_2/Exo2-Regular.ttf");
+}
+
 * {
     user-select: none;
 }
