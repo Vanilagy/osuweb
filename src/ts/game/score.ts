@@ -234,7 +234,8 @@ let phantomComboAnimationInterpolator = new Interpolator({
     ease: EaseType.Linear,
     duration: 500,
     from: 0,
-    to: 1
+	to: 1,
+	defaultToFinished: true
 });
 phantomComboAnimationInterpolator.end();
 
@@ -242,7 +243,8 @@ let comboAnimationInterpolator = new Interpolator({
     ease: EaseType.Linear,
     duration: 250,
     from: 0,
-    to: 1
+	to: 1,
+	defaultToFinished: true
 });
 
 enum ScorePopupType {

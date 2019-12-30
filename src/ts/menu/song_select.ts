@@ -4,8 +4,12 @@ import { stage, addRenderingTask } from "../visuals/rendering";
 import { Beatmap } from "../datamodel/beatmap";
 import { inputEventEmitter } from "../input/input";
 import { startPlay } from "../game/play";
+import { Interpolator } from "../util/graphics_util";
+import { EaseType } from "../util/math_util";
+import { VirtualFile } from "../file_system/virtual_file";
+import { BackgroundManager } from "../visuals/background";
 
-const songFolderSelect = document.querySelector('#songsFolderSelect') as HTMLInputElement;
+const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 const songSelectContainer = new PIXI.Container();
 stage.addChild(songSelectContainer);
 
@@ -39,17 +43,32 @@ ctx.fillRect(0, 0, 500, 100);
 
 class BeatmapSetPanel {
 	private beatmapSet: BeatmapSet;
+	private beatmapFiles: VirtualFile[];
 	public container: PIXI.Container;
 	public isExpanded: boolean = false;
 	private difficultyContainer: PIXI.Container;
+	private expandInterpolator: Interpolator;
+	private beatmapPanels: BeatmapPanel[] = [];
+	private representingBeatmap: Beatmap;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
 		this.container = new PIXI.Container();
 		this.difficultyContainer = new PIXI.Container();
-		this.difficultyContainer.y = 110;
+		this.difficultyContainer.y = 0;
 		this.difficultyContainer.x = 50;
+		this.difficultyContainer.sortableChildren = true;
 		this.container.addChild(this.difficultyContainer);
+
+		this.beatmapFiles = this.beatmapSet.getBeatmapFiles();
+
+		this.expandInterpolator = new Interpolator({
+			ease: EaseType.EaseOutCubic,
+			duration: 500,
+			from: 0,
+			to: 1,
+			defaultToFinished: false
+		});
 
 		this.load();
 	}
@@ -63,14 +82,14 @@ class BeatmapSetPanel {
 				return true;
 			}
 		} else {
-			for (let i = 0; i < this.difficultyContainer.children.length; i++) {
-				let a = this.difficultyContainer.children[i];
+			for (let i = 0; i < this.beatmapPanels.length; i++) {
+				let a = this.beatmapPanels[i].container;
 
 				let bounds = a.getBounds();
 				if (x >= bounds.x && y >= bounds.y && y <= bounds.y + bounds.height) {
 					songSelectContainer.visible = false;
 
-					this.beatmapSet.getBeatmapFiles()[i].readAsText().then((text) => {
+					this.beatmapFiles[i].readAsText().then((text) => {
 						let map = new Beatmap({
 							text: text,
 							beatmapSet: this.beatmapSet,
@@ -88,16 +107,25 @@ class BeatmapSetPanel {
 		return false;
 	}
 
-	getHeight() {
-		return this.container.height + 20;
+	update() {
+		if (this.isExpanded) {
+			for (let i = 0; i < this.beatmapPanels.length; i++) {
+				let container = this.beatmapPanels[i].container;
+
+				container.y = 50 + 60 * this.expandInterpolator.getCurrentValue() + 60 * i * this.expandInterpolator.getCurrentValue();
+			}
+		}
+
+		return 120 + this.expandInterpolator.getCurrentValue() * 60 * this.beatmapFiles.length;
 	}
 
 	async load() {
 		let representingBeatmap = new Beatmap({
-			text: await this.beatmapSet.getBeatmapFiles()[0].readAsText(),
+			text: await this.beatmapFiles[0].readAsText(),
 			beatmapSet: this.beatmapSet,
 			metadataOnly: true
 		});
+		this.representingBeatmap = representingBeatmap;
 
 		let mask = new PIXI.Graphics();
 		mask.beginFill(0xff0000);
@@ -162,41 +190,67 @@ class BeatmapSetPanel {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
-		let beatmaps = this.beatmapSet.getBeatmapFiles();
+		this.expandInterpolator.start();
 
-		for (let i = 0; i < beatmaps.length; i++) {
-			let beatmapFile = beatmaps[i];
-			let beatmap = new Beatmap({
-				text: await beatmapFile.readAsText(),
-				beatmapSet: this.beatmapSet,
-				metadataOnly: true
-			});
+		for (let i = 0; i < this.beatmapFiles.length; i++) {
+			let beatmapFile = this.beatmapFiles[i];
+			let beatmapPanel = new BeatmapPanel(beatmapFile, this.beatmapSet);
 
-			let container = new PIXI.Container();
+			//beatmapPanel.container.x = i * 10;
+			beatmapPanel.container.zIndex = -i;
 
-			let mask = new PIXI.Graphics();
-			mask.beginFill(0xff2052);
-			mask.drawPolygon([
-				new PIXI.Point(0, 0),
-				new PIXI.Point(10, 50),
-				new PIXI.Point(450, 50),
-				new PIXI.Point(450, 0)
-			]);
-			mask.endFill();
-			container.addChild(mask);
-			container.y = i * 60;
-
-			let shitty = new PIXI.Text(beatmap.version + ' ', { // Adding the extra space so that the canvas doesn't cut off the italics
-				fontFamily: 'Exo2',
-				fill: 0xffffff,
-				fontStyle: 'italic',
-				fontSize: 16
-			});
-			shitty.position.set(30, 10);
-			container.addChild(shitty);
-
-			this.difficultyContainer.addChild(container);
+			this.difficultyContainer.addChild(beatmapPanel.container);
+			this.beatmapPanels.push(beatmapPanel);
 		}
+
+		let backgroundImage = await this.representingBeatmap.getBackgroundImageFile();
+		if (backgroundImage) {
+			let url = await backgroundImage.readAsResourceUrl();
+			BackgroundManager.setImage(url);
+		}
+	}
+}
+
+class BeatmapPanel {
+	public container: PIXI.Container;
+	private beatmapFile: VirtualFile;
+	private beatmapSet: BeatmapSet;
+
+	constructor(beatmapFile: VirtualFile, beatmapSet: BeatmapSet) {
+		this.beatmapFile = beatmapFile;
+		this.beatmapSet = beatmapSet;
+		this.container = new PIXI.Container();
+
+		let mask = new PIXI.Graphics();
+		mask.beginFill(0x000000, 0.5);
+		mask.drawPolygon([
+			new PIXI.Point(0, 0),
+			new PIXI.Point(10, 50),
+			new PIXI.Point(450, 50),
+			new PIXI.Point(450, 0)
+		]);
+		mask.endFill();
+
+		this.container.addChild(mask);
+
+		this.load();
+	}
+
+	async load() {
+		let beatmap = new Beatmap({
+			text: await this.beatmapFile.readAsText(),
+			beatmapSet: this.beatmapSet,
+			metadataOnly: true
+		});
+
+		let shitty = new PIXI.Text(beatmap.version + ' ', { // Adding the extra space so that the canvas doesn't cut off the italics
+			fontFamily: 'Exo2',
+			fill: 0xffffff,
+			fontStyle: 'italic',
+			fontSize: 16
+		});
+		shitty.position.set(30, 10);
+		this.container.addChild(shitty);
 	}
 }
 
@@ -207,7 +261,7 @@ addRenderingTask(() => {
 		let panel = panels[i];
 
 		panel.container.y = currentHeight - scroll;
-		currentHeight += panel.getHeight();
+		currentHeight += panel.update();
 	}
 });
 

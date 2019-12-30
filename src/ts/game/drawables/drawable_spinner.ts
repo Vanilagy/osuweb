@@ -131,19 +131,21 @@ export class DrawableSpinner extends DrawableHitObject {
             to: 1,
             ease: EaseType.Linear,
             duration: 333,
-            invertDefault: true
+            defaultToFinished: false
         });
         this.bonusSpinsInterpolator = new Interpolator({
             from: 0,
             to: 1,
             ease: EaseType.EaseOutQuad,
-            duration: 750
+			duration: 750,
+			defaultToFinished: true
         });
         this.glowInterpolator = new Interpolator({
             from: 0,
             to: 1,
             ease: EaseType.Linear,
-            duration: 333
+			duration: 333,
+			defaultToFinished: true
         });
 
         let backgroundTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];

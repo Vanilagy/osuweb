@@ -4,7 +4,7 @@ let logRenderTimeInfo = false;
 
 const LOG_RENDER_INFO_INTERVAL = 5000; // In ms
 
-export const mainCanvas = document.querySelector('#mainCanvas') as HTMLCanvasElement;
+export const mainCanvas = document.querySelector('#main-canvas') as HTMLCanvasElement;
 
 const gl = mainCanvas.getContext('webgl2', {
     stencil: true,

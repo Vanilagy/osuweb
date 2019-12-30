@@ -42,7 +42,8 @@ export class Scorebar {
             ease: EaseType.EaseOutQuad,
             from: 1.5,
             to: 1.0,
-            duration: 200
+			duration: 200,
+			defaultToFinished: true
         });
     }
 

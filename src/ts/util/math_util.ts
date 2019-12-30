@@ -26,7 +26,7 @@ export enum EaseType {
     EaseInOutExpo
 }
 
-export class MathUtil {
+export abstract class MathUtil {
 	static pointOnBézierCurve(pointArray: Point[], t: number): Point {
         let bx = 0, by = 0, n = pointArray.length - 1; // degree
         

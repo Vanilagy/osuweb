@@ -7,17 +7,17 @@
         <link rel="shortcut icon" href="./assets/img/1024px-Red_x.svg.png">
     </head>
     <body>
-        <div id="beatmapBackground">
-            <img id="mainBackgroundImage">
-            <video id="mainBackgroundVideo" muted></video>
+        <div id="beatmap-background">
+			<div class="_images"></div>
+            <video class="_video" muted></video>
         </div>
 
 		<p style="font-family: Exo2;">Some font load!</p>
-		<input type="file" id="songsFolderSelect" webkitdirectory>
-		<input type="file" id="beatmapSelect" webkitdirectory style="display: none;">
+		<input type="file" id="songs-folder-select" webkitdirectory>
+		<input type="file" id="beatmap-select" webkitdirectory style="display: none;">
         
         <!--<img src="./assets/img/screenshot001.jpg" style="display: block; position: absolute; top: 0; left: 0; z-index: -5000;">-->
-        <canvas id="mainCanvas"></canvas> <!-- It has to be made sure that this canvas is above everything; otherwise, desynchronized: true won't work. -->
+        <canvas id="main-canvas"></canvas> <!-- It has to be made sure that this canvas is above everything; otherwise, desynchronized: true won't work. -->
 
         <script src="./lib/pixiv5.js" defer></script>
         <script src="./lib/jszip.min.js" defer></script>

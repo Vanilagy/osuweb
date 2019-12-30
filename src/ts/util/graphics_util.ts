@@ -1,4 +1,5 @@
 import { MathUtil, EaseType } from "./math_util";
+import { getNow } from "./misc_util";
 
 export interface Dimensions {
     width: number,
@@ -68,10 +69,7 @@ export class InterpolatedCounter {
     }
 
     getCurrentValue(customTime?: number) {
-        let now;
-        if (customTime !== undefined) now = customTime;
-        else now = performance.now();
-
+        let now = getNow(customTime);
         let timePassed = (now === this.startTime)? 0 : now - this.startTime; // This check might seem unnecessary, since x - x = 0, however that does not hold true for x = +-Infinity. Since some maps are... questionable, we need to add this check.
         
         let completion = MathUtil.clamp(timePassed / this.duration, 0, 1);
@@ -81,11 +79,9 @@ export class InterpolatedCounter {
     }
 
     setGoal(goal: number, customTime?: number) {
-        let now;
-        if (customTime !== undefined) now = customTime;
-        else now = performance.now();
-
-        let current = this.getCurrentValue(now);
+        let now = getNow(customTime);
+		let current = this.getCurrentValue(now);
+		
         this.start = current;
         this.end = goal;
         this.startTime = now;
@@ -107,18 +103,18 @@ interface InterpolatorOptions {
     ease: EaseType,
     duration: number,
     from: number,
-    to: number,
-    invertDefault?: boolean
+	to: number,
+	defaultToFinished: boolean
 }
 
 export class Interpolator {
     private options: InterpolatorOptions;
-    private startTime: number = -Infinity;
+	private startTime: number;
+	private reversed = false;
 
     constructor(options: InterpolatorOptions) {
-        this.options = options;
-
-        if (this.options.invertDefault) this.startTime = Infinity;
+		this.options = options;
+		this.reset();
     }
 
     /**
@@ -126,27 +122,40 @@ export class Interpolator {
      * @param customTime A custom time parameter to override performance.now with your own timekeeping system.
      */
     start(customTime?: number) {
-        let now;
-        if (customTime !== undefined) now = customTime;
-        else now = performance.now();
-
-        this.startTime = now;
+        this.startTime = getNow(customTime);
     }
 
     /** Instantly finish the animation. */
     end() {
         this.startTime = -Infinity;
-    }
+	}
+	
+	reset() {
+		this.startTime = this.options.defaultToFinished? -Infinity : Infinity;
+	}
+
+	reverse(customTime?: number) {
+		let now = getNow(customTime);
+		let currentCompletion = this.getCurrentCompletion(customTime);
+		if (this.reversed) currentCompletion = 1 - currentCompletion;
+
+		this.reversed = !this.reversed;
+		this.startTime = now - (1 - currentCompletion) * this.options.duration;
+	}
+
+	getCurrentCompletion(customTime?: number) {
+		let now = getNow(customTime);
+        let completion = (now - this.startTime) / this.options.duration;
+		completion = MathUtil.clamp(completion, 0, 1);
+
+		if (this.reversed) return 1 - completion;
+		return completion;
+	}
 
     getCurrentValue(customTime?: number) {
-        let now;
-        if (customTime !== undefined) now = customTime;
-        else now = performance.now();
-
-        let completion = (now - this.startTime) / this.options.duration;
-        completion = MathUtil.clamp(completion, 0, 1);
+        let completion = this.getCurrentCompletion(customTime);
         completion = MathUtil.ease(this.options.ease, completion);
 
         return MathUtil.lerp(this.options.from, this.options.to, completion);
-    }
+	}
 }

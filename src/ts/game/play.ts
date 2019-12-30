@@ -5,7 +5,6 @@ import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../vi
 import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
-import { MAIN_BACKGROUND_IMAGE_CONTAINER, MAIN_BACKGROUND_VIDEO_CONTAINER, BEATMAP_BACKGROUND_ELEMENT } from "../visuals/ui";
 import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
 import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./drawables/follow_point";
@@ -25,6 +24,7 @@ import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods/mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
 import { calculatePanFromOsuCoordinates } from "./skin/sound";
+import { BackgroundManager, BackgroundState } from "../visuals/background";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = 'AT';
@@ -184,7 +184,9 @@ export class Play {
     }
 
     async start() {
-        console.time("Audio load");
+		console.time("Audio load");
+		
+		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP
         
         let songFile = await this.processedBeatmap.beatmap.getAudioFile();
         let url = await songFile.readAsResourceUrl();
@@ -192,23 +194,16 @@ export class Play {
 
         let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
         if (backgroundImageFile) {
-            let url = await backgroundImageFile.readAsResourceUrl();
-            MAIN_BACKGROUND_IMAGE_CONTAINER.src = url;
-            MAIN_BACKGROUND_IMAGE_CONTAINER.style.display = 'block';
+			let url = await backgroundImageFile.readAsResourceUrl();
+			BackgroundManager.setImage(url);
         }
         
         let backgroundVideoFile = await this.processedBeatmap.beatmap.getBackgroundVideoFile();
         if (backgroundVideoFile && !DISABLE_VIDEO) {
-            let url = await backgroundVideoFile.readAsResourceUrl();
-            MAIN_BACKGROUND_VIDEO_CONTAINER.src = url;
-            MAIN_BACKGROUND_VIDEO_CONTAINER.style.display = 'block';
-
-            // Wait until the video is marked okay for playback
-            await new Promise((resolve) => MAIN_BACKGROUND_VIDEO_CONTAINER.addEventListener('canplaythrough', resolve));
+			let url = await backgroundVideoFile.readAsResourceUrl();
+			await BackgroundManager.setVideo(url);
 
             this.hasVideo = true;
-
-            //MAIN_BACKGROUND_VIDEO_CONTAINER.play();
         }
 
         // TODO: Apply pitch changes and percussion
@@ -384,9 +379,9 @@ export class Play {
 
             x = MathUtil.ease(EaseType.EaseInOutQuad, x);
 
-            // Go from 1.0 opacity to (1 - background dim) opacity
-            let opacityString = String(x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY));
-            BEATMAP_BACKGROUND_ELEMENT.style.opacity = opacityString;
+            // Go from 1.0 brightness to (1 - background dim) brightness
+			let brightness = x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY);
+			BackgroundManager.setGameplayBrightness(brightness);
 
             break;
         }
@@ -394,19 +389,19 @@ export class Play {
         if (this.hasVideo) {
             // Take care of the video fading in in the first second of the audio
             let videoFadeInCompletion = currentTime / VIDEO_FADE_IN_DURATION;
-            videoFadeInCompletion = MathUtil.clamp(videoFadeInCompletion, 0, 1);
-            MAIN_BACKGROUND_VIDEO_CONTAINER.style.opacity = String(videoFadeInCompletion);
+			videoFadeInCompletion = MathUtil.clamp(videoFadeInCompletion, 0, 1);
+			BackgroundManager.setVideoOpacity(videoFadeInCompletion);
 
             // Sync the video to the audio
-            let offsetDifference = Math.abs((MAIN_BACKGROUND_VIDEO_CONTAINER.currentTime * 1000) - currentTime);
+            let offsetDifference = Math.abs((BackgroundManager.getVideoCurrentTime() * 1000) - currentTime);
             if (offsetDifference >= 30 && currentTime >= 0) {
-                MAIN_BACKGROUND_VIDEO_CONTAINER.currentTime = currentTime/1000;
+				BackgroundManager.setVideoCurrentTime(currentTime / 1000);
             }
 
             // Start the video when it's due
-            if (currentTime >= 0 && MAIN_BACKGROUND_VIDEO_CONTAINER.paused) {
-                MAIN_BACKGROUND_VIDEO_CONTAINER.playbackRate = this.playbackRate;
-                MAIN_BACKGROUND_VIDEO_CONTAINER.play();
+            if (currentTime >= 0 && BackgroundManager.videoIsPaused()) {
+				BackgroundManager.setVideoPlaybackRate(this.playbackRate);
+                BackgroundManager.playVideo();
             }
         }
 

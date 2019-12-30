@@ -107,3 +107,8 @@ export function unholeArray<T>(arr: T[]) {
         if (arr[i] === undefined) arr.splice(i--, 1);
     }
 }
+
+export function getNow(override?: number) {
+	if (override !== undefined) return override;
+	return performance.now();
+}
