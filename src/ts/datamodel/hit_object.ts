@@ -44,7 +44,7 @@ export abstract class HitObject {
         } else {
             this.extras = DEFAULT_EXTRAS;
         }
-    }
+	}
 
     static getComboSkipsFromType(hitObjectType: number) {
         if ((hitObjectType & 4) === 0) {

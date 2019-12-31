@@ -55,10 +55,10 @@ mouseButtonMappings.set(MouseButton.Left, FunctionalInput.GameMouseButtonA);
 mouseButtonMappings.set(MouseButton.Right, FunctionalInput.GameMouseButtonB);
 
 window.addEventListener('keydown', (e) => {
-    let keyCode = e.keyCode;
+	let keyCode = e.keyCode;
 
     let mappedFunctionalInput = keyCodeMappings.get(keyCode);
-    if (mappedFunctionalInput === undefined) return;
+	if (mappedFunctionalInput === undefined) return;
 
     if (functionalInputState[mappedFunctionalInput] !== true) {
         functionalInputState[mappedFunctionalInput] = true;

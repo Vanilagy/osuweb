@@ -274,6 +274,8 @@ inputEventEmitter.addListener('wheel', (data) => {
 inputEventEmitter.addListener('mousedown', (data) => {
 	let mouseEvent = data as MouseEvent;
 
+	if (songSelectContainer.visible === false) return; // eh yes duh
+
 	for (let i = 0; i < panels.length; i++) {
 		let panel = panels[i];
 

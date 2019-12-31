@@ -67,7 +67,7 @@ export function createSliderBodyShader(slider: DrawableSlider) {
     let sliderBodyColor: Color = null;
     if (!IGNORE_BEATMAP_SKIN) sliderBodyColor = beatmap.colors.sliderTrackOverride;
     if (sliderBodyColor === null) sliderBodyColor = gameState.currentGameplaySkin.config.colors.sliderTrackOverride;
-    if (sliderBodyColor === null) sliderBodyColor = slider.comboInfo.color;
+    if (sliderBodyColor === null) sliderBodyColor = slider.parent.comboInfo.color;
 
     let targetRed = Math.min(255, sliderBodyColor.r * 1.125 + 75),
         targetGreen = Math.min(255, sliderBodyColor.g * 1.125 + 75),

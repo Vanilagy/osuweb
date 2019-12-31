@@ -1,5 +1,4 @@
 import { DrawableHitObject } from "./drawable_hit_object";
-import { PlayEvent, PlayEventType } from "../play_events";
 import { Spinner } from "../../datamodel/spinner";
 import { mainHitObjectContainer } from "../../visuals/rendering";
 import { gameState } from "../game_state";
@@ -12,9 +11,9 @@ import { SpriteNumber } from "../../visuals/sprite_number";
 import { SoundEmitter } from "../../audio/sound_emitter";
 import { Mod } from "../mods/mods";
 import { accuracyMeter } from "../hud/hud";
-import { CurrentTimingPointInfo, ComboInfo } from "../processed_beatmap";
-import { BeatmapDifficulty } from "../../datamodel/beatmap_difficulty";
 import { HitSoundInfo, generateHitSoundInfo, OsuSoundType } from "../skin/sound";
+import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
+import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -27,7 +26,8 @@ const SPINNER_ACCELERATION = 0.00022; // In radians/ms^2
 const DELAY_UNTIL_SPINNER_DECELERATION = 20; // In ms
 
 export class DrawableSpinner extends DrawableHitObject {
-    public hitObject: Spinner;
+	public parent: ProcessedSpinner;
+
     public hitSound: HitSoundInfo;
     private container: PIXI.Container;
     private componentContainer: PIXI.Container;
@@ -63,41 +63,27 @@ export class DrawableSpinner extends DrawableHitObject {
     private spinnerBonus: SpriteNumber;
     private spinnerSpinFadeOutStart: number = null;
 
-    private duration: number;
     private lastSpinPosition: Point = null;
     private lastInputTime: number = null;
     private lastAccelerationTime: number = null;
     private spinnerAngle = 0;
     private totalRadiansSpun = 0; // The sum of all absolute angles this spinner has been spun (the total "angular distance")
-    private requiredSpins: number;
     private cleared: boolean;
     private bonusSpins: number;
     private angularVelocity = 0;
 
     public spinSoundEmitter: SoundEmitter = null;
     // TODO: Clean this up. Ergh. Disgusting.
-    public bonusSoundVolume: number;
+	public bonusSoundVolume: number;
+	
+	constructor(processedSpinner: ProcessedSpinner) {
+		super(processedSpinner);
 
-    constructor(spinner: Spinner, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
-        super(spinner, comboInfo, timingInfo);
-
-        let { processedBeatmap } = gameState.currentPlay;
-
-        this.startTime = this.hitObject.time;
-        this.endTime = this.hitObject.endTime;
-        this.endPoint = this.startPoint;
-
-        this.duration = this.endTime - this.startTime;
-
-        // 1 Spin = 1 Revolution. This calculation is taken straight from lazer's source:
-        this.requiredSpins = Math.floor(this.duration / 1000 * BeatmapDifficulty.difficultyRange(processedBeatmap.difficulty.OD, 3, 5, 7.5));
-        this.requiredSpins = Math.floor(Math.max(1, this.requiredSpins * 0.6)); // "spinning doesn't match 1:1 with stable, so let's fudge them easier for the time being."
-
-        this.cleared = false;
+		this.cleared = false;
         this.bonusSpins = 0;
 
-        this.initSounds(spinner, timingInfo);
-    }
+        this.initSounds(processedSpinner.hitObject, processedSpinner.timingInfo);
+	}
 
     protected initSounds(spinner: Spinner, timingInfo: CurrentTimingPointInfo) {
         let currentTimingPoint = timingInfo.timingPoint;
@@ -119,7 +105,7 @@ export class DrawableSpinner extends DrawableHitObject {
     draw() {
         let { screenPixelRatio, activeMods } = gameState.currentPlay;
 
-        this.renderStartTime = this.startTime - SPINNER_FADE_IN_TIME;
+        this.renderStartTime = this.parent.startTime - SPINNER_FADE_IN_TIME;
 
         this.container = new PIXI.Container();
         this.container.zIndex = -1e10; // Sliders are always behind everything
@@ -376,7 +362,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     position() {
-        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
+        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.parent.startPoint);
 
         // Position it in the center
         this.componentContainer.position.set(screenCoordinates.x, screenCoordinates.y);
@@ -386,25 +372,25 @@ export class DrawableSpinner extends DrawableHitObject {
     update(currentTime: number) {
         let { screenPixelRatio } = gameState.currentPlay;
 
-        if (currentTime >= this.endTime + SPINNER_FADE_OUT_TIME) {
+        if (currentTime >= this.parent.endTime + SPINNER_FADE_OUT_TIME) {
             this.renderFinished = true;
             return;
         }
 
-        if (currentTime < this.startTime) {
-            let fadeInCompletion = (currentTime - (this.startTime - SPINNER_FADE_IN_TIME)) / SPINNER_FADE_IN_TIME;
+        if (currentTime < this.parent.startTime) {
+            let fadeInCompletion = (currentTime - (this.parent.startTime - SPINNER_FADE_IN_TIME)) / SPINNER_FADE_IN_TIME;
             fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
             this.container.alpha = fadeInCompletion;
 
-            let spinTextFadeInCompletion = (currentTime - (this.startTime - SPIN_TEXT_FADE_IN_TIME)) / SPIN_TEXT_FADE_IN_TIME;
+            let spinTextFadeInCompletion = (currentTime - (this.parent.startTime - SPIN_TEXT_FADE_IN_TIME)) / SPIN_TEXT_FADE_IN_TIME;
             spinTextFadeInCompletion = MathUtil.clamp(spinTextFadeInCompletion, 0, 1);
             this.spinnerSpin.alpha = spinTextFadeInCompletion;
 
             this.spinnerRpm.y = MathUtil.lerp(window.innerHeight, window.innerHeight - 56 * screenPixelRatio, fadeInCompletion);
         } else {
             this.container.alpha = 1;
-            if (currentTime >= this.endTime) {
-                let fadeOutCompletion = (currentTime - this.endTime) / SPINNER_FADE_OUT_TIME;
+            if (currentTime >= this.parent.endTime) {
+                let fadeOutCompletion = (currentTime - this.parent.endTime) / SPINNER_FADE_OUT_TIME;
                 fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
                 this.container.alpha = 1 - fadeOutCompletion;
             }
@@ -422,9 +408,9 @@ export class DrawableSpinner extends DrawableHitObject {
             this.spinnerRpm.y = window.innerHeight - 56 * screenPixelRatio;
         }
     
-        let completion = (currentTime - this.startTime) / this.duration;
+        let completion = (currentTime - this.parent.startTime) / this.parent.duration;
         completion = MathUtil.clamp(completion, 0, 1);
-        let clearCompletion = this.getSpinsSpun() / this.requiredSpins;
+        let clearCompletion = this.getSpinsSpun() / this.parent.requiredSpins;
         clearCompletion = MathUtil.clamp(clearCompletion, 0, 1);
 
         if (this.isNewStyle) {
@@ -487,7 +473,7 @@ export class DrawableSpinner extends DrawableHitObject {
         let currentPlay = gameState.currentPlay;
 
         let spinsSpun = this.getSpinsSpun();
-        let progress = spinsSpun/this.requiredSpins;
+        let progress = spinsSpun / this.parent.requiredSpins;
         let judgement = (() => {
             if (progress >= 1.0) {
                 return 300;
@@ -499,7 +485,7 @@ export class DrawableSpinner extends DrawableHitObject {
             return 0;
         })();
 
-        currentPlay.scoreCounter.add(judgement, false, true, true, this, this.endTime);
+        currentPlay.scoreCounter.add(judgement, false, true, true, this, this.parent.endTime);
         if (judgement !== 0) {
             gameState.currentGameplaySkin.playHitSound(this.hitSound);
         }
@@ -512,7 +498,7 @@ export class DrawableSpinner extends DrawableHitObject {
     }
 
     handleMouseMove(osuMouseCoordinates: Point, currentTime: number) {
-        if (currentTime < this.startTime || currentTime >= this.endTime) return;
+        if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
 
         let pressed = anyGameButtonIsPressed();
 
@@ -546,7 +532,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
     /** Spins the spinner by a certain amount in a certain timeframe. */
     spin(radians: number, currentTime: number, dt: number) {
-        if (currentTime < this.startTime || currentTime >= this.endTime) return;
+        if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
         if (!dt) return;
 
         accuracyMeter.fadeOutNow(currentTime);
@@ -602,11 +588,11 @@ export class DrawableSpinner extends DrawableHitObject {
             // Give 100 raw score for every spin
             scoreCounter.add(wholeDif * 100, true, false, false, this, currentTime);
         }
-        if (spinsSpunNow >= this.requiredSpins && !this.cleared) {
+        if (spinsSpunNow >= this.parent.requiredSpins && !this.cleared) {
             this.cleared = true;
             this.clearTextInterpolator.start(currentTime);
         }
-        let bonusSpins = Math.floor(spinsSpunNow - this.requiredSpins);
+        let bonusSpins = Math.floor(spinsSpunNow - this.parent.requiredSpins);
         if (bonusSpins > 0 && bonusSpins > this.bonusSpins) {
             let dif = bonusSpins - this.bonusSpins;
             scoreCounter.add(dif * 1000, true, false, false, this, currentTime);
@@ -619,7 +605,7 @@ export class DrawableSpinner extends DrawableHitObject {
             gameState.currentGameplaySkin.sounds[OsuSoundType.SpinnerBonus].play(this.bonusSoundVolume);
         }
 
-        let spinCompletion = spinsSpunNow / this.requiredSpins;
+        let spinCompletion = spinsSpunNow / this.parent.requiredSpins;
         if (spinCompletion >= 0.25 && this.spinnerSpinFadeOutStart === null) {
             this.spinnerSpinFadeOutStart = currentTime;
         }
@@ -634,21 +620,6 @@ export class DrawableSpinner extends DrawableHitObject {
 
     remove() {
         mainHitObjectContainer.removeChild(this.container);
-    }
-
-    addPlayEvents(playEventArray: PlayEvent[]) {
-        playEventArray.push({
-            type: PlayEventType.SpinnerSpin,
-            hitObject: this,
-            time: this.startTime,
-            endTime: this.endTime
-        });
-
-        playEventArray.push({
-            type: PlayEventType.SpinnerEnd,
-            hitObject: this,
-            time: this.endTime
-        });
     }
 
     handleButtonDown() {

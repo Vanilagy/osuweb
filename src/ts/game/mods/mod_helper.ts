@@ -1,13 +1,13 @@
 import { Play } from "../play";
-import { DrawableHitObject } from "../drawables/drawable_hit_object";
-import { DrawableCircle } from "../drawables/drawable_circle";
 import { Point } from "../../util/point";
-import { DrawableSlider } from "../drawables/drawable_slider";
 import { MathUtil, EaseType } from "../../util/math_util";
-import { DrawableSpinner } from "../drawables/drawable_spinner";
 import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
-import { ProcessedBeatmap } from "../processed_beatmap";
 import { Mod } from "./mods";
+import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
+import { ProcessedBeatmap } from "../../datamodel/processed/processed_beatmap";
+import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
+import { ProcessedSlider } from "../../datamodel/processed/processed_slider";
+import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
 
 const DEFAULT_SPIN_RADIUS = 45;
 const RADIUS_LERP_DURATION = 480;
@@ -44,7 +44,7 @@ interface Waypoint {
     type: WaypointType, 
     time: number,
     pos?: Point,
-    hitObject: DrawableHitObject
+    hitObject: ProcessedHitObject
 }
 
 export enum AutoInstructionType {
@@ -61,7 +61,7 @@ export interface AutoInstruction {
     to?: Point,
     startPos?: Point,
     endPos?: Point,
-    hitObject?: DrawableHitObject
+    hitObject?: ProcessedHitObject
 }
 
 function hardRockFlipPoint(point: Point) {
@@ -111,10 +111,10 @@ export class ModHelper {
         for (let i = 0; i < processedBeatmap.hitObjects.length; i++) {
             let hitObject = processedBeatmap.hitObjects[i];
 
-            if (hitObject instanceof DrawableCircle) {
-                hardRockFlipPoint(hitObject.startPoint);
-                hardRockFlipPoint(hitObject.endPoint);
-            } else if (hitObject instanceof DrawableSlider) {
+            if (hitObject instanceof ProcessedCircle) {
+				hardRockFlipPoint(hitObject.startPoint);
+				// Since endPoint === startPoint, this also flips endPoint
+            } else if (hitObject instanceof ProcessedSlider) {
                 hardRockFlipPoint(hitObject.startPoint);
                 hardRockFlipPoint(hitObject.tailPoint);
                 // Since endPoint is either startPoint or tailPoint, we'll have flipped endPoint.
@@ -122,15 +122,7 @@ export class ModHelper {
                 let path = hitObject.path;
                 for (let i = 0; i < path.points.length; i++) {
                     hardRockFlipPoint(path.points[i]);
-                }
-
-                hardRockFlipPoint(hitObject.bounds.min);
-                hardRockFlipPoint(hitObject.bounds.max);
-
-                // Because we flipped them, we need to swap 'em now too:
-                let temp = hitObject.bounds.min.y;
-                hitObject.bounds.min.y = hitObject.bounds.max.y;
-                hitObject.bounds.max.y = temp;
+				}
             }
         }
     }
@@ -153,14 +145,14 @@ export class ModHelper {
         for (let i = 0; i < play.processedBeatmap.hitObjects.length; i++) {
             let hitObject = play.processedBeatmap.hitObjects[i];
 
-            if (hitObject instanceof DrawableCircle) {
+            if (hitObject instanceof ProcessedCircle) {
                 waypoints.push({
                     type: WaypointType.HitCircle,
                     time: hitObject.startTime,
                     pos: hitObject.startPoint,
                     hitObject: hitObject
                 });
-            } else if (hitObject instanceof DrawableSlider) {
+            } else if (hitObject instanceof ProcessedSlider) {
                 waypoints.push({
                     type: WaypointType.SliderHead,
                     time: hitObject.startTime,
@@ -191,7 +183,7 @@ export class ModHelper {
                         hitObject: hitObject
                     });
                 }
-            } else if (hitObject instanceof DrawableSpinner) {
+            } else if (hitObject instanceof ProcessedSpinner) {
                 waypoints.push({
                     type: WaypointType.SpinnerStart,
                     time: hitObject.startTime,
@@ -317,7 +309,7 @@ export class ModHelper {
             } else if (lastInstruction.type === AutoInstructionType.Move) {
                 return lastInstruction.endPos;
             } else if (lastInstruction.type === AutoInstructionType.Follow) {
-                let slider = lastInstruction.hitObject as DrawableSlider;
+                let slider = lastInstruction.hitObject as ProcessedSlider;
 
                 let completion = ((slider.velocity * (time - slider.startTime)) / slider.length) || 0; // || 0 to catch NaN
                 completion = MathUtil.clamp(completion, 0, slider.repeat);

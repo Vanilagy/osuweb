@@ -2,9 +2,9 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { gameState } from "../game_state";
 import { mainHitObjectContainer, approachCircleContainer } from "../../visuals/rendering";
 import { Point, pointDistance } from "../../util/point";
-import { PlayEvent, PlayEventType } from "../play_events";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
 import { ScoringValue } from "../scoring_value";
+import { ProcessedHeadedHitObject } from "../../datamodel/processed/processed_headed_hit_object";
 
 // This many millisecond before the perfect hit time will the object start to even
 // become clickable. Before that, it should do the little shaky-shake, implying it
@@ -50,12 +50,11 @@ export function getDefaultSliderScoring(): SliderScoring {
     };
 }
 
-export abstract class HeadedDrawableHitObject extends DrawableHitObject {
-    public head: HitCirclePrimitive;
-    public stackHeight: number = 0;
-    public scoring: CircleScoring | SliderScoring;
+export abstract class DrawableHeadedHitObject extends DrawableHitObject {
+	public parent: ProcessedHeadedHitObject;
 
-    abstract applyStackPosition(): void;
+    public head: HitCirclePrimitive;
+    public scoring: CircleScoring | SliderScoring;
 
     show() {
         mainHitObjectContainer.addChild(this.head.container);
@@ -65,7 +64,7 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     }
 
     position() {
-        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
+        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.parent.startPoint);
 
         this.head.container.position.set(screenCoordinates.x, screenCoordinates.y);
         if (this.head.approachCircle) this.head.approachCircle.position.set(screenCoordinates.x, screenCoordinates.y);
@@ -81,10 +80,10 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
     handleButtonDown(osuMouseCoordinates: Point, currentTime: number) {
         let { circleRadiusOsuPx } = gameState.currentPlay;
 
-        let distance = pointDistance(osuMouseCoordinates, this.startPoint);
+        let distance = pointDistance(osuMouseCoordinates, this.parent.startPoint);
 
         if (distance <= circleRadiusOsuPx && this.scoring.head.hit === ScoringValue.NotHit) {
-            if (currentTime >= this.startTime - CLICK_IMMUNITY_THRESHOLD && !gameState.currentPlay.hitObjectIsInputLocked(this)) {
+            if (currentTime >= this.parent.startTime - CLICK_IMMUNITY_THRESHOLD && !gameState.currentPlay.hitObjectIsInputLocked(this)) {
                 this.hitHead(currentTime);
                 return true;
             } else {
@@ -95,23 +94,6 @@ export abstract class HeadedDrawableHitObject extends DrawableHitObject {
         }
 
         return false;
-    }
-
-    addPlayEvents(playEventArray: PlayEvent[]) {
-        let { processedBeatmap } = gameState.currentPlay;
-
-        playEventArray.push({
-            type: PlayEventType.PerfectHeadHit,
-            hitObject: this,
-            time: this.startTime,
-            position: this.startPoint
-        });
-
-        playEventArray.push({
-            type: PlayEventType.HeadHitWindowEnd,
-            hitObject: this,
-            time: this.startTime + processedBeatmap.difficulty.getHitDeltaForJudgement(50)
-        });
     }
 
     updateHeadElements(currentTime: number) {

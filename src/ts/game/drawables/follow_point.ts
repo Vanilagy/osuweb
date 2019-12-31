@@ -1,8 +1,8 @@
-import { DrawableHitObject } from "./drawable_hit_object";
 import { Point, pointDistance, pointAngle } from "../../util/point";
 import { gameState } from "../game_state";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { followPointContainer } from "../../visuals/rendering";
+import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
 
 export const POINT_DISTANCE = 32; // Taken from ppy, this **probably** means how many osu!pixels follow point images are apart.
 export const FOLLOW_POINT_DISTANCE_THRESHOLD = POINT_DISTANCE * 3; // The minimum distance, in osu!pixels, that two objects need to be away from each other in order to create a follow point between them. In regular osu! terms, three follow point images.
@@ -15,8 +15,8 @@ const FOLLOW_POINT_FADE_OUT_TIME = 400;
 
 export class FollowPoint {
     public container: PIXI.Container;
-    private hitObjectA: DrawableHitObject;
-    private hitObjectB: DrawableHitObject;
+    private hitObjectA: ProcessedHitObject;
+    private hitObjectB: ProcessedHitObject;
     private startTime: number;
     private endTime: number;
     private startPoint: Point;
@@ -26,7 +26,7 @@ export class FollowPoint {
     public renderStartTime: number;
     public renderFinished: boolean = false;
 
-    constructor(hitObjectA: DrawableHitObject, hitObjectB: DrawableHitObject) {
+    constructor(hitObjectA: ProcessedHitObject, hitObjectB: ProcessedHitObject) {
         let { headedHitObjectTextureFactor } = gameState.currentPlay;
 
         this.hitObjectA = hitObjectA;

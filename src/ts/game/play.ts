@@ -1,4 +1,3 @@
-import { ProcessedBeatmap, getBreakMidpoint, Break, getBreakLength } from "./processed_beatmap";
 import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
 import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
@@ -6,9 +5,8 @@ import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { DrawableSpinner } from "./drawables/drawable_spinner";
-import { pointDistanceSquared, Point, pointDistance, lerpPoints } from "../util/point";
-import { FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED, FollowPoint } from "./drawables/follow_point";
-import { PlayEvent, PlayEventType } from "./play_events";
+import { Point, pointDistance, lerpPoints } from "../util/point";
+import { FollowPoint } from "./drawables/follow_point";
 import "./hud/hud";
 import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
@@ -16,7 +14,7 @@ import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } fr
 import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer, gameplayWarningArrows } from "./hud/hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
-import { HeadedDrawableHitObject } from "./drawables/headed_drawable_hit_object";
+import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin/skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
@@ -25,6 +23,10 @@ import { Mod } from "./mods/mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
 import { calculatePanFromOsuCoordinates } from "./skin/sound";
 import { BackgroundManager, BackgroundState } from "../visuals/background";
+import { DrawableBeatmap } from "./drawable_beatmap";
+import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
+import { PlayEvent, PlayEventType } from "../datamodel/play_events";
+import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = 'AT';
@@ -39,14 +41,14 @@ const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relati
 const GAMEPLAY_WARNING_ARROWS_FLICKER_END = 400;
 
 export class Play {
-    public processedBeatmap: ProcessedBeatmap;
+	public processedBeatmap: ProcessedBeatmap;
+	public drawableBeatmap: DrawableBeatmap;
     public preludeTime: number;
     private playbackRate: number = 1.0;
     private hasVideo: boolean = false;
 
-    private currentHitObjectId: number;
+    private currentHitObjectIndex: number;
     private onscreenHitObjects: DrawableHitObject[];
-    private followPoints: FollowPoint[];
     private onscreenFollowPoints: FollowPoint[];
     private showHitObjectsQueue: DrawableHitObject[]; // New hit objects that have to get added to the scene next frame
     private scorePopups: ScorePopup[];
@@ -80,13 +82,13 @@ export class Play {
     private autohit: boolean;
 
     constructor(beatmap: Beatmap) {
-        this.processedBeatmap = new ProcessedBeatmap(beatmap);
+		this.processedBeatmap = new ProcessedBeatmap(beatmap);
+		this.drawableBeatmap = new DrawableBeatmap(this.processedBeatmap);
         this.scoreCounter = new ScoreCounter(this.processedBeatmap);
 
         this.preludeTime = 0;
-        this.currentHitObjectId = 0;
+        this.currentHitObjectIndex = 0;
         this.onscreenHitObjects = [];
-        this.followPoints = [];
         this.onscreenFollowPoints = [];
         this.showHitObjectsQueue = [];
         this.scorePopups = [];
@@ -132,7 +134,8 @@ export class Play {
         console.timeEnd('Stack shift');
 
         console.time("Beatmap draw");
-        this.processedBeatmap.draw();
+		this.drawableBeatmap.init();
+		this.drawableBeatmap.draw();
         console.timeEnd("Beatmap draw");
 
         console.time("Play event generation");
@@ -142,7 +145,7 @@ export class Play {
         initHud();
         this.scoreCounter.init();
 
-        this.generateFollowPoints();
+        this.drawableBeatmap.generateFollowPoints();
 
         accuracyMeter.init();
 
@@ -164,23 +167,6 @@ export class Play {
 			let warningTime = Math.max(osuBreak.startTime, osuBreak.endTime + GAMEPLAY_WARNING_ARROWS_FLICKER_START);
 			this.breakEndWarningTimes.push(warningTime);
 		}
-    }
-
-    private generateFollowPoints() {
-        for (let i = 1; i < this.processedBeatmap.hitObjects.length; i++) {
-            let objA = this.processedBeatmap.hitObjects[i - 1];
-            let objB = this.processedBeatmap.hitObjects[i];
-
-            // No follow points to spinners!
-            if (objA instanceof DrawableSpinner || objB instanceof DrawableSpinner) continue;
-
-            if (objA.comboInfo.comboNum === objB.comboInfo.comboNum && objA.comboInfo.n !== objB.comboInfo.n) {
-                let distSquared = pointDistanceSquared(objA.endPoint, objB.startPoint);
-
-                if (distSquared < FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED) continue;
-                this.followPoints.push(new FollowPoint(objA, objB));
-            }
-        }
     }
 
     async start() {
@@ -264,8 +250,8 @@ export class Play {
 
         // Render follow points
         //followPointContainer.removeChildren(); // Families in Syria be like
-        for (let i = this.currentFollowPointIndex; i < this.followPoints.length; i++) {
-            let followPoint = this.followPoints[i];
+        for (let i = this.currentFollowPointIndex; i < this.drawableBeatmap.followPoints.length; i++) {
+            let followPoint = this.drawableBeatmap.followPoints[i];
             if (currentTime < followPoint.renderStartTime) break;
 
             this.onscreenFollowPoints.push(followPoint);
@@ -439,8 +425,8 @@ export class Play {
         }
 
         // Add new hit objects to screen
-        for (this.currentHitObjectId; this.currentHitObjectId < this.processedBeatmap.hitObjects.length; this.currentHitObjectId++) {
-            let hitObject = this.processedBeatmap.hitObjects[this.currentHitObjectId];
+        for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableBeatmap.drawableHitObjects.length; this.currentHitObjectIndex++) {
+            let hitObject = this.drawableBeatmap.drawableHitObjects[this.currentHitObjectIndex];
             if (currentTime < hitObject.renderStartTime) break;
 
             this.onscreenHitObjects.push(hitObject);
@@ -454,18 +440,20 @@ export class Play {
             if (playEvent.endTime !== undefined) {
                 this.currentSustainedEvents.push(playEvent);
                 continue;
-            }
+			}
+			
+			let drawable = this.drawableBeatmap.processedToDrawable.get(playEvent.hitObject);
 
             switch (playEvent.type) {
                 case PlayEventType.HeadHitWindowEnd: {
-                    let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
+                    let hitObject = drawable as DrawableHeadedHitObject;
                     if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
 
                     hitObject.hitHead(playEvent.time, 0);
                 }; break;
                 case PlayEventType.PerfectHeadHit: {
-                    if (playEvent.hitObject instanceof DrawableSlider) {
-                        let slider = playEvent.hitObject;
+                    if (drawable instanceof DrawableSlider) {
+                        let slider = drawable;
 
                         slider.beginSliderSlideSound();
 
@@ -479,11 +467,11 @@ export class Play {
 
                     if (!this.autohit) break;
  
-                    let hitObject = playEvent.hitObject as HeadedDrawableHitObject;
+                    let hitObject = drawable as DrawableHeadedHitObject;
                     hitObject.hitHead(playEvent.time);
                 }; break;
                 case PlayEventType.SliderEndCheck: { // Checking if the player hit the slider end happens slightly before the end of the slider
-                    let slider = playEvent.hitObject as DrawableSlider;
+                    let slider = drawable as DrawableSlider;
 
                     let distance = pointDistance(osuMouseCoordinates, playEvent.position);
                     let hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
@@ -501,20 +489,19 @@ export class Play {
                     }
                 }; break;
                 case PlayEventType.SliderEnd: {
-                    let slider = playEvent.hitObject as DrawableSlider;
+                    let slider = drawable as DrawableSlider;
 
                     slider.stopSliderSlideSound();
 
                     // If the slider end was hit, score it now.
                     let hit = slider.scoring.end === true;
                     if (hit) {
-                        this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
-
-                        // gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
-                        // This is commented out because the hit sound should be played in the .score method.
+						this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
+						
+						// The hit sound is played in the .score method. (at least when this comment was writtem)
                     }
 
-                    let primitive = slider.sliderEnds[playEvent.i];
+					let primitive = last(slider.sliderEnds);
                     // The if here ie because there is not always a slider end primitive (like for invisible sliders)
                     if (primitive) HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
 
@@ -522,7 +509,7 @@ export class Play {
                     slider.score(playEvent.time);
                 }; break;
                 case PlayEventType.SliderRepeat: {
-                    let slider = playEvent.hitObject as DrawableSlider;
+                    let slider = drawable as DrawableSlider;
 
                     let hit: boolean = null;
                     if (slider.scoring.end !== null) {
@@ -536,19 +523,20 @@ export class Play {
                     if (hit) {
                         slider.scoring.repeats++;
                         this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
-                        slider.pulseFollowCircle(playEvent.time);
-
-                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
+						slider.pulseFollowCircle(playEvent.time);
+						
+						let hitSound = slider.hitSounds[playEvent.index + 1];
+                        gameState.currentGameplaySkin.playHitSound(hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                         slider.releaseFollowCircle(playEvent.time);
                     }
 
-                    let primitive = slider.sliderEnds[playEvent.i];
+                    let primitive = slider.sliderEnds[playEvent.index];
                     HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
                 }; break;
                 case PlayEventType.SliderTick: {
-                    let slider = playEvent.hitObject as DrawableSlider;
+                    let slider = drawable as DrawableSlider;
 
                     let hit: boolean = null;
                     if (slider.scoring.end !== null) {
@@ -564,14 +552,15 @@ export class Play {
                         this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
                         slider.pulseFollowCircle(playEvent.time);
 
-                        gameState.currentGameplaySkin.playHitSound(playEvent.hitSound);
+						let hitSound = slider.tickSounds[playEvent.index];
+                        gameState.currentGameplaySkin.playHitSound(hitSound);
                     } else {
                         this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
                         slider.releaseFollowCircle(playEvent.time);
                     }
                 }; break;
                 case PlayEventType.SpinnerEnd: {
-                    let spinner = playEvent.hitObject as DrawableSpinner;
+                    let spinner = drawable as DrawableSpinner;
 
                     spinner.score();
                 }; break;
@@ -583,12 +572,14 @@ export class Play {
             if (currentTime >= playEvent.endTime) {
                 this.currentSustainedEvents.splice(i--, 1);
                 continue;
-            }
+			}
+			
+			let drawable = this.drawableBeatmap.processedToDrawable.get(playEvent.hitObject);
 
             switch (playEvent.type) {
                 case PlayEventType.SliderSlide: {
-                    let slider = playEvent.hitObject as DrawableSlider;
-                    let currentPosition = slider.path.getPosFromPercentage(MathUtil.mirror(slider.calculateCompletionAtTime(currentTime)));
+                    let slider = drawable as DrawableSlider;
+                    let currentPosition = slider.parent.path.getPosFromPercentage(MathUtil.mirror(slider.calculateCompletionAtTime(currentTime)));
                     let pan = calculatePanFromOsuCoordinates(currentPosition);
 
                     // Update the pan on the slider slide emitters
@@ -603,7 +594,7 @@ export class Play {
                     }
                 }; break;
                 case PlayEventType.SpinnerSpin: {
-                    let spinner = playEvent.hitObject as DrawableSpinner;
+                    let spinner = drawable as DrawableSpinner;
                     spinner.tick(currentTime, dt);
 
                     // Spin counter-clockwise as fast as possible. Clockwise just looks shit.
@@ -707,9 +698,9 @@ export class Play {
     }
 
     /** Headed hit objects can only be hit when the previous one has already been assigned a judgement. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
-    hitObjectIsInputLocked(hitObject: HeadedDrawableHitObject) {
-        let objectBefore = this.processedBeatmap.hitObjects[hitObject.index - 1];
-        if (!objectBefore || !(objectBefore instanceof HeadedDrawableHitObject)) return false;
+    hitObjectIsInputLocked(hitObject: DrawableHeadedHitObject) {
+        let objectBefore = this.drawableBeatmap.drawableHitObjects[hitObject.parent.index - 1];
+        if (!objectBefore || !(objectBefore instanceof DrawableHeadedHitObject)) return false;
 
         return objectBefore.scoring.head.hit === ScoringValue.NotHit;
     }
@@ -761,7 +752,7 @@ export class Play {
 
             if (completion === 1) this.currentPlaythroughInstruction++;
         } else if (currentInstruction.type === AutoInstructionType.Follow) {
-            let slider = currentInstruction.hitObject as DrawableSlider;
+            let slider = currentInstruction.hitObject as ProcessedSlider;
 
             if (currentTime >= slider.endTime) {
                 this.currentPlaythroughInstruction++;

@@ -1,4 +1,3 @@
-import { ProcessedBeatmap } from "./processed_beatmap";
 import { MathUtil, EaseType } from "../util/math_util";
 import { scoreDisplay, phantomComboDisplay, accuracyDisplay, comboDisplay } from "./hud/hud";
 import { assert } from "../util/misc_util";
@@ -14,6 +13,7 @@ import { OsuSoundType } from "./skin/sound";
 import { AnimatedOsuSprite } from "./skin/animated_sprite";
 import { OsuTexture } from "./skin/texture";
 import { ParticleEmitter, DistanceDistribution } from "../visuals/particle_emitter";
+import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -140,7 +140,7 @@ export class ScoreCounter {
             }
 
             let scorePopupType: ScorePopupType;
-            if (hitObject.comboInfo.isLast) {
+            if (hitObject.parent.comboInfo.isLast) {
                 if (this.isGeki) {
                     this.score.geki++;
 
@@ -161,7 +161,7 @@ export class ScoreCounter {
             
             assert(scorePopupType !== undefined);
             
-            let popup = new ScorePopup(scorePopupType, hitObject.endPoint, time);
+            let popup = new ScorePopup(scorePopupType, hitObject.parent.endPoint, time);
             gameState.currentPlay.addScorePopup(popup);
         }
     }
@@ -440,9 +440,12 @@ export class ScorePopup {
     }
 
     remove() {
-        lowerScorePopupContainer.removeChild(this.container);
-        upperScorePopupContainer.removeChild(this.secondContainer);
-
-        if (this.particleEmitter) lowerScorePopupContainer.removeChild(this.particleEmitter.container);
+		if (this.hasParticles()) {
+            lowerScorePopupContainer.removeChild(this.particleEmitter.container);
+            lowerScorePopupContainer.removeChild(this.container);
+            upperScorePopupContainer.removeChild(this.secondContainer);
+        } else {
+            upperScorePopupContainer.removeChild(this.container);
+        }
     }
 }

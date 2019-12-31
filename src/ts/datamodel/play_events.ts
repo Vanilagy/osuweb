@@ -1,6 +1,5 @@
-import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { Point } from "../util/point";
-import { HitSoundInfo } from "./skin/sound";
+import { ProcessedHitObject } from "./processed/processed_hit_object";
 
 export enum PlayEventType {
     SliderHead,
@@ -18,10 +17,10 @@ export enum PlayEventType {
 
 export interface PlayEvent {
     type: PlayEventType,
-    hitObject: DrawableHitObject,
+    hitObject: ProcessedHitObject,
     time: number,
     endTime?: number, // If endTime is set, it's not a singular event, but a sustained event
     position?: Point, // Where the event takes place, for example slider ticks.
-    hitSound?: HitSoundInfo, // For slider ends
-    i?: number // An index for general use
+    // hitSound?: HitSoundInfo, // For slider ends
+    index?: number // An index for general use
 }

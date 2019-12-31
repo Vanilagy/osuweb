@@ -1,20 +1,20 @@
-import { Beatmap, BeatmapEventBreak, TimingPoint, BeatmapEventType } from "../datamodel/beatmap";
-import { DrawableCircle } from "./drawables/drawable_circle";
-import { DrawableSlider } from "./drawables/drawable_slider";
-import { Circle } from "../datamodel/circle";
-import { Slider } from "../datamodel/slider";
-import { DrawableHitObject } from "./drawables/drawable_hit_object";
-import { DrawableSpinner } from "./drawables/drawable_spinner";
-import { MathUtil } from "../util/math_util";
-import { Color } from "../util/graphics_util";
-import { PlayEvent } from "./play_events";
-import { last } from "../util/misc_util";
-import { Spinner } from "../datamodel/spinner";
-import { HeadedDrawableHitObject } from "./drawables/headed_drawable_hit_object";
-import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS } from "./skin/skin";
-import { gameState } from "./game_state";
-import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
-import { pointDistance } from "../util/point";
+import { Beatmap, BeatmapEventBreak, TimingPoint, BeatmapEventType } from "../beatmap";
+import { Circle } from "../circle";
+import { Slider } from "../slider";
+import { MathUtil } from "../../util/math_util";
+import { Color } from "../../util/graphics_util";
+import { PlayEvent } from "../play_events";
+import { last } from "../../util/misc_util";
+import { Spinner } from "../spinner";
+import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS } from "../../game/skin/skin";
+import { gameState } from "../../game/game_state";
+import { ProcessedHitObject } from "./processed_hit_object";
+import { ProcessedCircle } from "./processed_circle";
+import { ProcessedSlider } from "./processed_slider";
+import { ProcessedSpinner } from "./processed_spinner";
+import { ProcessedHeadedHitObject } from "./processed_headed_hit_object";
+import { BeatmapDifficulty } from "../beatmap_difficulty";
+import { pointDistance } from "../../util/point";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
 const IMPLICIT_BREAK_THRESHOLD = 5000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
@@ -42,7 +42,7 @@ export interface CurrentTimingPointInfo {
 
 export class ProcessedBeatmap {
     public beatmap: Beatmap;
-    public hitObjects: DrawableHitObject[];
+    public hitObjects: ProcessedHitObject[];
     public breaks: Break[];
     public difficulty: BeatmapDifficulty;
 
@@ -59,7 +59,7 @@ export class ProcessedBeatmap {
     }
 
     generateHitObjects() {
-        let currentDrawableIndex = 0;
+        let currentObjectIndex = 0;
         let comboCount = 1;
         let currentCombo = 0;
 
@@ -126,22 +126,22 @@ export class ProcessedBeatmap {
                 currentTimingPointInfo.index++;
             }
 
-            let newDrawable = null;
+            let newProcessedObject = null;
 
             if (rawHitObject instanceof Circle) {
-                newDrawable = new DrawableCircle(rawHitObject, comboInfo, currentTimingPointInfo);
+                newProcessedObject = new ProcessedCircle(rawHitObject, comboInfo, currentTimingPointInfo, this);
             } else if (rawHitObject instanceof Slider) {
-                newDrawable = new DrawableSlider(rawHitObject, comboInfo, currentTimingPointInfo);
+                newProcessedObject = new ProcessedSlider(rawHitObject, comboInfo, currentTimingPointInfo, this);
             } else if (rawHitObject instanceof Spinner) {
-                newDrawable = new DrawableSpinner(rawHitObject, comboInfo, currentTimingPointInfo);
+                newProcessedObject = new ProcessedSpinner(rawHitObject, comboInfo, currentTimingPointInfo, this);
             }
 
-            if (newDrawable !== null) {
-                newDrawable.index = currentDrawableIndex;
-                this.hitObjects.push(newDrawable);
+            if (newProcessedObject !== null) {
+                newProcessedObject.index = currentObjectIndex;
+                this.hitObjects.push(newProcessedObject);
             }
     
-            currentDrawableIndex++;
+            currentObjectIndex++;
         }
     }
 
@@ -158,15 +158,15 @@ export class ProcessedBeatmap {
                 let objectB = this.hitObjects[b];
                 let stackBaseObject = hitObject;
 
-                if (!(stackBaseObject instanceof HeadedDrawableHitObject)) break;
-                if (!(objectB instanceof HeadedDrawableHitObject)) continue;
+                if (!(stackBaseObject instanceof ProcessedHeadedHitObject)) break;
+                if (!(objectB instanceof ProcessedHeadedHitObject)) continue;
 
                 let endTime = stackBaseObject.endTime;
 
                 if (objectB.startTime - endTime > stackThreshold) break;
 
                 if (pointDistance(stackBaseObject.startPoint, objectB.startPoint) < stackSnapDistance ||
-                    (stackBaseObject instanceof DrawableSlider) && pointDistance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
+                    (stackBaseObject instanceof ProcessedSlider) && pointDistance(stackBaseObject.endPoint, objectB.startPoint) < stackSnapDistance) {
                     stackBaseIndex = b;
 
                     objectB.stackHeight = 0;
@@ -185,16 +185,16 @@ export class ProcessedBeatmap {
             let n = i;
 
             let hitObject = this.hitObjects[i];
-            if (!(hitObject instanceof HeadedDrawableHitObject)) continue;
+            if (!(hitObject instanceof ProcessedHeadedHitObject)) continue;
 
             let objectI = hitObject;
             
             if (objectI.stackHeight !== 0) continue;
 
-            if (objectI instanceof DrawableCircle) {
+            if (objectI instanceof ProcessedCircle) {
                 while (--n >= 0) {
                     let objectN = this.hitObjects[n];
-                    if (!(objectN instanceof HeadedDrawableHitObject)) continue;
+                    if (!(objectN instanceof ProcessedHeadedHitObject)) continue;
 
                     let endTime = objectN.endTime;
 
@@ -206,12 +206,12 @@ export class ProcessedBeatmap {
                         extendedStartIndex = n;
                     }
 
-                    if (objectN instanceof DrawableSlider && pointDistance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
+                    if (objectN instanceof ProcessedSlider && pointDistance(objectN.endPoint, objectI.startPoint) < stackSnapDistance) {
                         let offset = objectI.stackHeight - objectN.stackHeight + 1;
 
                         for (let j = n + 1; j <= i; j++) {
                             let objectJ = this.hitObjects[j];
-                            if (!(objectJ instanceof HeadedDrawableHitObject)) continue;
+                            if (!(objectJ instanceof ProcessedHeadedHitObject)) continue;
 
                             if (pointDistance(objectN.endPoint, objectJ.startPoint) < stackSnapDistance)
                                 objectJ.stackHeight -= offset;
@@ -225,11 +225,11 @@ export class ProcessedBeatmap {
                     }
                 }
             }
-            else if (objectI instanceof DrawableSlider) {
+            else if (objectI instanceof ProcessedSlider) {
                 while (--n >= 0) {
                     let objectN = this.hitObjects[n];
 
-                    if (!(objectN instanceof HeadedDrawableHitObject)) continue;
+                    if (!(objectN instanceof ProcessedHeadedHitObject)) continue;
 
                     if (objectI.startTime - objectN.startTime > stackThreshold)
                         break;
@@ -244,16 +244,9 @@ export class ProcessedBeatmap {
 
         for (let z = 0; z < this.hitObjects.length; z++) {
             let hitObject = this.hitObjects[z];
-            if (!(hitObject instanceof HeadedDrawableHitObject)) continue;
+            if (!(hitObject instanceof ProcessedHeadedHitObject)) continue;
 
             if (hitObject.stackHeight !== 0) hitObject.applyStackPosition();
-        }
-    }    
-
-    draw() {
-        for (let i = 0; i < this.hitObjects.length; i++) {
-            let hitObject = this.hitObjects[i];
-            hitObject.draw();
         }
     }
 

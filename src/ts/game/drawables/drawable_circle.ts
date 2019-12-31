@@ -2,54 +2,47 @@ import { Circle } from "../../datamodel/circle";
 import { gameState } from "../game_state";
 import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../../util/constants";
 import { accuracyMeter } from "../hud/hud";
-import { HeadedDrawableHitObject, CircleScoring, getDefaultCircleScoring } from "./headed_drawable_hit_object";
+import { DrawableHeadedHitObject, CircleScoring, getDefaultCircleScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { ScoringValue } from "../scoring_value";
 import { Mod } from "../mods/mods";
-import { ComboInfo, CurrentTimingPointInfo } from "../processed_beatmap";
-import { stackShiftPoint } from "../../util/point";
 import { HitSoundInfo, generateHitSoundInfo } from "../skin/sound";
+import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
+import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 
-export class DrawableCircle extends HeadedDrawableHitObject {
-    public hitObject: Circle;
+export class DrawableCircle extends DrawableHeadedHitObject {
+	public parent: ProcessedCircle;
+
     public scoring: CircleScoring;
     private hitSound: HitSoundInfo;
 
-    constructor(circle: Circle, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo) {
-        super(circle, comboInfo, timingInfo);
-
-        this.endTime = this.startTime;
-        this.endPoint = this.startPoint;
+    constructor(processedCircle: ProcessedCircle) {
+        super(processedCircle);
 
         this.scoring = getDefaultCircleScoring();
 
-        this.initSounds(circle, timingInfo);
+        this.initSounds(processedCircle.hitObject, processedCircle.timingInfo);
     }
 
     protected initSounds(circle: Circle, timingInfo: CurrentTimingPointInfo) {
         let currentTimingPoint = timingInfo.timingPoint;
 
-        this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this.startPoint);
-    }
-
-    applyStackPosition() {
-        // Since start point == end point, this changes both points
-        stackShiftPoint(this.startPoint, this.stackHeight);
+        this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this.parent.startPoint);
     }
 
     draw() {
         let { approachTime, activeMods } = gameState.currentPlay;
 
-        this.renderStartTime = this.startTime - gameState.currentPlay.approachTime;
+        this.renderStartTime = this.parent.startTime - gameState.currentPlay.approachTime;
     
         this.head = new HitCirclePrimitive({
-            fadeInStart: this.startTime - approachTime,
-            comboInfo: this.comboInfo,
-            hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
+            fadeInStart: this.parent.startTime - approachTime,
+            comboInfo: this.parent.comboInfo,
+            hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.parent.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
             hasNumber: true,
             type: HitCirclePrimitiveType.HitCircle
         });
-        this.head.container.zIndex = -this.startTime;
+        this.head.container.zIndex = -this.parent.startTime;
     }
 
     update(currentTime: number) {
@@ -76,7 +69,7 @@ export class DrawableCircle extends HeadedDrawableHitObject {
 
         let { processedBeatmap } = gameState.currentPlay;
 
-        let timeInaccuracy = time - this.startTime;
+        let timeInaccuracy = time - this.parent.startTime;
         let judgement: number;
 
         if (judgementOverride !== undefined) {
