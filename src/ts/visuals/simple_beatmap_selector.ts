@@ -1,5 +1,5 @@
 import { Beatmap } from "../datamodel/beatmap";
-import { startPlay } from "../game/play";
+import { startPlayFromBeatmap } from "../game/play";
 import { BeatmapSet } from "../datamodel/beatmap_set";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
@@ -35,7 +35,7 @@ beatmapFileSelect.addEventListener('change', async (e) => {
 		beatmapSet: beatmapSet,
 		metadataOnly: false
     });
-    await startPlay(beatmap);
+    await startPlayFromBeatmap(beatmap);
 });
 
 export function showChooseFile() {

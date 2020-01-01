@@ -132,8 +132,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
         this.renderStartTime = this.parent.startTime - gameState.currentPlay.approachTime;
     
         this.head = new HitCirclePrimitive({
-            fadeInStart: this.parent.startTime - approachTime,
-            comboInfo: this.parent.comboInfo,
+			fadeInStart: this.parent.startTime - approachTime,
+			hitObject: this,
             hasApproachCircle: !hasHidden || (this.parent.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
             hasNumber: true,
             type: HitCirclePrimitiveType.SliderHead
@@ -178,7 +178,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
             let primitive = new HitCirclePrimitive({
                 fadeInStart: fadeInStart,
-                comboInfo: this.parent.comboInfo,
+                hitObject: this,
                 hasApproachCircle: false,
                 hasNumber: false,
                 reverseArrowAngle: reverseArrowAngle,
@@ -689,7 +689,7 @@ class SliderBall {
         let baseSprite = this.base.sprite;
         baseElement = baseSprite;
 
-        if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.parent.comboInfo.color);
+        if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.color);
         else baseSprite.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.sliderBall);
 
         if (!osuTexture.hasActualBase()) {

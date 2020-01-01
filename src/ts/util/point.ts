@@ -72,6 +72,37 @@ export function calculateTotalPointArrayArcLength(arr: Point[]) {
     return total;
 }
 
+export function addToPoint(target: Point, p: Point) {
+	target.x += p.x;
+	target.y += p.y;
+
+	return target;
+}
+
+export function subtractFromPoint(target: Point, p: Point) {
+	target.x -= p.x;
+	target.y -= p.y;
+
+	return target;
+}
+
+export function vector2Length(v: Vector2) {
+	return (v.x**2 + v.y**2)**0.5;
+}
+
+export function normalizeVector2(v: Vector2) {
+	let len = vector2Length(v);
+
+	v.x /= len;
+	v.y /= len;
+
+	return v;
+}
+
+export function vector2Dot(v1: Vector2, v2: Vector2) {
+	return v1.x * v2.x + v1.y * v2.y;
+}
+
 /** Modifies an array representing a polyline's points to fit a certain length. Returns an array the length of the resulting point array, where each element is a number from 0 to 1 marking the percentage of how far the point at the corresponding index is along the track. */
 export function fitPolylineToLength(points: Point[], arcLength: number) {
     let completions: number[] = [];

@@ -3,11 +3,13 @@ import { BeatmapSet } from "../datamodel/beatmap_set";
 import { stage, addRenderingTask } from "../visuals/rendering";
 import { Beatmap } from "../datamodel/beatmap";
 import { inputEventEmitter } from "../input/input";
-import { startPlay } from "../game/play";
+import { startPlayFromBeatmap } from "../game/play";
 import { Interpolator } from "../util/graphics_util";
 import { EaseType } from "../util/math_util";
 import { VirtualFile } from "../file_system/virtual_file";
 import { BackgroundManager } from "../visuals/background";
+import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
+import { DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 const songSelectContainer = new PIXI.Container();
@@ -96,7 +98,7 @@ class BeatmapSetPanel {
 							metadataOnly: false
 						});
 
-						startPlay(map);
+						startPlayFromBeatmap(map);
 					});
 
 					return true;
@@ -240,8 +242,12 @@ class BeatmapPanel {
 		let beatmap = new Beatmap({
 			text: await this.beatmapFile.readAsText(),
 			beatmapSet: this.beatmapSet,
-			metadataOnly: true
+			metadataOnly: false
 		});
+		let processedBeatmap = new ProcessedBeatmap(beatmap, true);
+		processedBeatmap.init();
+		processedBeatmap.applyStackShift();
+		let difficulty = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
 
 		let shitty = new PIXI.Text(beatmap.version + ' ', { // Adding the extra space so that the canvas doesn't cut off the italics
 			fontFamily: 'Exo2',
@@ -251,6 +257,36 @@ class BeatmapPanel {
 		});
 		shitty.position.set(30, 10);
 		this.container.addChild(shitty);
+
+		function addThing(percent: number, index: number) {
+			let width = 15 * percent || 1;
+
+			let g = new PIXI.Graphics();
+			g.beginFill(0xffffff);
+			g.drawPolygon([
+				new PIXI.Point(2, 0),
+				new PIXI.Point(2 + width, 0),
+				new PIXI.Point(width, 3),
+				new PIXI.Point(0, 3)
+			]);
+			g.endFill();
+
+			g.x = index * 20;
+			starRatingContainer.addChild(g);
+		}
+
+		let starRatingContainer = new PIXI.Container();
+		let floored = Math.floor(difficulty.starRating);
+		for (let i = 0; i < floored; i++) {
+			addThing(1.0, i);
+		}
+		if (difficulty.starRating !== floored) {
+			addThing(difficulty.starRating - floored, floored);
+		}
+
+		this.container.addChild(starRatingContainer);
+		starRatingContainer.y = 35;
+		starRatingContainer.x = 30;
 	}
 }
 

@@ -37,7 +37,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
     
         this.head = new HitCirclePrimitive({
             fadeInStart: this.parent.startTime - approachTime,
-            comboInfo: this.parent.comboInfo,
+            hitObject: this,
             hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.parent.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
             hasNumber: true,
             type: HitCirclePrimitiveType.HitCircle

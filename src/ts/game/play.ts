@@ -15,7 +15,7 @@ import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDispla
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
-import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS } from "./skin/skin";
+import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS } from "./skin/skin";
 import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
 import { ScoringValue } from "./scoring_value";
@@ -27,6 +27,7 @@ import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
 import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
+import { Color } from "../util/graphics_util";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = 'AT';
@@ -56,7 +57,8 @@ export class Play {
     private passiveHealthDrain: number; // In health/ms
     public currentHealth: number;
     public scoreCounter: ScoreCounter;
-    public activeMods: Set<Mod>;
+	public activeMods: Set<Mod>;
+	public colorArray: Color[];
 
     private lastTickTime: number = null;
     private playEvents: PlayEvent[] = [];
@@ -81,10 +83,10 @@ export class Play {
     private currentPlaythroughInstruction: number;
     private autohit: boolean;
 
-    constructor(beatmap: Beatmap) {
-		this.processedBeatmap = new ProcessedBeatmap(beatmap);
+    constructor(processedBeatmap: ProcessedBeatmap) {
+		this.processedBeatmap = processedBeatmap;
 		this.drawableBeatmap = new DrawableBeatmap(this.processedBeatmap);
-        this.scoreCounter = new ScoreCounter(this.processedBeatmap);
+		this.scoreCounter = new ScoreCounter(this.processedBeatmap);
 
         this.preludeTime = 0;
         this.currentHitObjectIndex = 0;
@@ -125,13 +127,24 @@ export class Play {
 
         console.time("Beatmap process");
         this.processedBeatmap.init();
-        console.timeEnd("Beatmap process");
+		console.timeEnd("Beatmap process");
 
         if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrSecondPass(this.processedBeatmap);
 
         console.time('Stack shift');
         this.processedBeatmap.applyStackShift();
-        console.timeEnd('Stack shift');
+		console.timeEnd('Stack shift');
+
+		let colorArray: Color[];
+        if (IGNORE_BEATMAP_SKIN) {
+            colorArray = gameState.currentGameplaySkin.colors;
+            if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
+        } else {
+            colorArray = this.processedBeatmap.beatmap.colors.comboColors;
+            if (colorArray.length === 0) colorArray = gameState.currentGameplaySkin.colors;
+            if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
+		}
+		this.colorArray = colorArray;
 
         console.time("Beatmap draw");
 		this.drawableBeatmap.init();
@@ -778,8 +791,10 @@ export class Play {
     }
 }
 
-export async function startPlay(beatmap: Beatmap) {
-    let newPlay = new Play(beatmap);
+export async function startPlayFromBeatmap(beatmap: Beatmap) {
+	let processedBeatmap = new ProcessedBeatmap(beatmap, !IGNORE_BEATMAP_SKIN);
+
+    let newPlay = new Play(processedBeatmap);
     gameState.currentPlay = newPlay;
 
     await newPlay.init();

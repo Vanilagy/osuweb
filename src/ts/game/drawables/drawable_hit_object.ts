@@ -2,9 +2,13 @@ import { HitObject } from "../../datamodel/hit_object";
 import { Point } from "../../util/point";
 import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
+import { Color } from "../../util/graphics_util";
+import { gameState } from "../game_state";
 
 export abstract class DrawableHitObject {
 	public parent: ProcessedHitObject;
+	public color: Color; // The combo color of this object
+	public colorIndex: number; // The index of the combo color of this object
 
     /** Specifies the timeframe is which the object is visible and needs to be rendered. */
     public renderStartTime: number;
@@ -13,6 +17,11 @@ export abstract class DrawableHitObject {
 	
 	constructor(processedHitObject: ProcessedHitObject) {
 		this.parent = processedHitObject;
+
+		let { colorArray } = gameState.currentPlay;
+
+		this.colorIndex = this.parent.comboInfo.comboNum % colorArray.length;
+		this.color = colorArray[this.colorIndex];
 	}
 
     protected abstract initSounds(hitObject: HitObject, timingInfo: CurrentTimingPointInfo): void;

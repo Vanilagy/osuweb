@@ -7,6 +7,7 @@ import { Mod } from "../mods/mods";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
 import { OsuTexture } from "../skin/texture";
 import { ComboInfo } from "../../datamodel/processed/processed_beatmap";
+import { DrawableHitObject } from "./drawable_hit_object";
 
 const HIT_CIRCLE_NUMBER_FADE_OUT_TIME = 50;
 const HIT_CIRCLE_FADE_OUT_TIME_ON_MISS = 75;
@@ -15,8 +16,8 @@ const REVERSE_ARROW_PULSE_DURATION = 300;
 const SHAKE_DURATION = 200;
 
 interface HitCirclePrimitiveOptions {
-    fadeInStart: number,
-    comboInfo: ComboInfo,
+	fadeInStart: number,
+	hitObject: DrawableHitObject,
     hasApproachCircle: boolean,
     hasNumber: boolean,
     reverseArrowAngle?: number,
@@ -102,7 +103,7 @@ export class HitCirclePrimitive {
         let sprite = new PIXI.Sprite();
         osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
-        sprite.tint = colorToHexNumber(this.options.comboInfo.color);
+        sprite.tint = colorToHexNumber(this.options.hitObject.color);
         sprite.anchor.set(0.5, 0.5);
 
         let wrapper = new PIXI.Container();
@@ -166,7 +167,7 @@ export class HitCirclePrimitive {
             overlap: gameState.currentGameplaySkin.config.fonts.hitCircleOverlap,
             scaleFactor: headedHitObjectTextureFactor * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
         });
-        text.setValue(this.options.comboInfo.n);
+        text.setValue(this.options.hitObject.parent.comboInfo.n);
 
         this.number = text.container;
     }
@@ -193,7 +194,7 @@ export class HitCirclePrimitive {
         osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
         sprite.anchor.set(0.5, 0.5);
-        sprite.tint = colorToHexNumber(this.options.comboInfo.color);
+        sprite.tint = colorToHexNumber(this.options.hitObject.color);
 
         let wrapper = new PIXI.Container();
         wrapper.addChild(sprite);

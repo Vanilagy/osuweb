@@ -23,6 +23,8 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
     public specialBehavior: SpecialSliderBehavior = SpecialSliderBehavior.None;
     public tickCompletions: number[];
 	public path: SliderPath;
+	public lazyEndPosition: Point = null;
+	public lazyTravelDistance: number = 0;
 	
 	constructor(slider: Slider, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo, processedBeatmap: ProcessedBeatmap) {
         super(slider, comboInfo, timingInfo, processedBeatmap);
@@ -115,6 +117,7 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 	applyStackPosition() {
         stackShiftPoint(this.startPoint, this.stackHeight);
 		stackShiftPoint(this.tailPoint, this.stackHeight);
+		// Since endPoint is either startPoint or tailPoint, we'll have shifted endPoint.
 
 		this.path.applyStackPosition(this.stackHeight);
 	}
@@ -143,7 +146,8 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
         playEventArray.push({
             type: PlayEventType.SliderEnd,
             hitObject: this,
-            time: this.endTime
+			time: this.endTime,
+			position: this.endPoint
         });
 
         if (tooShort) return;

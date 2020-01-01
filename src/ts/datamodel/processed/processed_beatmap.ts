@@ -2,12 +2,9 @@ import { Beatmap, BeatmapEventBreak, TimingPoint, BeatmapEventType } from "../be
 import { Circle } from "../circle";
 import { Slider } from "../slider";
 import { MathUtil } from "../../util/math_util";
-import { Color } from "../../util/graphics_util";
 import { PlayEvent } from "../play_events";
-import { last } from "../../util/misc_util";
+import { last, assert } from "../../util/misc_util";
 import { Spinner } from "../spinner";
-import { IGNORE_BEATMAP_SKIN, DEFAULT_COLORS } from "../../game/skin/skin";
-import { gameState } from "../../game/game_state";
 import { ProcessedHitObject } from "./processed_hit_object";
 import { ProcessedCircle } from "./processed_circle";
 import { ProcessedSlider } from "./processed_slider";
@@ -23,9 +20,7 @@ const REQUIRED_MINIMUM_BREAK_LENGTH = 750; // In milliseconds
 export interface ComboInfo {
     comboNum: number,
     n: number,
-    isLast: boolean,
-    color: Color,
-    colorIndex: number
+    isLast: boolean
 }
 
 export interface Break {
@@ -41,39 +36,37 @@ export interface CurrentTimingPointInfo {
 }
 
 export class ProcessedBeatmap {
-    public beatmap: Beatmap;
+	public beatmap: Beatmap;
     public hitObjects: ProcessedHitObject[];
     public breaks: Break[];
-    public difficulty: BeatmapDifficulty;
+	public difficulty: BeatmapDifficulty;
+	private allowColorSkipping: boolean;
+	private initialized = false;
 
-    constructor(beatmap: Beatmap) {
-        this.beatmap = beatmap;
+	/**
+	 * @param allowColorSkipping Whether or not combo colors can be skipped.
+	 */
+    constructor(beatmap: Beatmap, allowColorSkipping: boolean) {
+		this.beatmap = beatmap;
         this.hitObjects = [];
         this.breaks = [];
-        this.difficulty = this.beatmap.difficulty.clone();
+		this.difficulty = this.beatmap.difficulty.clone();
+		this.allowColorSkipping = allowColorSkipping;
     }
 
     init() {
+		assert(!this.initialized);
+		this.initialized = true;
+
         this.generateHitObjects();
         this.generateBreaks();
     }
 
-    generateHitObjects() {
+    private generateHitObjects() {
         let currentObjectIndex = 0;
         let comboCount = 1;
         let currentCombo = 0;
-
-        let colorArray: Color[];
-        if (IGNORE_BEATMAP_SKIN) {
-            colorArray = gameState.currentGameplaySkin.colors;
-            if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
-        } else {
-            colorArray = this.beatmap.colors.comboColors;
-            if (colorArray.length === 0) colorArray = gameState.currentGameplaySkin.colors;
-            if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
-        }
-
-        let firstTimingPoint = this.beatmap.timingPoints[0];
+		let firstTimingPoint = this.beatmap.timingPoints[0];
 
         let currentTimingPointInfo: CurrentTimingPointInfo = {
             timingPoint: firstTimingPoint,
@@ -87,7 +80,7 @@ export class ProcessedBeatmap {
 
             let comboInfo: ComboInfo = null;
             if (rawHitObject.comboSkips !== 0) {
-                if (IGNORE_BEATMAP_SKIN) currentCombo++; // No color skipping with this option enabled!
+                if (!this.allowColorSkipping) currentCombo++; // No color skipping with this option enabled!
                 else currentCombo += rawHitObject.comboSkips;
 
                 comboCount = 1;
@@ -95,9 +88,7 @@ export class ProcessedBeatmap {
             comboInfo = {
                 comboNum: currentCombo,
                 n: comboCount++,
-                isLast: (this.beatmap.hitObjects[i + 1])? this.beatmap.hitObjects[i + 1].comboSkips !== 0 : true,
-                color: colorArray[currentCombo % colorArray.length],
-                colorIndex: currentCombo % colorArray.length
+                isLast: (this.beatmap.hitObjects[i + 1])? this.beatmap.hitObjects[i + 1].comboSkips !== 0 : true
             };
 
             // Apply all the timing points until the current hit object
@@ -275,7 +266,7 @@ export class ProcessedBeatmap {
         return events;
     }
 
-    generateBreaks() {
+	private generateBreaks() {
         for (let i = 0; i < this.beatmap.events.length; i++) {
             let event = this.beatmap.events[i];
             if (event.type !== BeatmapEventType.Break) continue;
