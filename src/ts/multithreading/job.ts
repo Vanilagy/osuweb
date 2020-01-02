@@ -1,27 +1,38 @@
+import { DifficultyAttributes } from "../datamodel/difficulty/difficulty_calculator";
+import { NonTrivialBeatmapMetadata } from "../datamodel/beatmap";
+
 export enum JobTask {
 	GetBeatmapMetadata
 }
 
-export interface Job {
-    task: JobTask,
-    id?: number
-}
-
-export interface JobContainer {
-    job: Job,
-    transfer: (Transferable | OffscreenCanvas)[]
-};
-
-export interface JobMessageWrapper {
-    id: number,
-    jobs: Job[]
-};
-
-export interface JobResponse {
+interface JobMessageBase {
 	id: number,
-	data: any
+	task: JobTask,
+	data: any,
+	responseType?: any // DO NOT ASSIGN TO THIS ATTRIBUTE. This is simply a TypeScript hack.
+};
+
+export interface GetBeatmapMetadataRequest extends JobMessageBase {
+	task: JobTask.GetBeatmapMetadata,
+	data: {
+		beatmapResource: Blob
+	},
+	responseType?: GetBeatmapMetadataResponse
 }
 
-export interface GetBeatmapMetadataJob extends Job {
-	beatmapFile: File
+export type JobRequestMessage = GetBeatmapMetadataRequest;
+
+export type JobResponseWrapper = {
+	id: number,
+	status: 'fulfilled',
+	data: any
+} | {
+	id: number,
+	status: 'rejected',
+	reason: any
+};
+
+export interface GetBeatmapMetadataResponse {
+	metadata: NonTrivialBeatmapMetadata,
+	difficulty: DifficultyAttributes
 }

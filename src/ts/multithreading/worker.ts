@@ -1,19 +1,18 @@
-import { JobTask, JobMessageWrapper, GetBeatmapMetadataJob } from "./job";
+import { JobTask, JobResponseWrapper, JobRequestMessage } from "./job";
 import { Beatmap } from "../datamodel/beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
 
 self.onmessage = async (e: MessageEvent) => {
-    let msg = e.data as JobMessageWrapper;
+	let msg = e.data as JobRequestMessage;
+	let data = msg.data;
+	let response: typeof msg.responseType;
 
-    for (let i = 0; i < msg.jobs.length; i++) {
-		let job = msg.jobs[i];
-		
-		switch (job.task) {
+	try {
+		switch (msg.task) {
 			case JobTask.GetBeatmapMetadata: {
-				let thiiiing = job as GetBeatmapMetadataJob;
-				let text = await new Response(thiiiing.beatmapFile).text();
-
+				let text = await new Response(data.beatmapResource).text();
+	
 				let beatmap = new Beatmap({
 					text: text,
 					beatmapSet: null,
@@ -22,43 +21,26 @@ self.onmessage = async (e: MessageEvent) => {
 				let processedBeatmap = new ProcessedBeatmap(beatmap, true);
 				processedBeatmap.init();
 				processedBeatmap.applyStackShift();
-
+	
 				let difficulty = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
-
-				self.postMessage({
-					id: msg.id,
-					data: {
-						beatmapMetadata: beatmap.getMetadata(),
-						difficulty: difficulty
-					}
-				});
+				
+				response = {
+					metadata: beatmap.getNonTrivialMetadata(),
+					difficulty: difficulty
+				};
 			}; break;
 		}
+	} catch (e) {
+		self.postMessage({
+			id: msg.id,
+			status: 'rejected',
+			reason: e
+		} as JobResponseWrapper, null);
+	}
 
-		/*
-
-        switch (job.task) {
-            case JobTask.RememberSlider: {
-                let rememberSliderJob = job as DrawSliderJob;
-
-                sliderCurveStorage[rememberSliderJob.sliderIndex] = rememberSliderJob;
-            }; break;
-            case JobTask.DrawSlider: {
-                let drawSliderJob = job as DrawSliderJob;
-
-                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.screenPixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
-
-                //workerGlobalScope.postMessage(drawSliderJob.id);
-            }; break;
-            case JobTask.DrawSliderByIndex: {
-                let drawSliderJob = sliderCurveStorage[(job as DrawSliderByIndexJob).sliderIndex] as DrawSliderJob;
-
-                //drawSliderCurve(drawSliderJob.canvas, drawSliderJob.shapeData, drawSliderJob.screenPixelRatio, drawSliderJob.circleDiameter, drawSliderJob.minX, drawSliderJob.minY, drawSliderJob.color, drawSliderJob.sliderBodyRadius, drawSliderJob.sliderBorder, drawSliderJob.sliderTrackOverride);
-
-                //workerGlobalScope.postMessage(drawSliderJob.id);
-            }; break;
-		}
-		
-		*/
-    }
+	self.postMessage({
+		id: msg.id,
+		status: 'fulfilled',
+		data: response
+	} as JobResponseWrapper, null);
 };

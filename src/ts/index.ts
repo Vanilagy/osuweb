@@ -1,6 +1,6 @@
 import './visuals/ui';
 import './visuals/simple_beatmap_selector';
-import './menu/song_select';
+import './menu/song_select/beatmap_carousel';
 import { baseSkin } from './game/skin/skin';
 import { showChooseFile } from './visuals/simple_beatmap_selector';
 

@@ -62,6 +62,17 @@ interface BeatmapColorInfo {
     sliderBorder?: Color
 }
 
+/** The metadata that can only be obtained by reading the entire beatmap. */
+export interface NonTrivialBeatmapMetadata {
+	hitObjectCount: number,
+	circleCount: number,
+	sliderCount: number,
+	spinnerCount: number,
+	bpmMin: number,
+	bpmMax: number,
+	version: string // This one's trivial, but handy to send anyway
+}
+
 export class Beatmap {
 	public metadataOnly: boolean;
     public events: BeatmapEvent[] = [];
@@ -76,7 +87,6 @@ export class Beatmap {
     public spinnerCount: number = 0;
     public bpmMin: number = 120;
     public bpmMax: number = 120; 
-    public stars: number = 0;
     public ARFound: boolean = false;
     public version: string = '';
     public audioFilename: string = null;
@@ -147,9 +157,15 @@ export class Beatmap {
         return this.beatmapSet.directory.getFileByName(fileName);
 	}
 	
-	getMetadata() {
+	getNonTrivialMetadata(): NonTrivialBeatmapMetadata {
 		return {
-			version: this.version
+			version: this.version,
+			hitObjectCount: this.hitObjects.length,
+			circleCount: this.circleCount,
+			sliderCount: this.sliderCount,
+			spinnerCount: this.spinnerCount,
+			bpmMin: this.bpmMin,
+			bpmMax: this.bpmMax
 		};
 	}
 

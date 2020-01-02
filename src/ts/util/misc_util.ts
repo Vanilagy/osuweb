@@ -57,7 +57,13 @@ export function charIsDigit(c: string) {
 }
 
 /** In contrast to Promise.all, this doesn't stop on the first rejection. */
-export function promiseAllSettled<T>(values: Promise<T>[]) {
+export function promiseAllSettled<T>(values: Promise<T>[]): Promise<({
+	value: T,
+	status: 'fulfilled'
+} | {
+	reason: any,
+	status: 'rejected'
+})[]> {
     let newValues = values.map((a) => {
         if (a instanceof Promise) {
             return a.then(

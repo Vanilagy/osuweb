@@ -2,9 +2,18 @@ import { mainCanvas, renderer, addRenderingTask, cursorRippleGraphics } from "./
 import { Point } from "../util/point";
 import { getCurrentMousePosition, inputEventEmitter } from "../input/input";
 import { MathUtil } from "../util/math_util";
+import { CustomEventEmitter } from "../util/custom_event_dispatcher";
 
 const CURSOR_RIPPLE_DURATION = 1500;
 const CURSOR_RIPPLES = false;
+export const REFERENCE_SCREEN_HEIGHT = 768; // For a lot of full-screen textures, the reference height is 768.
+
+let globalScaingFactor = 1.0;
+export function getGlobalScalingFactor() {
+	return globalScaingFactor;
+}
+
+export let uiEventEmitter = new CustomEventEmitter();
 
 function onResize() {
     let width = window.innerWidth,
@@ -13,7 +22,11 @@ function onResize() {
     mainCanvas.setAttribute('width', String(width));
 	mainCanvas.setAttribute('height', String(height));
 
-    renderer.resize(width, height);
+	renderer.resize(width, height);
+	
+	globalScaingFactor = Math.min(width, height) / REFERENCE_SCREEN_HEIGHT;
+
+	uiEventEmitter.emit('resize');
 }
 onResize();
 

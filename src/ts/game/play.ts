@@ -28,13 +28,13 @@ import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel
 import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
+import { REFERENCE_SCREEN_HEIGHT } from "../visuals/ui";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = 'AT';
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
-const REFERENCE_SCREEN_HEIGHT = 768; // For a lot of full-screen textures, the reference height is 768.
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
