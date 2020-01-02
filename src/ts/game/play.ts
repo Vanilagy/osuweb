@@ -200,9 +200,13 @@ export class Play {
         let backgroundVideoFile = await this.processedBeatmap.beatmap.getBackgroundVideoFile();
         if (backgroundVideoFile && !DISABLE_VIDEO) {
 			let url = await backgroundVideoFile.readAsResourceUrl();
-			await BackgroundManager.setVideo(url);
-
-            this.hasVideo = true;
+			 
+			try {
+				await BackgroundManager.setVideo(url);
+				this.hasVideo = true;
+			} catch (e) {
+				console.error(e);
+			}
         }
 
         // TODO: Apply pitch changes and percussion

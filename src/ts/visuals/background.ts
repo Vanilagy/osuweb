@@ -106,7 +106,8 @@ export abstract class BackgroundManager {
 		videoContainer.src = src;
 		videoContainer.style.display = 'block';
 
-		return new Promise((resolve) => {
+		return new Promise((resolve, reject) => {
+			videoContainer.addEventListener('error', reject);
 			videoContainer.addEventListener('canplaythrough', () => resolve());
 		});
 	}
