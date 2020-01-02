@@ -1,5 +1,6 @@
-import { Job, JobContainer } from "./job";
+import { Job, JobContainer, JobResponse } from "./job";
 import { randomInArray } from "../util/misc_util";
+import { MathUtil } from "../util/math_util";
 
 let workerPool: Worker[] = [];
 let currentJobId = 0;
@@ -7,23 +8,35 @@ let jobPromises: {
     promise: Promise<void>,
     resolve: Function,
     reject: Function,
-    currentlyPocessing: number
+    currentlyProcessing: number
 }[] = [];
 
-for (let i = 0; i < navigator.hardwareConcurrency; i++) {
+let currentRoundRobinIndex = 0;
+function getNextRoundRobinIndex() {
+	let value = currentRoundRobinIndex;
+
+	currentRoundRobinIndex++;
+	currentRoundRobinIndex %= workerPool.length;
+
+	return value;
+}
+
+let workerCount = MathUtil.clamp(navigator.hardwareConcurrency - 1, 1, 2); // Using more than two can kinda cause lag
+
+for (let i = 0; i < workerCount; i++) {
     let worker = new Worker('./js/worker_bundle.js');
     workerPool.push(worker);
 
     worker.onmessage = (e) => {
-        let id = e.data as number;
-        let thing = jobPromises[id];
+        let response = e.data as JobResponse;
+        let thing = jobPromises[response.id];
         if (!thing) return;
 
-        thing.currentlyPocessing--;
+        thing.currentlyProcessing--;
 
-        if (thing.currentlyPocessing === 0) {
-            jobPromises[id].resolve();
-            jobPromises[id] = null;
+        if (thing.currentlyProcessing === 0) {
+            jobPromises[response.id].resolve(response.data);
+            jobPromises[response.id] = null;
         }
     };
 }
@@ -47,9 +60,7 @@ export function uploadSliderData(jobContainers: JobContainer[]) {
 }
 
 export function processJob(jobContainer: JobContainer) {
-    let worker = randomInArray(workerPool);
-    worker = workerPool[0];
-
+    let worker = workerPool[getNextRoundRobinIndex()];
     let jobBatchId = currentJobId++;
 
     worker.postMessage({
@@ -67,7 +78,7 @@ export function processJob(jobContainer: JobContainer) {
         promise: promise,
         resolve: promiseResolve,
         reject: promiseReject,
-        currentlyPocessing: 1
+        currentlyProcessing: 1
     };
 
     return promise;
@@ -115,7 +126,7 @@ export function processJobs(jobContainers: JobContainer[]) {
         promise: promise,
         resolve: promiseResolve,
         reject: promiseReject,
-        currentlyPocessing: designations.length
+        currentlyProcessing: designations.length
     };
 
     return promise;

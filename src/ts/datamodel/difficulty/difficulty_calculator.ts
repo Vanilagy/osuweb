@@ -14,6 +14,7 @@ export interface DifficultyAttributes {
 	starRating: number
 }
 
+// This algorithm for difficulty calculation is taken from lazer's source code.
 export abstract class DifficultyCalculator {
 	static calculate(beatmap: ProcessedBeatmap, mods: Set<Mod>, clockRate: number): DifficultyAttributes {
 		let skills = [new Aim(), new Speed()];

@@ -7,7 +7,8 @@
         "moduleResolution": "classic",
         "target": "esnext",
         "strict": true,
-        "strictNullChecks": false
+		"strictNullChecks": false,
+		"lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"]
     },
     "include": [
         "src/ts/**/*",

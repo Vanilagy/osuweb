@@ -9,7 +9,10 @@ import { EaseType } from "../util/math_util";
 import { VirtualFile } from "../file_system/virtual_file";
 import { BackgroundManager } from "../visuals/background";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
-import { DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
+import { DifficultyCalculator, DifficultyAttributes } from "../datamodel/difficulty/difficulty_calculator";
+import { processJob } from "../multithreading/job_system";
+import { JobTask } from "../multithreading/job";
+import { promiseAllSettled } from "../util/misc_util";
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 const songSelectContainer = new PIXI.Container();
@@ -192,17 +195,38 @@ class BeatmapSetPanel {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
+		let wackShit: Promise<any>[] = [];
+
 		this.expandInterpolator.start();
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			let beatmapFile = this.beatmapFiles[i];
 			let beatmapPanel = new BeatmapPanel(beatmapFile, this.beatmapSet);
 
+			wackShit.push(processJob({
+				job: {
+					task: JobTask.GetBeatmapMetadata,
+					beatmapFile: await beatmapFile.getBlob()
+				},
+				transfer: []
+			}));
+
 			//beatmapPanel.container.x = i * 10;
 			beatmapPanel.container.zIndex = -i;
 
 			this.difficultyContainer.addChild(beatmapPanel.container);
 			this.beatmapPanels.push(beatmapPanel);
+		}
+
+		let results = await promiseAllSettled(wackShit);
+
+		for (let i = 0; i < this.beatmapPanels.length; i++) {
+			let result = results[i];
+			if (result.status === 'fulfilled') {
+				this.beatmapPanels[i].load(result.value.beatmapMetadata, result.value.difficulty);
+			}
+
+			// .load(result.)
 		}
 
 		let backgroundImage = await this.representingBeatmap.getBackgroundImageFile();
@@ -212,6 +236,16 @@ class BeatmapSetPanel {
 		}
 	}
 }
+
+let beatmapPanelMask = new PIXI.Graphics();
+beatmapPanelMask.beginFill(0x000000, 0.5);
+beatmapPanelMask.drawPolygon([
+	new PIXI.Point(0, 0),
+	new PIXI.Point(10, 50),
+	new PIXI.Point(450, 50),
+	new PIXI.Point(450, 0)
+]);
+beatmapPanelMask.endFill();
 
 class BeatmapPanel {
 	public container: PIXI.Container;
@@ -223,22 +257,15 @@ class BeatmapPanel {
 		this.beatmapSet = beatmapSet;
 		this.container = new PIXI.Container();
 
-		let mask = new PIXI.Graphics();
-		mask.beginFill(0x000000, 0.5);
-		mask.drawPolygon([
-			new PIXI.Point(0, 0),
-			new PIXI.Point(10, 50),
-			new PIXI.Point(450, 50),
-			new PIXI.Point(450, 0)
-		]);
-		mask.endFill();
+		let mask = beatmapPanelMask.clone();
 
 		this.container.addChild(mask);
 
-		this.load();
+		//this.load();
 	}
 
-	async load() {
+	load(metadata: any, difficulty: DifficultyAttributes) {
+/*
 		let beatmap = new Beatmap({
 			text: await this.beatmapFile.readAsText(),
 			beatmapSet: this.beatmapSet,
@@ -247,9 +274,22 @@ class BeatmapPanel {
 		let processedBeatmap = new ProcessedBeatmap(beatmap, true);
 		processedBeatmap.init();
 		processedBeatmap.applyStackShift();
-		let difficulty = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
+		let difficulty = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);*/
 
-		let shitty = new PIXI.Text(beatmap.version + ' ', { // Adding the extra space so that the canvas doesn't cut off the italics
+		let rnd = Math.random().toString();
+
+		//console.time(rnd)
+		/*
+		let shit = await processJob({
+			job: {
+				task: JobTask.GetBeatmapMetadata,
+				beatmapFile: await this.beatmapFile.getBlob()
+			},
+			transfer: []
+		});*/
+		//console.timeEnd(rnd)
+
+		let shitty = new PIXI.Text(metadata.version + ' ', { // Adding the extra space so that the canvas doesn't cut off the italics
 			fontFamily: 'Exo2',
 			fill: 0xffffff,
 			fontStyle: 'italic',

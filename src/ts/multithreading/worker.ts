@@ -1,20 +1,41 @@
-import { Job, JobTask, DrawSliderJob, JobMessageWrapper, DrawSliderByIndexJob } from "./job";
+import { JobTask, JobMessageWrapper, GetBeatmapMetadataJob } from "./job";
+import { Beatmap } from "../datamodel/beatmap";
+import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
+import { DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
 
-let workerGlobalScope = self as any; // Hacky, but eh. TypeScript made it hard ¯\_(ツ)_/¯
-
-let sliderCurveStorage: any = {};
-
-workerGlobalScope.onmessage = (e: MessageEvent) => {
+self.onmessage = async (e: MessageEvent) => {
     let msg = e.data as JobMessageWrapper;
 
-    //console.log(msg.jobs.length);
-
-    //console.time()
-
     for (let i = 0; i < msg.jobs.length; i++) {
-        let job = msg.jobs[i];
+		let job = msg.jobs[i];
+		
+		switch (job.task) {
+			case JobTask.GetBeatmapMetadata: {
+				let thiiiing = job as GetBeatmapMetadataJob;
+				let text = await new Response(thiiiing.beatmapFile).text();
 
-        //console.log(job)
+				let beatmap = new Beatmap({
+					text: text,
+					beatmapSet: null,
+					metadataOnly: false
+				});
+				let processedBeatmap = new ProcessedBeatmap(beatmap, true);
+				processedBeatmap.init();
+				processedBeatmap.applyStackShift();
+
+				let difficulty = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
+
+				self.postMessage({
+					id: msg.id,
+					data: {
+						beatmapMetadata: beatmap.getMetadata(),
+						difficulty: difficulty
+					}
+				});
+			}; break;
+		}
+
+		/*
 
         switch (job.task) {
             case JobTask.RememberSlider: {
@@ -36,10 +57,8 @@ workerGlobalScope.onmessage = (e: MessageEvent) => {
 
                 //workerGlobalScope.postMessage(drawSliderJob.id);
             }; break;
-        }
+		}
+		
+		*/
     }
-
-    workerGlobalScope.postMessage(msg.id);
-
-    //console.timeEnd()
 };

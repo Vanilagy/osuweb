@@ -66,19 +66,14 @@ body {
 	height: 100%;
 }
 
-#beatmap-background > ._images > div {
+#beatmap-background > ._images > img {
     object-fit: cover;
     width: 100%;
     height: 100%;
     position: absolute;
     top: 0;
 	left: 0;
-}
-
-#beatmap-background > ._images > div > img {
-    object-fit: cover;
-    width: 100%;
-	height: 100%;
+	object-fit: cover;
 }
 
 #beatmap-background > ._video {

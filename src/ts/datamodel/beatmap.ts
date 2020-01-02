@@ -102,11 +102,11 @@ export class Beatmap {
         this.difficulty = new BeatmapDifficulty();
         this.metadataOnly = options.metadataOnly;
 
-        console.time("Beatmap parse");
+        //console.time("Beatmap parse");
         this.parseBeatmap(options.text);
-        console.timeEnd("Beatmap parse");
+        //console.timeEnd("Beatmap parse");
 
-        console.log(this);
+        //console.log(this);
     }
 
     getAudioFile() {
@@ -145,7 +145,13 @@ export class Beatmap {
     getBackgroundVideoFile() {
         let fileName = this.getBackgroundVideoName();
         return this.beatmapSet.directory.getFileByName(fileName);
-    }
+	}
+	
+	getMetadata() {
+		return {
+			version: this.version
+		};
+	}
 
     private parseBeatmap(text: string) {
         let lines = text.split('\n');
@@ -321,14 +327,6 @@ export class Beatmap {
                 this.events.push(event);
             }; break;
         }
-    }
-
-    private getNextInheritableTimingPoint(num: number) {
-        for (let i = num + 1; i < this.timingPoints.length; i++) {
-            if (this.timingPoints[i].inheritable) return this.timingPoints[i];
-        }
-
-        return null;
     }
 
     getClosestTimingPointTo(time: number, fromIndex = 0) {

@@ -36,7 +36,12 @@ export class VirtualFile extends VirtualFileSystemEntry {
 
         await this.load();
         return this.cachedResourceUrl = URL.createObjectURL(this.blob);
-    }
+	}
+	
+	async getBlob() {
+		await this.load();
+		return this.blob;
+	}
 
     getUrl() {
         if (typeof this.resource === "string") return this.resource;
@@ -56,7 +61,7 @@ export class VirtualFile extends VirtualFileSystemEntry {
 
     getNameWithoutExtension() {
         return getFileNameWithoutExtension(this.name);
-    }
+	}
 
     static fromUrl(url: string, resourceName: string) {
         let newFile = new VirtualFile();

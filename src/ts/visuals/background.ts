@@ -1,6 +1,7 @@
 import { Interpolator } from "../util/graphics_util";
 import { EaseType, MathUtil } from "../util/math_util";
 import { addRenderingTask } from "./rendering";
+import { last } from "../util/misc_util";
 
 const IMAGE_FADE_IN_DURATION = 333; // In ms
 
@@ -18,6 +19,7 @@ export abstract class BackgroundManager {
 	private static state: BackgroundState = BackgroundState.None;
 	private static currentImageSource: string = null;
 	private static markedForDeletionImages: WeakSet<Element> = new WeakSet();
+	private static imageInterpolators: WeakMap<HTMLElement, Interpolator> = new WeakMap();
 	private static currentGameplayBrightness: number = 1.0;
 	private static gameplayInterpolator: Interpolator = new Interpolator({
 		from: 0.0,
@@ -73,7 +75,9 @@ export abstract class BackgroundManager {
 
 		let imageElement = new Image();
 		imageElement.src = src;
-		imageElement.onload = () => {
+		imageElement.onload = async () => {
+			await imageElement.decode();
+
 			for (let elem of imageContainer.children) {
 				if (this.markedForDeletionImages.has(elem)) continue;
 
@@ -81,12 +85,17 @@ export abstract class BackgroundManager {
 				setTimeout(() => imageContainer.removeChild(elem), IMAGE_FADE_IN_DURATION);
 			}
 
-			// The reason for wrapping the image into a div here is that without it, there's some weird blur artifact upon animation, probably caused by the way the browser renders the layers. The wrapping fixed it.
-			let container = document.createElement('div');
-			container.appendChild(imageElement);
-			imageContainer.appendChild(container);
+			imageContainer.appendChild(imageElement);
 
-			container.style.animation = `fade-in ${IMAGE_FADE_IN_DURATION}ms forwards`;
+			let fadeInterpolator = new Interpolator({
+				from: 0.0,
+				to: 1.0,
+				ease: EaseType.EaseInOutSine,
+				duration: IMAGE_FADE_IN_DURATION,
+				defaultToFinished: false
+			});
+			fadeInterpolator.start();
+			this.imageInterpolators.set(imageElement, fadeInterpolator);
 		};
 	}
 
@@ -142,9 +151,12 @@ export abstract class BackgroundManager {
 
 		beatmapBackgroundElement.style.filter = `brightness(${brightness})`;
 
-		// The blur is animated manually because of CSS animation artifacts that I wanted to avoid.
+		// The blur and opacity are animated manually because of CSS animation artifacts that I wanted to avoid.
 		for (let i = 0; i < imageContainer.children.length; i++) {
-			(imageContainer.children[i].children[0] as HTMLElement).style.filter = `blur(${(1 - this.blurInterpolator.getCurrentValue()) * 0.8}vmax)`;
+			let imageElement = imageContainer.children[i] as HTMLElement;
+
+			imageElement.style.filter = `blur(${(1 - this.blurInterpolator.getCurrentValue()) * 0.8}vmax)`;
+			imageElement.style.opacity = this.imageInterpolators.get(imageElement).getCurrentValue().toString();
 		}
 	}
 }
