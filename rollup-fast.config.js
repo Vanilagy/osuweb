@@ -11,7 +11,13 @@ export default [{
         format: 'iife',
         file: './src/js/bundle.js',
         name: '', // Empty string here to create an unnamed IIFE
-    }
+	},
+	onwarn: function (message) {
+		if (message.code === 'CIRCULAR_DEPENDENCY') {
+		  return;
+		}
+		console.warn(message);
+	}
 },
 {
     input: './src/ts/multithreading/worker.ts',
@@ -22,5 +28,11 @@ export default [{
         format: 'iife',
         file: './src/js/worker_bundle.js',
         name: '', // Empty string here to create an unnamed IIFE
-    }
+	},
+	onwarn: function (message) {
+		if (message.code === 'CIRCULAR_DEPENDENCY') {
+		  return;
+		}
+		console.warn(message);
+	}
 }];

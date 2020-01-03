@@ -6,9 +6,8 @@ import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calc
 import { EaseType } from "../../util/math_util";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
-import { BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer } from "./song_select_data";
 import { getBeatmapPanelMask } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer } from "./beatmap_carousel";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;

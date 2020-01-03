@@ -1,5 +1,5 @@
 import { getGlobalScalingFactor } from "../../visuals/ui";
-import { BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_WIDTH } from "./song_select_data";
+import { BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_WIDTH } from "./beatmap_carousel";
 
 let darkeningOverlay = document.createElement('canvas');
 let darkeningOverlayCtx = darkeningOverlay.getContext('2d');
@@ -17,7 +17,6 @@ export function updateDarkeningOverlay() {
 	darkeningOverlayCtx.fillStyle = gradient;
 	darkeningOverlayCtx.fillRect(0, 0, darkeningOverlay.width, darkeningOverlay.height);
 }
-updateDarkeningOverlay();
 
 export function getDarkeningOverlay() {
 	return darkeningOverlay;
@@ -39,7 +38,6 @@ export function updateBeatmapSetPanelMask() {
 	]);
 	beatmapSetPanelMask.endFill();
 }
-updateBeatmapSetPanelMask();
 
 export function getBeatmapSetPanelMask() {
 	return beatmapSetPanelMask;
@@ -61,7 +59,6 @@ export function updateBeatmapPanelMask() {
 	]);
 	beatmapPanelMask.endFill();
 }
-updateBeatmapPanelMask();
 
 export function getBeatmapPanelMask() {
 	return beatmapPanelMask;

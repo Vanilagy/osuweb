@@ -3,39 +3,57 @@ import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { stage, addRenderingTask } from "../../visuals/rendering";
 import { inputEventEmitter } from "../../input/input";
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { beatmapSetPanels, BEATMAP_CAROUSEL_RIGHT_MARGIN, beatmapCarouselContainer, BEATMAP_CAROUSEL_RADIUS_FACTOR } from "./song_select_data";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapSetPanelMask, updateBeatmapPanelMask } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, assert } from "../../util/misc_util";
+import { NormalizedWheelEvent } from "../../util/misc_util";
 import { Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 
+export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
+export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 2.5;
+export const BEATMAP_SET_PANEL_WIDTH = 700;
+export const BEATMAP_SET_PANEL_HEIGHT = 100;
+export const BEATMAP_PANEL_WIDTH = 650;
+export const BEATMAP_PANEL_HEIGHT = 50;
+export const BEATMAP_SET_PANEL_MARGIN = 10;
+export const BEATMAP_PANEL_MARGIN = 10;
+
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
+
+export let beatmapCarouselContainer = new PIXI.Container();
+export let beatmapSetPanels: BeatmapSetPanel[] = [];
+let selectedPanel: BeatmapSetPanel = null;
+let referencePanel: BeatmapSetPanel = null;
+let referencePanelY = 0;
+let scrollThrust = 0;
+
 stage.addChild(beatmapCarouselContainer);
 
-let thrust = 0;
+export function setSelectedPanel(panel: BeatmapSetPanel) {
+	selectedPanel = panel;
+}
+export function getSelectedPanel() {
+	return selectedPanel;
+}
 
-let referencePanelHeight = 0;
-let referencePanel: BeatmapSetPanel = null;
-
-let yesss = new Interpolator({
+let snapToSelectionInterpolator = new Interpolator({
 	from: 0,
 	to: 0,
 	duration: 750,
 	ease: EaseType.EaseOutElastic,
-	k: 0.9,
+	p: 0.9,
 	defaultToFinished: true
 });
 let intervened = true;
 
-export function fuuck(a: BeatmapSetPanel, b: number) {
-	referencePanel = a;
-	referencePanelHeight = b;
+export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: number) {
+	referencePanel = panel;
+	referencePanelY = currentYPosition;
 
-	yesss.setValueRange(b, 250);
-	yesss.start();
+	snapToSelectionInterpolator.setValueRange(currentYPosition, 250);
+	snapToSelectionInterpolator.start();
 	intervened = false;
-	thrust = 0;
+	scrollThrust = 0;
 }
 
 songFolderSelect.addEventListener('change', () => {
@@ -59,43 +77,43 @@ addRenderingTask(() => {
 
 	let referenceIndex = beatmapSetPanels.indexOf(referencePanel);
 
-	if (thrust !== 0) intervened = true;
+	if (scrollThrust !== 0) intervened = true;
 	if (!intervened) {
-		referencePanelHeight = yesss.getCurrentValue();
+		referencePanelY = snapToSelectionInterpolator.getCurrentValue();
 	}
 
-	referencePanelHeight -= thrust;
-	thrust *= 0.9;
-	if (Math.abs(thrust) < 0.1) thrust = 0;
+	referencePanelY -= scrollThrust;
+	scrollThrust *= 0.9;
+	if (Math.abs(scrollThrust) < 0.1) scrollThrust = 0;
 
-	referencePanel.update(referencePanelHeight, referencePanel.getTotalHeight());
+	referencePanel.update(referencePanelY, referencePanel.getTotalHeight());
 
-	let currentHeight = referencePanelHeight;
+	let currentY = referencePanelY;
 	for (let i = referenceIndex-1; i >= 0; i--) {
 		let panel = beatmapSetPanels[i];
 		let height = panel.getTotalHeight();
-		currentHeight -= height;
+		currentY -= height;
 
 		panel.container.visible = true;
-		panel.update(currentHeight, height);
+		panel.update(currentY, height);
 	}
 
-	currentHeight = referencePanelHeight;
+	currentY = referencePanelY;
 	for (let i = referenceIndex+1; i < beatmapSetPanels.length; i++) {
 		let prevPanel = beatmapSetPanels[i-1];
 		let panel = beatmapSetPanels[i];
 		let height = prevPanel.getTotalHeight();
-		currentHeight += height;
+		currentY += height;
 		
 		panel.container.visible = true;
-		panel.update(currentHeight, panel.getTotalHeight());
+		panel.update(currentY, panel.getTotalHeight());
 	}
 });
 
 inputEventEmitter.addListener('wheel', (data) => {
 	let wheelEvent = data as NormalizedWheelEvent;
 
-	thrust += wheelEvent.dy / 10;
+	scrollThrust += wheelEvent.dy / 10;
 });
 
 inputEventEmitter.addListener('mousedown', (data) => {

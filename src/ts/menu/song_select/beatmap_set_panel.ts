@@ -8,8 +8,7 @@ import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/u
 import { BackgroundManager } from "../../visuals/background";
 import { BeatmapUtils } from "../../datamodel/beatmap_utils";
 import { getDarkeningOverlay, getBeatmapSetPanelMask } from "./beatmap_panel_components";
-import { BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, getSelectedPanel, setSelectedPanel } from "./song_select_data";
-import { fuuck, getNormalizedOffsetOnCarousel } from "./beatmap_carousel";
+import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel } from "./beatmap_carousel";
 
 export class BeatmapSetPanel {
 	private beatmapSet: BeatmapSet;
@@ -247,7 +246,7 @@ export class BeatmapSetPanel {
 		}
 
 		setSelectedPanel(this);
-		fuuck(this, this.currentNormalizedY);
+		setReferencePanel(this, this.currentNormalizedY);
 
 		if (this.expandInterpolator.isReversed()) this.expandInterpolator.reverse();
 		this.expandInterpolator.start();

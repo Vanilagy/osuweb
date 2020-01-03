@@ -101,13 +101,14 @@ export class InterpolatedCounter {
 
 interface InterpolatorOptions {
 	ease: EaseType,
-	k?: number,
+	p?: number, // Addition parameter for easing
     duration: number,
     from: number,
 	to: number,
 	defaultToFinished: boolean,
 	reverseDuration?: number,
-	reverseEase?: EaseType
+	reverseEase?: EaseType,
+	reverseP?: number
 }
 
 export class Interpolator {
@@ -163,7 +164,8 @@ export class Interpolator {
 		let completion = this.getCurrentCompletion(customTime);
 		
 		let easeType = (this.reversed && this.options.reverseEase !== undefined)? this.options.reverseEase : this.options.ease;
-        completion = MathUtil.ease(easeType, completion, this.options.k);
+		let easeP = (this.reversed && this.options.reverseP !== undefined)? this.options.reverseP : this.options.p;
+        completion = MathUtil.ease(easeType, completion, easeP);
 
         return MathUtil.lerp(this.options.from, this.options.to, completion);
 	}
