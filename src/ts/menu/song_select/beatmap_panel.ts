@@ -4,10 +4,11 @@ import { Interpolator } from "../../util/graphics_util";
 import { NonTrivialBeatmapMetadata, Beatmap } from "../../datamodel/beatmap";
 import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calculator";
 import { EaseType } from "../../util/math_util";
-import { getGlobalScalingFactor } from "../../visuals/ui";
+import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
 import { BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer } from "./song_select_data";
 import { getBeatmapPanelMask } from "./beatmap_panel_components";
+import { getNormalizedOffsetOnCarousel } from "./beatmap_carousel";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
@@ -20,6 +21,7 @@ export class BeatmapPanel {
 	private metadata: NonTrivialBeatmapMetadata;
 	private difficulty: DifficultyAttributes;
 	private starRatingTicks: PIXI.Graphics;
+	private currentNormalizedY: number = 0;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
@@ -113,15 +115,16 @@ export class BeatmapPanel {
 		this.draw();
 	}
 
-	update() {
+	update(newY?: number) {
+		let scalingFactor = getGlobalScalingFactor();
+
+		if (newY !== undefined) this.currentNormalizedY = newY;
+		this.container.y = this.currentNormalizedY * scalingFactor;
+
 		this.infoContainer.alpha = this.fadeInInterpolator.getCurrentValue();
 
-		let scalingFactor = getGlobalScalingFactor();
-		let normalizedDistanceToCenter = (this.container.getGlobalPosition().y - BEATMAP_PANEL_HEIGHT/2 - window.innerHeight/2) / (window.innerHeight/2);
-		if (isNaN(normalizedDistanceToCenter)) normalizedDistanceToCenter = 0;
-
-		let circleHeight = -Math.sqrt(1 - (normalizedDistanceToCenter * 0.75)**2) + 1;
-		this.container.x = Math.floor(circleHeight * 150 * scalingFactor);
+		let normalizedY = this.container.getGlobalPosition().y / scalingFactor;
+		this.container.x = getNormalizedOffsetOnCarousel(normalizedY + BEATMAP_PANEL_HEIGHT/2);
 	}
 
 	click(x: number, y: number) {

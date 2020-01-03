@@ -367,7 +367,14 @@ export abstract class MathUtil {
 
     static fastHypot(dx: number, dy: number) {
         return (dx**2 + dy**2)**0.5;
-    }
+	}
+	
+	/** Picture a unit circle centered at (0, 1), so touching the x-axis. This function returns the distance from P = (x, 0) to the point in the circle's outline directly above P.
+	 *  Obviously, this function isn't defined for anything outside of [-1.0, 1.0].
+	*/
+	static unitCircleContour(x: number) {
+		return -Math.sqrt(1 - x*x) + 1;
+	}
 }
 
 let valueNoiseRng = MathUtil.createSeededRng(1337);

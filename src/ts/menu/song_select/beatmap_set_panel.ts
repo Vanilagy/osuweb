@@ -3,13 +3,13 @@ import { VirtualFile } from "../../file_system/virtual_file";
 import { Interpolator } from "../../util/graphics_util";
 import { BeatmapPanel } from "./beatmap_panel";
 import { Beatmap } from "../../datamodel/beatmap";
-import { EaseType } from "../../util/math_util";
-import { getGlobalScalingFactor } from "../../visuals/ui";
+import { EaseType, MathUtil } from "../../util/math_util";
+import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
 import { BeatmapUtils } from "../../datamodel/beatmap_utils";
 import { getDarkeningOverlay, getBeatmapSetPanelMask } from "./beatmap_panel_components";
 import { BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, getSelectedPanel, setSelectedPanel } from "./song_select_data";
-import { fuuck } from "./beatmap_carousel";
+import { fuuck, getNormalizedOffsetOnCarousel } from "./beatmap_carousel";
 
 export class BeatmapSetPanel {
 	private beatmapSet: BeatmapSet;
@@ -29,6 +29,7 @@ export class BeatmapSetPanel {
 	private secondaryText: PIXI.Text;
 	private imageLoadingStarted = false;
 	private imageFadeIn: Interpolator;
+	private currentNormalizedY: number = 0;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
@@ -157,6 +158,8 @@ export class BeatmapSetPanel {
 	}
 
 	click(x: number, y: number): boolean {
+		if (!this.container.visible) return false;
+
 		if (!this.isExpanded) {
 			let bounds = this.container.getBounds();
 
@@ -173,16 +176,30 @@ export class BeatmapSetPanel {
 		return false;
 	}
 
-	update() {
-		let scalingFactor = getGlobalScalingFactor();
+	update(newY: number, lastCalculatedHeight: number) {
+		this.currentNormalizedY = newY;
 
 		if (!this.imageLoadingStarted) {
-			let isInView = (this.container.y + BEATMAP_SET_PANEL_HEIGHT * scalingFactor) >= 0 && this.container.y <= window.innerHeight;
-			if (isInView && this.representingBeatmap) {
+			// If the top of the panel is at most a full screen height away
+			let isClose = this.currentNormalizedY >= -REFERENCE_SCREEN_HEIGHT && this.currentNormalizedY <= (REFERENCE_SCREEN_HEIGHT * 2);
+
+			if (isClose && this.representingBeatmap) {
 				this.imageLoadingStarted = true;
 				this.loadImage();
 			}
 		}
+
+		if (this.currentNormalizedY + lastCalculatedHeight < 0 || this.currentNormalizedY > REFERENCE_SCREEN_HEIGHT) {
+			// Culling!
+
+			this.container.visible = false;
+			return;
+		} else {
+			this.container.visible = true;
+		}
+
+		let scalingFactor = getGlobalScalingFactor();
+		this.container.y = this.currentNormalizedY * scalingFactor;
 
 		this.backgroundImageSprite.alpha = this.imageFadeIn.getCurrentValue();
 
@@ -190,23 +207,24 @@ export class BeatmapSetPanel {
 		let expansionValue = this.expandInterpolator.getCurrentValue();
 		this.panelContainer.pivot.x = Math.floor(50 * expansionValue * scalingFactor);
 
-		if (this.isExpanded) {
-			for (let i = 0; i < this.beatmapPanels.length; i++) {
-				this.beatmapPanels[i].update();
-				let container = this.beatmapPanels[i].container;
+		// Remove beatmap panel elements if there's no need to keep them
+		if (!this.isExpanded && expansionValue === 0 && this.beatmapPanels.length > 0) {
+			this.beatmapPanels.length = 0;
+			this.difficultyContainer.removeChildren();
+		}
 
-				container.y = Math.floor((BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue) * scalingFactor);
+		for (let i = 0; i < this.beatmapPanels.length; i++) {
+			let panel = this.beatmapPanels[i];
+
+			let y = BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue;
+			panel.update(y);
+
+			if (!this.isExpanded) {
+				panel.container.alpha = this.expandInterpolator.getCurrentValue();
 			}
 		}
 
-		let normalizedDistanceToCenter = (this.container.y + BEATMAP_SET_PANEL_MARGIN - window.innerHeight/2) / (window.innerHeight/2);
-
-		let circleHeight = -Math.sqrt(1 - (normalizedDistanceToCenter * 0.75)**2) + 1;
-		this.panelContainer.x = Math.floor(circleHeight * 150 * scalingFactor);
-	}
-
-	getNormedYPosition() {
-		return this.container.y / getGlobalScalingFactor();
+		this.panelContainer.x = getNormalizedOffsetOnCarousel(this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2);
 	}
 
 	getTotalHeight() {
@@ -220,13 +238,16 @@ export class BeatmapSetPanel {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
+		this.beatmapPanels.length = 0;
+		this.difficultyContainer.removeChildren();
+
 		let selectedPanel = getSelectedPanel();
 		if (selectedPanel) {
 			selectedPanel.collapse();
 		}
 
 		setSelectedPanel(this);
-		fuuck(this, this.getNormedYPosition());
+		fuuck(this, this.currentNormalizedY);
 
 		if (this.expandInterpolator.isReversed()) this.expandInterpolator.reverse();
 		this.expandInterpolator.start();
@@ -267,9 +288,9 @@ export class BeatmapSetPanel {
 	}
 
 	collapse() {
+		if (!this.isExpanded) return;
+
 		if (!this.expandInterpolator.isReversed()) this.expandInterpolator.reverse();
-		this.beatmapPanels.length = 0;
 		this.isExpanded = false;
-		this.difficultyContainer.removeChildren();
 	}
 }
