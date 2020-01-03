@@ -1,3 +1,13 @@
+const APPROXIMATE_LINE_HEIGHT = 32;
+const APPROXIMATE_PAGE_HEIGHT = 800;
+
+export interface NormalizedWheelEvent {
+	dx: number,
+	dy: number,
+	dz: number,
+	event: WheelEvent
+}
+
 export function padNumberWithZeroes(num: number, zeroes: number) {
     let str = String(num);
     let dotIndex = str.indexOf('.');
@@ -117,4 +127,25 @@ export function unholeArray<T>(arr: T[]) {
 export function getNow(override?: number) {
 	if (override !== undefined) return override;
 	return performance.now();
+}
+
+export function normalizeWheelEvent(e: WheelEvent): NormalizedWheelEvent {
+	let dx = e.deltaX,
+		dy = e.deltaY,
+		dz = e.deltaZ;
+
+	if (e.deltaMode === 1) {
+		dx *= APPROXIMATE_LINE_HEIGHT;
+		dy *= APPROXIMATE_LINE_HEIGHT;
+		dz *= APPROXIMATE_LINE_HEIGHT;
+	} else if (e.deltaMode === 2) {
+		dx *= APPROXIMATE_PAGE_HEIGHT;
+		dy *= APPROXIMATE_PAGE_HEIGHT;
+		dz *= APPROXIMATE_PAGE_HEIGHT;
+	}
+
+	return {
+		dx, dy, dz,
+		event: e
+	}
 }

@@ -83,14 +83,14 @@ export function mainRenderingLoop() {
 requestAnimationFrame(mainRenderingLoop);
 
 export function addRenderingTask(task: Function) {
-    let index = renderingTasks.findIndex((a) => a === task);
+    let index = renderingTasks.indexOf(task);
     if (index !== -1) return;
 
     renderingTasks.push(task);
 }
 
 export function removeRenderingTask(task: Function) {
-    let index = renderingTasks.findIndex((a) => a === task);
+    let index = renderingTasks.indexOf(task);
     if (index === -1) return;
 
     renderingTasks.splice(index, 1);

@@ -100,11 +100,14 @@ export class InterpolatedCounter {
 }
 
 interface InterpolatorOptions {
-    ease: EaseType,
+	ease: EaseType,
+	k?: number,
     duration: number,
     from: number,
 	to: number,
-	defaultToFinished: boolean
+	defaultToFinished: boolean,
+	reverseDuration?: number,
+	reverseEase?: EaseType
 }
 
 export class Interpolator {
@@ -140,12 +143,16 @@ export class Interpolator {
 		if (this.reversed) currentCompletion = 1 - currentCompletion;
 
 		this.reversed = !this.reversed;
-		this.startTime = now - (1 - currentCompletion) * this.options.duration;
+
+		let duration = (this.reversed && this.options.reverseDuration !== undefined)? this.options.reverseDuration : this.options.duration;
+		this.startTime = now - (1 - currentCompletion) * duration;
 	}
 
 	getCurrentCompletion(customTime?: number) {
 		let now = getNow(customTime);
-        let completion = (now - this.startTime) / this.options.duration;
+
+		let duration = (this.reversed && this.options.reverseDuration !== undefined)? this.options.reverseDuration : this.options.duration;
+		let completion = (now - this.startTime) / duration;
 		completion = MathUtil.clamp(completion, 0, 1);
 
 		if (this.reversed) return 1 - completion;
@@ -153,9 +160,20 @@ export class Interpolator {
 	}
 
     getCurrentValue(customTime?: number) {
-        let completion = this.getCurrentCompletion(customTime);
-        completion = MathUtil.ease(this.options.ease, completion);
+		let completion = this.getCurrentCompletion(customTime);
+		
+		let easeType = (this.reversed && this.options.reverseEase !== undefined)? this.options.reverseEase : this.options.ease;
+        completion = MathUtil.ease(easeType, completion, this.options.k);
 
         return MathUtil.lerp(this.options.from, this.options.to, completion);
+	}
+
+	isReversed() {
+		return this.reversed;
+	}
+
+	setValueRange(from: number, to: number) {
+		this.options.from = from;
+		this.options.to = to;
 	}
 }

@@ -1,5 +1,6 @@
 import { Point, clonePoint } from "../util/point";
 import { CustomEventEmitter } from "../util/custom_event_dispatcher";
+import { normalizeWheelEvent } from "../util/misc_util";
 
 let currentMousePosition: Point = {
     x: window.innerWidth / 2, // Before any events, just center the mouse
@@ -147,7 +148,7 @@ export function anyGameButtonIsPressed() {
 }
 
 window.addEventListener('wheel', (ev) => {
-	inputEventEmitter.emit('wheel', ev);
+	inputEventEmitter.emit('wheel', normalizeWheelEvent(ev));
 });
 
 window.addEventListener('mousedown', (ev) => {
