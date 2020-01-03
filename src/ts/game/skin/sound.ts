@@ -168,7 +168,7 @@ export class OsuSound {
     getEmitter(volume: number, index = 1, pan: number = 0) {
         let buffer = this.audioBuffers[index];
         if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
-        if (!buffer) return null;
+		if (!buffer) return null;
 
         // TODO: How correct is this? Eeeeeeh
         volume = MathUtil.clamp(volume, 5, 10000);

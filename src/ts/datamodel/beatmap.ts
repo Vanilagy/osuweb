@@ -8,6 +8,11 @@ import { Point } from "../util/point";
 import { Spinner } from "./spinner";
 import { last, unholeArray } from "../util/misc_util";
 
+const DEFAULT_TIMING_POINT_METER = 4;
+const DEFAULT_TIMING_POINT_SAMPLE_SET = 1;
+const DEFAULT_TIMING_POINT_SAMPLE_INDEX = 1;
+const DEFAULT_TIMING_POINT_VOLUME = 100;
+
 interface BeatmapCreationOptions {
     text: string;
     beatmapSet: BeatmapSet;
@@ -255,7 +260,7 @@ export class Beatmap {
         } else if (property.startsWith("SliderBorder")) {
             this.colors.sliderBorder = color;
         }
-    }
+	}
 
     private parseTimingPoint(line: string) {
         let values = line.split(',');
@@ -277,12 +282,12 @@ export class Beatmap {
             offset: offset,
             msPerBeat: msPerBeat,
             BPM: msPerBeat > 0 ? 60000 / msPerBeat : -1,
-            meter: parseInt(values[2]),
-            sampleSet: parseInt(values[3]),
-            sampleIndex: parseInt(values[4]),
-            volume: parseInt(values[5]),
-            inheritable: values[6] === "1", // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
-            kiai: Boolean(parseInt(values[7])),
+            meter: values[2]? parseInt(values[2]) : DEFAULT_TIMING_POINT_METER,
+            sampleSet: values[3]? parseInt(values[3]) : DEFAULT_TIMING_POINT_SAMPLE_SET,
+            sampleIndex: values[4]? parseInt(values[4]) : DEFAULT_TIMING_POINT_SAMPLE_INDEX,
+            volume: values[5]? parseInt(values[5]) : DEFAULT_TIMING_POINT_VOLUME,
+            inheritable: values[6]? values[6] === "1" : true, // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
+            kiai: values[7]? Boolean(parseInt(values[7])) : false,
         });
     }
 

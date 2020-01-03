@@ -105,7 +105,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
             };
             tickSounds.push(info);
         }
-        this.tickSounds = tickSounds;
+		this.tickSounds = tickSounds;
 
         // Slider slide sound
         let sliderSlideTypes = getSliderSlideTypesFromSampleSet(sampleSet, slider.hitSound);
