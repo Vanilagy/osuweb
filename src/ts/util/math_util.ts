@@ -375,6 +375,36 @@ export abstract class MathUtil {
 	static unitCircleContour(x: number) {
 		return -Math.sqrt(1 - x*x) + 1;
 	}
+
+	/** Finds a root (an x such that f(x) = 0) in the given interval [low, high], for which f has to be continuous, using the binary bisection method. Returns NaN if it fails to find a root (which doesn't mean there is none). */
+	static findRootInInterval(f: (x: number) => number, low: number, high: number, epsilon = 0.00001) {
+		let middle = (low + high) / 2;
+		let valLow = f(low);
+		let valMiddle = f(middle);
+		let valHigh = f(high);
+
+		if (valLow === 0) return low;
+		if (valHigh === 0) return high;
+
+		while (high - low > epsilon) {
+			valMiddle = f(middle);
+			if (valMiddle === 0) return middle;
+
+			if (valLow * valMiddle < 0) {
+				high = middle;
+				valHigh = valMiddle;
+			} else if (valMiddle * valHigh < 0) {
+				low = middle;
+				valLow = valMiddle;
+			} else {
+				return NaN;
+			}
+
+			middle = (low + high) / 2;
+		}
+
+		return middle;
+	}
 }
 
 let valueNoiseRng = MathUtil.createSeededRng(1337);

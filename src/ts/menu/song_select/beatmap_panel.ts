@@ -24,17 +24,21 @@ export class BeatmapPanel {
 	private currentNormalizedY: number = 0;
 	private enabled = true;
 	private interaction: InteractionRegistration;
+	private hoverInterpolator: Interpolator;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
 		this.container = new PIXI.Container();
 		this.fadeInInterpolator = new Interpolator({
-			from: 0,
-			to: 1,
 			duration: 250,
-			ease: EaseType.EaseInOutSine,
-			defaultToFinished: false
+			ease: EaseType.EaseInOutSine
 		});
+		this.hoverInterpolator = new Interpolator({
+			duration: 333,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic
+		});
+		this.hoverInterpolator.reverse();
 
 		this.infoContainer = new PIXI.Container();
 		this.primaryText = new PIXI.Text('');
@@ -44,11 +48,24 @@ export class BeatmapPanel {
 		this.infoContainer.addChild(this.starRatingTicks);
 		this.container.addChild(this.infoContainer);
 
-		this.interaction = Interactivity.registerDisplayObject(this.container);
-		this.interaction.addListener('mouseDown', () => this.click());
-		carouselInteractionGroup.add(this.interaction);
+		this.initInteractions();
 
 		this.resize();
+	}
+
+	initInteractions() {
+		this.interaction = Interactivity.registerDisplayObject(this.container);
+		carouselInteractionGroup.add(this.interaction);
+
+		this.interaction.addListener('mouseDown', () => this.select());
+
+		this.interaction.addListener('mouseEnter', () => {
+			this.hoverInterpolator.setReversedState(false);
+		});
+
+		this.interaction.addListener('mouseLeave', () => {
+			this.hoverInterpolator.setReversedState(true);
+		});
 	}
 
 	draw() {
@@ -130,7 +147,10 @@ export class BeatmapPanel {
 		this.infoContainer.alpha = this.fadeInInterpolator.getCurrentValue();
 
 		let normalizedY = this.container.getGlobalPosition().y / scalingFactor;
-		this.container.x = getNormalizedOffsetOnCarousel(normalizedY + BEATMAP_PANEL_HEIGHT/2);
+		this.container.x = getNormalizedOffsetOnCarousel(normalizedY + BEATMAP_PANEL_HEIGHT/2) * scalingFactor;
+
+		let hoverValue = this.hoverInterpolator.getCurrentValue();
+		this.container.x += hoverValue * -10 * scalingFactor;
 	}
 
 	disable() {
@@ -140,7 +160,7 @@ export class BeatmapPanel {
 		this.interaction.destroy();
 	}
 
-	click() {
+	select() {
 		if (!this.beatmapFile) return;
 
 		beatmapCarouselContainer.visible = false;

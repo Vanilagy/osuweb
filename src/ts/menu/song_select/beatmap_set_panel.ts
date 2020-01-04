@@ -1,6 +1,6 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { VirtualFile } from "../../file_system/virtual_file";
-import { Interpolator } from "../../util/graphics_util";
+import { Interpolator, ReverseMode } from "../../util/graphics_util";
 import { BeatmapPanel } from "./beatmap_panel";
 import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
@@ -31,6 +31,7 @@ export class BeatmapSetPanel {
 	private imageFadeIn: Interpolator;
 	private currentNormalizedY: number = 0;
 	private interaction: InteractionRegistration;
+	private hoverInterpolator: Interpolator;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
@@ -58,27 +59,42 @@ export class BeatmapSetPanel {
 		this.expandInterpolator = new Interpolator({
 			ease: EaseType.EaseOutCubic,
 			duration: 500,
-			from: 0,
-			to: 1,
-			defaultToFinished: false,
 			reverseDuration: 500,
 			reverseEase: EaseType.EaseInQuart
 		});
 		this.imageFadeIn = new Interpolator({
-			from: 0,
-			to: 1,
-			duration: 255,
-			ease: EaseType.EaseInOutSine,
-			defaultToFinished: false
+			duration: 250,
+			ease: EaseType.EaseInOutSine
 		});
-
-		this.interaction = Interactivity.registerDisplayObject(this.container, true);
-		this.interaction.addListener('mouseDown', () => this.click());
-		carouselInteractionGroup.add(this.interaction);
+		this.hoverInterpolator = new Interpolator({
+			duration: 500,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic
+		});
+		this.hoverInterpolator.reverse();
+		
+		this.initInteractions();
 
 		this.resize();
 		this.load().then(() => {
 			this.draw();
+		});
+	}
+
+	initInteractions() {
+		this.interaction = Interactivity.registerDisplayObject(this.container, true);
+		carouselInteractionGroup.add(this.interaction);
+
+		this.interaction.addListener('mouseDown', () => {
+			if (!this.isExpanded) this.expand();
+		});
+
+		this.interaction.addListener('mouseEnter', () => {
+			this.hoverInterpolator.setReversedState(false);
+		});
+
+		this.interaction.addListener('mouseLeave', () => {
+			this.hoverInterpolator.setReversedState(true);
 		});
 	}
 
@@ -216,7 +232,10 @@ export class BeatmapSetPanel {
 			}
 		}
 
-		this.panelContainer.x = getNormalizedOffsetOnCarousel(this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2);
+		this.panelContainer.x = getNormalizedOffsetOnCarousel(this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor;
+
+		let hoverValue = this.hoverInterpolator.getCurrentValue();
+		this.panelContainer.x += hoverValue * -15 * scalingFactor * (1 - this.expandInterpolator.getCurrentCompletion());
 	}
 
 	getTotalHeight() {
@@ -241,7 +260,7 @@ export class BeatmapSetPanel {
 		setSelectedPanel(this);
 		setReferencePanel(this, this.currentNormalizedY);
 
-		if (this.expandInterpolator.isReversed()) this.expandInterpolator.reverse();
+		this.expandInterpolator.setReversedState(false);
 		this.expandInterpolator.start();
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
@@ -282,7 +301,7 @@ export class BeatmapSetPanel {
 	collapse() {
 		if (!this.isExpanded) return;
 
-		if (!this.expandInterpolator.isReversed()) this.expandInterpolator.reverse();
+		this.expandInterpolator.setReversedState(true);
 		this.isExpanded = false;
 
 		for (let i = 0; i < this.beatmapPanels.length; i++) {

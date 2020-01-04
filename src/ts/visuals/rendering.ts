@@ -37,19 +37,25 @@ export function disableRenderTimeInfoLog() {
     logRenderTimeInfo = false;
 }
 
-let renderingTasks: Function[] = [];
+type RenderingTask = (dt?: number) => any;
+let renderingTasks: RenderingTask[] = [];
 let frameTimes: number[] = [];
 let inbetweenFrameTimes: number[] = [];
 let lastFrameTime: number = null;
 let lastRenderInfoLogTime: number = null;
 
-export function mainRenderingLoop() {
+function mainRenderingLoop() {
     let startTime = performance.now();
 
-    requestAnimationFrame(mainRenderingLoop);
+	requestAnimationFrame(mainRenderingLoop);
+	
+	let dt = 1/60;
+	if (lastFrameTime !== null) dt = startTime - lastFrameTime;
+	inbetweenFrameTimes.push(dt);
+    lastFrameTime = startTime;
 
     for (let i = 0; i < renderingTasks.length; i++) {
-        renderingTasks[i]();
+        renderingTasks[i](dt);
     }
 
     renderer.render(stage);
@@ -60,10 +66,6 @@ export function mainRenderingLoop() {
     let now = performance.now();
     let elapsedTime = now - startTime;
     frameTimes.push(elapsedTime);
-    if (lastFrameTime !== null) {
-        inbetweenFrameTimes.push(now - lastFrameTime);
-    }
-    lastFrameTime = now;
 
     if ((now - lastRenderInfoLogTime) >= LOG_RENDER_INFO_INTERVAL && frameTimes.length > 0 && inbetweenFrameTimes.length > 0) {
         let data1 = MathUtil.getAggregateValuesFromArray(frameTimes),
@@ -82,14 +84,14 @@ export function mainRenderingLoop() {
 }
 requestAnimationFrame(mainRenderingLoop);
 
-export function addRenderingTask(task: Function) {
+export function addRenderingTask(task: RenderingTask) {
     let index = renderingTasks.indexOf(task);
     if (index !== -1) return;
 
     renderingTasks.push(task);
 }
 
-export function removeRenderingTask(task: Function) {
+export function removeRenderingTask(task: RenderingTask) {
     let index = renderingTasks.indexOf(task);
     if (index === -1) return;
 

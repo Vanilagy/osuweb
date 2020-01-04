@@ -99,27 +99,55 @@ export class InterpolatedCounter {
     }
 }
 
+export enum ReverseMode {
+	ByCompletion,
+	ByValue
+}
+
 interface InterpolatorOptions {
-	ease: EaseType,
-	p?: number, // Addition parameter for easing
-    duration: number,
-    from: number,
-	to: number,
-	defaultToFinished: boolean,
+	duration: number,
+	from?: number,
+	to?: number,
+	ease?: EaseType,
+	p?: number, // Additional parameter for easing
 	reverseDuration?: number,
 	reverseEase?: EaseType,
-	reverseP?: number
+	reverseP?: number,
+	reverseMode?: ReverseMode
+	defaultToFinished?: boolean,
 }
 
 export class Interpolator {
-    private options: InterpolatorOptions;
+	private duration: number;
+	private from: number = 0.0;
+	private to: number = 1.0;
+	private ease: EaseType = EaseType.Linear;
+	private p: number;
+	private reverseDuration: number;
+	private reverseEase: EaseType = EaseType.Linear;
+	private reverseP: number;
+	private reverseMode: ReverseMode = ReverseMode.ByValue;
+	private defaultToFinished: boolean = false;
+
 	private startTime: number;
 	private reversed = false;
 
     constructor(options: InterpolatorOptions) {
-		this.options = options;
+		Object.assign(this, options);
 		this.reset();
-    }
+	}
+	
+	private getDuration() {
+		return (this.reversed && this.reverseDuration !== undefined)? this.reverseDuration : this.duration;
+	}
+
+	private getEase() {
+		return (this.reversed && this.reverseEase !== undefined)? this.reverseEase : this.ease;
+	}
+
+	private getEaseP() {
+		return (this.reversed && this.reverseP !== undefined)? this.reverseP : this.p;
+	}
 
     /**
      * 
@@ -135,25 +163,40 @@ export class Interpolator {
 	}
 	
 	reset() {
-		this.startTime = this.options.defaultToFinished? -Infinity : Infinity;
+		this.startTime = this.defaultToFinished? -Infinity : Infinity;
 	}
 
 	reverse(customTime?: number) {
 		let now = getNow(customTime);
 		let currentCompletion = this.getCurrentCompletion(customTime);
-		if (this.reversed) currentCompletion = 1 - currentCompletion;
+		let currentValue = this.getCurrentValue(customTime);
 
 		this.reversed = !this.reversed;
 
-		let duration = (this.reversed && this.options.reverseDuration !== undefined)? this.options.reverseDuration : this.options.duration;
-		this.startTime = now - (1 - currentCompletion) * duration;
+		if (this.reverseMode === ReverseMode.ByValue && this.reverseEase && this.reverseEase !== this.ease) {
+			let ease = this.getEase();
+			let easeP = this.getEaseP();
+
+			let root = MathUtil.findRootInInterval((x) => {
+				return MathUtil.ease(ease, x, easeP) - currentValue;
+			}, 0.0, 1.0);
+
+			if (!isNaN(root)) currentCompletion = root;
+		}
+
+		if (!this.reversed) currentCompletion = 1 - currentCompletion;
+
+		this.startTime = now - (1 - currentCompletion) * this.getDuration();
+	}
+
+	setReversedState(state: boolean) {
+		if (state !== this.reversed) this.reverse();
 	}
 
 	getCurrentCompletion(customTime?: number) {
 		let now = getNow(customTime);
 
-		let duration = (this.reversed && this.options.reverseDuration !== undefined)? this.options.reverseDuration : this.options.duration;
-		let completion = (now - this.startTime) / duration;
+		let completion = (now - this.startTime) / this.getDuration();
 		completion = MathUtil.clamp(completion, 0, 1);
 
 		if (this.reversed) return 1 - completion;
@@ -162,12 +205,9 @@ export class Interpolator {
 
     getCurrentValue(customTime?: number) {
 		let completion = this.getCurrentCompletion(customTime);
-		
-		let easeType = (this.reversed && this.options.reverseEase !== undefined)? this.options.reverseEase : this.options.ease;
-		let easeP = (this.reversed && this.options.reverseP !== undefined)? this.options.reverseP : this.options.p;
-        completion = MathUtil.ease(easeType, completion, easeP);
+        completion = MathUtil.ease(this.getEase(), completion, this.getEaseP());
 
-        return MathUtil.lerp(this.options.from, this.options.to, completion);
+        return MathUtil.lerp(this.from, this.to, completion);
 	}
 
 	isReversed() {
@@ -175,7 +215,7 @@ export class Interpolator {
 	}
 
 	setValueRange(from: number, to: number) {
-		this.options.from = from;
-		this.options.to = to;
+		this.from = from;
+		this.to = to;
 	}
 }

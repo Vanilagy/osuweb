@@ -11,13 +11,14 @@ import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup } from "../../input/interactivity";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
-export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 2.5;
+export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
 export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;
 export const BEATMAP_PANEL_WIDTH = 650;
 export const BEATMAP_PANEL_HEIGHT = 50;
 export const BEATMAP_SET_PANEL_MARGIN = 10;
 export const BEATMAP_PANEL_MARGIN = 10;
+const SCROLL_VELOCITY_DECAY_FACTOR = 0.07; // Per second. After one second, the velocity will have fallen off by this much.
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 
@@ -27,26 +28,24 @@ export let carouselInteractionGroup = new InteractionGroup();
 let selectedPanel: BeatmapSetPanel = null;
 let referencePanel: BeatmapSetPanel = null;
 let referencePanelY = 0;
-let scrollThrust = 0;
+let scrollVelocity = 0; // In normalized pixels per second
+let snapToSelectionInterpolator = new Interpolator({
+	duration: 750,
+	ease: EaseType.EaseOutElastic,
+	p: 0.9,
+	defaultToFinished: true
+});
+let snapToSelectedIntervened = true;
 
 stage.addChild(beatmapCarouselContainer);
 
 export function setSelectedPanel(panel: BeatmapSetPanel) {
 	selectedPanel = panel;
 }
+
 export function getSelectedPanel() {
 	return selectedPanel;
 }
-
-let snapToSelectionInterpolator = new Interpolator({
-	from: 0,
-	to: 0,
-	duration: 750,
-	ease: EaseType.EaseOutElastic,
-	p: 0.9,
-	defaultToFinished: true
-});
-let intervened = true;
 
 export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: number) {
 	referencePanel = panel;
@@ -54,8 +53,8 @@ export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: numb
 
 	snapToSelectionInterpolator.setValueRange(currentYPosition, 250);
 	snapToSelectionInterpolator.start();
-	intervened = false;
-	scrollThrust = 0;
+	snapToSelectedIntervened = false;
+	scrollVelocity = 0;
 }
 
 songFolderSelect.addEventListener('change', () => {
@@ -74,19 +73,33 @@ songFolderSelect.addEventListener('change', () => {
 	referencePanel = beatmapSetPanels[0];
 });
 
-addRenderingTask(() => {
+addRenderingTask((dt: number) => {
 	if (!referencePanel) return;
 
 	let referenceIndex = beatmapSetPanels.indexOf(referencePanel);
 
-	if (scrollThrust !== 0) intervened = true;
-	if (!intervened) {
+	if (scrollVelocity !== 0) snapToSelectedIntervened = true;
+	if (!snapToSelectedIntervened) {
 		referencePanelY = snapToSelectionInterpolator.getCurrentValue();
 	}
 
-	referencePanelY -= scrollThrust;
-	scrollThrust *= 0.9;
-	if (Math.abs(scrollThrust) < 0.1) scrollThrust = 0;
+	/* 
+	
+	The function describing scrollVelocity over time is
+	f(t) = v0 * d^t,
+	where v0 is the starting velocity, d is the decay and t is passed time in seconds.
+
+	Therefore, the distance traveled is that function's antiderivative,
+	F(t) = v0 * d^t / ln(d).
+	The distance traveled in a given interval of time [0, x] is therefore
+	F(x) - F(0) = v0 * d^x / ln(d) - v0 / ln(d) = v0 * (d^x - 1) / ln(d).
+	
+	*/
+
+	let distanceScrolled = scrollVelocity * (Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000) - 1) / Math.log(SCROLL_VELOCITY_DECAY_FACTOR);
+	scrollVelocity = scrollVelocity * Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000);
+	referencePanelY -= distanceScrolled;
+	if (Math.abs(scrollVelocity) < 1) scrollVelocity = 0;
 
 	referencePanel.update(referencePanelY, referencePanel.getTotalHeight());
 
@@ -115,7 +128,7 @@ addRenderingTask(() => {
 inputEventEmitter.addListener('wheel', (data) => {
 	let wheelEvent = data as NormalizedWheelEvent;
 
-	scrollThrust += wheelEvent.dy / 10;
+	scrollVelocity += wheelEvent.dy * 5;
 });
 
 function onResize() {

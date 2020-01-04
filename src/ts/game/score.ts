@@ -233,8 +233,6 @@ let accuracyInterpolator = new InterpolatedCounter({
 let phantomComboAnimationInterpolator = new Interpolator({
     ease: EaseType.Linear,
     duration: 500,
-    from: 0,
-	to: 1,
 	defaultToFinished: true
 });
 phantomComboAnimationInterpolator.end();
@@ -242,8 +240,6 @@ phantomComboAnimationInterpolator.end();
 let comboAnimationInterpolator = new Interpolator({
     ease: EaseType.Linear,
     duration: 250,
-    from: 0,
-	to: 1,
 	defaultToFinished: true
 });
 

@@ -22,18 +22,12 @@ export abstract class BackgroundManager {
 	private static imageInterpolators: WeakMap<HTMLElement, Interpolator> = new WeakMap();
 	private static currentGameplayBrightness: number = 1.0;
 	private static gameplayInterpolator: Interpolator = new Interpolator({
-		from: 0.0,
-		to: 1.0,
 		ease: EaseType.EaseInOutQuad,
-		duration: 1000,
-		defaultToFinished: false
+		duration: 1000
 	});
 	private static blurInterpolator: Interpolator = new Interpolator({
-		from: 0.0,
-		to: 1.0,
 		ease: EaseType.EaseInOutSine,
-		duration: 500,
-		defaultToFinished: false
+		duration: 500
 	});
 
 	static initialize() {
@@ -88,11 +82,8 @@ export abstract class BackgroundManager {
 			imageContainer.appendChild(imageElement);
 
 			let fadeInterpolator = new Interpolator({
-				from: 0.0,
-				to: 1.0,
 				ease: EaseType.EaseInOutSine,
-				duration: IMAGE_FADE_IN_DURATION,
-				defaultToFinished: false
+				duration: IMAGE_FADE_IN_DURATION
 			});
 			fadeInterpolator.start();
 			this.imageInterpolators.set(imageElement, fadeInterpolator);

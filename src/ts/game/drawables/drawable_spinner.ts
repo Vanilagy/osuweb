@@ -113,22 +113,15 @@ export class DrawableSpinner extends DrawableHitObject {
         this.componentContainer = new PIXI.Container();
         this.componentContainer2 = new PIXI.Container();
         this.clearTextInterpolator = new Interpolator({
-            from: 0,
-            to: 1,
             ease: EaseType.Linear,
-            duration: 333,
-            defaultToFinished: false
+            duration: 333
         });
         this.bonusSpinsInterpolator = new Interpolator({
-            from: 0,
-            to: 1,
             ease: EaseType.EaseOutQuad,
 			duration: 750,
 			defaultToFinished: true
         });
         this.glowInterpolator = new Interpolator({
-            from: 0,
-            to: 1,
             ease: EaseType.Linear,
 			duration: 333,
 			defaultToFinished: true
