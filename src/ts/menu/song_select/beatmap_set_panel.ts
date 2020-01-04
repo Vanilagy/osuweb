@@ -157,6 +157,7 @@ export class BeatmapSetPanel {
 	}
 
 	click(x: number, y: number): boolean {
+		return false;
 		if (!this.container.visible) return false;
 
 		if (!this.isExpanded) {

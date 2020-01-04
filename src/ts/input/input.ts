@@ -1,5 +1,5 @@
 import { Point, clonePoint } from "../util/point";
-import { CustomEventEmitter } from "../util/custom_event_dispatcher";
+import { CustomEventEmitter } from "../util/custom_event_emitter";
 import { normalizeWheelEvent } from "../util/misc_util";
 
 let currentMousePosition: Point = {
@@ -82,7 +82,9 @@ window.addEventListener('keyup', (e) => {
 
 // TODO: Eventually add touch support. Eventually.
 window.addEventListener('mousedown', (e) => {
-    let button = e.button;
+	let button = e.button;
+	
+	inputEventEmitter.emit('mouseDown', e);
 
     let mappedFunctionalInput = mouseButtonMappings.get(button);
     if (mappedFunctionalInput === undefined) return;
@@ -149,10 +151,6 @@ export function anyGameButtonIsPressed() {
 
 window.addEventListener('wheel', (ev) => {
 	inputEventEmitter.emit('wheel', normalizeWheelEvent(ev));
-});
-
-window.addEventListener('mousedown', (ev) => {
-	inputEventEmitter.emit('mousedown', ev);
 });
 
 export let inputEventEmitter = new CustomEventEmitter();

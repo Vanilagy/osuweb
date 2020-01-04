@@ -1,4 +1,4 @@
-export class VirtualFileSystemEntry {
+export abstract class VirtualFileSystemEntry {
     public parent: VirtualFileSystemEntry = null;
     public name: string;
 

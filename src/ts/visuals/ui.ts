@@ -2,7 +2,7 @@ import { mainCanvas, renderer, addRenderingTask, cursorRippleGraphics } from "./
 import { Point } from "../util/point";
 import { getCurrentMousePosition, inputEventEmitter } from "../input/input";
 import { MathUtil } from "../util/math_util";
-import { CustomEventEmitter } from "../util/custom_event_dispatcher";
+import { CustomEventEmitter } from "../util/custom_event_emitter";
 
 const CURSOR_RIPPLE_DURATION = 1500;
 const CURSOR_RIPPLES = false;

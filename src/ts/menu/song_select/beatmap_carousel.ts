@@ -116,7 +116,7 @@ inputEventEmitter.addListener('wheel', (data) => {
 	scrollThrust += wheelEvent.dy / 10;
 });
 
-inputEventEmitter.addListener('mousedown', (data) => {
+inputEventEmitter.addListener('mouseDown', (data) => {
 	let mouseEvent = data as MouseEvent;
 
 	if (beatmapCarouselContainer.visible === false) return; // eh yes duh
