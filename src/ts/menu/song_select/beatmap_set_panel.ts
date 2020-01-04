@@ -8,7 +8,8 @@ import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/u
 import { BackgroundManager } from "../../visuals/background";
 import { BeatmapUtils } from "../../datamodel/beatmap_utils";
 import { getDarkeningOverlay, getBeatmapSetPanelMask } from "./beatmap_panel_components";
-import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel } from "./beatmap_carousel";
+import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup } from "./beatmap_carousel";
+import { InteractionRegistration, Interactivity } from "../../input/interactivity";
 
 export class BeatmapSetPanel {
 	private beatmapSet: BeatmapSet;
@@ -29,6 +30,7 @@ export class BeatmapSetPanel {
 	private imageLoadingStarted = false;
 	private imageFadeIn: Interpolator;
 	private currentNormalizedY: number = 0;
+	private interaction: InteractionRegistration;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
@@ -69,6 +71,10 @@ export class BeatmapSetPanel {
 			ease: EaseType.EaseInOutSine,
 			defaultToFinished: false
 		});
+
+		this.interaction = Interactivity.registerDisplayObject(this.container, true);
+		this.interaction.addListener('mouseDown', () => this.click());
+		carouselInteractionGroup.add(this.interaction);
 
 		this.resize();
 		this.load().then(() => {
@@ -156,24 +162,8 @@ export class BeatmapSetPanel {
 		}
 	}
 
-	click(x: number, y: number): boolean {
-		return false;
-		if (!this.container.visible) return false;
-
-		if (!this.isExpanded) {
-			let bounds = this.container.getBounds();
-
-			if (x >= bounds.x && y >= bounds.y && y <= bounds.y + bounds.height) {
-				this.expand();
-				return true;
-			}
-		} else {
-			for (let i = 0; i < this.beatmapPanels.length; i++) {
-				if (this.beatmapPanels[i].click(x, y)) return true;
-			}
-		}
-
-		return false;
+	click() {
+		if (!this.isExpanded) this.expand();
 	}
 
 	update(newY: number, lastCalculatedHeight: number) {
@@ -193,9 +183,11 @@ export class BeatmapSetPanel {
 			// Culling!
 
 			this.container.visible = false;
+			this.interaction.disable();
 			return;
 		} else {
 			this.container.visible = true;
+			this.interaction.enable();
 		}
 
 		let scalingFactor = getGlobalScalingFactor();
@@ -292,5 +284,9 @@ export class BeatmapSetPanel {
 
 		if (!this.expandInterpolator.isReversed()) this.expandInterpolator.reverse();
 		this.isExpanded = false;
+
+		for (let i = 0; i < this.beatmapPanels.length; i++) {
+			this.beatmapPanels[i].disable();
+		}
 	}
 }

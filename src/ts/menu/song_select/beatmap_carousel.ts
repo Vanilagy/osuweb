@@ -8,6 +8,7 @@ import { updateDarkeningOverlay, updateBeatmapSetPanelMask, updateBeatmapPanelMa
 import { NormalizedWheelEvent } from "../../util/misc_util";
 import { Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
+import { InteractionGroup } from "../../input/interactivity";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 2.5;
@@ -22,6 +23,7 @@ const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLI
 
 export let beatmapCarouselContainer = new PIXI.Container();
 export let beatmapSetPanels: BeatmapSetPanel[] = [];
+export let carouselInteractionGroup = new InteractionGroup();
 let selectedPanel: BeatmapSetPanel = null;
 let referencePanel: BeatmapSetPanel = null;
 let referencePanelY = 0;
@@ -114,19 +116,6 @@ inputEventEmitter.addListener('wheel', (data) => {
 	let wheelEvent = data as NormalizedWheelEvent;
 
 	scrollThrust += wheelEvent.dy / 10;
-});
-
-inputEventEmitter.addListener('mouseDown', (data) => {
-	let mouseEvent = data as MouseEvent;
-
-	if (beatmapCarouselContainer.visible === false) return; // eh yes duh
-
-	for (let i = 0; i < beatmapSetPanels.length; i++) {
-		let panel = beatmapSetPanels[i];
-
-		let actionTaken = panel.click(mouseEvent.clientX, mouseEvent.clientY);
-		if (actionTaken) break;
-	}
 });
 
 function onResize() {

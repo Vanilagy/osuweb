@@ -211,12 +211,19 @@ export abstract class Interactivity {
 
 function handleMouseInteraction(interaction: Interaction, func: (mousePosition: Point, registration: InteractionRegistration) => boolean) {
 	let mousePosition = getCurrentMousePosition();
+	let toTrigger: InteractionRegistration[] = [];
 
+	// We determine first which registrations need to be triggered.
 	for (let i = 0; i < registrations.length; i++) {
 		let reg = registrations[i];
 		if (!reg.handlesInteraction(interaction)) continue;
 
-		if (func(mousePosition, reg)) reg.trigger(interaction);
+		if (func(mousePosition, reg)) toTrigger.push(reg);  
+	}
+
+	// Then, one after another, we trigger them. This separation happens so that the interaction doesn't trigger additional registrations that could be added as a SIDE-EFFECT of a trigger.
+	for (let i = 0; i < toTrigger.length; i++) {
+		toTrigger[i].trigger(interaction);
 	}
 }
 

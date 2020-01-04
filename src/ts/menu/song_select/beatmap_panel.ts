@@ -7,7 +7,8 @@ import { EaseType } from "../../util/math_util";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
 import { getBeatmapPanelMask } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer, carouselInteractionGroup } from "./beatmap_carousel";
+import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
@@ -21,6 +22,8 @@ export class BeatmapPanel {
 	private difficulty: DifficultyAttributes;
 	private starRatingTicks: PIXI.Graphics;
 	private currentNormalizedY: number = 0;
+	private enabled = true;
+	private interaction: InteractionRegistration;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
@@ -40,6 +43,10 @@ export class BeatmapPanel {
 		this.infoContainer.addChild(this.primaryText);
 		this.infoContainer.addChild(this.starRatingTicks);
 		this.container.addChild(this.infoContainer);
+
+		this.interaction = Interactivity.registerDisplayObject(this.container);
+		this.interaction.addListener('mouseDown', () => this.click());
+		carouselInteractionGroup.add(this.interaction);
 
 		this.resize();
 	}
@@ -126,26 +133,27 @@ export class BeatmapPanel {
 		this.container.x = getNormalizedOffsetOnCarousel(normalizedY + BEATMAP_PANEL_HEIGHT/2);
 	}
 
-	click(x: number, y: number) {
-		if (!this.beatmapFile) return false;
+	disable() {
+		if (!this.enabled) return;
 
-		let bounds = this.container.getBounds();
-		if (x >= bounds.x && y >= bounds.y && y <= bounds.y + bounds.height) {
-			beatmapCarouselContainer.visible = false;
+		this.enabled = false;
+		this.interaction.destroy();
+	}
 
-			this.beatmapFile.readAsText().then((text) => {
-				let map = new Beatmap({
-					text: text,
-					beatmapSet: this.beatmapSet,
-					metadataOnly: false
-				});
+	click() {
+		if (!this.beatmapFile) return;
 
-				startPlayFromBeatmap(map);
+		beatmapCarouselContainer.visible = false;
+		carouselInteractionGroup.disable();
+
+		this.beatmapFile.readAsText().then((text) => {
+			let map = new Beatmap({
+				text: text,
+				beatmapSet: this.beatmapSet,
+				metadataOnly: false
 			});
 
-			return true;
-		}
-
-		return false;
+			startPlayFromBeatmap(map);
+		});
 	}
 }
