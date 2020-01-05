@@ -6,9 +6,10 @@ import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calc
 import { EaseType, MathUtil } from "../../util/math_util";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
-import { getBeatmapPanelMask } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer, carouselInteractionGroup } from "./beatmap_carousel";
+import { getBeatmapPanelMask, TEXTURE_MARGIN, getBeatmapPanelMaskInverted, getBeatmapPanelGlowTexture } from "./beatmap_panel_components";
+import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer, carouselInteractionGroup, BEATMAP_PANEL_WIDTH } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
+import { renderer } from "../../visuals/rendering";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
@@ -16,7 +17,8 @@ export class BeatmapPanel {
 	private beatmapFile?: VirtualFile = null;
 	private fadeInInterpolator: Interpolator;
 	private infoContainer: PIXI.Container;
-	private mainMask: PIXI.Graphics;
+	private background: PIXI.Sprite;
+	private mainMask: PIXI.Sprite;
 	private primaryText: PIXI.Text;
 	private metadata: NonTrivialBeatmapMetadata;
 	private difficulty: DifficultyAttributes;
@@ -26,10 +28,13 @@ export class BeatmapPanel {
 	private interaction: InteractionRegistration;
 	private hoverInterpolator: Interpolator;
 	private expandInterpolator: Interpolator;
+	private glowSprite: PIXI.Sprite;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
 		this.container = new PIXI.Container();
+		this.container.sortableChildren = true;
+
 		this.fadeInInterpolator = new Interpolator({
 			duration: 250,
 			ease: EaseType.EaseInOutSine
@@ -42,10 +47,19 @@ export class BeatmapPanel {
 		this.hoverInterpolator.reverse();
 		this.expandInterpolator = new Interpolator({
 			ease: EaseType.EaseOutCubic,
-			duration: 500,
-			reverseDuration: 500,
+			duration: 333,
+			reverseDuration: 333,
 			reverseEase: EaseType.EaseInQuart
 		});
+
+		this.mainMask = new PIXI.Sprite();
+		this.container.addChild(this.mainMask);
+
+		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.background.tint = 0x000000;
+		this.background.alpha = 0.5;
+		this.background.mask = this.mainMask;
+		this.container.addChild(this.background);
 
 		this.infoContainer = new PIXI.Container();
 		this.primaryText = new PIXI.Text('');
@@ -54,6 +68,11 @@ export class BeatmapPanel {
 		this.infoContainer.addChild(this.primaryText);
 		this.infoContainer.addChild(this.starRatingTicks);
 		this.container.addChild(this.infoContainer);
+
+		this.glowSprite = new PIXI.Sprite();
+		this.glowSprite.zIndex = -1;
+		this.glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
+		this.container.addChild(this.glowSprite);
 
 		this.initInteractions();
 
@@ -116,12 +135,17 @@ export class BeatmapPanel {
 	resize() {
 		let scalingFactor = getGlobalScalingFactor();
 
-		if (this.mainMask) {
-			this.mainMask.destroy();
-			this.container.removeChild(this.mainMask);
-		}
-		this.mainMask = getBeatmapPanelMask().clone();
-		this.container.addChildAt(this.mainMask, 0);
+		this.container.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_PANEL_WIDTH * scalingFactor, BEATMAP_PANEL_HEIGHT * scalingFactor);
+
+		this.background.width = BEATMAP_PANEL_WIDTH * scalingFactor;
+		this.background.height = BEATMAP_PANEL_HEIGHT * scalingFactor;
+
+		this.mainMask.texture = PIXI.Texture.from(getBeatmapPanelMask());
+		this.mainMask.texture.update();
+		this.mainMask.position.set(-TEXTURE_MARGIN * scalingFactor, -TEXTURE_MARGIN * scalingFactor);
+
+		this.glowSprite.texture = getBeatmapPanelGlowTexture();
+		this.glowSprite.position.copyFrom(this.mainMask.position);
 
 		this.primaryText.style = {
 			fontFamily: 'Exo2',
@@ -157,15 +181,23 @@ export class BeatmapPanel {
 		let normalizedY = this.container.getGlobalPosition().y / scalingFactor;
 		this.container.x = getNormalizedOffsetOnCarousel(normalizedY + BEATMAP_PANEL_HEIGHT/2) * scalingFactor;
 
-		let hoverValue = this.hoverInterpolator.getCurrentValue();
-		this.container.x += hoverValue * -10 * scalingFactor;
+		let expansionValue = this.expandInterpolator.getCurrentValue();
+		this.container.x += expansionValue * -40 * scalingFactor;
 
+		let hoverValue = this.hoverInterpolator.getCurrentValue() * (1 - this.expandInterpolator.getCurrentCompletion());
+		this.container.x += hoverValue * -7 * scalingFactor;
 
+		this.container.x = Math.floor(this.container.x);
+		this.container.y = Math.floor(this.container.y);
 
-		let shit = this.expandInterpolator.getCurrentValue();
-		this.container.x += shit * -30 * scalingFactor;
+		this.background.alpha = MathUtil.lerp(0.45, 0.8, expansionValue);
 
-		this.mainMask.alpha = MathUtil.lerp(0.5, 0.75, shit);
+		if (expansionValue === 0) {
+			this.glowSprite.visible = false;
+		} else {
+			this.glowSprite.visible = true;
+			this.glowSprite.alpha = expansionValue;
+		}
 	}
 
 	disable() {

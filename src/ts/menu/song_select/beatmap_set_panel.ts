@@ -1,13 +1,13 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { VirtualFile } from "../../file_system/virtual_file";
-import { Interpolator, ReverseMode } from "../../util/graphics_util";
+import { Interpolator } from "../../util/graphics_util";
 import { BeatmapPanel } from "./beatmap_panel";
 import { Beatmap } from "../../datamodel/beatmap";
-import { EaseType, MathUtil } from "../../util/math_util";
+import { EaseType } from "../../util/math_util";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
 import { BeatmapUtils } from "../../datamodel/beatmap_utils";
-import { getDarkeningOverlay, getBeatmapSetPanelMask } from "./beatmap_panel_components";
+import { getDarkeningOverlay, getBeatmapSetPanelMask, getBeatmapSetPanelMaskInverted, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
 import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup } from "./beatmap_carousel";
 import { InteractionRegistration, Interactivity } from "../../input/interactivity";
 
@@ -21,7 +21,7 @@ export class BeatmapSetPanel {
 	private expandInterpolator: Interpolator;
 	private beatmapPanels: BeatmapPanel[] = [];
 	private representingBeatmap: Beatmap;
-	private mainMask: PIXI.Graphics;
+	private mainMask: PIXI.Sprite;
 	private backgroundImageSprite: PIXI.Sprite;
 	private backgroundImageBitmap: ImageBitmap = null;
 	private darkening: PIXI.Sprite;
@@ -55,6 +55,7 @@ export class BeatmapSetPanel {
 		this.panelContainer.addChild(this.backgroundImageSprite);
 
 		this.darkening = new PIXI.Sprite(PIXI.Texture.from(getDarkeningOverlay()));
+		this.darkening.y = -1;
 		this.panelContainer.addChild(this.darkening);
 
 		this.primaryText = new PIXI.Text('');
@@ -64,15 +65,14 @@ export class BeatmapSetPanel {
 		this.imageColorFilter = new PIXI.filters.ColorMatrixFilter();
 		this.backgroundImageSprite.filters = [this.imageColorFilter];
 
-		this.glowSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-		let glowSpriteBlur = new PIXI.filters.BlurFilter();
-		//glowSpriteBlur.quality = 6;
-		let glowSpriteColorMatrix = new PIXI.filters.ColorMatrixFilter();
-		glowSpriteColorMatrix.brightness(2.0, false);
-		this.glowSprite.filters = [glowSpriteBlur, glowSpriteColorMatrix];
-		this.glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
+		this.glowSprite = new PIXI.Sprite();
 		this.glowSprite.zIndex = -1;
+		this.glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
 		this.container.addChild(this.glowSprite);
+
+		this.mainMask = new PIXI.Sprite();
+		this.panelContainer.addChildAt(this.mainMask, 0);
+		this.panelContainer.mask = this.mainMask;
 
 		this.expandInterpolator = new Interpolator({
 			ease: EaseType.EaseOutCubic,
@@ -99,7 +99,7 @@ export class BeatmapSetPanel {
 	}
 
 	private initInteractions() {
-		this.interaction = Interactivity.registerDisplayObject(this.container, true);
+		this.interaction = Interactivity.registerDisplayObject(this.panelContainer, true);
 		carouselInteractionGroup.add(this.interaction);
 
 		this.interaction.addListener('mouseDown', () => {
@@ -160,13 +160,14 @@ export class BeatmapSetPanel {
 
 		let scalingFactor = getGlobalScalingFactor();
 
-		if (this.mainMask) {
-			this.mainMask.destroy();
-			this.panelContainer.removeChild(this.mainMask);
-		}
-		this.mainMask = getBeatmapSetPanelMask().clone();
-		this.panelContainer.addChildAt(this.mainMask, 0);
-		this.panelContainer.mask = this.mainMask;
+		this.panelContainer.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor);
+
+		this.mainMask.texture = PIXI.Texture.from(getBeatmapSetPanelMask());
+		this.mainMask.texture.update();
+		this.mainMask.pivot.set(TEXTURE_MARGIN * scalingFactor, TEXTURE_MARGIN * scalingFactor);
+
+		this.glowSprite.texture = getBeatmapSetPanelGlowTexture();
+		this.glowSprite.pivot.copyFrom(this.mainMask.pivot);
 
 		this.difficultyContainer.x = Math.floor(50 * scalingFactor);
 		
@@ -175,10 +176,6 @@ export class BeatmapSetPanel {
 		this.backgroundImageSprite.height = this.backgroundImageSprite.width * texture.height/texture.width;
 
 		this.darkening.texture.update();
-
-		this.glowSprite.mask = this.mainMask;
-		this.glowSprite.width = BEATMAP_SET_PANEL_WIDTH * scalingFactor;
-		this.glowSprite.height = BEATMAP_SET_PANEL_HEIGHT * scalingFactor;
 
 		this.primaryText.style = {
 			fontFamily: 'Exo2',
@@ -243,7 +240,7 @@ export class BeatmapSetPanel {
 		let combinedPanelHeight = BEATMAP_PANEL_HEIGHT + BEATMAP_PANEL_MARGIN;
 		let expansionValue = this.expandInterpolator.getCurrentValue();
 
-		this.panelContainer.x -= 100 * expansionValue * scalingFactor;
+		this.panelContainer.x -= 99 * expansionValue * scalingFactor;
 
 		// Remove beatmap panel elements if there's no need to keep them
 		if (!this.isExpanded && expansionValue === 0 && this.beatmapPanels.length > 0) {
@@ -268,16 +265,15 @@ export class BeatmapSetPanel {
 		this.panelContainer.x += hoverValue * -15 * scalingFactor;
 		this.imageColorFilter.brightness(1 + hoverValue * 0.2, false);
 
+		this.container.x = Math.floor(this.container.x);
+		this.container.y = Math.floor(this.container.y);
+
 		if (expansionValue === 0) {
 			this.glowSprite.visible = false;
 		} else {
 			this.glowSprite.visible = true;
-			let blur = this.glowSprite.filters[0] as PIXI.filters.BlurFilter;
-			blur.blur = 5 * scalingFactor;
 			this.glowSprite.alpha = expansionValue;
-
 			this.glowSprite.x = this.panelContainer.x;
-			//this.glowSprite.pivot.x = this.panelContainer.pivot.x;
 		}
 	}
 

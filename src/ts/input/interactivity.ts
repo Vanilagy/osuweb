@@ -62,8 +62,12 @@ export class InteractionRegistration extends InteractionUnit {
 	overlaps(x: number, y: number) {
 		if (this.destroyed) return;
 
-		let bounds = this.obj.getBounds();
-		return x >= bounds.x && x < bounds.x + bounds.width && y >= bounds.y && y < bounds.y + bounds.height;
+		if (this.obj.hitArea) {
+			let pos = this.obj.getGlobalPosition();
+			return this.obj.hitArea.contains(x - pos.x, y - pos.y);
+		} else {
+			return this.obj.getBounds().contains(x, y);
+		}
 	}
 
 	trigger(interaction: Interaction) {
