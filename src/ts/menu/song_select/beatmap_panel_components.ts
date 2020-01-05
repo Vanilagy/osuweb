@@ -50,7 +50,7 @@ export function updateBeatmapPanelMask() {
 	let scalingFactor = getGlobalScalingFactor();
 
 	beatmapPanelMask = new PIXI.Graphics();
-	beatmapPanelMask.beginFill(0x000000, 0.5);
+	beatmapPanelMask.beginFill(0x000000, 1.0);
 	beatmapPanelMask.drawPolygon([
 		new PIXI.Point(0, 0),
 		new PIXI.Point(Math.floor(BEATMAP_PANEL_HEIGHT/5 * scalingFactor), Math.floor(BEATMAP_PANEL_HEIGHT * scalingFactor)),

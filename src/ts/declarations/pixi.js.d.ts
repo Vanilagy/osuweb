@@ -40,6 +40,42 @@ declare namespace PIXI {
      * @namespace PIXI.filters
      */
     namespace filters {
+		// Added these myself, lel!
+		export class DropShadowFilter extends PIXI.Filter {
+			constructor(options?:DropShadowFilterOptions);
+			alpha:number;
+			blur:number;
+			color:number;
+			distance:number;
+			kernels:number[];
+			pixelSize:number|number[]|PIXI.Point;
+			quality:number;
+			resolution:number;
+			rotation:number;
+			shadowOnly:boolean;
+		}
+		export interface DropShadowFilterOptions {
+			alpha?:number;
+			blur?:number;
+			color?:number;
+			distance?:number;
+			kernels?:number[];
+			pixelSize?:number|number[]|PIXI.Point;
+			quality?:number;
+			resolution?:number;
+			rotation?:number;
+			shadowOnly?:boolean;
+		}
+
+		export class GlowFilter extends PIXI.Filter {
+			constructor(distance?:number, outerStrength?:number, innerStrength?:number, color?:number, quality?:number);
+			color:number;
+			distance:number;
+			innerStrength:number;
+			outerStrength:number;
+		}
+
+
         /**
          * @class BlurXFilter
          * @memberof PIXI.filters
@@ -253,7 +289,7 @@ declare namespace PIXI {
              * @member {object}
              */
             readonly uniforms: any;
-        }
+		}
         /**
          * The BlurFilterPass applies a horizontal or vertical Gaussian blur to an object.
          *

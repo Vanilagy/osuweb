@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A browser port of the popular rhythm game osu!",
   "dependencies": {
+    "@pixi/filter-drop-shadow": "^3.0.3",
+    "@pixi/filter-glow": "^3.0.3",
+    "@pixi/filter-kawase-blur": "^3.0.3",
     "rollup": "^1.16.6",
     "rollup-plugin-typescript": "^1.0.1",
     "rollup-plugin-typescript2": "^0.21.2",

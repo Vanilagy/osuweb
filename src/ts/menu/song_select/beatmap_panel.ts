@@ -3,7 +3,7 @@ import { VirtualFile } from "../../file_system/virtual_file";
 import { Interpolator } from "../../util/graphics_util";
 import { NonTrivialBeatmapMetadata, Beatmap } from "../../datamodel/beatmap";
 import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calculator";
-import { EaseType } from "../../util/math_util";
+import { EaseType, MathUtil } from "../../util/math_util";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
 import { getBeatmapPanelMask } from "./beatmap_panel_components";
@@ -25,6 +25,7 @@ export class BeatmapPanel {
 	private enabled = true;
 	private interaction: InteractionRegistration;
 	private hoverInterpolator: Interpolator;
+	private expandInterpolator: Interpolator;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
@@ -39,6 +40,12 @@ export class BeatmapPanel {
 			reverseEase: EaseType.EaseInCubic
 		});
 		this.hoverInterpolator.reverse();
+		this.expandInterpolator = new Interpolator({
+			ease: EaseType.EaseOutCubic,
+			duration: 500,
+			reverseDuration: 500,
+			reverseEase: EaseType.EaseInQuart
+		});
 
 		this.infoContainer = new PIXI.Container();
 		this.primaryText = new PIXI.Text('');
@@ -83,7 +90,8 @@ export class BeatmapPanel {
 		g.beginFill(0xffffff);
 
 		function addStarRatingTick(percent: number, index: number) {
-			let width = Math.floor(15 * percent * scalingFactor) || 1;
+			let width = Math.floor(15 * percent * scalingFactor);
+			if (width === 0) return;
 			let x = Math.floor(20 * index * scalingFactor);
 
 			g.drawPolygon([
@@ -151,6 +159,13 @@ export class BeatmapPanel {
 
 		let hoverValue = this.hoverInterpolator.getCurrentValue();
 		this.container.x += hoverValue * -10 * scalingFactor;
+
+
+
+		let shit = this.expandInterpolator.getCurrentValue();
+		this.container.x += shit * -30 * scalingFactor;
+
+		this.mainMask.alpha = MathUtil.lerp(0.5, 0.75, shit);
 	}
 
 	disable() {
@@ -161,6 +176,12 @@ export class BeatmapPanel {
 	}
 
 	select() {
+		this.expandInterpolator.setReversedState(false);
+		this.expandInterpolator.start();
+
+
+		return;
+
 		if (!this.beatmapFile) return;
 
 		beatmapCarouselContainer.visible = false;

@@ -4,7 +4,7 @@ import { stage, addRenderingTask } from "../../visuals/rendering";
 import { inputEventEmitter } from "../../input/input";
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
-import { updateDarkeningOverlay, updateBeatmapSetPanelMask, updateBeatmapPanelMask } from "./beatmap_panel_components";
+import { updateDarkeningOverlay, updateBeatmapPanelMask, updateBeatmapSetPanelMask } from "./beatmap_panel_components";
 import { NormalizedWheelEvent } from "../../util/misc_util";
 import { Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
@@ -18,7 +18,7 @@ export const BEATMAP_PANEL_WIDTH = 650;
 export const BEATMAP_PANEL_HEIGHT = 50;
 export const BEATMAP_SET_PANEL_MARGIN = 10;
 export const BEATMAP_PANEL_MARGIN = 10;
-const SCROLL_VELOCITY_DECAY_FACTOR = 0.07; // Per second. After one second, the velocity will have fallen off by this much.
+const SCROLL_VELOCITY_DECAY_FACTOR = 0.06; // Per second. After one second, the velocity will have fallen off by this much.
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 
@@ -51,7 +51,7 @@ export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: numb
 	referencePanel = panel;
 	referencePanelY = currentYPosition;
 
-	snapToSelectionInterpolator.setValueRange(currentYPosition, 250);
+	snapToSelectionInterpolator.setValueRange(currentYPosition, 225);
 	snapToSelectionInterpolator.start();
 	snapToSelectedIntervened = false;
 	scrollVelocity = 0;
@@ -128,7 +128,7 @@ addRenderingTask((dt: number) => {
 inputEventEmitter.addListener('wheel', (data) => {
 	let wheelEvent = data as NormalizedWheelEvent;
 
-	scrollVelocity += wheelEvent.dy * 5;
+	scrollVelocity += wheelEvent.dy * 4;
 });
 
 function onResize() {
@@ -140,8 +140,7 @@ function onResize() {
 
 	for (let i = 0; i < beatmapSetPanels.length; i++) {
 		let panel = beatmapSetPanels[i];
-
-		panel.resize();
+		panel.needsResize = true;
 	}
 }
 uiEventEmitter.addListener('resize', onResize);

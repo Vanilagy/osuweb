@@ -32,13 +32,18 @@ export class BeatmapSetPanel {
 	private currentNormalizedY: number = 0;
 	private interaction: InteractionRegistration;
 	private hoverInterpolator: Interpolator;
+	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
+	private glowSprite: PIXI.Sprite;
+	public needsResize = true;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
 		this.container = new PIXI.Container();
+		this.container.sortableChildren = true;
 
 		this.difficultyContainer = new PIXI.Container();
 		this.difficultyContainer.sortableChildren = true;
+		this.difficultyContainer.zIndex = -2;
 		this.container.addChild(this.difficultyContainer);
 		this.beatmapFiles = this.beatmapSet.getBeatmapFiles();
 
@@ -55,6 +60,19 @@ export class BeatmapSetPanel {
 		this.primaryText = new PIXI.Text('');
 		this.secondaryText = new PIXI.Text('');
 		this.panelContainer.addChild(this.primaryText, this.secondaryText);
+
+		this.imageColorFilter = new PIXI.filters.ColorMatrixFilter();
+		this.backgroundImageSprite.filters = [this.imageColorFilter];
+
+		this.glowSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
+		let glowSpriteBlur = new PIXI.filters.BlurFilter();
+		//glowSpriteBlur.quality = 6;
+		let glowSpriteColorMatrix = new PIXI.filters.ColorMatrixFilter();
+		glowSpriteColorMatrix.brightness(2.0, false);
+		this.glowSprite.filters = [glowSpriteBlur, glowSpriteColorMatrix];
+		this.glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
+		this.glowSprite.zIndex = -1;
+		this.container.addChild(this.glowSprite);
 
 		this.expandInterpolator = new Interpolator({
 			ease: EaseType.EaseOutCubic,
@@ -75,13 +93,12 @@ export class BeatmapSetPanel {
 		
 		this.initInteractions();
 
-		this.resize();
 		this.load().then(() => {
 			this.draw();
 		});
 	}
 
-	initInteractions() {
+	private initInteractions() {
 		this.interaction = Interactivity.registerDisplayObject(this.container, true);
 		carouselInteractionGroup.add(this.interaction);
 
@@ -98,7 +115,7 @@ export class BeatmapSetPanel {
 		});
 	}
 
-	async load() {
+	private async load() {
 		let representingBeatmap = new Beatmap({
 			text: await this.beatmapFiles[0].readAsText(),
 			beatmapSet: this.beatmapSet,
@@ -107,7 +124,7 @@ export class BeatmapSetPanel {
 		this.representingBeatmap = representingBeatmap;
 	}
 
-	async loadImage() {
+	private async loadImage() {
 		let scalingFactor = getGlobalScalingFactor();
 
 		let imageFile = await this.representingBeatmap.getBackgroundImageFile();
@@ -133,12 +150,14 @@ export class BeatmapSetPanel {
 		}
 	}
 
-	draw() {
+	private draw() {
 		this.primaryText.text = this.representingBeatmap.title + ' '; // Adding the extra space so that the canvas doesn't cut off the italics
 		this.secondaryText.text = this.representingBeatmap.artist + ' | ' + this.representingBeatmap.creator + ' ';
 	}
 
-	resize() {
+	private resize() {
+		this.needsResize = false;
+
 		let scalingFactor = getGlobalScalingFactor();
 
 		if (this.mainMask) {
@@ -157,17 +176,27 @@ export class BeatmapSetPanel {
 
 		this.darkening.texture.update();
 
+		this.glowSprite.mask = this.mainMask;
+		this.glowSprite.width = BEATMAP_SET_PANEL_WIDTH * scalingFactor;
+		this.glowSprite.height = BEATMAP_SET_PANEL_HEIGHT * scalingFactor;
+
 		this.primaryText.style = {
 			fontFamily: 'Exo2',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontSize: Math.floor(22 * scalingFactor)
+			fontSize: Math.floor(22 * scalingFactor),
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
 		};
 		this.secondaryText.style = {
 			fontFamily: 'Exo2',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontSize: Math.floor(14 * scalingFactor)
+			fontSize: Math.floor(14 * scalingFactor),
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
 		};
 
 		this.primaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(10 * scalingFactor));
@@ -176,10 +205,6 @@ export class BeatmapSetPanel {
 		for (let i = 0; i < this.beatmapPanels.length; i++) {
 			this.beatmapPanels[i].resize();
 		}
-	}
-
-	click() {
-		if (!this.isExpanded) this.expand();
 	}
 
 	update(newY: number, lastCalculatedHeight: number) {
@@ -206,14 +231,19 @@ export class BeatmapSetPanel {
 			this.interaction.enable();
 		}
 
+		if (this.needsResize) this.resize();
+
 		let scalingFactor = getGlobalScalingFactor();
 		this.container.y = this.currentNormalizedY * scalingFactor;
 
 		this.backgroundImageSprite.alpha = this.imageFadeIn.getCurrentValue();
 
+		this.panelContainer.x = 0;
+
 		let combinedPanelHeight = BEATMAP_PANEL_HEIGHT + BEATMAP_PANEL_MARGIN;
 		let expansionValue = this.expandInterpolator.getCurrentValue();
-		this.panelContainer.pivot.x = Math.floor(50 * expansionValue * scalingFactor);
+
+		this.panelContainer.x -= 100 * expansionValue * scalingFactor;
 
 		// Remove beatmap panel elements if there's no need to keep them
 		if (!this.isExpanded && expansionValue === 0 && this.beatmapPanels.length > 0) {
@@ -232,10 +262,23 @@ export class BeatmapSetPanel {
 			}
 		}
 
-		this.panelContainer.x = getNormalizedOffsetOnCarousel(this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor;
+		this.panelContainer.x += getNormalizedOffsetOnCarousel(this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor;
 
-		let hoverValue = this.hoverInterpolator.getCurrentValue();
-		this.panelContainer.x += hoverValue * -15 * scalingFactor * (1 - this.expandInterpolator.getCurrentCompletion());
+		let hoverValue = this.hoverInterpolator.getCurrentValue() * (1 - this.expandInterpolator.getCurrentCompletion());
+		this.panelContainer.x += hoverValue * -15 * scalingFactor;
+		this.imageColorFilter.brightness(1 + hoverValue * 0.2, false);
+
+		if (expansionValue === 0) {
+			this.glowSprite.visible = false;
+		} else {
+			this.glowSprite.visible = true;
+			let blur = this.glowSprite.filters[0] as PIXI.filters.BlurFilter;
+			blur.blur = 5 * scalingFactor;
+			this.glowSprite.alpha = expansionValue;
+
+			this.glowSprite.x = this.panelContainer.x;
+			//this.glowSprite.pivot.x = this.panelContainer.pivot.x;
+		}
 	}
 
 	getTotalHeight() {
@@ -245,7 +288,7 @@ export class BeatmapSetPanel {
 		return combinedSetPanelHeight + this.expandInterpolator.getCurrentValue() * combinedPanelHeight * this.beatmapFiles.length;
 	}
 
-	async expand() {
+	private async expand() {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
@@ -298,7 +341,7 @@ export class BeatmapSetPanel {
 		}
 	}
 
-	collapse() {
+	private collapse() {
 		if (!this.isExpanded) return;
 
 		this.expandInterpolator.setReversedState(true);
