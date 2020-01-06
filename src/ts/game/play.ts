@@ -29,6 +29,7 @@ import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT } from "../visuals/ui";
+import { addTickingTask, tickAll } from "../util/ticker";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = 'AT';
@@ -187,9 +188,8 @@ export class Play {
 		
 		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP
         
-        let songFile = await this.processedBeatmap.beatmap.getAudioFile();
-        let url = await songFile.readAsResourceUrl();
-        await mainMusicMediaPlayer.loadUrl(url);
+		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
+		await mainMusicMediaPlayer.loadFromVirtualFile(songFile);
 
         let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
         if (backgroundImageFile) {
@@ -222,18 +222,16 @@ export class Play {
 
         if (this.activeMods.has(Mod.Auto)) softwareCursor.visible = true;
 
-        addRenderingTask(() => this.render());
-        setInterval(() => this.tick(), 0);
-        this.tick();
+		addRenderingTask(() => this.render());
+		addTickingTask(() => this.tick());
+		this.tick();
         enableRenderTimeInfoLog();
 
         inputEventEmitter.addListener('mouseMove', () => {
-            this.tick();
-            this.handleMouseMove()
+            this.handleMouseMove();
         });
         inputEventEmitter.addListener('gameButtonDown', () => {
-            this.tick();
-            this.handleButtonDown()
+            this.handleButtonDown();
         });
     }
 

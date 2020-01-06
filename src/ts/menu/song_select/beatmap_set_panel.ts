@@ -8,11 +8,13 @@ import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/u
 import { BackgroundManager } from "../../visuals/background";
 import { BeatmapUtils } from "../../datamodel/beatmap_utils";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, getBeatmapSetPanelMaskInverted, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
-import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup } from "./beatmap_carousel";
+import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup, getSelectedSubpanel, setSelectedSubpanel } from "./beatmap_carousel";
 import { InteractionRegistration, Interactivity } from "../../input/interactivity";
+import { mainMusicMediaPlayer } from "../../audio/media_player";
+import { audioContext } from "../../audio/audio";
 
 export class BeatmapSetPanel {
-	private beatmapSet: BeatmapSet;
+	public beatmapSet: BeatmapSet;
 	private beatmapFiles: VirtualFile[];
 	public container: PIXI.Container;
 	private panelContainer: PIXI.Container;
@@ -29,7 +31,7 @@ export class BeatmapSetPanel {
 	private secondaryText: PIXI.Text;
 	private imageLoadingStarted = false;
 	private imageFadeIn: Interpolator;
-	private currentNormalizedY: number = 0;
+	public currentNormalizedY: number = 0;
 	private interaction: InteractionRegistration;
 	private hoverInterpolator: Interpolator;
 	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
@@ -303,7 +305,7 @@ export class BeatmapSetPanel {
 		this.expandInterpolator.start();
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
-			let beatmapPanel = new BeatmapPanel(this.beatmapSet);
+			let beatmapPanel = new BeatmapPanel(this);
 			beatmapPanel.container.zIndex = -i;
 
 			this.difficultyContainer.addChild(beatmapPanel.container);
@@ -314,6 +316,15 @@ export class BeatmapSetPanel {
 		if (backgroundImage) {
 			let url = await backgroundImage.readAsResourceUrl();
 			BackgroundManager.setImage(url);
+		}
+
+		let audioFile = await this.representingBeatmap.getAudioFile();
+		if (audioFile) {
+			await mainMusicMediaPlayer.loadFromVirtualFile(audioFile);
+
+			let startTime = this.representingBeatmap.getAudioPreviewTimeInSeconds();
+			mainMusicMediaPlayer.start(startTime)
+			mainMusicMediaPlayer.setLoopBehavior(true, startTime);
 		}
 
 		let data = await BeatmapUtils.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
@@ -339,6 +350,12 @@ export class BeatmapSetPanel {
 
 	private collapse() {
 		if (!this.isExpanded) return;
+
+		let currentlySelectedSubpanel = getSelectedSubpanel();
+		if (currentlySelectedSubpanel) {
+			currentlySelectedSubpanel.deselect();
+			setSelectedSubpanel(null);
+		}
 
 		this.expandInterpolator.setReversedState(true);
 		this.isExpanded = false;

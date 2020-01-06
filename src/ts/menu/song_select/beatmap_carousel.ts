@@ -5,10 +5,11 @@ import { inputEventEmitter } from "../../input/input";
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapPanelMasks, updateBeatmapSetPanelMasks } from "./beatmap_panel_components";
-import { NormalizedWheelEvent } from "../../util/misc_util";
+import { NormalizedWheelEvent, last } from "../../util/misc_util";
 import { Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup } from "../../input/interactivity";
+import { BeatmapPanel } from "./beatmap_panel";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
@@ -18,7 +19,10 @@ export const BEATMAP_PANEL_WIDTH = 650;
 export const BEATMAP_PANEL_HEIGHT = 50;
 export const BEATMAP_SET_PANEL_MARGIN = 10;
 export const BEATMAP_PANEL_MARGIN = 10;
-const SCROLL_VELOCITY_DECAY_FACTOR = 0.06; // Per second. After one second, the velocity will have fallen off by this much.
+export const BEATMAP_SET_PANEL_SNAP_TARGET = 225;
+export const BEATMAP_PANEL_SNAP_TARGET = 300;
+const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEIGHT/2; // When either the top or bottom panel of the carousel cross this line, the carousel should snap back.
+const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the velocity will have fallen off by this much.
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 
@@ -37,6 +41,8 @@ let snapToSelectionInterpolator = new Interpolator({
 });
 let snapToSelectedIntervened = true;
 
+let selectedSubpanel: BeatmapPanel = null;
+
 stage.addChild(beatmapCarouselContainer);
 
 export function setSelectedPanel(panel: BeatmapSetPanel) {
@@ -47,11 +53,23 @@ export function getSelectedPanel() {
 	return selectedPanel;
 }
 
+export function setSelectedSubpanel(subpanel: BeatmapPanel) {
+	selectedSubpanel = subpanel;
+}
+
+export function getSelectedSubpanel() {
+	return selectedSubpanel;
+}
+
 export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: number) {
 	referencePanel = panel;
 	referencePanelY = currentYPosition;
 
-	snapToSelectionInterpolator.setValueRange(currentYPosition, 225);
+	snapReferencePanel(currentYPosition, BEATMAP_SET_PANEL_SNAP_TARGET);
+}
+
+export function snapReferencePanel(from: number, to: number) {
+	snapToSelectionInterpolator.setValueRange(from, to);
 	snapToSelectionInterpolator.start();
 	snapToSelectedIntervened = false;
 	scrollVelocity = 0;
@@ -123,12 +141,39 @@ addRenderingTask((dt: number) => {
 		panel.container.visible = true;
 		panel.update(currentY, panel.getTotalHeight());
 	}
+
+	// Calculate snapback when user scrolls off one of the carousel edges
+	let firstPanel = beatmapSetPanels[0];
+	let lastPanel = last(beatmapSetPanels);
+	let diff: number;
+
+	// Top edge snapback
+	diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
+	if (diff > 0) referencePanelY += diff * (Math.pow(0.0015, dt/1000) - 1);
+
+	// Bottom edge snapback
+	diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
+	if (diff > 0) referencePanelY -= diff * (Math.pow(0.0015, dt/1000) - 1);
 });
 
 inputEventEmitter.addListener('wheel', (data) => {
 	let wheelEvent = data as NormalizedWheelEvent;
+	let effectiveness = 1.0; // How much the scroll "counts"	
 
-	scrollVelocity += wheelEvent.dy * 4;
+	// Determine scroll dampening if the user is on the top/bottom of the carousel
+	let firstPanel = beatmapSetPanels[0];
+	let lastPanel = last(beatmapSetPanels);
+	let diff: number;
+
+	// Top edge
+	diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
+	effectiveness = Math.pow(0.9, Math.max(0, diff/30));
+
+	// Bottom edge
+	diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
+	effectiveness = Math.min(effectiveness, Math.pow(0.9, Math.max(0, diff/30)));
+
+	scrollVelocity += wheelEvent.dy * 4 * effectiveness;
 });
 
 function onResize() {

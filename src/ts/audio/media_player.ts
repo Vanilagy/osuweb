@@ -1,5 +1,7 @@
 import { audioContext, mediaAudioNode } from "./audio";
 import { MathUtil } from "../util/math_util";
+import { VirtualFile } from "../file_system/virtual_file";
+import { TickingTask, addTickingTask, removeTickingTask } from "../util/ticker";
 
 const MEDIA_NUDGE_INTERVAL = 333; // In ms
 const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
@@ -7,7 +9,6 @@ const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioEleme
 export class MediaPlayer {
     private audioElement: HTMLAudioElement = null;
     private audioNode: MediaElementAudioSourceNode = null;
-    private currentUrl: string = null;
     private startTime: number = null;
     private timingDeltas: number[] = [];
     private lastNudgeTime: number = null;
@@ -18,13 +19,29 @@ export class MediaPlayer {
     private volume: number = 1;
     private gainNode: GainNode;
     private playbackRate = 1.0;
-    private lastCurrentTime: number = null;
+	private lastCurrentTime: number = null;
+	private doLoop = false;
+	private loopStart = 0;
+	private loopEnd = -1;
+	private tickingTask: TickingTask = null;
 
     constructor(destination: AudioNode) {
         this.gainNode = audioContext.createGain();
         this.setVolume(this.volume);
 
-        this.gainNode.connect(destination);
+		this.gainNode.connect(destination);
+		
+		this.tickingTask = () => {
+			// Handle loop end behavior
+			if (!this.audioElement) return;
+			if (this.audioElement.paused) return;
+			if (!this.doLoop) return;
+			if (this.loopEnd === -1) return;
+
+			if (this.audioElement.currentTime >= this.loopEnd) {
+				this.start(this.loopStart);
+			}
+		};
     }
 
     setVolume(newVolume: number) {
@@ -53,8 +70,14 @@ export class MediaPlayer {
         this.timingDeltas.length = 0;
         this.lastNudgeTime = null;
         this.pausedTime = null;
-        this.startTime = null;
-    }
+		this.startTime = null;
+		this.audioElement.onended = () => this.onPlaybackEnd();
+	}
+	
+	async loadFromVirtualFile(file: VirtualFile) {
+		let url = await file.readAsResourceUrl();
+		return this.loadUrl(url);
+	}
 
     loadBuffer(buffer: ArrayBuffer) {
         let url = URL.createObjectURL(new Blob([buffer]));
@@ -62,10 +85,7 @@ export class MediaPlayer {
     }
 
     loadUrl(url: string) {
-        return new Promise((resolve) => {
-            if (this.currentUrl) URL.revokeObjectURL(this.currentUrl);
-            this.currentUrl = url;
-
+        return new Promise<void>((resolve) => {
             this.resetAudioElement();
             this.audioElement.src = url;
             this.audioElement.preload = 'auto';   
@@ -86,15 +106,17 @@ export class MediaPlayer {
             return;
         }
 
+		if (!this.audioElement.paused) this.pause();
+
         this.offset = offset;
         this.startTime = performance.now();
         this.pausedTime = null;
-        this.lastCurrentTime = -Infinity;
+		this.lastCurrentTime = -Infinity;
 
         if (this.offset >= 0) {
             this.audioElement.currentTime = this.offset;
             this.audioElement.play();
-            this.audioElement.playbackRate = this.playbackRate;
+			this.audioElement.playbackRate = this.playbackRate;
         } else {
             // Any inaccuracies in this timeout (+-2ms) will be ironed out by the nudging algorithm in getCurrentTime
             this.timeout = setTimeout(() => {
@@ -173,7 +195,25 @@ export class MediaPlayer {
 
     isPaused() {
         return !this.isPlaying() && this.pausedTime !== undefined;
-    }
+	}
+	
+	setLoopBehavior(doLoop: boolean, loopStart = 0, loopEnd = -1) {
+		this.doLoop = doLoop;
+		this.loopStart = loopStart;
+		this.loopEnd = loopEnd;
+
+		if (doLoop) {
+			addTickingTask(this.tickingTask);
+		} else {
+			removeTickingTask(this.tickingTask);
+		}
+	}
+
+	private onPlaybackEnd() {
+		if (this.doLoop) {
+			this.start(this.loopStart);
+		}
+	}
 }
 
 export let mainMusicMediaPlayer = new MediaPlayer(mediaAudioNode);

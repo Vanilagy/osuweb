@@ -174,6 +174,11 @@ export class Beatmap {
 		};
 	}
 
+	getAudioPreviewTimeInSeconds() {
+		if (this.previewTime === -1) return 0;
+		return this.previewTime / 1000;
+	}
+
     private parseBeatmap(text: string) {
         let lines = text.split('\n');
         let section = "header";

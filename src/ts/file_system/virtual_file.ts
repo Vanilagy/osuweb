@@ -63,6 +63,11 @@ export class VirtualFile extends VirtualFileSystemEntry {
         return getFileNameWithoutExtension(this.name);
 	}
 
+	revokeResourceUrl() {
+		if (this.cachedResourceUrl === undefined) return;
+		URL.revokeObjectURL(this.cachedResourceUrl);
+	}
+
     static fromUrl(url: string, resourceName: string) {
         let newFile = new VirtualFile();
 

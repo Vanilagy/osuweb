@@ -1,6 +1,7 @@
 import { Point, clonePoint } from "../util/point";
 import { CustomEventEmitter } from "../util/custom_event_emitter";
 import { normalizeWheelEvent } from "../util/misc_util";
+import { tickAll } from "../util/ticker";
 
 let currentMousePosition: Point = {
     x: window.innerWidth / 2, // Before any events, just center the mouse
@@ -12,6 +13,8 @@ export function getCurrentMousePosition() {
 }
 
 window.onmousemove = (e: MouseEvent) => {
+	tickAll();
+
     currentMousePosition.x = e.clientX;
     currentMousePosition.y = e.clientY;
 
@@ -56,6 +59,8 @@ mouseButtonMappings.set(MouseButton.Left, FunctionalInput.GameMouseButtonA);
 mouseButtonMappings.set(MouseButton.Right, FunctionalInput.GameMouseButtonB);
 
 window.addEventListener('keydown', (e) => {
+	tickAll();
+
 	let keyCode = e.keyCode;
 
     let mappedFunctionalInput = keyCodeMappings.get(keyCode);
@@ -70,6 +75,8 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
+	tickAll();
+
     let keyCode = e.keyCode;
 
     let mappedFunctionalInput = keyCodeMappings.get(keyCode);
@@ -82,6 +89,8 @@ window.addEventListener('keyup', (e) => {
 
 // TODO: Eventually add touch support. Eventually.
 window.addEventListener('mousedown', (e) => {
+	tickAll();
+
 	let button = e.button;
 	
 	inputEventEmitter.emit('mouseDown', e);
@@ -96,6 +105,8 @@ window.addEventListener('mousedown', (e) => {
 });
 
 window.addEventListener('mouseup', (e) => {
+	tickAll();
+
     let button = e.button;
 
     let mappedFunctionalInput = mouseButtonMappings.get(button);
@@ -108,7 +119,8 @@ window.addEventListener('mouseup', (e) => {
 
 // Prevent context menu from opening on right click
 window.addEventListener('contextmenu', (e) => {
-    if (PREVENT_NATIVE_CONTEXT_MENU) e.preventDefault(); 
+	tickAll();
+	if (PREVENT_NATIVE_CONTEXT_MENU) e.preventDefault();
 });
 
 function handleGameButtonDown(button: FunctionalInput) {
@@ -150,6 +162,7 @@ export function anyGameButtonIsPressed() {
 }
 
 window.addEventListener('wheel', (ev) => {
+	tickAll();
 	inputEventEmitter.emit('wheel', normalizeWheelEvent(ev));
 });
 

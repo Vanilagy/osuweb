@@ -7,13 +7,14 @@ import { EaseType, MathUtil } from "../../util/math_util";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
 import { getBeatmapPanelMask, TEXTURE_MARGIN, getBeatmapPanelMaskInverted, getBeatmapPanelGlowTexture } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer, carouselInteractionGroup, BEATMAP_PANEL_WIDTH } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { renderer } from "../../visuals/rendering";
+import { BeatmapSetPanel } from "./beatmap_set_panel";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
-	private beatmapSet: BeatmapSet;
+	public parentPanel: BeatmapSetPanel;
 	private beatmapFile?: VirtualFile = null;
 	private fadeInInterpolator: Interpolator;
 	private infoContainer: PIXI.Container;
@@ -30,8 +31,8 @@ export class BeatmapPanel {
 	private expandInterpolator: Interpolator;
 	private glowSprite: PIXI.Sprite;
 
-	constructor(beatmapSet: BeatmapSet) {
-		this.beatmapSet = beatmapSet;
+	constructor(parentPanel: BeatmapSetPanel) {
+		this.parentPanel = parentPanel;
 		this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
 
@@ -46,9 +47,10 @@ export class BeatmapPanel {
 		});
 		this.hoverInterpolator.reverse();
 		this.expandInterpolator = new Interpolator({
-			ease: EaseType.EaseOutCubic,
-			duration: 333,
-			reverseDuration: 333,
+			ease: EaseType.EaseOutElastic,
+			duration: 500,
+			p: 0.9,
+			reverseDuration: 500,
 			reverseEase: EaseType.EaseInQuart
 		});
 
@@ -207,13 +209,31 @@ export class BeatmapPanel {
 		this.interaction.destroy();
 	}
 
+	isSelected() {
+		return getSelectedSubpanel() === this;
+	}
+
 	select() {
+		if (this.isSelected()) {
+			this.trigger();
+			return;
+		}
+
+		let currentlySelected = getSelectedSubpanel();
+		if (currentlySelected) {
+			currentlySelected.deselect();
+		}
+		setSelectedSubpanel(this);
+
 		this.expandInterpolator.setReversedState(false);
 		this.expandInterpolator.start();
 
+		let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
+		let diff = BEATMAP_PANEL_SNAP_TARGET - totalNormalizedY;
+		snapReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
+	}
 
-		return;
-
+	trigger() {
 		if (!this.beatmapFile) return;
 
 		beatmapCarouselContainer.visible = false;
@@ -222,11 +242,16 @@ export class BeatmapPanel {
 		this.beatmapFile.readAsText().then((text) => {
 			let map = new Beatmap({
 				text: text,
-				beatmapSet: this.beatmapSet,
+				beatmapSet: this.parentPanel.beatmapSet,
 				metadataOnly: false
 			});
 
 			startPlayFromBeatmap(map);
 		});
+	}
+
+	deselect() {
+		this.expandInterpolator.setReversedState(true);
+		this.expandInterpolator.start();
 	}
 }
