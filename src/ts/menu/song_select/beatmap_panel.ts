@@ -11,6 +11,7 @@ import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselCon
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { renderer } from "../../visuals/rendering";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
+import { beatmapInfoPanel } from "./beatmap_info_panel";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
@@ -213,7 +214,7 @@ export class BeatmapPanel {
 		return getSelectedSubpanel() === this;
 	}
 
-	select() {
+	async select(doSnap = true) {
 		if (this.isSelected()) {
 			this.trigger();
 			return;
@@ -228,9 +229,19 @@ export class BeatmapPanel {
 		this.expandInterpolator.setReversedState(false);
 		this.expandInterpolator.start();
 
-		let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
-		let diff = BEATMAP_PANEL_SNAP_TARGET - totalNormalizedY;
-		snapReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
+		if (doSnap) {
+			let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
+			let diff = BEATMAP_PANEL_SNAP_TARGET - totalNormalizedY;
+			snapReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
+		}
+
+		let beatmap = new Beatmap({
+			text: await this.beatmapFile.readAsText(),
+			beatmapSet: this.parentPanel.beatmapSet,
+			metadataOnly: true
+		});
+
+		beatmapInfoPanel.load(this.parentPanel.beatmapSet, beatmap, this.metadata, this.difficulty);
 	}
 
 	trigger() {

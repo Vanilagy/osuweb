@@ -43,7 +43,8 @@ type InterpolatedCounterDurationCallback = (distanceToGoal: number) => number;
 interface InterpolatedCounterOptions {
     initial: number,
     duration: number | InterpolatedCounterDurationCallback, // In ms
-    ease: EaseType
+	ease: EaseType,
+	p?: number
 }
 
 // For animating numbers going from x to y
@@ -51,7 +52,8 @@ export class InterpolatedCounter {
     private options: InterpolatedCounterOptions;
     private start: number;
     private end: number;
-    public ease: EaseType;
+	public ease: EaseType;
+	private p: number;
     private duration: number;
     private startTime: number = -Infinity;
 
@@ -60,7 +62,8 @@ export class InterpolatedCounter {
         this.start = options.initial;
         this.end = this.start;
         this.duration = this.getDuration();
-        this.ease = options.ease;
+		this.ease = options.ease;
+		this.p = options.p;
     }
 
     getDuration() {
@@ -73,7 +76,7 @@ export class InterpolatedCounter {
         let timePassed = (now === this.startTime)? 0 : now - this.startTime; // This check might seem unnecessary, since x - x = 0, however that does not hold true for x = +-Infinity. Since some maps are... questionable, we need to add this check.
         
         let completion = MathUtil.clamp(timePassed / this.duration, 0, 1);
-        completion = MathUtil.ease(this.ease, completion);
+        completion = MathUtil.ease(this.ease, completion, this.p);
 
         return MathUtil.lerp(this.start, this.end, completion);
     }

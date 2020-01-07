@@ -75,7 +75,8 @@ export interface NonTrivialBeatmapMetadata {
 	spinnerCount: number,
 	bpmMin: number,
 	bpmMax: number,
-	version: string // This one's trivial, but handy to send anyway
+	version: string, // This one's trivial, but handy to send anyway
+	length: number
 }
 
 export class Beatmap {
@@ -163,6 +164,17 @@ export class Beatmap {
 	}
 	
 	getNonTrivialMetadata(): NonTrivialBeatmapMetadata {
+		let length = 0; // In ms
+		if (this.hitObjects.length > 0) {
+			let firstObject = this.hitObjects[0];
+			let lastObject = last(this.hitObjects);
+
+			let startTime = firstObject.time;
+			let endTime = lastObject.time;
+
+			length = endTime - startTime; // TODO: THIS IN INEXACT.
+		}
+
 		return {
 			version: this.version,
 			hitObjectCount: this.hitObjects.length,
@@ -170,7 +182,8 @@ export class Beatmap {
 			sliderCount: this.sliderCount,
 			spinnerCount: this.spinnerCount,
 			bpmMin: this.bpmMin,
-			bpmMax: this.bpmMax
+			bpmMax: this.bpmMax,
+			length: length
 		};
 	}
 

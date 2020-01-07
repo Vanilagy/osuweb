@@ -349,6 +349,8 @@ export class BeatmapSetPanel {
 				this.beatmapPanels[i].load(result.value.metadata, result.value.difficulty, map.get(result));
 			}
 		}
+
+		// this.beatmapPanels[0].select(false);
 	}
 
 	private collapse() {
