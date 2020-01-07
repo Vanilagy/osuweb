@@ -10,6 +10,7 @@ import { Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup } from "../../input/interactivity";
 import { BeatmapPanel } from "./beatmap_panel";
+import { songSelectContainer } from "./song_select";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
@@ -23,8 +24,6 @@ export const BEATMAP_SET_PANEL_SNAP_TARGET = 225;
 export const BEATMAP_PANEL_SNAP_TARGET = 300;
 const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEIGHT/2; // When either the top or bottom panel of the carousel cross this line, the carousel should snap back.
 const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the velocity will have fallen off by this much.
-
-const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 
 export let beatmapCarouselContainer = new PIXI.Container();
 export let beatmapSetPanels: BeatmapSetPanel[] = [];
@@ -43,7 +42,7 @@ let snapToSelectedIntervened = true;
 
 let selectedSubpanel: BeatmapPanel = null;
 
-stage.addChild(beatmapCarouselContainer);
+songSelectContainer.addChild(beatmapCarouselContainer);
 
 export function setSelectedPanel(panel: BeatmapSetPanel) {
 	selectedPanel = panel;
@@ -75,9 +74,7 @@ export function snapReferencePanel(from: number, to: number) {
 	scrollVelocity = 0;
 }
 
-songFolderSelect.addEventListener('change', () => {
-	let directory = VirtualDirectory.fromFileList(songFolderSelect.files);
-	
+export function createCarouselFromDirectory(directory: VirtualDirectory) {
 	directory.forEach((entry) => {
 		if (!(entry instanceof VirtualDirectory)) return;
 
@@ -89,7 +86,7 @@ songFolderSelect.addEventListener('change', () => {
 	});
 
 	referencePanel = beatmapSetPanels[0];
-});
+}
 
 addRenderingTask((dt: number) => {
 	if (!referencePanel) return;
@@ -176,7 +173,7 @@ inputEventEmitter.addListener('wheel', (data) => {
 	scrollVelocity += wheelEvent.dy * 4 * effectiveness;
 });
 
-function onResize() {
+export function updateCarouselSizing() {
 	beatmapCarouselContainer.x = Math.floor(window.innerWidth - BEATMAP_CAROUSEL_RIGHT_MARGIN * getGlobalScalingFactor());
 
 	updateDarkeningOverlay();
@@ -188,8 +185,6 @@ function onResize() {
 		panel.needsResize = true;
 	}
 }
-uiEventEmitter.addListener('resize', onResize);
-onResize();
 
 export function getNormalizedOffsetOnCarousel(normalizedYPosition: number) {
 	// -1.0 for top of the screen, 0.0 for middle, 1.0 for bottom

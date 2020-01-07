@@ -12,6 +12,7 @@ import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WID
 import { InteractionRegistration, Interactivity } from "../../input/interactivity";
 import { mainMusicMediaPlayer } from "../../audio/media_player";
 import { audioContext } from "../../audio/audio";
+import { beatmapInfoPanel } from "./beatmap_info_panel";
 
 export class BeatmapSetPanel {
 	public beatmapSet: BeatmapSet;
@@ -303,6 +304,8 @@ export class BeatmapSetPanel {
 
 		this.expandInterpolator.setReversedState(false);
 		this.expandInterpolator.start();
+
+		beatmapInfoPanel.load(this.beatmapSet, this.representingBeatmap);
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			let beatmapPanel = new BeatmapPanel(this);

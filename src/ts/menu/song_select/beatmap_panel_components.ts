@@ -14,8 +14,8 @@ export function updateDarkeningOverlay() {
 
 	darkeningOverlayCtx.clearRect(0, 0, darkeningOverlay.width, darkeningOverlay.height);
 
-	let gradient = darkeningOverlayCtx.createLinearGradient(200, 0, 500, 100);
-	gradient.addColorStop(0, 'rgba(0,0,0,0.6)');
+	let gradient = darkeningOverlayCtx.createLinearGradient(200 * scalingFactor, 0, 400 * scalingFactor, 100 * scalingFactor);
+	gradient.addColorStop(0, 'rgba(0,0,0,0.5)');
 	gradient.addColorStop(1, 'rgba(0,0,0,0.0)');
 	darkeningOverlayCtx.fillStyle = gradient;
 	darkeningOverlayCtx.fillRect(0, 0, darkeningOverlay.width, darkeningOverlay.height);
