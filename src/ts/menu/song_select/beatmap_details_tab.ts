@@ -126,7 +126,7 @@ class NamedNumericalAttribute {
 	private interpolator: InterpolatedCounter;
 	private formatter: (val: number) => string;
 
-	constructor(attributeName: string, formatter: (val: number) => string = (val: number) => String(Math.floor(val))) {
+	constructor(attributeName: string, formatter: (val: number) => string = (val: number) => String(Math.round(val))) {
 		this.attributeName = attributeName;
 		this.formatter = formatter;
 		this.container = new PIXI.Container();

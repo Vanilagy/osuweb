@@ -23,7 +23,7 @@ export interface TimingPoint {
     index: number,
     offset: number,
     msPerBeat: number,
-    BPM: number,
+    bpm: number,
     meter: number,
     sampleSet: number,
     sampleIndex: number,
@@ -255,7 +255,24 @@ export class Beatmap {
         // These arrays are not guaranteed to be in-order in the file, so we sort 'em:
         this.events.sort((a, b) => a.time - b.time);
         this.hitObjects.sort((a, b) => a.time - b.time);
-        this.timingPoints.sort((a, b) => a.offset - b.offset);
+		this.timingPoints.sort((a, b) => a.offset - b.offset);
+		
+		// Calculate BPM
+		if (this.timingPoints.length > 0) {
+			let min = Infinity;
+			let max = -Infinity;
+
+			for (let i = 0; i < this.timingPoints.length; i++) {
+				let timingPoint = this.timingPoints[i];
+				if (!timingPoint.inheritable) continue;
+
+				min = Math.min(min, timingPoint.bpm);
+				max = Math.max(max, timingPoint.bpm);
+			}
+
+			this.bpmMin = min;
+			this.bpmMax = max;
+		}
     }
 
     private parseColor(line: string) {
@@ -299,7 +316,7 @@ export class Beatmap {
             index: this.timingPoints.length,
             offset: offset,
             msPerBeat: msPerBeat,
-            BPM: msPerBeat > 0 ? 60000 / msPerBeat : -1,
+            bpm: msPerBeat > 0 ? 60000 / msPerBeat : -1,
             meter: values[2]? parseInt(values[2]) : DEFAULT_TIMING_POINT_METER,
             sampleSet: values[3]? parseInt(values[3]) : DEFAULT_TIMING_POINT_SAMPLE_SET,
             sampleIndex: values[4]? parseInt(values[4]) : DEFAULT_TIMING_POINT_SAMPLE_INDEX,
