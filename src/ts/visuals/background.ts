@@ -1,13 +1,13 @@
 import { Interpolator } from "../util/graphics_util";
 import { EaseType, MathUtil } from "../util/math_util";
-import { addRenderingTask } from "./rendering";
+import { addRenderingTask, backgroundContainer } from "./rendering";
+import { VirtualFile } from "../file_system/virtual_file";
+import { getBitmapFromImageFile, BitmapQuality } from "../util/image_util";
+import { fitSpriteIntoContainer } from "../util/pixi_util";
+import { uiEventEmitter, getGlobalScalingFactor } from "./ui";
 import { last } from "../util/misc_util";
 
 const IMAGE_FADE_IN_DURATION = 333; // In ms
-
-const beatmapBackgroundElement: HTMLDivElement = document.querySelector('#beatmap-background');
-const imageContainer: HTMLDivElement = beatmapBackgroundElement.querySelector('._images');
-const videoContainer: HTMLVideoElement = beatmapBackgroundElement.querySelector('._video');
 
 export enum BackgroundState {
 	None,
@@ -17,120 +17,145 @@ export enum BackgroundState {
 
 export abstract class BackgroundManager {
 	private static state: BackgroundState = BackgroundState.None;
-	private static currentImageSource: string = null;
-	private static markedForDeletionImages: WeakSet<Element> = new WeakSet();
-	private static imageInterpolators: WeakMap<HTMLElement, Interpolator> = new WeakMap();
+	private static imageContainer = new PIXI.Container();
+	private static videoElement = document.createElement('video');
+	private static videoSprite: PIXI.Sprite;
+	private static currentImageFile: VirtualFile = null;
+	private static currentVideoFile: VirtualFile = null;
+	private static markedForDeletionSprites: WeakSet<PIXI.Sprite> = new WeakSet();
+	private static fadeInterpolators: WeakMap<PIXI.Sprite, Interpolator> = new WeakMap();
 	private static currentGameplayBrightness: number = 1.0;
+	private static blurFilter = new PIXI.filters.KawaseBlurFilter(0);
+	private static colorMatrixFilter = new PIXI.filters.ColorMatrixFilter();
 	private static gameplayInterpolator: Interpolator = new Interpolator({
 		ease: EaseType.EaseInOutQuad,
 		duration: 1000
 	});
 	private static blurInterpolator: Interpolator = new Interpolator({
+		from: 1,
+		to: 0,
 		ease: EaseType.EaseInOutSine,
 		duration: 500
 	});
+	private static scaleInterpolator: Interpolator = new Interpolator({
+		from: 1.08,
+		to: 1.0,
+		duration: 700,
+		ease: EaseType.EaseOutCubic,
+		reverseEase: EaseType.EaseInCubic
+	});
 
 	static initialize() {
-		this.setState(BackgroundState.SongSelect);
+		this.videoElement.setAttribute('muted', '');
+		this.videoElement.setAttribute('preload', 'auto');
+		this.videoElement.setAttribute('webkit-playsinline', '');
+		this.videoElement.setAttribute('playsinline', '');
 
-		this.gameplayInterpolator.start();
-		this.gameplayInterpolator.reverse();
-		this.blurInterpolator.start();
-		this.blurInterpolator.reverse();
+		let videoTex = PIXI.Texture.from(this.videoElement);
+		this.videoSprite = new PIXI.Sprite(videoTex);
+		(videoTex.baseTexture.resource as any).autoPlay = false;
+
+		this.setState(BackgroundState.SongSelect);
+		this.resize();
+
+		backgroundContainer.addChild(this.imageContainer, this.videoSprite);
+
+		this.blurFilter.quality = 5;
+		backgroundContainer.filters = [this.blurFilter, this.colorMatrixFilter];
 	}
 
-	static setState(newState: BackgroundState) {
+	static async setState(newState: BackgroundState) {
 		if (newState === this.state) return;
 
 		if (newState === BackgroundState.SongSelect) {
-			//beatmapBackgroundElement.classList.add('blurred');
-			beatmapBackgroundElement.style.transform = 'scale(1.06)';
-
-			if (this.state === BackgroundState.Gameplay) {
-				this.gameplayInterpolator.reverse();
-				this.blurInterpolator.reverse();
-			}
+			this.gameplayInterpolator.setReversedState(true);
+			this.blurInterpolator.setReversedState(true);
+			this.scaleInterpolator.setReversedState(true);
 		} else if (newState === BackgroundState.Gameplay) {
-			//beatmapBackgroundElement.classList.remove('blurred');
-			beatmapBackgroundElement.style.transform = 'scale(1.0)';
-
-			if (this.state === BackgroundState.SongSelect) {
-				this.gameplayInterpolator.reverse();
-				this.blurInterpolator.reverse();
+			if (this.currentImageFile) {
+				let fullResBitmap = await getBitmapFromImageFile(this.currentImageFile, BitmapQuality.High);
+				let sprite = last(this.imageContainer.children) as PIXI.Sprite;
+				sprite.texture = PIXI.Texture.from(fullResBitmap as any);
 			}
+
+			this.gameplayInterpolator.setReversedState(false);
+			this.blurInterpolator.setReversedState(false);
+			this.scaleInterpolator.setReversedState(false);
 		}
 
 		this.state = newState;
 	}
 
-	static setImage(src: string) {
-		if (src === this.currentImageSource) return;
-		this.currentImageSource = src;
+	static async setImage(file: VirtualFile) {
+		if (this.currentImageFile === file) return;
+		this.currentImageFile = file;
 
-		let imageElement = new Image();
-		imageElement.src = src;
-		imageElement.onload = async () => {
-			await imageElement.decode();
+		let bitmap = await getBitmapFromImageFile(file, (this.state === BackgroundState.Gameplay)? BitmapQuality.High : BitmapQuality.Medium);
 
-			for (let elem of imageContainer.children) {
-				if (this.markedForDeletionImages.has(elem)) continue;
+		let newSprite = new PIXI.Sprite(PIXI.Texture.from(bitmap as any));
+		fitSpriteIntoContainer(newSprite, window.innerWidth, window.innerHeight);
 
-				this.markedForDeletionImages.add(elem);
-				setTimeout(() => imageContainer.removeChild(elem), IMAGE_FADE_IN_DURATION);
-			}
+		for (let obj of this.imageContainer.children) {
+			let sprite = obj as PIXI.Sprite;
+			if (this.markedForDeletionSprites.has(sprite)) continue;
 
-			imageContainer.appendChild(imageElement);
+			this.markedForDeletionSprites.add(sprite);
+			setTimeout(() => this.imageContainer.removeChild(sprite), IMAGE_FADE_IN_DURATION);
+		}
 
-			let fadeInterpolator = new Interpolator({
-				ease: EaseType.EaseInOutSine,
-				duration: IMAGE_FADE_IN_DURATION
-			});
-			fadeInterpolator.start();
-			this.imageInterpolators.set(imageElement, fadeInterpolator);
-		};
+		this.imageContainer.addChild(newSprite);
+
+		let fadeInterpolator = new Interpolator({
+			ease: EaseType.EaseInOutSine,
+			duration: IMAGE_FADE_IN_DURATION
+		});
+		fadeInterpolator.start();
+		this.fadeInterpolators.set(newSprite, fadeInterpolator);
 	}
 
 	/** Returns a Promise that resolves once the video is ready for playback. */
-	static setVideo(src: string): Promise<void> {
-		if (videoContainer.src === src) return Promise.resolve();
-		
-		videoContainer.src = src;
-		videoContainer.style.display = 'block';
+	static async setVideo(file: VirtualFile): Promise<void> {
+		if (this.currentVideoFile === file) return Promise.resolve();
+		this.currentVideoFile = file;
+
+		this.videoElement.src = await file.readAsResourceUrl();
 
 		return new Promise((resolve, reject) => {
-			videoContainer.addEventListener('error', reject);
-			videoContainer.addEventListener('canplaythrough', () => resolve());
+			this.videoElement.addEventListener('error', reject);
+			this.videoElement.addEventListener('canplaythrough', () => {
+				fitSpriteIntoContainer(this.videoSprite, window.innerWidth, window.innerHeight);
+				resolve();
+			});
 		});
 	}
 
 	static removeVideo() {
-		videoContainer.pause();
-		videoContainer.src = '';
-		videoContainer.style.display = 'none';
+		this.videoElement.pause();
+		this.videoElement.src = '';
 	}
 
 	static setVideoOpacity(opacity: number) {
-		videoContainer.style.opacity = opacity.toString();
+		this.videoElement.style.opacity = opacity.toString();
 	}
 
 	static playVideo() {
-		videoContainer.play();
+		this.videoElement.play();
 	}
 
 	static videoIsPaused() {
-		return videoContainer.paused;
+		return this.videoElement.paused;
 	}
 
 	static getVideoCurrentTime() {
-		return videoContainer.currentTime;
+		return this.videoElement.currentTime;
 	}
 
 	static setVideoCurrentTime(time: number) {
-		videoContainer.currentTime = time;
+		this.videoElement.currentTime = time;
 	}
 
 	static setVideoPlaybackRate(time: number) {
-		videoContainer.playbackRate = time;
+		this.videoElement.playbackRate = time;
 	}
 
 	static setGameplayBrightness(newBrightness: number) {
@@ -141,17 +166,33 @@ export abstract class BackgroundManager {
 		let t = this.gameplayInterpolator.getCurrentValue();
 		let brightness = MathUtil.lerp(0.75, this.currentGameplayBrightness, t);
 
-		beatmapBackgroundElement.style.filter = `brightness(${brightness})`;
+		this.colorMatrixFilter.brightness(brightness, false);
 
-		// The blur and opacity are animated manually because of CSS animation artifacts that I wanted to avoid.
-		for (let i = 0; i < imageContainer.children.length; i++) {
-			let imageElement = imageContainer.children[i] as HTMLElement;
-
-			imageElement.style.filter = `blur(${(1 - this.blurInterpolator.getCurrentValue()) * 0.8}vmax)`;
-			imageElement.style.opacity = this.imageInterpolators.get(imageElement).getCurrentValue().toString();
+		for (let obj of this.imageContainer.children) {
+			let sprite = obj as PIXI.Sprite;
+			sprite.alpha = this.fadeInterpolators.get(sprite).getCurrentValue();
 		}
+
+		backgroundContainer.scale.set(this.scaleInterpolator.getCurrentValue());
+		this.blurFilter.blur = 5 * getGlobalScalingFactor() * this.blurInterpolator.getCurrentValue();
+		this.blurFilter.enabled = this.blurFilter.blur !== 0;
+	}
+
+	static resize() {
+		backgroundContainer.pivot.x = window.innerWidth / 2;
+		backgroundContainer.pivot.y = window.innerHeight / 2;
+		backgroundContainer.position.copyFrom(backgroundContainer.pivot);
+
+		for (let obj of this.imageContainer.children) {
+			let sprite = obj as PIXI.Sprite;
+			fitSpriteIntoContainer(sprite, window.innerWidth, window.innerHeight);
+		}
+
+		fitSpriteIntoContainer(this.videoSprite, window.innerWidth, window.innerHeight);
 	}
 }
 BackgroundManager.initialize();
 
 addRenderingTask(() => BackgroundManager.update());
+
+uiEventEmitter.addListener('resize', () => BackgroundManager.resize());

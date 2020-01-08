@@ -3,8 +3,10 @@ import { Beatmap, NonTrivialBeatmapMetadata } from "../../datamodel/beatmap";
 import { getGlobalScalingFactor } from "../../visuals/ui";
 import { songSelectContainer } from "./song_select";
 import { BeatmapDetailsTab } from "./beatmap_details_tab";
-import { addRenderingTask } from "../../visuals/rendering";
+import { addRenderingTask, stage } from "../../visuals/rendering";
 import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calculator";
+import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
+import { fitSpriteIntoContainer } from "../../util/pixi_util";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
@@ -148,41 +150,14 @@ export class BeatmapInfoPanel {
 
 			let imageFile = await beatmap.getBackgroundImageFile();
 			let bitmap: ImageBitmap = null;
-			if (imageFile) {
-				let img = new Image();
-				img.src = await imageFile.readAsResourceUrl();
-	
-				await new Promise((resolve) => img.onload = resolve);
-	
-				bitmap = await (createImageBitmap as any)(await imageFile.getBlob(), {
-					resizeWidth: 1024,
-					resizeHeight: 1024 * img.height/img.width
-				});
-			}
+			if (imageFile) bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
 	
 			if (bitmap) {
 				let scalingFactor = getGlobalScalingFactor();
 	
 				let texture = PIXI.Texture.from(bitmap as any);
 				this.backgroundImageSprite.texture = texture;
-	
-				let ratio = texture.height/texture.width;
-				let containerWidth = (INFO_PANEL_WIDTH + INFO_PANEL_HEIGHT/5) * scalingFactor;
-				let containerHeight = INFO_PANEL_HEIGHT * scalingFactor;
-	
-				if (containerWidth * ratio >= containerHeight) {
-					this.backgroundImageSprite.width = containerWidth;
-					this.backgroundImageSprite.height = containerWidth * ratio;
-					
-					let spare = containerWidth * ratio - containerHeight;
-					this.backgroundImageSprite.y = -spare / 2;
-				} else {
-					this.backgroundImageSprite.height = containerHeight;
-					this.backgroundImageSprite.width = containerHeight / ratio;
-	
-					let spare = containerHeight / ratio - containerWidth;
-					this.backgroundImageSprite.x = -spare / 2;
-				}
+				fitSpriteIntoContainer(this.backgroundImageSprite, (INFO_PANEL_WIDTH + INFO_PANEL_HEIGHT/5) * scalingFactor, INFO_PANEL_HEIGHT * scalingFactor);
 			}
 		}
 

@@ -13,6 +13,8 @@ import { InteractionRegistration, Interactivity } from "../../input/interactivit
 import { mainMusicMediaPlayer } from "../../audio/media_player";
 import { audioContext } from "../../audio/audio";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
+import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
+import { fitSpriteIntoContainer } from "../../util/pixi_util";
 
 export class BeatmapSetPanel {
 	public beatmapSet: BeatmapSet;
@@ -54,7 +56,7 @@ export class BeatmapSetPanel {
 		this.container.addChild(this.panelContainer);
 
 		this.backgroundImageSprite = new PIXI.Sprite();
-		this.backgroundImageSprite.anchor.set(0.0, 0.25);
+		//this.backgroundImageSprite.anchor.set(0.0, 0.25);
 		this.panelContainer.addChild(this.backgroundImageSprite);
 
 		this.darkening = new PIXI.Sprite(PIXI.Texture.from(getDarkeningOverlay()));
@@ -131,23 +133,12 @@ export class BeatmapSetPanel {
 		let scalingFactor = getGlobalScalingFactor();
 
 		let imageFile = await this.representingBeatmap.getBackgroundImageFile();
-		if (imageFile) {
-			let img = new Image();
-			img.src = await imageFile.readAsResourceUrl();
-
-			await new Promise((resolve) => img.onload = resolve);
-
-			this.backgroundImageBitmap = await (createImageBitmap as any)(await imageFile.getBlob(), {
-				resizeWidth: 1024,
-				resizeHeight: 1024 * img.height/img.width
-			});
-		}
+		if (imageFile) this.backgroundImageBitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
 
 		if (this.backgroundImageBitmap) {
 			let texture = PIXI.Texture.from(this.backgroundImageBitmap as any);
 			this.backgroundImageSprite.texture = texture;
-			this.backgroundImageSprite.width = BEATMAP_SET_PANEL_WIDTH * scalingFactor;
-			this.backgroundImageSprite.height = this.backgroundImageSprite.width * texture.height/texture.width;
+			fitSpriteIntoContainer(this.backgroundImageSprite, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor, new PIXI.Point(0.0, 0.25));
 
 			this.imageFadeIn.start();
 		}
@@ -174,9 +165,7 @@ export class BeatmapSetPanel {
 
 		this.difficultyContainer.x = Math.floor(50 * scalingFactor);
 		
-		let texture = this.backgroundImageSprite.texture;
-		this.backgroundImageSprite.width = BEATMAP_SET_PANEL_WIDTH * scalingFactor;
-		this.backgroundImageSprite.height = this.backgroundImageSprite.width * texture.height/texture.width;
+		fitSpriteIntoContainer(this.backgroundImageSprite, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor, new PIXI.Point(0.0, 0.25));
 
 		this.darkening.texture.update();
 
@@ -316,10 +305,7 @@ export class BeatmapSetPanel {
 		}
 
 		let backgroundImage = await this.representingBeatmap.getBackgroundImageFile();
-		if (backgroundImage) {
-			let url = await backgroundImage.readAsResourceUrl();
-			BackgroundManager.setImage(url);
-		}
+		if (backgroundImage) BackgroundManager.setImage(backgroundImage);
 
 		let audioFile = await this.representingBeatmap.getAudioFile();
 		if (audioFile) {
@@ -350,7 +336,7 @@ export class BeatmapSetPanel {
 			}
 		}
 
-		// this.beatmapPanels[0].select(false);
+		this.beatmapPanels[0].select(false);
 	}
 
 	private collapse() {

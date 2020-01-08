@@ -1,31 +1,10 @@
 @font-face {
-    font-family: "Bitmap";
-    src: url("../assets/fonts/VCR_OSD_MONO_1.001.ttf");
-}
-
-/*
-@font-face {
-	font-family: "Nunito";
-	src: url("../assets/fonts/Nunito/Nunito-Regular.ttf");
-}*/
-
-@font-face {
 	font-family: "Exo2";
 	src: url("../assets/fonts/Exo_2/Exo2-Regular.ttf");
 }
 
-@keyframes fade-in {
-	from {opacity: 0.0;}
-	to {opacity:  1.0;}
-}
-
-@keyframes fade-out {
-	from {opacity: 1.0;}
-	to {opacity:  0.0;}
-}
-
 * {
-    user-select: none;
+	user-select: none;
 }
 
 html, body {
@@ -33,7 +12,8 @@ html, body {
     width: 100%;
     height: 100%;
     position: relative;
-    overflow: hidden;
+	overflow: hidden;
+	background: black;
 }
 
 body {
@@ -47,41 +27,4 @@ body {
     left: 0;
     z-index: 10;
     pointer-events: none;
-}
-
-#beatmap-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-	pointer-events: none;
-	background: black;
-	transition: transform 0.5s;
-	z-index: -10;
-}
-
-#beatmap-background > ._images {
-	width: 100%;
-	height: 100%;
-}
-
-#beatmap-background > ._images > img {
-    object-fit: cover;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-	left: 0;
-	object-fit: cover;
-}
-
-#beatmap-background > ._video {
-    object-fit: cover;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: none;
 }

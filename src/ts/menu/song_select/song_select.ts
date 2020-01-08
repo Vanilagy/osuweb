@@ -10,6 +10,8 @@ export let songSelectContainer = new PIXI.Container();
 stage.addChild(songSelectContainer);
 
 songFolderSelect.addEventListener('change', () => {
+	(document.querySelector('#tempControls') as HTMLElement).style.display = 'none';
+
 	let directory = VirtualDirectory.fromFileList(songFolderSelect.files);
 
 	createCarouselFromDirectory(directory);

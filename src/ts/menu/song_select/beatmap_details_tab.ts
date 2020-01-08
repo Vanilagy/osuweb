@@ -89,7 +89,7 @@ export class BeatmapDetailsTab {
 		let scalingFactor = getGlobalScalingFactor();
 
 		this.background.width = Math.floor(INFO_PANEL_WIDTH * scalingFactor);
-		this.background.height = this.background.width * 0.5;
+		this.background.height = Math.floor(this.background.width * 0.5);
 
 		this.allNumericalAttributes.forEach((attribute, i) => {
 			attribute.container.x = Math.floor(((i % 2 === 0)? 20 : 145) * scalingFactor);

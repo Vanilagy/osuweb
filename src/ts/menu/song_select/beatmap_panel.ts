@@ -12,6 +12,7 @@ import { Interactivity, InteractionRegistration } from "../../input/interactivit
 import { renderer } from "../../visuals/rendering";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
+import { songSelectContainer } from "./song_select";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
@@ -247,7 +248,7 @@ export class BeatmapPanel {
 	trigger() {
 		if (!this.beatmapFile) return;
 
-		beatmapCarouselContainer.visible = false;
+		songSelectContainer.visible = false;
 		carouselInteractionGroup.disable();
 
 		this.beatmapFile.readAsText().then((text) => {

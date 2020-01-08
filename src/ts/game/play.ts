@@ -192,17 +192,12 @@ export class Play {
 		await mainMusicMediaPlayer.loadFromVirtualFile(songFile);
 
         let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
-        if (backgroundImageFile) {
-			let url = await backgroundImageFile.readAsResourceUrl();
-			BackgroundManager.setImage(url);
-        }
+        if (backgroundImageFile) BackgroundManager.setImage(backgroundImageFile);
         
         let backgroundVideoFile = await this.processedBeatmap.beatmap.getBackgroundVideoFile();
         if (backgroundVideoFile && !DISABLE_VIDEO) {
-			let url = await backgroundVideoFile.readAsResourceUrl();
-			 
 			try {
-				await BackgroundManager.setVideo(url);
+				await BackgroundManager.setVideo(backgroundVideoFile);
 				this.hasVideo = true;
 			} catch (e) {
 				console.error(e);

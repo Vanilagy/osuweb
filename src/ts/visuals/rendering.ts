@@ -8,7 +8,7 @@ export const mainCanvas = document.querySelector('#main-canvas') as HTMLCanvasEl
 
 const gl = mainCanvas.getContext('webgl2', {
     stencil: true,
-    alpha: true,
+    alpha: false,
     powerPreference: 'high-performance',
     desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 }) as WebGLRenderingContext; // Technically WebGL2, but idk. Rollup is complaining :S
@@ -111,6 +111,7 @@ softwareCursor.visible = false;
 let softwareCursorContainer = new PIXI.Container();
 softwareCursorContainer.addChild(softwareCursor);
 
+export let backgroundContainer = new PIXI.Container();
 export let mainHitObjectContainer = new PIXI.Container();
 mainHitObjectContainer.sortableChildren = true;
 export let approachCircleContainer = new PIXI.Container();
@@ -121,6 +122,7 @@ export let hudContainer = new PIXI.Container();
 export let cursorRippleGraphics = new PIXI.Graphics();
 
 // The order of these is important, 'cause z-index 'n' stuff.
+stage.addChild(backgroundContainer);
 stage.addChild(lowerScorePopupContainer);
 stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
