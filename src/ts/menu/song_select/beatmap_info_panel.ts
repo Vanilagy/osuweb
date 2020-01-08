@@ -7,9 +7,12 @@ import { addRenderingTask, stage } from "../../visuals/rendering";
 import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calculator";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
+import { Interpolator } from "../../util/graphics_util";
+import { EaseType, MathUtil } from "../../util/math_util";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
+const IMAGE_FADE_IN_TIME = 333;
 
 let infoPanelMask = document.createElement('canvas');
 let infoPanelMaskCtx = infoPanelMask.getContext('2d');
@@ -67,6 +70,8 @@ export function updateBeatmapInfoPanelSizing() {
 
 	beatmapInfoPanel.container.x = Math.floor(40 * scalingFactor);
 	beatmapInfoPanel.container.y = Math.floor(130 * scalingFactor);
+
+	beatmapInfoPanel.resize();
 }
 
 addRenderingTask(() => {
@@ -80,7 +85,9 @@ export class BeatmapInfoPanel {
 	public container: PIXI.Container;
 	private upperPanelContainer: PIXI.Container;
 	private mask: PIXI.Sprite;
-	private backgroundImageSprite: PIXI.Sprite;
+	private backgroundImageContainer: PIXI.Container;
+	private markedForDeletionImages = new WeakSet<PIXI.Container>();
+	private imageInterpolators = new WeakMap<PIXI.Container, Interpolator>();
 	private darkening: PIXI.Sprite;
 	private titleText: PIXI.Text;
 	private artistText: PIXI.Text;
@@ -88,6 +95,7 @@ export class BeatmapInfoPanel {
 	private mapperText: PIXI.Text;
 	private difficultyText: PIXI.Text;
 	private detailsTab: BeatmapDetailsTab;
+	private detailsFadeIn: Interpolator;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -104,14 +112,19 @@ export class BeatmapInfoPanel {
 			pixelSize: 0.1
 		});
 
+		this.detailsFadeIn = new Interpolator({
+			duration: 500,
+			ease: EaseType.EaseOutCubic,
+			defaultToFinished: true
+		});
+
 		this.mask = new PIXI.Sprite();
 		this.upperPanelContainer.addChild(this.mask);
 		this.upperPanelContainer.filters = [shadow];
 		this.upperPanelContainer.mask = this.mask;
 
-		this.backgroundImageSprite = new PIXI.Sprite();
-		//this.backgroundImageSprite.anchor.set(0.0, 0.5);
-		this.upperPanelContainer.addChild(this.backgroundImageSprite);
+		this.backgroundImageContainer = new PIXI.Container();
+		this.upperPanelContainer.addChild(this.backgroundImageContainer);
 
 		this.darkening = new PIXI.Sprite();
 		this.upperPanelContainer.addChild(this.darkening);
@@ -134,44 +147,59 @@ export class BeatmapInfoPanel {
 		this.resize();
 	}
 
-	async load(beatmapSet: BeatmapSet, beatmap?: Beatmap, metadata?: NonTrivialBeatmapMetadata, difficulty?: DifficultyAttributes) {
-		if (!beatmap) {
-			let beatmapFiles = beatmapSet.getBeatmapFiles();
+	async loadBeatmapSet(representingBeatmap: Beatmap) {
+		let beatmapSet = representingBeatmap.beatmapSet;
+		if (this.currentBeatmapSet === beatmapSet) return;
 
-			beatmap = new Beatmap({
-				text: await beatmapFiles[0].readAsText(),
-				beatmapSet: beatmapSet,
-				metadataOnly: true
-			});
-		}
+		let imageFile = await representingBeatmap.getBackgroundImageFile();
+		if (imageFile) {
+			let bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
+			let texture = PIXI.Texture.from(bitmap as any);
 
-		if (beatmapSet !== this.currentBeatmapSet) {
-			this.currentBeatmapSet = beatmapSet;
+			let newSprite = new PIXI.Sprite(texture);
+			//newSprite.anchor.set(0.5, 0.5);
+			fitSpriteIntoContainer(newSprite, this.mask.width, this.mask.height);
 
-			let imageFile = await beatmap.getBackgroundImageFile();
-			let bitmap: ImageBitmap = null;
-			if (imageFile) bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
-	
-			if (bitmap) {
-				let scalingFactor = getGlobalScalingFactor();
-	
-				let texture = PIXI.Texture.from(bitmap as any);
-				this.backgroundImageSprite.texture = texture;
-				fitSpriteIntoContainer(this.backgroundImageSprite, (INFO_PANEL_WIDTH + INFO_PANEL_HEIGHT/5) * scalingFactor, INFO_PANEL_HEIGHT * scalingFactor);
+			let spriteContainer = new PIXI.Container();
+			spriteContainer.addChild(newSprite);
+			spriteContainer.pivot.set(this.mask.width / 2, this.mask.height / 2);
+			spriteContainer.position.copyFrom(spriteContainer.pivot);
+
+			for (let obj of this.backgroundImageContainer.children) {
+				let container = obj as PIXI.Container;
+				if (this.markedForDeletionImages.has(container)) continue;
+
+				this.markedForDeletionImages.add(container);
+				setTimeout(() => this.backgroundImageContainer.removeChild(container), IMAGE_FADE_IN_TIME);
 			}
+
+			this.backgroundImageContainer.addChild(spriteContainer);
+
+			let interpolator = new Interpolator({
+				duration: 333,
+				ease: EaseType.EaseOutCubic
+			});
+			interpolator.start();
+			this.imageInterpolators.set(spriteContainer, interpolator);
 		}
 
+		this.updateText(representingBeatmap, false);
+		this.detailsFadeIn.start();
+	}
+
+	private updateText(beatmap: Beatmap, showDifficulty = true) {
 		this.titleText.text = beatmap.title + ' ';
 		this.artistText.text = beatmap.artist + ' ';
 		this.mapperTextPrefix.text = 'Mapped by ';
 		this.mapperText.text = beatmap.creator + ' ';
-		this.difficultyText.text = beatmap.version + ' ';
+		this.difficultyText.text = (showDifficulty)? beatmap.version + ' ' : '';
 
 		this.positionMapperText();
+	}
 
-		if (metadata) {
-			this.detailsTab.loadBeatmap(beatmap, metadata, difficulty);
-		}
+	async loadBeatmap(beatmap: Beatmap, metadata: NonTrivialBeatmapMetadata, difficulty: DifficultyAttributes) {
+		this.updateText(beatmap);
+		this.detailsTab.loadBeatmap(beatmap, metadata, difficulty);
 	}
 
 	private positionMapperText() {
@@ -189,6 +217,15 @@ export class BeatmapInfoPanel {
 		updateInfoPanelGradient();
 		this.darkening.texture = PIXI.Texture.from(infoPanelGradient);
 		this.darkening.texture.update();
+
+		for (let obj of this.backgroundImageContainer.children) {
+			let container = obj as PIXI.Container;
+			let sprite = container.children[0] as PIXI.Sprite;
+
+			fitSpriteIntoContainer(sprite, this.mask.width, this.mask.height);
+			container.pivot.set(this.mask.width / 2, this.mask.height / 2);
+			container.position.copyFrom(container.pivot);
+		}
 
 		this.titleText.style = {
 			fontFamily: 'Exo2',
@@ -243,6 +280,8 @@ export class BeatmapInfoPanel {
 		this.mapperText.x = Math.floor(this.mapperText.x);
 		this.mapperText.y = Math.floor(this.mapperText.y);
 
+		this.positionMapperText();
+
 		this.difficultyText.style = {
 			fontFamily: 'Exo2',
 			fill: 0xffffff,
@@ -262,6 +301,24 @@ export class BeatmapInfoPanel {
 	}
 
 	update() {
+		let scalingFactor = getGlobalScalingFactor();
+		let fadeInValue = this.detailsFadeIn.getCurrentValue();
+
+		this.difficultyText.alpha = fadeInValue;
+
+		this.titleText.pivot.x = -(1 - fadeInValue) * 10 * scalingFactor;
+		this.artistText.pivot.x = this.titleText.pivot.x * 0.666;
+		this.mapperText.pivot.x = this.mapperTextPrefix.pivot.x = this.titleText.pivot.x * 0.333;
+
+		for (let obj of this.backgroundImageContainer.children) {
+			let container = obj as PIXI.Container;
+			let interpolator = this.imageInterpolators.get(container);
+			let value = interpolator.getCurrentValue();
+
+			container.alpha = value;
+			container.scale.set(MathUtil.lerp(1.07, 1.0, value));
+		}
+
 		this.detailsTab.update();
 	}
 }

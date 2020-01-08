@@ -242,7 +242,7 @@ export class BeatmapPanel {
 			metadataOnly: true
 		});
 
-		beatmapInfoPanel.load(this.parentPanel.beatmapSet, beatmap, this.metadata, this.difficulty);
+		beatmapInfoPanel.loadBeatmap(beatmap, this.metadata, this.difficulty);
 	}
 
 	trigger() {

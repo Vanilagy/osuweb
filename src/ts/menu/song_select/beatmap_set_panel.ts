@@ -294,7 +294,7 @@ export class BeatmapSetPanel {
 		this.expandInterpolator.setReversedState(false);
 		this.expandInterpolator.start();
 
-		beatmapInfoPanel.load(this.beatmapSet, this.representingBeatmap);
+		beatmapInfoPanel.loadBeatmapSet(this.representingBeatmap);
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			let beatmapPanel = new BeatmapPanel(this);

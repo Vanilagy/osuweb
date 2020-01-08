@@ -1,6 +1,6 @@
 import { getGlobalScalingFactor } from "../../visuals/ui";
 import { INFO_PANEL_WIDTH, beatmapInfoPanel } from "./beatmap_info_panel";
-import { InterpolatedCounter } from "../../util/graphics_util";
+import { InterpolatedCounter, Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { Beatmap, NonTrivialBeatmapMetadata } from "../../datamodel/beatmap";
 import { padNumberWithZeroes } from "../../util/misc_util";
@@ -32,6 +32,11 @@ export class BeatmapDetailsTab {
 	private overallDifficultyAttribute: RangedAttribute;
 	private approachRateAttribute: RangedAttribute;
 	private starRatingAttribute: RangedAttribute;
+
+	private tagsHeader: PIXI.Text;
+	private tagsContents: PIXI.Text;
+
+	private backgroundSizeInterpolator: InterpolatedCounter;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -67,7 +72,17 @@ export class BeatmapDetailsTab {
 		this.allRangedAttributes = [this.circleSizeAttribute, this.hpDrainAttribute, this.overallDifficultyAttribute, this.approachRateAttribute, this.starRatingAttribute];
 		for (let a of this.allRangedAttributes) this.container.addChild(a.container);
 
+		this.tagsHeader = new PIXI.Text('Tags');
+		this.tagsContents = new PIXI.Text('N/A');
+		this.container.addChild(this.tagsHeader, this.tagsContents);
+
 		this.resize();
+
+		this.backgroundSizeInterpolator = new InterpolatedCounter({
+			initial: this.background.height,
+			ease: EaseType.EaseOutCubic,
+			duration: 150
+		});
 	}
 
 	loadBeatmap(beatmap: Beatmap, metadata: NonTrivialBeatmapMetadata, difficulty: DifficultyAttributes) {
@@ -83,16 +98,18 @@ export class BeatmapDetailsTab {
 		this.overallDifficultyAttribute.setValue(beatmap.difficulty.OD);
 		this.approachRateAttribute.setValue(beatmap.difficulty.AR);
 		this.starRatingAttribute.setValue(difficulty.starRating);
+
+		this.tagsContents.text = beatmap.tags || 'N/A';
+		this.updateBackgroundSize();
 	}
 
 	resize() {
 		let scalingFactor = getGlobalScalingFactor();
 
 		this.background.width = Math.floor(INFO_PANEL_WIDTH * scalingFactor);
-		this.background.height = Math.floor(this.background.width * 0.5);
 
 		this.allNumericalAttributes.forEach((attribute, i) => {
-			attribute.container.x = Math.floor(((i % 2 === 0)? 20 : 145) * scalingFactor);
+			attribute.container.x = Math.floor(((i % 2 === 0)? 20 : 147) * scalingFactor);
 			attribute.container.y = Math.floor((25 + Math.floor(i / 2) * 30) * scalingFactor);
 
 			attribute.resize();
@@ -101,7 +118,7 @@ export class BeatmapDetailsTab {
 		this.divider.clear();
 		this.divider.lineStyle(1, 0xffffff, 0.15);
 		this.divider.moveTo(0, 0);
-		this.divider.lineTo(0, Math.floor(100 * scalingFactor));
+		this.divider.lineTo(0, Math.floor(92 * scalingFactor));
 		this.divider.x = Math.floor((INFO_PANEL_WIDTH / 2) * scalingFactor) - 0.5;
 
 		this.allRangedAttributes.forEach((attribute, i) => {
@@ -110,9 +127,43 @@ export class BeatmapDetailsTab {
 
 			attribute.resize();
 		});
+
+		this.tagsHeader.style = {
+			fontFamily: 'Exo2',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic',
+			fontWeight: 'bold',
+			fontSize: Math.floor(12 * scalingFactor)
+		};
+		this.tagsHeader.x = Math.floor(20 * scalingFactor);
+		this.tagsHeader.y = Math.floor(125 * scalingFactor);
+
+		this.tagsContents.style = {
+			fontFamily: 'Exo2',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic',
+			fontSize: Math.floor(11 * scalingFactor),
+			wordWrap: true,
+			wordWrapWidth: Math.floor(INFO_PANEL_WIDTH * 0.9 * scalingFactor)
+		};
+		this.tagsContents.x = Math.floor(20 * scalingFactor);
+		this.tagsContents.y = Math.floor(145 * scalingFactor);
+
+		this.background.height = this.getProperBackgroundSize();
+		if (this.backgroundSizeInterpolator) this.backgroundSizeInterpolator.reset(this.background.height);
+	}
+
+	private getProperBackgroundSize() {
+		return Math.floor(this.tagsContents.y + this.tagsContents.height + 15 * getGlobalScalingFactor());
+	}
+
+	private updateBackgroundSize() {
+		this.backgroundSizeInterpolator.setGoal(this.getProperBackgroundSize());
 	}
 
 	update() {
+		this.background.height = this.backgroundSizeInterpolator.getCurrentValue();
+
 		for (let a of this.allNumericalAttributes) a.update();
 		for (let a of this.allRangedAttributes) a.update();
 	}
@@ -133,7 +184,7 @@ class NamedNumericalAttribute {
 
 		this.nameText = new PIXI.Text(this.attributeName + ':');
 		this.nameText.anchor.set(0.0, 1.0);
-		this.valueText = new PIXI.Text('123');
+		this.valueText = new PIXI.Text('-');
 		this.valueText.anchor.set(1.0, 1.0);
 
 		this.container.addChild(this.nameText);
