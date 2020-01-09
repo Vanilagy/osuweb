@@ -589,7 +589,7 @@ export class Play {
             switch (playEvent.type) {
                 case PlayEventType.SliderSlide: {
                     let slider = drawable as DrawableSlider;
-                    let currentPosition = slider.parent.path.getPosFromPercentage(MathUtil.mirror(slider.calculateCompletionAtTime(currentTime)));
+                    let currentPosition = slider.drawablePath.getPosFromPercentage(MathUtil.mirror(slider.calculateCompletionAtTime(currentTime)));
                     let pan = calculatePanFromOsuCoordinates(currentPosition);
 
                     // Update the pan on the slider slide emitters

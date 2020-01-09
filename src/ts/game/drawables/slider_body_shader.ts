@@ -3,8 +3,8 @@ import { PLAYFIELD_DIMENSIONS, SLIDER_BODY_INSIDE_TO_TOTAL_RATIO, SCREEN_COORDIN
 import { Color } from "../../util/graphics_util";
 import { DrawableSlider } from "./drawable_slider";
 import { MathUtil } from "../../util/math_util";
-import { SliderBounds } from "./slider_path";
 import { IGNORE_BEATMAP_SKIN } from "../skin/skin";
+import { SliderBounds } from "./drawable_slider_path";
 
 declare const glMatrix: any; // Why? Because TypeScript made it goddamn hard to get actual good and correct types for glMatrix. AND HELL NAW DO I WANNA IMPORT IT VIA FUCKING NPM.
 

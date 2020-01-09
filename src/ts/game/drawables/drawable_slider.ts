@@ -13,11 +13,11 @@ import { renderer, mainHitObjectContainer } from "../../visuals/rendering";
 import { ScoringValue } from "../scoring_value";
 import { Mod } from "../mods/mods";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
-import { SliderBounds } from "./slider_path";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
 import { HitSoundInfo, normSampleSet, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates } from "../skin/sound";
 import { ProcessedSlider, SpecialSliderBehavior } from "../../datamodel/processed/processed_slider";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
+import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -31,6 +31,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	public parent: ProcessedSlider;
 	public scoring: SliderScoring;
 
+	public drawablePath: DrawableSliderPath;
     public bounds: SliderBounds;
     private baseSprite: PIXI.Sprite;
     public hasFullscreenBaseSprite: boolean = false; // If a slider is really big, like bigger-than-the-screen big, we change slider body rendering to happen in relation to the entire screen rather than a local slider texture. This way, we don't get WebGL errors from trying to draw to too big of a texture buffer, and it allows us to support slider distortions with some matrix magic.
@@ -58,7 +59,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
     constructor(processedSlider: ProcessedSlider) {
 		super(processedSlider);
 
-        let bounds = this.parent.path.calculateBounds();
+		this.drawablePath = DrawableSliderPath.fromSliderPath(processedSlider.path);
+        let bounds = this.drawablePath.calculateBounds();
         this.bounds = bounds;
 
         this.scoring = getDefaultSliderScoring();
@@ -95,7 +97,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
             let completion = this.parent.tickCompletions[i];
             let time = slider.time + length/this.parent.velocity * completion;
             let timingPoint = this.parent.processedBeatmap.beatmap.getClosestTimingPointTo(time);
-            let position = this.parent.path.getPosFromPercentage(MathUtil.mirror(completion));
+            let position = this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion));
 
             let info: HitSoundInfo = {
                 base: getTickHitSoundTypeFromSampleSet(normSampleSet(slider.extras.sampleSet || timingPoint.sampleSet || 1)),
@@ -145,7 +147,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
         this.reverseArrowContainer = new PIXI.Container();
 
-        this.parent.path.generatePointData();
+        this.drawablePath.generatePointData();
 
         this.sliderEnds = [];
         let msPerRepeatCycle = this.parent.length / this.parent.velocity;
@@ -166,13 +168,13 @@ export class DrawableSlider extends DrawableHeadedHitObject {
             let reverseArrowAngle: number;
             if (i < this.parent.repeat-1) {
                 if (i % 2 === 0) {
-                    let angle = this.parent.path.getAngleFromPercentage(1);
+                    let angle = this.drawablePath.getAngleFromPercentage(1);
                     // This odd condition is to prevent rotation for reverse arrows for edge-case sliders, like zero-length or zero-section sliders, which are found in Aspire maps, for example. Those sliders only have a one-point path, and something naive in ppy's code makes that cause all reverse arrows to face the same direction. I think he's just atan2-ing two very close points on the path, instead of what's being done here. Welp. Fake it!
-                    if (this.parent.path.points.length > 1) angle = MathUtil.constrainRadians(angle + Math.PI); // Turn it by 180°
+                    if (this.drawablePath.points.length > 1) angle = MathUtil.constrainRadians(angle + Math.PI); // Turn it by 180°
 
                     reverseArrowAngle = angle;
                 } else {
-                    reverseArrowAngle = this.parent.path.getAngleFromPercentage(0);
+                    reverseArrowAngle = this.drawablePath.getAngleFromPercentage(0);
                 }
             }
 
@@ -212,13 +214,13 @@ export class DrawableSlider extends DrawableHeadedHitObject {
         //this.baseSprite.filters = [new PIXI.filters.FXAAFilter()]; // Enable this for FXAA. Makes slider edges look kinda janky, that's why it's disabled.
 		this.baseSprite.zIndex = -this.parent.endTime;
 
-        this.parent.path.generateBaseVertexBuffer();
+        this.drawablePath.generateBaseVertexBuffer();
         let sliderBodyDefaultSnake = SLIDER_SETTINGS.snaking? 0.0 : 1.0;
-        let sliderBodyGeometry = this.parent.path.generateGeometry(sliderBodyDefaultSnake);
+        let sliderBodyGeometry = this.drawablePath.generateGeometry(sliderBodyDefaultSnake);
         this.lastGeneratedSnakingCompletion = sliderBodyDefaultSnake;
         let sliderBodyShader = createSliderBodyShader(this);
         let sliderBodyMesh = new PIXI.Mesh(sliderBodyGeometry, sliderBodyShader, SLIDER_BODY_MESH_STATE);
-        sliderBodyMesh.size = this.parent.path.currentVertexCount;
+        sliderBodyMesh.size = this.drawablePath.currentVertexCount;
         this.sliderBodyMesh = sliderBodyMesh;
 
         this.sliderBall = new SliderBall(this);
@@ -243,7 +245,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
             let completion = this.parent.tickCompletions[i];
             if (completion >= 1) break;
 
-            let sliderTickPos = this.parent.path.getPosFromPercentage(MathUtil.mirror(completion));
+            let sliderTickPos = this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion));
 
             // Check if the tick overlaps with either slider end
             if (pointDistance(sliderTickPos, this.parent.startPoint) <= circleRadiusOsuPx || pointDistance(sliderTickPos, this.parent.tailPoint) <= circleRadiusOsuPx) {
@@ -481,8 +483,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
         let gl = renderer.state.gl;
 
         if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
-            let newBounds = this.parent.path.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion, this.hasFullscreenBaseSprite);
-            this.sliderBodyMesh.size = this.parent.path.currentVertexCount;
+            let newBounds = this.drawablePath.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion, this.hasFullscreenBaseSprite);
+            this.sliderBodyMesh.size = this.drawablePath.currentVertexCount;
             this.lastGeneratedSnakingCompletion = snakeCompletion;
 
             if (this.hasFullscreenBaseSprite) {
@@ -531,14 +533,14 @@ export class DrawableSlider extends DrawableHeadedHitObject {
     private updateSliderBall(completion: number, currentTime: number) {
         if (completion === 0) return;
 
-        let sliderBallPos = gameState.currentPlay.toScreenCoordinates(this.parent.path.getPosFromPercentage(MathUtil.mirror(completion)), false);
+        let sliderBallPos = gameState.currentPlay.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
 
         if (currentTime < this.parent.endTime) {
             let baseElement = this.sliderBall.base.sprite;
 
             this.sliderBall.container.visible = true;
             this.sliderBall.container.position.set(sliderBallPos.x, sliderBallPos.y);
-            baseElement.rotation = this.parent.path.getAngleFromPercentage(MathUtil.mirror(completion));
+            baseElement.rotation = this.drawablePath.getAngleFromPercentage(MathUtil.mirror(completion));
 
             let osuTex = gameState.currentGameplaySkin.textures["sliderBall"];
             let frameCount = osuTex.getAnimationFrameCount();

@@ -2,7 +2,7 @@ import { ProcessedHeadedHitObject } from "./processed_headed_hit_object";
 import { ComboInfo, CurrentTimingPointInfo, ProcessedBeatmap } from "./processed_beatmap";
 import { Slider, SliderType } from "../slider";
 import { Point, stackShiftPoint } from "../../util/point";
-import { SliderPath } from "../../game/drawables/slider_path";
+import { SliderPath } from "../slider_path";
 import { MathUtil } from "../../util/math_util";
 import { toFloat32 } from "../../util/misc_util";
 import { PlayEvent, PlayEventType } from "../play_events";
