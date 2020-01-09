@@ -1,18 +1,16 @@
-import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { Interpolator } from "../../util/graphics_util";
-import { NonTrivialBeatmapMetadata, Beatmap } from "../../datamodel/beatmap";
-import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calculator";
+import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
+import { getGlobalScalingFactor } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
-import { getBeatmapPanelMask, TEXTURE_MARGIN, getBeatmapPanelMaskInverted, getBeatmapPanelGlowTexture } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, beatmapCarouselContainer, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET } from "./beatmap_carousel";
+import { getBeatmapPanelMask, TEXTURE_MARGIN, getBeatmapPanelGlowTexture } from "./beatmap_panel_components";
+import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
-import { renderer } from "../../visuals/rendering";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
 import { songSelectContainer } from "./song_select";
+import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
@@ -23,8 +21,7 @@ export class BeatmapPanel {
 	private background: PIXI.Sprite;
 	private mainMask: PIXI.Sprite;
 	private primaryText: PIXI.Text;
-	private metadata: NonTrivialBeatmapMetadata;
-	private difficulty: DifficultyAttributes;
+	private extendedBeatmapData: ExtendedBeatmapData;
 	private starRatingTicks: PIXI.Graphics;
 	private currentNormalizedY: number = 0;
 	private enabled = true;
@@ -99,13 +96,14 @@ export class BeatmapPanel {
 	}
 
 	draw() {
-		this.primaryText.text = this.metadata.version + ' ';
+		this.primaryText.text = this.extendedBeatmapData.version + ' ';
 		this.drawStarRatingTicks();
 	}
 
 	private drawStarRatingTicks() {
-		if (!this.difficulty) return;
+		if (!this.extendedBeatmapData) return;
 	
+		let difficultyAttributes = this.extendedBeatmapData.difficultyAttributes;
 		let g = this.starRatingTicks;
 		let scalingFactor = getGlobalScalingFactor();
 		
@@ -125,12 +123,12 @@ export class BeatmapPanel {
 			]);
 		}
 
-		let flooredSr = Math.floor(this.difficulty.starRating);
+		let flooredSr = Math.floor(difficultyAttributes.starRating);
 		for (let i = 0; i < flooredSr; i++) {
 			addStarRatingTick(1.0, i);
 		}
-		if (this.difficulty.starRating !== flooredSr) {
-			addStarRatingTick(this.difficulty.starRating - flooredSr, flooredSr);
+		if (difficultyAttributes.starRating !== flooredSr) {
+			addStarRatingTick(difficultyAttributes.starRating - flooredSr, flooredSr);
 		}
 
 		g.endFill();		
@@ -165,11 +163,10 @@ export class BeatmapPanel {
 		this.starRatingTicks.x = Math.floor(30 * scalingFactor);
 	}
 
-	load(metadata: NonTrivialBeatmapMetadata, difficulty: DifficultyAttributes, beatmapFile: VirtualFile) {
+	load(beatmapFile: VirtualFile,  extendedData: ExtendedBeatmapData) {
 		this.fadeInInterpolator.start();
 		this.beatmapFile = beatmapFile;
-		this.metadata = metadata;
-		this.difficulty = difficulty;
+		this.extendedBeatmapData = extendedData;
 
 		this.draw();
 	}
@@ -236,13 +233,7 @@ export class BeatmapPanel {
 			snapReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
 		}
 
-		let beatmap = new Beatmap({
-			text: await this.beatmapFile.readAsText(),
-			beatmapSet: this.parentPanel.beatmapSet,
-			metadataOnly: true
-		});
-
-		beatmapInfoPanel.loadBeatmap(beatmap, this.metadata, this.difficulty);
+		beatmapInfoPanel.loadBeatmapData(this.extendedBeatmapData);
 	}
 
 	trigger() {

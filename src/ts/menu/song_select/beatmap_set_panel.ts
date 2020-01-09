@@ -6,15 +6,14 @@ import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType } from "../../util/math_util";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
-import { BeatmapUtils } from "../../datamodel/beatmap_utils";
-import { getDarkeningOverlay, getBeatmapSetPanelMask, getBeatmapSetPanelMaskInverted, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
+import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
 import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup, getSelectedSubpanel, setSelectedSubpanel } from "./beatmap_carousel";
 import { InteractionRegistration, Interactivity } from "../../input/interactivity";
 import { mainMusicMediaPlayer } from "../../audio/media_player";
-import { audioContext } from "../../audio/audio";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
+import { JobUtil } from "../../multithreading/job_util";
 
 export class BeatmapSetPanel {
 	public beatmapSet: BeatmapSet;
@@ -56,7 +55,6 @@ export class BeatmapSetPanel {
 		this.container.addChild(this.panelContainer);
 
 		this.backgroundImageSprite = new PIXI.Sprite();
-		//this.backgroundImageSprite.anchor.set(0.0, 0.25);
 		this.panelContainer.addChild(this.backgroundImageSprite);
 
 		this.darkening = new PIXI.Sprite(PIXI.Texture.from(getDarkeningOverlay()));
@@ -316,7 +314,7 @@ export class BeatmapSetPanel {
 			mainMusicMediaPlayer.setLoopBehavior(true, startTime);
 		}
 
-		let data = await BeatmapUtils.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
+		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
 		let map: Map<typeof data[0], VirtualFile> = new Map();
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			map.set(data[i], this.beatmapFiles[i]);
@@ -324,7 +322,7 @@ export class BeatmapSetPanel {
 
 		data.sort((a, b) => {
 			if (a.status === 'fulfilled' && b.status === 'fulfilled') {
-				return a.value.difficulty.starRating - b.value.difficulty.starRating;
+				return a.value.difficultyAttributes.starRating - b.value.difficultyAttributes.starRating;
 			}
 			return 0;
 		});
@@ -332,7 +330,7 @@ export class BeatmapSetPanel {
 		for (let i = 0; i < this.beatmapPanels.length; i++) {
 			let result = data[i];
 			if (result.status === 'fulfilled') {
-				this.beatmapPanels[i].load(result.value.metadata, result.value.difficulty, map.get(result));
+				this.beatmapPanels[i].load(map.get(result), result.value);
 			}
 		}
 

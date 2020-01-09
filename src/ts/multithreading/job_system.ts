@@ -1,6 +1,6 @@
-import { JobTask, GetBeatmapMetadataResponse, JobResponseWrapper, GetBeatmapMetadataRequest, GetImageBitmapResponse, GetImageBitmapRequest } from "./job";
-import { randomInArray } from "../util/misc_util";
+import { JobTask, JobResponseWrapper, GetBeatmapMetadataRequest, GetImageBitmapRequest } from "./job";
 import { MathUtil } from "../util/math_util";
+import { ExtendedBeatmapData } from "../datamodel/beatmap_util";
 
 interface JobPromiseWrapper {
 	promise: Promise<unknown>,
@@ -42,8 +42,8 @@ for (let i = 0; i < workerCount; i++) {
     };
 }
 
-export function startJob(task: JobTask.GetBeatmapMetadata, data: GetBeatmapMetadataRequest["data"]): Promise<GetBeatmapMetadataResponse>;
-export function startJob(task: JobTask.GetImageBitmap, data: GetImageBitmapRequest["data"]): Promise<GetImageBitmapResponse>;
+export function startJob(task: JobTask.GetExtendedBetamapData, data: GetBeatmapMetadataRequest["data"]): Promise<ExtendedBeatmapData>;
+export function startJob(task: JobTask.GetImageBitmap, data: GetImageBitmapRequest["data"]): Promise<ImageBitmap>;
 export function startJob<T>(task: JobTask, data?: any, transfer?: Transferable[]): Promise<T> {
     let worker = workerPool[getNextRoundRobinIndex()];
     let jobId = currentJobId++;

@@ -1,14 +1,14 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
-import { Beatmap, NonTrivialBeatmapMetadata } from "../../datamodel/beatmap";
+import { Beatmap } from "../../datamodel/beatmap";
 import { getGlobalScalingFactor } from "../../visuals/ui";
 import { songSelectContainer } from "./song_select";
 import { BeatmapDetailsTab } from "./beatmap_details_tab";
-import { addRenderingTask, stage } from "../../visuals/rendering";
-import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calculator";
+import { addRenderingTask } from "../../visuals/rendering";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
+import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
@@ -187,7 +187,7 @@ export class BeatmapInfoPanel {
 		this.detailsFadeIn.start();
 	}
 
-	private updateText(beatmap: Beatmap, showDifficulty = true) {
+	private updateText(beatmap: Beatmap | ExtendedBeatmapData, showDifficulty = true) {
 		this.titleText.text = beatmap.title + ' ';
 		this.artistText.text = beatmap.artist + ' ';
 		this.mapperTextPrefix.text = 'Mapped by ';
@@ -197,9 +197,9 @@ export class BeatmapInfoPanel {
 		this.positionMapperText();
 	}
 
-	async loadBeatmap(beatmap: Beatmap, metadata: NonTrivialBeatmapMetadata, difficulty: DifficultyAttributes) {
-		this.updateText(beatmap);
-		this.detailsTab.loadBeatmap(beatmap, metadata, difficulty);
+	async loadBeatmapData(extendedData: ExtendedBeatmapData) {
+		this.updateText(extendedData);
+		this.detailsTab.loadBeatmapData(extendedData);
 	}
 
 	private positionMapperText() {

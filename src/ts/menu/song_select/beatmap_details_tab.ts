@@ -1,10 +1,9 @@
 import { getGlobalScalingFactor } from "../../visuals/ui";
-import { INFO_PANEL_WIDTH, beatmapInfoPanel } from "./beatmap_info_panel";
-import { InterpolatedCounter, Interpolator } from "../../util/graphics_util";
+import { INFO_PANEL_WIDTH } from "./beatmap_info_panel";
+import { InterpolatedCounter } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { Beatmap, NonTrivialBeatmapMetadata } from "../../datamodel/beatmap";
 import { padNumberWithZeroes } from "../../util/misc_util";
-import { DifficultyAttributes } from "../../datamodel/difficulty/difficulty_calculator";
+import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 
 const CIRCLE_CIZE_CAP = 7;
 const HP_DRAIN_CAP = 10;
@@ -85,21 +84,21 @@ export class BeatmapDetailsTab {
 		});
 	}
 
-	loadBeatmap(beatmap: Beatmap, metadata: NonTrivialBeatmapMetadata, difficulty: DifficultyAttributes) {
-		this.lengthAttribute.setValue(metadata.length);
-		this.bpmAttribute.setValue(metadata.bpmMax);
-		this.objectCountAttribute.setValue(metadata.hitObjectCount);
-		this.circleCountAttribute.setValue(metadata.circleCount);
-		this.sliderCountAttribute.setValue(metadata.sliderCount);
-		this.spinnerCountAttribute.setValue(metadata.spinnerCount);
+	loadBeatmapData(extendedData: ExtendedBeatmapData) {
+		this.lengthAttribute.setValue(extendedData.playableLength);
+		this.bpmAttribute.setValue(extendedData.bpmMax);
+		this.objectCountAttribute.setValue(extendedData.objectCount);
+		this.circleCountAttribute.setValue(extendedData.circleCount);
+		this.sliderCountAttribute.setValue(extendedData.sliderCount);
+		this.spinnerCountAttribute.setValue(extendedData.spinnerCount);
 
-		this.circleSizeAttribute.setValue(beatmap.difficulty.CS);
-		this.hpDrainAttribute.setValue(beatmap.difficulty.HP);
-		this.overallDifficultyAttribute.setValue(beatmap.difficulty.OD);
-		this.approachRateAttribute.setValue(beatmap.difficulty.AR);
-		this.starRatingAttribute.setValue(difficulty.starRating);
+		this.circleSizeAttribute.setValue(extendedData.difficulty.CS);
+		this.hpDrainAttribute.setValue(extendedData.difficulty.HP);
+		this.overallDifficultyAttribute.setValue(extendedData.difficulty.OD);
+		this.approachRateAttribute.setValue(extendedData.difficulty.AR);
+		this.starRatingAttribute.setValue(extendedData.difficultyAttributes.starRating);
 
-		this.tagsContents.text = beatmap.tags || 'N/A';
+		this.tagsContents.text = extendedData.tags || 'N/A';
 		this.updateBackgroundSize();
 	}
 

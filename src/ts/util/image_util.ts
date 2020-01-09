@@ -43,7 +43,7 @@ export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality
 			}
 		}
 
-		let { bitmap } = await startJob(JobTask.GetImageBitmap, {
+		let bitmap = await startJob(JobTask.GetImageBitmap, {
 			imageResource: await file.getBlob(),
 			resizeWidth: dimensions.width,
 			resizeHeight: dimensions.height

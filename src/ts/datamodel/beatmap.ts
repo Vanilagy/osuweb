@@ -67,18 +67,6 @@ interface BeatmapColorInfo {
     sliderBorder?: Color
 }
 
-/** The metadata that can only be obtained by reading the entire beatmap. */
-export interface NonTrivialBeatmapMetadata {
-	hitObjectCount: number,
-	circleCount: number,
-	sliderCount: number,
-	spinnerCount: number,
-	bpmMin: number,
-	bpmMax: number,
-	version: string, // This one's trivial, but handy to send anyway
-	length: number
-}
-
 export class Beatmap {
 	public metadataOnly: boolean;
     public events: BeatmapEvent[] = [];
@@ -161,30 +149,6 @@ export class Beatmap {
     getBackgroundVideoFile() {
         let fileName = this.getBackgroundVideoName();
         return this.beatmapSet.directory.getFileByName(fileName);
-	}
-	
-	getNonTrivialMetadata(): NonTrivialBeatmapMetadata {
-		let length = 0; // In ms
-		if (this.hitObjects.length > 0) {
-			let firstObject = this.hitObjects[0];
-			let lastObject = last(this.hitObjects);
-
-			let startTime = firstObject.time;
-			let endTime = lastObject.time;
-
-			length = endTime - startTime; // TODO: THIS IN INEXACT.
-		}
-
-		return {
-			version: this.version,
-			hitObjectCount: this.hitObjects.length,
-			circleCount: this.circleCount,
-			sliderCount: this.sliderCount,
-			spinnerCount: this.spinnerCount,
-			bpmMin: this.bpmMin,
-			bpmMax: this.bpmMax,
-			length: length
-		};
 	}
 
 	getAudioPreviewTimeInSeconds() {

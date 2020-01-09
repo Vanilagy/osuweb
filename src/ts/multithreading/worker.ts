@@ -1,7 +1,9 @@
-import { JobTask, JobResponseWrapper, JobRequestMessage, GetBeatmapMetadataRequest } from "./job";
+import { JobTask, JobResponseWrapper, JobRequestMessage } from "./job";
 import { Beatmap } from "../datamodel/beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
+import { BeatmapUtil } from "../datamodel/beatmap_util";
+import { VirtualFile } from "../file_system/virtual_file";
 
 self.onmessage = async (e: MessageEvent) => {
 	let msg = e.data as JobRequestMessage;
@@ -10,25 +12,12 @@ self.onmessage = async (e: MessageEvent) => {
 
 	try {
 		switch (msg.task) {
-			case JobTask.GetBeatmapMetadata: {
+			case JobTask.GetExtendedBetamapData: {
 				let data = msg.data;
-				let text = await new Response(data.beatmapResource).text();
-	
-				let beatmap = new Beatmap({
-					text: text,
-					beatmapSet: null,
-					metadataOnly: false
-				});
-				let processedBeatmap = new ProcessedBeatmap(beatmap, true);
-				processedBeatmap.init();
-				processedBeatmap.applyStackShift();
-	
-				let difficulty = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
-				
-				response = {
-					metadata: beatmap.getNonTrivialMetadata(),
-					difficulty: difficulty
-				};
+				let file = VirtualFile.fromBlob(data.beatmapResource, null);
+				let extendedData = await BeatmapUtil.getExtendedBeatmapData(file);
+
+				response = extendedData;
 			}; break;
 			case JobTask.GetImageBitmap: {
 				let data = msg.data;
@@ -38,9 +27,7 @@ self.onmessage = async (e: MessageEvent) => {
 					resizeHeight: data.resizeHeight
 				});
 
-				response = {
-					bitmap
-				};
+				response = bitmap;
 				transfer.push(bitmap);
 			}; break;
 		}

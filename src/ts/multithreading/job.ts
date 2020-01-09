@@ -1,8 +1,7 @@
-import { DifficultyAttributes } from "../datamodel/difficulty/difficulty_calculator";
-import { NonTrivialBeatmapMetadata } from "../datamodel/beatmap";
+import { ExtendedBeatmapData } from "../datamodel/beatmap_util";
 
 export enum JobTask {
-	GetBeatmapMetadata,
+	GetExtendedBetamapData,
 	GetImageBitmap
 }
 
@@ -24,16 +23,11 @@ export type JobResponseWrapper = {
 };
 
 export interface GetBeatmapMetadataRequest extends JobMessageBase {
-	task: JobTask.GetBeatmapMetadata,
+	task: JobTask.GetExtendedBetamapData,
 	data: {
 		beatmapResource: Blob
 	},
-	responseType?: GetBeatmapMetadataResponse
-}
-
-export interface GetBeatmapMetadataResponse {
-	metadata: NonTrivialBeatmapMetadata,
-	difficulty: DifficultyAttributes
+	responseType: ExtendedBeatmapData
 }
 
 export interface GetImageBitmapRequest extends JobMessageBase {
@@ -43,11 +37,7 @@ export interface GetImageBitmapRequest extends JobMessageBase {
 		resizeWidth?: number,
 		resizeHeight?: number
 	},
-	responseType?: GetImageBitmapResponse
-}
-
-export interface GetImageBitmapResponse {
-	bitmap: ImageBitmap
+	responseType?: ImageBitmap
 }
 
 export type JobRequestMessage = GetBeatmapMetadataRequest | GetImageBitmapRequest;
