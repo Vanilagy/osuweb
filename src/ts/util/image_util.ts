@@ -16,7 +16,7 @@ getMaxDimensionForBitmapQuality.set(BitmapQuality.Low, 512);
 getMaxDimensionForBitmapQuality.set(BitmapQuality.Medium, 1024);
 getMaxDimensionForBitmapQuality.set(BitmapQuality.High, 2048);
 
-let imageBitmapCache: Map<VirtualFile, Map<BitmapQuality, ImageBitmap | Promise<ImageBitmap>>> = new Map();
+let imageBitmapCache: WeakMap<VirtualFile, Map<BitmapQuality, ImageBitmap | Promise<ImageBitmap>>> = new WeakMap();
 export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality) {
 	let cached = imageBitmapCache.get(file);
 	if (cached) {
@@ -60,7 +60,7 @@ export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality
 	return promise;
 }
 
-let imageDimensionsCache = new Map<VirtualFile, Dimensions>();
+let imageDimensionsCache = new WeakMap<VirtualFile, Dimensions>();
 export function getDimensionsFromImageFile(file: VirtualFile): Promise<Dimensions> {
 	let cached = imageDimensionsCache.get(file);
 	if (cached) return Promise.resolve(jsonClone(cached));

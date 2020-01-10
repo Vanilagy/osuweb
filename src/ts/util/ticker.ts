@@ -1,3 +1,5 @@
+import { addRenderingTask } from "../visuals/rendering";
+
 export type TickingTask = (dt?: number) => any;
 let tickingTasks: TickingTask[] = [];
 let lastTickTime: number = null;
@@ -30,4 +32,6 @@ export function tickAll() {
 		tickingTasks[i](dt);
 	}
 }
+
 setInterval(tickAll, 0);
+addRenderingTask(tickAll);
