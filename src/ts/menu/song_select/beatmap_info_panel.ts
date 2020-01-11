@@ -5,12 +5,13 @@ import { BeatmapDetailsTab } from "./beatmap_details_tab";
 import { addRenderingTask } from "../../visuals/rendering";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
-import { Interpolator, InterpolatedCounter, calculateRatioBasedScalingFactor } from "../../util/graphics_util";
+import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { TabSelector } from "../components/tab_selector";
 import { BeatmapRankingTab } from "./beatmap_ranking_tab";
 import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
+import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
@@ -114,7 +115,7 @@ export class BeatmapInfoPanel {
 	private detailsFadeIn: Interpolator;
 	private tabSelector: TabSelector;
 	private tabBackground: PIXI.Sprite;
-	private tabBackgroundHeightInterpolator: InterpolatedCounter;
+	private tabBackgroundHeightInterpolator: InterpolatedValueChanger;
 	private tabs: BeatmapInfoPanelTab[] = [];
 	private currentTabIndex: number = null;
 	private tabFadeInterpolators = new WeakMap<BeatmapInfoPanelTab, Interpolator>();
@@ -414,7 +415,7 @@ export class BeatmapInfoPanel {
 		if (executer !== this.tabs[this.currentTabIndex]) return;
 
 		if (!this.tabBackgroundHeightInterpolator) {
-			this.tabBackgroundHeightInterpolator = new InterpolatedCounter({
+			this.tabBackgroundHeightInterpolator = new InterpolatedValueChanger({
 				initial: height,
 				ease: EaseType.EaseOutCubic,
 				duration: 150

@@ -1,7 +1,6 @@
 import { MathUtil, EaseType } from "../util/math_util";
 import { scoreDisplay, phantomComboDisplay, accuracyDisplay, comboDisplay } from "./hud/hud";
 import { assert } from "../util/misc_util";
-import { InterpolatedCounter, Interpolator } from "../util/graphics_util";
 import { gameState } from "./game_state";
 import { Point } from "../util/point";
 import { lowerScorePopupContainer, upperScorePopupContainer } from "../visuals/rendering";
@@ -14,6 +13,7 @@ import { AnimatedOsuSprite } from "./skin/animated_sprite";
 import { OsuTexture } from "./skin/texture";
 import { ParticleEmitter, DistanceDistribution } from "../visuals/particle_emitter";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
+import { InterpolatedValueChanger, Interpolator } from "../util/interpolation";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
@@ -214,7 +214,7 @@ export class ScoreCounter {
 	}
 }
 
-let scoreInterpolator = new InterpolatedCounter({
+let scoreInterpolator = new InterpolatedValueChanger({
 	initial: 0,
 	duration: (distanceToGoal: number) => {
 		// Quick animation for small score increases, like slider ticks
@@ -224,7 +224,7 @@ let scoreInterpolator = new InterpolatedCounter({
 	ease: EaseType.EaseOutCubic
 });
 
-let accuracyInterpolator = new InterpolatedCounter({
+let accuracyInterpolator = new InterpolatedValueChanger({
 	initial: 1,
 	duration: 250,
 	ease: EaseType.EaseOutQuad

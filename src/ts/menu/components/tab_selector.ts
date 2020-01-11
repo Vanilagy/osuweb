@@ -1,7 +1,7 @@
-import { InterpolatedCounter, Interpolator } from "../../util/graphics_util";
 import { EaseType } from "../../util/math_util";
 import { Interactivity } from "../../input/interactivity";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
+import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
 
 export class TabSelector extends CustomEventEmitter {
 	public container: PIXI.Container;
@@ -9,8 +9,8 @@ export class TabSelector extends CustomEventEmitter {
 	private tabContainers: PIXI.Container[] = [];
 	private selectionBar: PIXI.Sprite;
 	private selectedIndex = 0;
-	private selectionBarXInterpolator: InterpolatedCounter;
-	private selectionBarWidthInterpolator: InterpolatedCounter;
+	private selectionBarXInterpolator: InterpolatedValueChanger;
+	private selectionBarWidthInterpolator: InterpolatedValueChanger;
 	private hoverInterpolators = new WeakMap<PIXI.Container, Interpolator>();
 
 	constructor(tabStrings: string[]) {
@@ -114,12 +114,12 @@ export class TabSelector extends CustomEventEmitter {
 		}
 
 		if (!this.selectionBarXInterpolator) {
-			this.selectionBarXInterpolator = new InterpolatedCounter({
+			this.selectionBarXInterpolator = new InterpolatedValueChanger({
 				initial: selectionBarX,
 				duration: 150,
 				ease: EaseType.EaseOutCubic
 			});
-			this.selectionBarWidthInterpolator = new InterpolatedCounter({
+			this.selectionBarWidthInterpolator = new InterpolatedValueChanger({
 				initial: selectionBarWidth,
 				duration: 150,
 				ease: EaseType.EaseOutCubic

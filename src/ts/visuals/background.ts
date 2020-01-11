@@ -1,4 +1,3 @@
-import { Interpolator } from "../util/graphics_util";
 import { EaseType, MathUtil } from "../util/math_util";
 import { addRenderingTask, backgroundContainer } from "./rendering";
 import { VirtualFile } from "../file_system/virtual_file";
@@ -6,6 +5,7 @@ import { getBitmapFromImageFile, BitmapQuality } from "../util/image_util";
 import { fitSpriteIntoContainer } from "../util/pixi_util";
 import { uiEventEmitter, getGlobalScalingFactor, currentWindowDimensions } from "./ui";
 import { last } from "../util/misc_util";
+import { Interpolator } from "../util/interpolation";
 
 const IMAGE_FADE_IN_DURATION = 333; // In ms
 

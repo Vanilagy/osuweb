@@ -6,11 +6,12 @@ import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, curren
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
 import { NormalizedWheelEvent, last } from "../../util/misc_util";
-import { Interpolator, calculateRatioBasedScalingFactor } from "../../util/graphics_util";
+import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup } from "../../input/interactivity";
 import { BeatmapPanel } from "./beatmap_panel";
 import { songSelectContainer } from "./song_select";
+import { Interpolator } from "../../util/interpolation";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;

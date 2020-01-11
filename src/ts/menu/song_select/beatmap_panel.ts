@@ -1,5 +1,5 @@
 import { VirtualFile } from "../../file_system/virtual_file";
-import { Interpolator, colorToHexNumber } from "../../util/graphics_util";
+import { colorToHexNumber } from "../../util/graphics_util";
 import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { startPlayFromBeatmap } from "../../game/play";
@@ -11,6 +11,7 @@ import { beatmapInfoPanel } from "./beatmap_info_panel";
 import { songSelectContainer } from "./song_select";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
+import { Interpolator } from "../../util/interpolation";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;

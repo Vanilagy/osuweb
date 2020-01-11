@@ -1,8 +1,8 @@
 import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab, getBeatmapInfoPanelScalingFactor } from "./beatmap_info_panel";
-import { InterpolatedCounter } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { padNumberWithZeroes } from "../../util/misc_util";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
+import { InterpolatedValueChanger } from "../../util/interpolation";
 
 const CIRCLE_CIZE_CAP = 7;
 const HP_DRAIN_CAP = 10;
@@ -161,7 +161,7 @@ class NamedNumericalAttribute {
 	private attributeName: string;
 	private nameText: PIXI.Text;
 	private valueText: PIXI.Text;
-	private interpolator: InterpolatedCounter;
+	private interpolator: InterpolatedValueChanger;
 	private formatter: (val: number) => string;
 
 	constructor(attributeName: string, formatter: (val: number) => string = (val: number) => String(Math.round(val))) {
@@ -177,7 +177,7 @@ class NamedNumericalAttribute {
 		this.container.addChild(this.nameText);
 		this.container.addChild(this.valueText);
 
-		this.interpolator = new InterpolatedCounter({
+		this.interpolator = new InterpolatedValueChanger({
 			initial: 0,
 			duration: 333,
 			ease: EaseType.EaseOutCubic
@@ -221,8 +221,8 @@ class RangedAttribute {
 	private barBackground: PIXI.Sprite;
 	private barProgress: PIXI.Sprite;
 	private valueText: PIXI.Text;
-	private barInterpolator: InterpolatedCounter;
-	private numberInterpolator: InterpolatedCounter;
+	private barInterpolator: InterpolatedValueChanger;
+	private numberInterpolator: InterpolatedValueChanger;
 	private cap: number;
 	private decimals: number;
 
@@ -247,13 +247,13 @@ class RangedAttribute {
 		this.valueText = new PIXI.Text("0");
 		this.container.addChild(this.valueText);
 
-		this.barInterpolator = new InterpolatedCounter({
+		this.barInterpolator = new InterpolatedValueChanger({
 			initial: 0,
 			duration: 333,
 			ease: EaseType.EaseOutElastic,
 			p: 0.9
 		});
-		this.numberInterpolator = new InterpolatedCounter({
+		this.numberInterpolator = new InterpolatedValueChanger({
 			initial: 0,
 			duration: 250,
 			ease: EaseType.EaseOutCubic

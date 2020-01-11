@@ -1,8 +1,8 @@
-import { InterpolatedCounter, Interpolator } from "../../util/graphics_util";
 import { gameState } from "../game_state";
 import { EaseType } from "../../util/math_util";
 import { OsuTexture } from "../skin/texture";
 import { currentWindowDimensions } from "../../visuals/ui";
+import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
 
 const SCOREBAR_KI_DANGER_THRESHOLD = 0.5;
 const SCOREBAR_KI_DANGER2_THRESHOLD = 0.25;
@@ -12,7 +12,7 @@ export class Scorebar {
 	private backgroundLayer: PIXI.Sprite;
 	private colorLayer: PIXI.Sprite; // The part that actually changes with health
 	private colorLayerMask: PIXI.Graphics;
-	private progressInterpolator: InterpolatedCounter;
+	private progressInterpolator: InterpolatedValueChanger;
 	private marker: PIXI.Container; // The marker at the end of the HP thing. Can refer to the marker texture, but also scorebar-ki, scorebar-kidanger and scorebar-kidanger2
 	private hasPureMarker: boolean = false; // Marks if the scorebar uses the scorebar-marker texture for its marker
 	private markerInterpolator: Interpolator;
@@ -33,7 +33,7 @@ export class Scorebar {
 		this.container.addChild(this.colorLayerMask);
 		this.container.addChild(this.marker);
 
-		this.progressInterpolator = new InterpolatedCounter({
+		this.progressInterpolator = new InterpolatedValueChanger({
 			initial: 1.0,
 			duration: 200,
 			ease: EaseType.EaseOutQuad

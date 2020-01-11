@@ -1,6 +1,5 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { VirtualFile } from "../../file_system/virtual_file";
-import { Interpolator } from "../../util/graphics_util";
 import { BeatmapPanel } from "./beatmap_panel";
 import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType } from "../../util/math_util";
@@ -14,6 +13,7 @@ import { beatmapInfoPanel } from "./beatmap_info_panel";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { JobUtil } from "../../multithreading/job_util";
+import { Interpolator } from "../../util/interpolation";
 
 export class BeatmapSetPanel {
 	public beatmapSet: BeatmapSet;
