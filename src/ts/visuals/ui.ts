@@ -3,6 +3,7 @@ import { Point } from "../util/point";
 import { getCurrentMousePosition, inputEventEmitter } from "../input/input";
 import { MathUtil } from "../util/math_util";
 import { CustomEventEmitter } from "../util/custom_event_emitter";
+import { Dimensions } from "../util/graphics_util";
 
 const CURSOR_RIPPLE_DURATION = 1500;
 const CURSOR_RIPPLES = false;
@@ -15,9 +16,18 @@ export function getGlobalScalingFactor() {
 
 export let uiEventEmitter = new CustomEventEmitter();
 
+// So we don't need to call window.innerWidth/innerHeight all the time
+export const currentWindowDimensions: Dimensions = {
+	width: window.innerWidth,
+	height: window.innerHeight
+};
+
 function onResize() {
 	let width = window.innerWidth,
 		height = window.innerHeight;
+
+	currentWindowDimensions.width = width;
+	currentWindowDimensions.height = height;
 
 	mainCanvas.setAttribute('width', String(width));
 	mainCanvas.setAttribute('height', String(height));

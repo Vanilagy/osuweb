@@ -5,6 +5,7 @@ import { DrawableSlider } from "./drawable_slider";
 import { MathUtil } from "../../util/math_util";
 import { IGNORE_BEATMAP_SKIN } from "../skin/skin";
 import { SliderBounds } from "./drawable_slider_path";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 declare const glMatrix: any; // Why? Because TypeScript made it goddamn hard to get actual good and correct types for glMatrix. AND HELL NAW DO I WANNA IMPORT IT VIA FUCKING NPM.
 
@@ -117,8 +118,8 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 		// If the slider texture is more than 32768 pixels wide, the following two things can happen: If any part of the slider intersects the left edge of the screen, then the slider is scaled along the x-axis by f, with the scaling being centered on the left screen edge. If the slider does NOT intersect the left edge of the screen, then the slider is scaled by f with the center being at the left-most point of the slider.
 		// Scaling along the y-axis works almost identically, now using the top edge, not the left edge. The exception is that top-edge scaling only happens if the slider ALSO intersects the bottom edge of the screen. In the case where the slider only intersects the top edge, no scaling is done at all.
 
-		let width = window.innerWidth,
-			height = window.innerHeight;
+		let width = currentWindowDimensions.width,
+			height = currentWindowDimensions.height;
 
 		glMatrix.mat3.translate(matrix, matrix, new Float32Array([-1.0, -1.0]));
 		glMatrix.mat3.scale(matrix, matrix, new Float32Array([2 / width, 2 / height])); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
@@ -135,7 +136,7 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 		if (isDistortedSlider) {
 			intersectsLeftEdge = gameState.currentPlay.toScreenCoordinatesX(sliderBounds.min.x + adjustedCircleRadius, false) <= 0;
 			intersectsTopEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.min.y + adjustedCircleRadius, false) <= 0;
-			intersectsBottomEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.max.y + adjustedCircleRadius, false) >= window.innerHeight;
+			intersectsBottomEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.max.y + adjustedCircleRadius, false) >= currentWindowDimensions.height;
 
 			// Do left-edge scaling
 			if (intersectsLeftEdge) glMatrix.mat3.scale(matrix, matrix, new Float32Array([shrinkFactorX, 1.0]));

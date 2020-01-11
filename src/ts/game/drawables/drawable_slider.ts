@@ -18,6 +18,7 @@ import { HitSoundInfo, normSampleSet, generateHitSoundInfo, getTickHitSoundTypeF
 import { ProcessedSlider, SpecialSliderBehavior } from "../../datamodel/processed/processed_slider";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -199,11 +200,11 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			}
 		}
 
-		this.hasFullscreenBaseSprite = Math.max(this.bounds.screenWidth, this.bounds.screenHeight) >= Math.max(window.innerWidth, window.innerHeight);
+		this.hasFullscreenBaseSprite = Math.max(this.bounds.screenWidth, this.bounds.screenHeight) >= Math.max(currentWindowDimensions.width, currentWindowDimensions.height);
 
 		let renderTex = PIXI.RenderTexture.create({
-			width: this.hasFullscreenBaseSprite? window.innerWidth : this.bounds.screenWidth,
-			height: this.hasFullscreenBaseSprite? window.innerHeight : this.bounds.screenHeight,
+			width: this.hasFullscreenBaseSprite? currentWindowDimensions.width : this.bounds.screenWidth,
+			height: this.hasFullscreenBaseSprite? currentWindowDimensions.height : this.bounds.screenHeight,
 			resolution: 2 // For anti-aliasing
 		});
 		let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;

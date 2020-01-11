@@ -1,6 +1,7 @@
 import { gameState } from "../game_state";
 import { TAU } from "../../util/math_util";
 import { colorToHexNumber, Colors } from "../../util/graphics_util";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 const GAMEPLAY_WARNING_ARROWS_FLICKER_FREQUENCY = 5; // In Hertz
 
@@ -13,7 +14,7 @@ export class GameplayWarningArrows {
 		let { screenPixelRatio } = gameState.currentPlay;
 
 		this.container = new PIXI.Container();
-		this.container.position.set(window.innerWidth/2, window.innerHeight/2);
+		this.container.position.set(currentWindowDimensions.width/2, currentWindowDimensions.height/2);
 		this.container.visible = false;
 		
 		let arrowTexture = gameState.currentGameplaySkin.textures["arrowWarning"];

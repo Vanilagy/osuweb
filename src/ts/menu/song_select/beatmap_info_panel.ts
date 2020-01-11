@@ -1,16 +1,16 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { Beatmap } from "../../datamodel/beatmap";
-import { getGlobalScalingFactor } from "../../visuals/ui";
 import { songSelectContainer } from "./song_select";
 import { BeatmapDetailsTab } from "./beatmap_details_tab";
 import { addRenderingTask } from "../../visuals/rendering";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
-import { Interpolator, InterpolatedCounter } from "../../util/graphics_util";
+import { Interpolator, InterpolatedCounter, calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { TabSelector } from "../components/tab_selector";
 import { BeatmapRankingTab } from "./beatmap_ranking_tab";
+import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
@@ -29,8 +29,13 @@ export function initBeatmapInfoPanel() {
 	updateBeatmapInfoPanelSizing();
 }
 
+let beatmapInfoPanelScalingFactor = 1.0;
+export function getBeatmapInfoPanelScalingFactor() {
+	return beatmapInfoPanelScalingFactor;
+}
+
 function updateInfoPanelMask() {
-	let scalingFactor = getGlobalScalingFactor();
+	let scalingFactor = getBeatmapInfoPanelScalingFactor();
 	let slantWidth = INFO_PANEL_HEIGHT/5;
 
 	infoPanelMask.setAttribute('width', String(Math.ceil((INFO_PANEL_WIDTH + slantWidth) * scalingFactor)));
@@ -50,7 +55,7 @@ function updateInfoPanelMask() {
 }
 
 function updateInfoPanelGradient() {
-	let scalingFactor = getGlobalScalingFactor();
+	let scalingFactor = getBeatmapInfoPanelScalingFactor();
 	let slantWidth = INFO_PANEL_HEIGHT/5;
 
 	infoPanelGradient.setAttribute('width', String(Math.ceil((INFO_PANEL_WIDTH + slantWidth) * scalingFactor)));
@@ -68,10 +73,12 @@ function updateInfoPanelGradient() {
 export function updateBeatmapInfoPanelSizing() {
 	if (!beatmapInfoPanel) return;
 
-	let scalingFactor = getGlobalScalingFactor();
+	beatmapInfoPanelScalingFactor = calculateRatioBasedScalingFactor(currentWindowDimensions.width, currentWindowDimensions.height, 16/9, REFERENCE_SCREEN_HEIGHT);
+
+	let scalingFactor = getBeatmapInfoPanelScalingFactor();
 
 	beatmapInfoPanel.container.x = Math.floor(40 * scalingFactor);
-	beatmapInfoPanel.container.y = Math.floor(130 * scalingFactor);
+	beatmapInfoPanel.container.y = Math.floor(currentWindowDimensions.height/2 - 240 * scalingFactor);
 
 	beatmapInfoPanel.resize();
 }
@@ -268,7 +275,7 @@ export class BeatmapInfoPanel {
 	}
 
 	resize() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 
 		updateInfoPanelMask();
 		this.mask.texture = PIXI.Texture.from(infoPanelMask);
@@ -371,7 +378,7 @@ export class BeatmapInfoPanel {
 	}
 
 	update(now: number) {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 		let fadeInValue = this.detailsFadeIn.getCurrentValue(now);
 
 		this.difficultyText.alpha = fadeInValue;

@@ -4,7 +4,7 @@ import { addRenderingTask, backgroundContainer } from "./rendering";
 import { VirtualFile } from "../file_system/virtual_file";
 import { getBitmapFromImageFile, BitmapQuality } from "../util/image_util";
 import { fitSpriteIntoContainer } from "../util/pixi_util";
-import { uiEventEmitter, getGlobalScalingFactor } from "./ui";
+import { uiEventEmitter, getGlobalScalingFactor, currentWindowDimensions } from "./ui";
 import { last } from "../util/misc_util";
 
 const IMAGE_FADE_IN_DURATION = 333; // In ms
@@ -95,7 +95,7 @@ export abstract class BackgroundManager {
 		let bitmap = await getBitmapFromImageFile(file, (this.state === BackgroundState.Gameplay)? BitmapQuality.High : BitmapQuality.Medium);
 
 		let newSprite = new PIXI.Sprite(PIXI.Texture.from(bitmap as any));
-		fitSpriteIntoContainer(newSprite, window.innerWidth, window.innerHeight);
+		fitSpriteIntoContainer(newSprite, currentWindowDimensions.width, currentWindowDimensions.height);
 
 		for (let obj of this.imageContainer.children) {
 			let sprite = obj as PIXI.Sprite;
@@ -125,7 +125,7 @@ export abstract class BackgroundManager {
 		return new Promise((resolve, reject) => {
 			this.videoElement.addEventListener('error', reject);
 			this.videoElement.addEventListener('canplaythrough', () => {
-				fitSpriteIntoContainer(this.videoSprite, window.innerWidth, window.innerHeight);
+				fitSpriteIntoContainer(this.videoSprite, currentWindowDimensions.width, currentWindowDimensions.height);
 				resolve();
 			});
 		});
@@ -181,16 +181,16 @@ export abstract class BackgroundManager {
 	}
 
 	static resize() {
-		backgroundContainer.pivot.x = window.innerWidth / 2;
-		backgroundContainer.pivot.y = window.innerHeight / 2;
+		backgroundContainer.pivot.x = currentWindowDimensions.width / 2;
+		backgroundContainer.pivot.y = currentWindowDimensions.height / 2;
 		backgroundContainer.position.copyFrom(backgroundContainer.pivot);
 
 		for (let obj of this.imageContainer.children) {
 			let sprite = obj as PIXI.Sprite;
-			fitSpriteIntoContainer(sprite, window.innerWidth, window.innerHeight);
+			fitSpriteIntoContainer(sprite, currentWindowDimensions.width, currentWindowDimensions.height);
 		}
 
-		fitSpriteIntoContainer(this.videoSprite, window.innerWidth, window.innerHeight);
+		fitSpriteIntoContainer(this.videoSprite, currentWindowDimensions.width, currentWindowDimensions.height);
 	}
 }
 BackgroundManager.initialize();

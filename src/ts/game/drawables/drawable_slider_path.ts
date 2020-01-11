@@ -278,7 +278,7 @@ export class DrawableSliderPath extends SliderPath {
 			let p3x = x + Math.cos(p3Angle) * radius,
 				p3y = y + Math.sin(p3Angle) * radius
 
-				DrawableSliderPath.addVertex(data, x, y, 0.0);
+			DrawableSliderPath.addVertex(data, x, y, 0.0);
 			DrawableSliderPath.addVertex(data, p2x, p2y, 1.0);
 			DrawableSliderPath.addVertex(data, p3x, p3y, 1.0);
 

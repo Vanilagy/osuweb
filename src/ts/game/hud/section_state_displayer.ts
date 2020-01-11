@@ -2,6 +2,7 @@ import { gameState } from "../game_state";
 import { OsuTexture } from "../skin/texture";
 import { OsuSound, OsuSoundType } from "../skin/sound";
 import { TAU, MathUtil } from "../../util/math_util";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 const SECTION_STATE_DISPLAY_FLICKER_DURATION = 250; // In ms
 const SECTION_STATE_DISPLAY_FLICKER_AMOUNT = 2;
@@ -18,7 +19,7 @@ export class SectionStateDisplayer {
 		this.container.addChild(this.sprite);
 
 		this.sprite.anchor.set(0.5, 0.5);
-		this.container.position.set(window.innerWidth/2, window.innerHeight/2);
+		this.container.position.set(currentWindowDimensions.width/2, currentWindowDimensions.height/2);
 	}
 
 	getLastPopUpTime() {

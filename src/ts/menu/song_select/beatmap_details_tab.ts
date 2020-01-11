@@ -1,5 +1,4 @@
-import { getGlobalScalingFactor } from "../../visuals/ui";
-import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab } from "./beatmap_info_panel";
+import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab, getBeatmapInfoPanelScalingFactor } from "./beatmap_info_panel";
 import { InterpolatedCounter } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { padNumberWithZeroes } from "../../util/misc_util";
@@ -92,7 +91,7 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 	}
 
 	resize() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 
 		this.allNumericalAttributes.forEach((attribute, i) => {
 			attribute.container.x = Math.floor(((i % 2 === 0)? 20 : 147) * scalingFactor);
@@ -139,7 +138,7 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 	}
 
 	private getProperBackgroundHeight() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 		return (this.tagsContents.y + this.tagsContents.height + 15 * scalingFactor) / scalingFactor;
 	}
 
@@ -186,7 +185,7 @@ class NamedNumericalAttribute {
 	}
 
 	resize() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 
 		this.nameText.style = {
 			fontFamily: 'Exo2-Light',
@@ -262,7 +261,7 @@ class RangedAttribute {
 	}
 
 	resize() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 
 		this.nameText.style = {
 			fontFamily: 'Exo2-Light',
@@ -290,7 +289,7 @@ class RangedAttribute {
 	}
 	
 	private centerText() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 
 		this.valueText.x = Math.floor(232 * scalingFactor) - Math.floor(this.valueText.width / 2);
 	}
@@ -301,7 +300,7 @@ class RangedAttribute {
 	}
 
 	update(now: number) {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 		let barValue = this.barInterpolator.getCurrentValue(now);
 		let percent = MathUtil.clamp(barValue / this.cap, 0, 1);
 

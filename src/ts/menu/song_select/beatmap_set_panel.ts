@@ -4,10 +4,10 @@ import { Interpolator } from "../../util/graphics_util";
 import { BeatmapPanel } from "./beatmap_panel";
 import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType } from "../../util/math_util";
-import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
+import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
-import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup, getSelectedSubpanel, setSelectedSubpanel } from "./beatmap_carousel";
+import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup, getSelectedSubpanel, setSelectedSubpanel, getCarouselScalingFactor } from "./beatmap_carousel";
 import { InteractionRegistration, Interactivity } from "../../input/interactivity";
 import { mainMusicMediaPlayer } from "../../audio/media_player";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
@@ -128,7 +128,7 @@ export class BeatmapSetPanel {
 	}
 
 	private async loadImage() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getCarouselScalingFactor();
 
 		let imageFile = await this.representingBeatmap.getBackgroundImageFile();
 		if (imageFile) this.backgroundImageBitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
@@ -150,7 +150,7 @@ export class BeatmapSetPanel {
 	private resize() {
 		this.needsResize = false;
 
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getCarouselScalingFactor();
 
 		this.panelContainer.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor);
 
@@ -196,10 +196,11 @@ export class BeatmapSetPanel {
 
 	update(now: number, newY: number, lastCalculatedHeight: number) {
 		this.currentNormalizedY = newY;
+		let scalingFactor = getCarouselScalingFactor();
 
 		if (!this.imageLoadingStarted) {
 			// If the top of the panel is at most a full screen height away
-			let isClose = this.currentNormalizedY >= -REFERENCE_SCREEN_HEIGHT && this.currentNormalizedY <= (REFERENCE_SCREEN_HEIGHT * 2);
+			let isClose = this.currentNormalizedY * scalingFactor >= -currentWindowDimensions.height && this.currentNormalizedY * scalingFactor <= (currentWindowDimensions.height * 2);
 
 			if (isClose && this.representingBeatmap) {
 				this.imageLoadingStarted = true;
@@ -207,7 +208,7 @@ export class BeatmapSetPanel {
 			}
 		}
 
-		if (this.currentNormalizedY + lastCalculatedHeight < 0 || this.currentNormalizedY > REFERENCE_SCREEN_HEIGHT) {
+		if (this.currentNormalizedY + lastCalculatedHeight < 0 || (this.currentNormalizedY + 10) * scalingFactor > currentWindowDimensions.height) { // Add +10 'cause of the glow
 			// Culling!
 
 			this.container.visible = false;
@@ -220,7 +221,6 @@ export class BeatmapSetPanel {
 
 		if (this.needsResize) this.resize();
 
-		let scalingFactor = getGlobalScalingFactor();
 		this.container.y = this.currentNormalizedY * scalingFactor;
 
 		this.backgroundImageSprite.alpha = this.imageFadeIn.getCurrentValue(now);
@@ -249,7 +249,7 @@ export class BeatmapSetPanel {
 			}
 		}
 
-		this.panelContainer.x += getNormalizedOffsetOnCarousel(this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor;
+		this.panelContainer.x += getNormalizedOffsetOnCarousel((this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor)  * scalingFactor;
 
 		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * (1 - this.expandInterpolator.getCurrentCompletion(now));
 		this.panelContainer.x += hoverValue * -15 * scalingFactor;

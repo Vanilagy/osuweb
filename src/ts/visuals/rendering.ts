@@ -23,7 +23,7 @@ export let renderer = new PIXI.Renderer({
 	height: window.innerHeight,
 	context: gl,
 	antialias: true,
-	// TODO: Add resolution thing
+	resolution: window.devicePixelRatio || 1.0 // TODO: Make this an option?
 });
 export let stage = new PIXI.Container();
 

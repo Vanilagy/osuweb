@@ -1,5 +1,6 @@
 import { gameState } from "../game_state";
 import { MathUtil, EaseType } from "../../util/math_util";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 const ACCURACY_METER_HEIGHT_FACTOR = 0.02;
 const ACCURACY_LINE_LIFETIME = 10000; // In ms
@@ -40,7 +41,7 @@ export class AccuracyMeter {
 		this.fadeOutStart = -Infinity;
 		this.time50 = processedBeatmap.difficulty.getHitDeltaForJudgement(50);
 
-		this.height = Math.max(15, Math.round(window.innerHeight * ACCURACY_METER_HEIGHT_FACTOR / 5) * 5);
+		this.height = Math.max(15, Math.round(currentWindowDimensions.height * ACCURACY_METER_HEIGHT_FACTOR / 5) * 5);
 		let widthScale = this.height * 0.04;
 		this.width = Math.round(processedBeatmap.difficulty.getHitDeltaForJudgement(50)*2 * widthScale / 2) * 2;
 

@@ -2,6 +2,7 @@ import { InterpolatedCounter, Interpolator } from "../../util/graphics_util";
 import { gameState } from "../game_state";
 import { EaseType } from "../../util/math_util";
 import { OsuTexture } from "../skin/texture";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 const SCOREBAR_KI_DANGER_THRESHOLD = 0.5;
 const SCOREBAR_KI_DANGER2_THRESHOLD = 0.25;
@@ -81,7 +82,7 @@ export class Scorebar {
 	private initMask() {
 		let mask = new PIXI.Graphics();
 		mask.beginFill(0xFF0000);
-		mask.drawRect(0, 0, this.colorLayer.width, window.innerHeight);
+		mask.drawRect(0, 0, this.colorLayer.width, currentWindowDimensions.height);
 		mask.endFill();
 
 		mask.position.copyFrom(this.colorLayer.position);

@@ -2,10 +2,9 @@ import { VirtualFile } from "../../file_system/virtual_file";
 import { Interpolator, colorToHexNumber } from "../../util/graphics_util";
 import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { getGlobalScalingFactor } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
 import { getBeatmapPanelMask, TEXTURE_MARGIN, getBeatmapPanelGlowTexture, getDifficultyColorBar } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET, getCarouselScalingFactor } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
@@ -33,8 +32,6 @@ export class BeatmapPanel {
 	private colorBar: PIXI.Sprite;
 
 	constructor(parentPanel: BeatmapSetPanel) {
-		let now = performance.now();
-
 		this.parentPanel = parentPanel;
 		this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
@@ -117,7 +114,7 @@ export class BeatmapPanel {
 	
 		let difficultyAttributes = this.extendedBeatmapData.difficultyAttributes;
 		let g = this.starRatingTicks;
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getCarouselScalingFactor();
 		
 		g.clear();
 		g.beginFill(0xffffff);
@@ -147,7 +144,7 @@ export class BeatmapPanel {
 	}
 
 	resize() {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getCarouselScalingFactor();
 
 		this.container.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_PANEL_WIDTH * scalingFactor, BEATMAP_PANEL_HEIGHT * scalingFactor);
 
@@ -187,7 +184,7 @@ export class BeatmapPanel {
 	}
 
 	update(now: number, newY: number) {
-		let scalingFactor = getGlobalScalingFactor();
+		let scalingFactor = getCarouselScalingFactor();
 
 		this.currentNormalizedY = newY;
 		this.container.y = this.currentNormalizedY * scalingFactor;

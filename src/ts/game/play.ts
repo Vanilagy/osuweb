@@ -28,7 +28,7 @@ import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel
 import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
-import { REFERENCE_SCREEN_HEIGHT } from "../visuals/ui";
+import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { addTickingTask, tickAll } from "../util/ticker";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
@@ -102,7 +102,7 @@ export class Play {
 	}
 	
 	async init() {
-		let screenHeight = window.innerHeight * 1; // The factor was determined through experimentation. Makes sense it's 1.
+		let screenHeight = currentWindowDimensions.height * 1; // The factor was determined through experimentation. Makes sense it's 1.
 		let screenWidth = screenHeight * (STANDARD_SCREEN_DIMENSIONS.width / STANDARD_SCREEN_DIMENSIONS.height);
 		this.hitObjectPixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
 		this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
@@ -649,13 +649,13 @@ export class Play {
 	}
 
 	toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
-		let coord = window.innerWidth*SCREEN_COORDINATES_X_FACTOR + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.hitObjectPixelRatio;
+		let coord = currentWindowDimensions.width*SCREEN_COORDINATES_X_FACTOR + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.hitObjectPixelRatio;
 
 		return floor? (coord | 0) : coord; // "Cast" to int
 	}
 
 	toScreenCoordinatesY(osuCoordinateY: number, floor = true) {
-		let coord = window.innerHeight*SCREEN_COORDINATES_Y_FACTOR + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.hitObjectPixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
+		let coord = currentWindowDimensions.height*SCREEN_COORDINATES_Y_FACTOR + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.hitObjectPixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
 
 		return floor? (coord | 0) : coord;
 	}
@@ -669,12 +669,12 @@ export class Play {
 
 	// Inverse of toScreenCoordinatesX
 	toOsuCoordinatesX(screenCoordinateX: number) {
-		return (screenCoordinateX - window.innerWidth*0.5) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.width/2;
+		return (screenCoordinateX - currentWindowDimensions.width*0.5) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.width/2;
 	}
 	
 	// Inverse of toScreenCoordinatesY
 	toOsuCoordinatesY(screenCoordinateY: number) {
-		return (screenCoordinateY - window.innerHeight*0.510) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.height/2;
+		return (screenCoordinateY - currentWindowDimensions.height*0.510) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.height/2;
 	}
 
 	toOsuCoordinates(screenCoordinate: Point) {

@@ -14,6 +14,7 @@ import { accuracyMeter } from "../hud/hud";
 import { HitSoundInfo, generateHitSoundInfo, OsuSoundType } from "../skin/sound";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -232,7 +233,7 @@ export class DrawableSpinner extends DrawableHitObject {
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
 	
 				sprite.anchor.set(0.0, 0.0);
-				sprite.position.set(window.innerWidth/2 - 512 * screenPixelRatio, 46 * screenPixelRatio);
+				sprite.position.set(currentWindowDimensions.width/2 - 512 * screenPixelRatio, 46 * screenPixelRatio);
 				sprite.mask = this.spinnerMeterMask;
 	
 				this.spinnerMeter = sprite;
@@ -259,7 +260,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			osuTexture.applyToSprite(sprite, screenPixelRatio);
 
 			sprite.anchor.set(0.0, 0.0);
-			sprite.position.set(window.innerWidth/2 - 139 * screenPixelRatio, window.innerHeight - 56 * screenPixelRatio);
+			sprite.position.set(currentWindowDimensions.width/2 - 139 * screenPixelRatio, currentWindowDimensions.height - 56 * screenPixelRatio);
 
 			this.spinnerRpm = sprite;
 		}
@@ -273,7 +274,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			overlap: gameState.currentGameplaySkin.config.fonts.scoreOverlap,
 			overlapAtEnd: false
 		});
-		spinnerRpmNumber.container.position.set(window.innerWidth/2 + 122 * screenPixelRatio, window.innerHeight - 50 * screenPixelRatio);
+		spinnerRpmNumber.container.position.set(currentWindowDimensions.width/2 + 122 * screenPixelRatio, currentWindowDimensions.height - 50 * screenPixelRatio);
 		spinnerRpmNumber.container.visible = false;
 		spinnerRpmNumber.setValue(0);
 		this.spinnerRpmNumber = spinnerRpmNumber;
@@ -379,7 +380,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			spinTextFadeInCompletion = MathUtil.clamp(spinTextFadeInCompletion, 0, 1);
 			this.spinnerSpin.alpha = spinTextFadeInCompletion;
 
-			this.spinnerRpm.y = MathUtil.lerp(window.innerHeight, window.innerHeight - 56 * screenPixelRatio, fadeInCompletion);
+			this.spinnerRpm.y = MathUtil.lerp(currentWindowDimensions.height, currentWindowDimensions.height - 56 * screenPixelRatio, fadeInCompletion);
 		} else {
 			this.container.alpha = 1;
 			if (currentTime >= this.parent.endTime) {
@@ -398,7 +399,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.spinnerSpin.alpha = spinnerSpinAlpha;
 
 			this.spinnerRpmNumber.container.visible = true;
-			this.spinnerRpm.y = window.innerHeight - 56 * screenPixelRatio;
+			this.spinnerRpm.y = currentWindowDimensions.height - 56 * screenPixelRatio;
 		}
 	
 		let completion = (currentTime - this.parent.startTime) / this.parent.duration;
@@ -439,14 +440,14 @@ export class DrawableSpinner extends DrawableHitObject {
 				// Draw all steps below the top step:
 				mask.clear();
 				mask.beginFill(0xFF0000);
-				mask.drawRect(0, (49 + (1-b)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * screenPixelRatio, window.innerWidth, b*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS * screenPixelRatio);
+				mask.drawRect(0, (49 + (1-b)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * screenPixelRatio, currentWindowDimensions.width, b*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS * screenPixelRatio);
 				mask.endFill();
 
 				// Using the noise, create the 'flicker' effect.
 				if (completedSteps > 0 && ((completedSteps === SPINNER_METER_STEPS && gameState.currentGameplaySkin.config.general.spinnerNoBlink) || MathUtil.valueNoise1D(currentTime / 50) < 0.6)) {
 					// Draw the top step:
 					mask.beginFill(0xFF0000);
-					mask.drawRect(0, (49 + (1-completion)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * screenPixelRatio, window.innerWidth, SPINNER_METER_STEP_HEIGHT * screenPixelRatio);
+					mask.drawRect(0, (49 + (1-completion)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * screenPixelRatio, currentWindowDimensions.width, SPINNER_METER_STEP_HEIGHT * screenPixelRatio);
 					mask.endFill();
 				}
 			}

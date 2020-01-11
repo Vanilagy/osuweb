@@ -6,6 +6,7 @@ import { AccuracyMeter } from "./accuracy_meter";
 import { Scorebar } from "./scorebar";
 import { SectionStateDisplayer } from "./section_state_displayer";
 import { GameplayWarningArrows } from "./gameplay_warning_arrows";
+import { currentWindowDimensions } from "../../visuals/ui";
 
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;
@@ -18,9 +19,9 @@ export let sectionStateDisplayer: SectionStateDisplayer;
 export let gameplayWarningArrows: GameplayWarningArrows;
 
 export function initHud() {
-	let scoreHeight = window.innerHeight * 0.0575,
-		accuracyHeight = window.innerHeight * 0.0345,
-		comboHeight = window.innerHeight * 0.0730;
+	let scoreHeight = currentWindowDimensions.height * 0.0575,
+		accuracyHeight = currentWindowDimensions.height * 0.0345,
+		comboHeight = currentWindowDimensions.height * 0.0730;
 
 	scoreDisplay = new SpriteNumber({
 		scaleFactor: scoreHeight / USUAL_SCORE_DIGIT_HEIGHT,
@@ -32,7 +33,7 @@ export function initHud() {
 		textures: baseSkin.scoreNumberTextures,
 		leftPad: 8
 	});
-	scoreDisplay.container.x = Math.floor(window.innerWidth - scoreHeight * 0.2);
+	scoreDisplay.container.x = Math.floor(currentWindowDimensions.width - scoreHeight * 0.2);
 	scoreDisplay.container.y = 0;
 	scoreDisplay.setValue(0);
 
@@ -48,11 +49,11 @@ export function initHud() {
 		hasPercent: true
 	});
 	accuracyDisplay.setValue(100);
-	accuracyDisplay.container.x = Math.floor(window.innerWidth - accuracyHeight * 0.37);
-	accuracyDisplay.container.y = Math.floor(scoreDisplay.container.height + window.innerHeight * 0.0075);
+	accuracyDisplay.container.x = Math.floor(currentWindowDimensions.width - accuracyHeight * 0.37);
+	accuracyDisplay.container.y = Math.floor(scoreDisplay.container.height + currentWindowDimensions.height * 0.0075);
 
-	progressIndicator = new ProgressIndicator(window.innerHeight * 0.043);
-	progressIndicator.container.x = Math.floor(accuracyDisplay.container.x - accuracyDisplay.lastComputedWidth - window.innerHeight * 0.035 - (baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
+	progressIndicator = new ProgressIndicator(currentWindowDimensions.height * 0.043);
+	progressIndicator.container.x = Math.floor(accuracyDisplay.container.x - accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
 	progressIndicator.container.y = Math.floor(accuracyDisplay.container.y + Math.min(accuracyHeight/2, accuracyDisplay.lastComputedHeight/2));
 
 	phantomComboDisplay = new SpriteNumber({
@@ -63,8 +64,8 @@ export function initHud() {
 		textures: baseSkin.scoreNumberTextures,
 		hasX: true
 	});
-	phantomComboDisplay.container.x = Math.floor(window.innerHeight * 0.005);
-	phantomComboDisplay.container.y = Math.floor(window.innerHeight);
+	phantomComboDisplay.container.x = Math.floor(currentWindowDimensions.height * 0.005);
+	phantomComboDisplay.container.y = Math.floor(currentWindowDimensions.height);
 	phantomComboDisplay.container.alpha = 0.333;
 	phantomComboDisplay.setValue(0);
 
@@ -81,8 +82,8 @@ export function initHud() {
 	comboDisplay.setValue(0);
 
 	accuracyMeter = new AccuracyMeter();
-	accuracyMeter.container.x = window.innerWidth / 2;
-	accuracyMeter.container.y = window.innerHeight;
+	accuracyMeter.container.x = currentWindowDimensions.width / 2;
+	accuracyMeter.container.y = currentWindowDimensions.height;
 
 	scorebar = new Scorebar();
 

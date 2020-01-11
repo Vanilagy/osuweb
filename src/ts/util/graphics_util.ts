@@ -37,6 +37,22 @@ export const Colors = {
 	Yellow: {r: 255, g: 255, b: 0} as Color
 };
 
+/**
+ * @param actualWidth The actual width of the container for which the scaling factor is to be calculated
+ * @param actualHeight The actual height of the container for which the scaling factor is to be calculated
+ * @param criticalRatio If the actual width/height-ratio of the container exceeds this number, the scaling factor will be calculated in reference to the height; otherwise, it will be calculated in reference to width.
+ * @param unitHeight The height at which the scaling factor will be exactly 1.0, if the scaling factor is currently calculated in reference to height.
+ */
+export function calculateRatioBasedScalingFactor(actualWidth: number, actualHeight: number, criticalRatio: number, unitHeight: number) {
+	let ratio = actualWidth / actualHeight;
+
+	if (ratio >= criticalRatio) {
+		return actualHeight / unitHeight;
+	} else {
+		return actualWidth / criticalRatio / unitHeight;
+	}
+}
+
 type InterpolatedCounterDurationCallback = (distanceToGoal: number) => number;
 
 interface InterpolatedCounterOptions {

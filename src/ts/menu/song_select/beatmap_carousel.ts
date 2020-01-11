@@ -2,11 +2,11 @@ import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { stage, addRenderingTask } from "../../visuals/rendering";
 import { inputEventEmitter } from "../../input/input";
-import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
+import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
 import { NormalizedWheelEvent, last } from "../../util/misc_util";
-import { Interpolator } from "../../util/graphics_util";
+import { Interpolator, calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup } from "../../input/interactivity";
 import { BeatmapPanel } from "./beatmap_panel";
@@ -43,6 +43,11 @@ let snapToSelectedIntervened = true;
 let selectedSubpanel: BeatmapPanel = null;
 
 songSelectContainer.addChild(beatmapCarouselContainer);
+
+let carouselScalingFactor = 1.0;
+export function getCarouselScalingFactor() {
+	return carouselScalingFactor;
+}
 
 export function setSelectedPanel(panel: BeatmapSetPanel) {
 	selectedPanel = panel;
@@ -174,7 +179,9 @@ inputEventEmitter.addListener('wheel', (data) => {
 });
 
 export function updateCarouselSizing() {
-	beatmapCarouselContainer.x = Math.floor(window.innerWidth - BEATMAP_CAROUSEL_RIGHT_MARGIN * getGlobalScalingFactor());
+	carouselScalingFactor = calculateRatioBasedScalingFactor(currentWindowDimensions.width, currentWindowDimensions.height, 16/9, REFERENCE_SCREEN_HEIGHT);	
+
+	beatmapCarouselContainer.x = Math.floor(currentWindowDimensions.width - BEATMAP_CAROUSEL_RIGHT_MARGIN * getCarouselScalingFactor());
 
 	updateDarkeningOverlay();
 	updateBeatmapSetPanelMasks();
@@ -187,9 +194,9 @@ export function updateCarouselSizing() {
 	}
 }
 
-export function getNormalizedOffsetOnCarousel(normalizedYPosition: number) {
+export function getNormalizedOffsetOnCarousel(yPosition: number) {
 	// -1.0 for top of the screen, 0.0 for middle, 1.0 for bottom
-	let normalizedDistanceToCenter = (normalizedYPosition - REFERENCE_SCREEN_HEIGHT/2) / (REFERENCE_SCREEN_HEIGHT/2);
+	let normalizedDistanceToCenter = (yPosition - currentWindowDimensions.height/2) / (currentWindowDimensions.height/2);
 	let circleHeight = MathUtil.unitCircleContour(normalizedDistanceToCenter / BEATMAP_CAROUSEL_RADIUS_FACTOR);
 	if (isNaN(circleHeight)) circleHeight = 1.0;
 
