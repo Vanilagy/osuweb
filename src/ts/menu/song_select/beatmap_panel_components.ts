@@ -58,7 +58,7 @@ export function updateBeatmapSetPanelMasks() {
 	let glowSprite = new PIXI.Sprite(PIXI.Texture.from(beatmapSetPanelMask));
 	glowSprite.texture.update();
 
-	let glowFilter = new PIXI.filters.GlowFilter(7 * scalingFactor, 5, 0, 0xffffff, 1.0);
+	let glowFilter = new PIXI.filters.GlowFilter(6 * scalingFactor, 5, 0, 0xffffff, 1.0);
 	glowSprite.filters = [glowFilter];
 
 	let glowMask = new PIXI.Sprite(PIXI.Texture.from(beatmapSetPanelMaskInverted));
@@ -149,4 +149,26 @@ export function getBeatmapPanelMaskInverted() {
 
 export function getBeatmapPanelGlowTexture() {
 	return beatmapPanelGlowTexture;
+}
+
+let difficultyColorBar = document.createElement('canvas');
+let difficultyColorBarCtx = difficultyColorBar.getContext('2d');
+
+export function updateDifficultyColorBar() {
+	let scalingFactor = getGlobalScalingFactor();
+
+	difficultyColorBar.setAttribute('width', String(Math.ceil(BEATMAP_PANEL_WIDTH * scalingFactor)));
+	difficultyColorBar.setAttribute('height', String(Math.ceil(BEATMAP_PANEL_HEIGHT * scalingFactor * 0.02)));
+
+	difficultyColorBarCtx.clearRect(0, 0, difficultyColorBar.width, difficultyColorBar.height);
+
+	let gradient = difficultyColorBarCtx.createLinearGradient(0, 0, Math.ceil(BEATMAP_PANEL_WIDTH * scalingFactor), 0);
+	gradient.addColorStop(0, 'rgba(255,255,255,1.0)');
+	gradient.addColorStop(1, 'rgba(255,255,255,0.0)');
+	difficultyColorBarCtx.fillStyle = gradient;
+	difficultyColorBarCtx.fillRect(0, 0, difficultyColorBar.width, difficultyColorBar.height)
+}
+
+export function getDifficultyColorBar() {
+	return difficultyColorBar;
 }

@@ -1,16 +1,17 @@
 import { VirtualFile } from "../../file_system/virtual_file";
-import { Interpolator } from "../../util/graphics_util";
+import { Interpolator, colorToHexNumber } from "../../util/graphics_util";
 import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { getGlobalScalingFactor } from "../../visuals/ui";
 import { startPlayFromBeatmap } from "../../game/play";
-import { getBeatmapPanelMask, TEXTURE_MARGIN, getBeatmapPanelGlowTexture } from "./beatmap_panel_components";
+import { getBeatmapPanelMask, TEXTURE_MARGIN, getBeatmapPanelGlowTexture, getDifficultyColorBar } from "./beatmap_panel_components";
 import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
 import { songSelectContainer } from "./song_select";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
+import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
 
 export class BeatmapPanel {
 	public container: PIXI.Container;
@@ -29,6 +30,7 @@ export class BeatmapPanel {
 	private hoverInterpolator: Interpolator;
 	private expandInterpolator: Interpolator;
 	private glowSprite: PIXI.Sprite;
+	private colorBar: PIXI.Sprite;
 
 	constructor(parentPanel: BeatmapSetPanel) {
 		this.parentPanel = parentPanel;
@@ -72,15 +74,18 @@ export class BeatmapPanel {
 
 		this.glowSprite = new PIXI.Sprite();
 		this.glowSprite.zIndex = -1;
-		this.glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
 		this.container.addChild(this.glowSprite);
+
+		this.colorBar = new PIXI.Sprite();
+		this.colorBar.mask = this.mainMask;
+		this.infoContainer.addChild(this.colorBar);
 
 		this.initInteractions();
 
 		this.resize();
 	}
 
-	initInteractions() {
+	private initInteractions() {
 		this.interaction = Interactivity.registerDisplayObject(this.container);
 		carouselInteractionGroup.add(this.interaction);
 
@@ -95,9 +100,11 @@ export class BeatmapPanel {
 		});
 	}
 
-	draw() {
+	private draw() {
 		this.primaryText.text = this.extendedBeatmapData.version + ' ';
 		this.drawStarRatingTicks();
+		this.colorBar.tint = colorToHexNumber(DifficultyUtil.getColorForStarRating(this.extendedBeatmapData.difficultyAttributes.starRating));
+		this.glowSprite.tint = this.colorBar.tint;
 	}
 
 	private drawStarRatingTicks() {
@@ -161,6 +168,9 @@ export class BeatmapPanel {
 		this.drawStarRatingTicks();
 		this.starRatingTicks.y = Math.floor(35 * scalingFactor);
 		this.starRatingTicks.x = Math.floor(30 * scalingFactor);
+
+		this.colorBar.texture = PIXI.Texture.from(getDifficultyColorBar());
+		this.colorBar.texture.update();
 	}
 
 	load(beatmapFile: VirtualFile,  extendedData: ExtendedBeatmapData) {
@@ -192,6 +202,7 @@ export class BeatmapPanel {
 		this.container.y = Math.floor(this.container.y);
 
 		this.background.alpha = MathUtil.lerp(0.45, 0.8, expansionValue);
+		this.colorBar.alpha = 1 - expansionValue;
 
 		if (expansionValue === 0) {
 			this.glowSprite.visible = false;
@@ -236,7 +247,7 @@ export class BeatmapPanel {
 		beatmapInfoPanel.loadBeatmapData(this.extendedBeatmapData);
 	}
 
-	trigger() {
+	private trigger() {
 		if (!this.beatmapFile) return;
 
 		songSelectContainer.visible = false;

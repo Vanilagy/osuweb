@@ -164,7 +164,7 @@ export abstract class BackgroundManager {
 
 	static update() {
 		let t = this.gameplayInterpolator.getCurrentValue();
-		let brightness = MathUtil.lerp(0.75, this.currentGameplayBrightness, t);
+		let brightness = MathUtil.lerp(0.7, this.currentGameplayBrightness, t);
 
 		this.colorMatrixFilter.brightness(brightness, false);
 

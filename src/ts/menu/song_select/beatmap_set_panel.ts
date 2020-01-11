@@ -70,7 +70,6 @@ export class BeatmapSetPanel {
 
 		this.glowSprite = new PIXI.Sprite();
 		this.glowSprite.zIndex = -1;
-		this.glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
 		this.container.addChild(this.glowSprite);
 
 		this.mainMask = new PIXI.Sprite();
@@ -302,17 +301,19 @@ export class BeatmapSetPanel {
 			this.beatmapPanels.push(beatmapPanel);
 		}
 
-		let backgroundImage = await this.representingBeatmap.getBackgroundImageFile();
-		if (backgroundImage) BackgroundManager.setImage(backgroundImage);
+		this.representingBeatmap.getBackgroundImageFile().then((backgroundImage) => {
+			if (backgroundImage) BackgroundManager.setImage(backgroundImage);
+		});
 
-		let audioFile = await this.representingBeatmap.getAudioFile();
-		if (audioFile) {
+		this.representingBeatmap.getAudioFile().then(async (audioFile) => {
+			if (!audioFile) return;
+
 			await mainMusicMediaPlayer.loadFromVirtualFile(audioFile);
 
 			let startTime = this.representingBeatmap.getAudioPreviewTimeInSeconds();
 			mainMusicMediaPlayer.start(startTime)
 			mainMusicMediaPlayer.setLoopBehavior(true, startTime);
-		}
+		});
 
 		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
 		let map: Map<typeof data[0], VirtualFile> = new Map();

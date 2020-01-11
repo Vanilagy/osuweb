@@ -4,7 +4,7 @@ import { stage, addRenderingTask } from "../../visuals/rendering";
 import { inputEventEmitter } from "../../input/input";
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
-import { updateDarkeningOverlay, updateBeatmapPanelMasks, updateBeatmapSetPanelMasks } from "./beatmap_panel_components";
+import { updateDarkeningOverlay, updateBeatmapPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
 import { NormalizedWheelEvent, last } from "../../util/misc_util";
 import { Interpolator } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
@@ -179,6 +179,7 @@ export function updateCarouselSizing() {
 	updateDarkeningOverlay();
 	updateBeatmapSetPanelMasks();
 	updateBeatmapPanelMasks();
+	updateDifficultyColorBar();
 
 	for (let i = 0; i < beatmapSetPanels.length; i++) {
 		let panel = beatmapSetPanels[i];

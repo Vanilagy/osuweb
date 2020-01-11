@@ -96,6 +96,7 @@ export class BeatmapInfoPanel {
 	private difficultyText: PIXI.Text;
 	private detailsTab: BeatmapDetailsTab;
 	private detailsFadeIn: Interpolator;
+	private tabSelection: PIXI.Container;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -143,6 +144,9 @@ export class BeatmapInfoPanel {
 
 		this.detailsTab = new BeatmapDetailsTab();
 		this.container.addChild(this.detailsTab.container);
+
+		this.tabSelection = new PIXI.Container();
+		// Do this
 
 		this.resize();
 	}
