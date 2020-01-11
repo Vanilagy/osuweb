@@ -157,7 +157,7 @@ export class BeatmapPanel {
 		this.glowSprite.position.copyFrom(this.mainMask.position);
 
 		this.primaryText.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
 			fontSize: Math.floor(16 * scalingFactor)

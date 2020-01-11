@@ -1,6 +1,14 @@
 @font-face {
-	font-family: "Exo2";
+	font-family: "Exo2-Regular";
 	src: url("../assets/fonts/Exo_2/Exo2-Regular.ttf");
+}
+@font-face {
+	font-family: "Exo2-Bold";
+	src: url("../assets/fonts/Exo_2/Exo2-Bold.ttf");
+}
+@font-face {
+	font-family: "Exo2-Light";
+	src: url("../assets/fonts/Exo_2/Exo2-Light.ttf");
 }
 
 * {

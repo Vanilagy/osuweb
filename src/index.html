@@ -6,12 +6,18 @@
 		<link rel="stylesheet" href="./css/main.css">
 		<link rel="shortcut icon" href="./assets/img/1024px-Red_x.svg.png">
 	</head>
-	<body>        
+	<body>     
+		<!-- Font load -->
+		<div style="visibility: hidden; position: absolute;">
+			<p style="font-family: Exo2-Regular; visibility: hidden;">ABC</p>
+			<p style="font-family: Exo2-Bold; visibility: hidden;">ABC</p>
+			<p style="font-family: Exo2-Light; visibility: hidden;">ABC</p>
+		</div>
+		
 		<!--<img src="./assets/img/screenshot001.jpg" style="display: block; position: absolute; top: 0; left: 0; z-index: -5000;">-->
 		<canvas id="main-canvas"></canvas> <!-- It has to be made sure that this canvas is above everything; otherwise, desynchronized: true won't work. -->
 
 		<div style="position: relative; z-index: 100;" id="tempControls">
-			<p style="font-family: Exo2;">Some font load!</p>
 			<input type="file" id="songs-folder-select" webkitdirectory>
 			<input type="file" id="beatmap-select" webkitdirectory style="display: none;">
 		</div>

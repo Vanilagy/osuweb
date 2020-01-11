@@ -167,7 +167,7 @@ export class BeatmapSetPanel {
 		this.darkening.texture.update();
 
 		this.primaryText.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
 			fontSize: Math.floor(22 * scalingFactor),
@@ -176,7 +176,7 @@ export class BeatmapSetPanel {
 			dropShadowBlur: 0
 		};
 		this.secondaryText.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
 			fontSize: Math.floor(14 * scalingFactor),

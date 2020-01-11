@@ -6,9 +6,11 @@ import { BeatmapDetailsTab } from "./beatmap_details_tab";
 import { addRenderingTask } from "../../visuals/rendering";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
-import { Interpolator } from "../../util/graphics_util";
+import { Interpolator, InterpolatedCounter } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
+import { TabSelector } from "../components/tab_selector";
+import { BeatmapRankingTab } from "./beatmap_ranking_tab";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
@@ -79,6 +81,14 @@ addRenderingTask(() => {
 	beatmapInfoPanel.update();
 });
 
+export interface BeatmapInfoPanelTab {
+	resize: Function;
+	update: Function;
+	focus: Function;
+
+	container: PIXI.Container;
+}
+
 export class BeatmapInfoPanel {
 	private currentBeatmapSet: BeatmapSet = null;
 
@@ -94,9 +104,13 @@ export class BeatmapInfoPanel {
 	private mapperTextPrefix: PIXI.Text; // Need to have two separate text thingeys because they have different styling, and PIXI isn't flexible enough
 	private mapperText: PIXI.Text;
 	private difficultyText: PIXI.Text;
-	private detailsTab: BeatmapDetailsTab;
 	private detailsFadeIn: Interpolator;
-	private tabSelection: PIXI.Container;
+	private tabSelector: TabSelector;
+	private tabBackground: PIXI.Sprite;
+	private tabBackgroundHeightInterpolator: InterpolatedCounter;
+	private tabs: BeatmapInfoPanelTab[] = [];
+	private currentTabIndex: number = null;
+	private tabFadeInterpolators = new WeakMap<BeatmapInfoPanelTab, Interpolator>();
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -142,13 +156,49 @@ export class BeatmapInfoPanel {
 		this.difficultyText.anchor.set(1.0, 0.0);
 		this.upperPanelContainer.addChild(this.difficultyText);
 
-		this.detailsTab = new BeatmapDetailsTab();
-		this.container.addChild(this.detailsTab.container);
+		this.tabSelector = new TabSelector(["Details", "Ranking"]);
+		this.tabSelector.addListener('selection', (index: number) => this.selectTab(index));
+		this.container.addChild(this.tabSelector.container);
 
-		this.tabSelection = new PIXI.Container();
-		// Do this
+		this.tabBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.tabBackground.tint = 0x000000;
+		this.tabBackground.alpha = 0.4;
+		this.container.addChild(this.tabBackground);
+
+		this.tabs = [new BeatmapDetailsTab(this), new BeatmapRankingTab(this)];
+		for (let t of this.tabs) {
+			this.container.addChild(t.container);
+
+			let interpolator = new Interpolator({
+				duration: 150,
+				ease: EaseType.EaseOutCubic,
+				reverseEase: EaseType.EaseInCubic
+			});
+			interpolator.reverse();
+			this.tabFadeInterpolators.set(t, interpolator);
+		}
+
+		this.selectTab(0);
 
 		this.resize();
+	}
+	
+	private selectTab(index: number) {
+		if (index === this.currentTabIndex) return;
+		this.currentTabIndex = index;
+
+		for (let i = 0; i < this.tabs.length; i++) {
+			let tab = this.tabs[i];
+			let isSelected = i === this.currentTabIndex;
+			let interpolator = this.tabFadeInterpolators.get(tab);
+
+			if (isSelected) {
+				interpolator.setReversedState(false);
+				tab.focus();
+			} else {
+				interpolator.setReversedState(true);
+			}
+		}
 	}
 
 	async loadBeatmapSet(representingBeatmap: Beatmap) {
@@ -161,7 +211,6 @@ export class BeatmapInfoPanel {
 			let texture = PIXI.Texture.from(bitmap as any);
 
 			let newSprite = new PIXI.Sprite(texture);
-			//newSprite.anchor.set(0.5, 0.5);
 			fitSpriteIntoContainer(newSprite, this.mask.width, this.mask.height);
 
 			let spriteContainer = new PIXI.Container();
@@ -203,12 +252,14 @@ export class BeatmapInfoPanel {
 
 	async loadBeatmapData(extendedData: ExtendedBeatmapData) {
 		this.updateText(extendedData);
-		this.detailsTab.loadBeatmapData(extendedData);
+
+		let detailsTab = this.tabs[0] as BeatmapDetailsTab;
+		detailsTab.loadBeatmapData(extendedData);
 	}
 
 	private positionMapperText() {
-		this.mapperText.x = this.mapperTextPrefix.x + this.mapperTextPrefix.width;
-		this.mapperText.y = this.mapperTextPrefix.y - (this.mapperText.height - this.mapperTextPrefix.height) / 2;
+		this.mapperText.x = Math.floor(this.mapperTextPrefix.x + this.mapperTextPrefix.width);
+		this.mapperText.y = Math.floor(this.mapperTextPrefix.y - (this.mapperText.height - this.mapperTextPrefix.height) / 2);
 	}
 
 	resize() {
@@ -232,7 +283,7 @@ export class BeatmapInfoPanel {
 		}
 
 		this.titleText.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
 			fontSize: Math.floor(22 * scalingFactor),
@@ -245,7 +296,7 @@ export class BeatmapInfoPanel {
 		this.titleText.y = Math.floor(this.titleText.y);
 
 		this.artistText.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
 			fontSize: Math.floor(14 * scalingFactor),
@@ -258,7 +309,7 @@ export class BeatmapInfoPanel {
 		this.artistText.y = Math.floor(this.artistText.y);
 
 		this.mapperTextPrefix.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Light',
 			fill: 0xffffff,
 			fontStyle: 'italic',
 			fontSize: Math.floor(12 * scalingFactor),
@@ -271,10 +322,9 @@ export class BeatmapInfoPanel {
 		this.mapperTextPrefix.y = Math.floor(this.mapperTextPrefix.y);
 
 		this.mapperText.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Bold',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontWeight: 'bold',
 			fontSize: Math.floor(12 * scalingFactor),
 			dropShadow: true,
 			dropShadowDistance: 1,
@@ -287,7 +337,7 @@ export class BeatmapInfoPanel {
 		this.positionMapperText();
 
 		this.difficultyText.style = {
-			fontFamily: 'Exo2',
+			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
 			fontSize: Math.floor(12 * scalingFactor),
@@ -299,9 +349,20 @@ export class BeatmapInfoPanel {
 		this.difficultyText.x = Math.floor(this.difficultyText.x);
 		this.difficultyText.y = Math.floor(this.difficultyText.y);
 
-		this.detailsTab.resize();
-		this.detailsTab.container.x = Math.floor((INFO_PANEL_HEIGHT/5) * scalingFactor);
-		this.detailsTab.container.y = Math.floor((INFO_PANEL_HEIGHT + 10) * scalingFactor);
+		this.tabSelector.resize(scalingFactor);
+		this.tabSelector.container.y = Math.floor((INFO_PANEL_HEIGHT + 25) * scalingFactor);
+		this.tabSelector.container.x = Math.floor((INFO_PANEL_HEIGHT/5 + 10) * scalingFactor);
+
+		let tabX = Math.floor((INFO_PANEL_HEIGHT/5) * scalingFactor);
+		let tabY = Math.floor((INFO_PANEL_HEIGHT + 25) * scalingFactor);
+
+		for (let t of this.tabs) {
+			t.resize();
+			t.container.position.set(tabX, tabY);
+		}
+
+		this.tabBackground.width = Math.floor(INFO_PANEL_WIDTH * scalingFactor);
+		this.tabBackground.position.set(tabX, tabY);
 	}
 
 	update() {
@@ -323,6 +384,31 @@ export class BeatmapInfoPanel {
 			container.scale.set(MathUtil.lerp(1.07, 1.0, value));
 		}
 
-		this.detailsTab.update();
+		this.tabSelector.update();
+		this.tabs[this.currentTabIndex].update();
+
+		for (let t of this.tabs) {
+			let interpolator = this.tabFadeInterpolators.get(t);
+			let value = interpolator.getCurrentValue();
+
+			t.container.alpha = value;
+			t.container.visible = value !== 0;
+		}
+
+		this.tabBackground.height = Math.floor(this.tabBackgroundHeightInterpolator.getCurrentValue() * scalingFactor);
+	}
+
+	setTabBackgroundNormalizedHeight(executer: BeatmapInfoPanelTab, height: number) {
+		if (executer !== this.tabs[this.currentTabIndex]) return;
+
+		if (!this.tabBackgroundHeightInterpolator) {
+			this.tabBackgroundHeightInterpolator = new InterpolatedCounter({
+				initial: height,
+				ease: EaseType.EaseOutCubic,
+				duration: 150
+			});
+		} else {
+			this.tabBackgroundHeightInterpolator.setGoal(height);
+		}
 	}
 }
