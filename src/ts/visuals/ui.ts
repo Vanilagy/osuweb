@@ -50,8 +50,7 @@ export function addCursorRipple(position?: Point) {
 }
 inputEventEmitter.addListener('gameButtonDown', addCursorRipple);
 
-addRenderingTask(() => {
-	let now = performance.now();
+addRenderingTask((now) => {
 	cursorRippleGraphics.clear();
 
 	for (let i = 0; i < currentCursorRipples.length; i++) {

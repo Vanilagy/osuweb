@@ -88,7 +88,7 @@ export function createCarouselFromDirectory(directory: VirtualDirectory) {
 	referencePanel = beatmapSetPanels[0];
 }
 
-addRenderingTask((dt: number) => {
+addRenderingTask((now: number, dt: number) => {
 	if (!referencePanel) return;
 
 	let referenceIndex = beatmapSetPanels.indexOf(referencePanel);

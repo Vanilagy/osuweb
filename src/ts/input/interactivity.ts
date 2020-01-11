@@ -1,5 +1,6 @@
 import { inputEventEmitter, getCurrentMousePosition } from "./input";
 import { Point } from "../util/point";
+import { addRenderingTask } from "../visuals/rendering";
 
 type Interaction = 'mouseDown' | 'mouseEnter' | 'mouseLeave';
 let registrations: InteractionRegistration[] = [];
@@ -235,20 +236,30 @@ inputEventEmitter.addListener('mouseDown', () => handleMouseInteraction('mouseDo
 	return reg.overlaps(pos.x, pos.y);
 }));
 
-inputEventEmitter.addListener('mouseMove', () => handleMouseInteraction('mouseEnter', (pos, reg) => {
-	let overlaps = reg.overlaps(pos.x, pos.y);
-	if (!overlaps) return false;
-	if (reg.mouseInside) return false;
+let lastMouseMoveHandleTime = -Infinity;
+function onMouseMove() {
+	lastMouseMoveHandleTime = performance.now();
 
-	reg.mouseInside = true;
-	return true;
-}));
+	handleMouseInteraction('mouseEnter', (pos, reg) => {
+		let overlaps = reg.overlaps(pos.x, pos.y);
+		if (!overlaps) return false;
+		if (reg.mouseInside) return false;
+	
+		reg.mouseInside = true;
+		return true;
+	});
 
-inputEventEmitter.addListener('mouseMove', () => handleMouseInteraction('mouseLeave', (pos, reg) => {
-	let overlaps = reg.overlaps(pos.x, pos.y);
-	if (overlaps) return false;
-	if (!reg.mouseInside) return false;
+	handleMouseInteraction('mouseLeave', (pos, reg) => {
+		let overlaps = reg.overlaps(pos.x, pos.y);
+		if (overlaps) return false;
+		if (!reg.mouseInside) return false;
+	
+		reg.mouseInside = false;
+		return true;
+	});
+}
+inputEventEmitter.addListener('mouseMove', onMouseMove);
 
-	reg.mouseInside = false;
-	return true;
-}));
+addRenderingTask((now) => {
+	if (now - lastMouseMoveHandleTime >= 1000/30) onMouseMove(); // Call it, even though the mouse didn't move, so that we catch objects having moved out of or into the cursor.
+});

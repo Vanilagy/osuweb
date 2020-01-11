@@ -37,7 +37,7 @@ export function disableRenderTimeInfoLog() {
 	logRenderTimeInfo = false;
 }
 
-type RenderingTask = (dt?: number) => any;
+type RenderingTask = (now?: number, dt?: number) => any;
 let renderingTasks: RenderingTask[] = [];
 let frameTimes: number[] = [];
 let inbetweenFrameTimes: number[] = [];
@@ -55,7 +55,7 @@ function mainRenderingLoop() {
 	lastFrameTime = startTime;
 
 	for (let i = 0; i < renderingTasks.length; i++) {
-		renderingTasks[i](dt);
+		renderingTasks[i](startTime, dt);
 	}
 
 	renderer.render(stage);
