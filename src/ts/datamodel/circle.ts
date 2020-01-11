@@ -1,9 +1,9 @@
 import { HitObject } from "./hit_object";
 
 export class Circle extends HitObject {
-    constructor(data: string[]) {
-        super(data);
+	constructor(data: string[]) {
+		super(data);
 
-        this.parseExtras(data[5]);
-    }
+		this.parseExtras(data[5]);
+	}
 }

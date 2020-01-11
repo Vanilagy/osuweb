@@ -7,10 +7,10 @@ const LOG_RENDER_INFO_INTERVAL = 5000; // In ms
 export const mainCanvas = document.querySelector('#main-canvas') as HTMLCanvasElement;
 
 const gl = mainCanvas.getContext('webgl2', {
-    stencil: true,
-    alpha: false,
-    powerPreference: 'high-performance',
-    desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
+	stencil: true,
+	alpha: false,
+	powerPreference: 'high-performance',
+	desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 }) as WebGLRenderingContext; // Technically WebGL2, but idk. Rollup is complaining :S
 
 export const MAX_TEXTURE_SIZE = gl.getParameter(gl.MAX_TEXTURE_SIZE);
@@ -19,9 +19,9 @@ PIXI.settings.CREATE_IMAGE_BITMAP = false; // ehh? good or not? OKAY actually it
 PIXI.settings.GC_MODE = PIXI.GC_MODES.MANUAL; // TODO! So... what actually needs to be done manually? Just Texture.destroy()?
 
 export let renderer = new PIXI.Renderer({
-    width: window.innerWidth,
-    height: window.innerHeight,
-    context: gl,
+	width: window.innerWidth,
+	height: window.innerHeight,
+	context: gl,
 	antialias: true,
 	// TODO: Add resolution thing
 });
@@ -30,11 +30,11 @@ export let stage = new PIXI.Container();
 (renderer.framebuffer as any).writeDepthTexture = true; // OKAY SO. WHAT THE FUCK. WHY IS THIS FALSE IN THE FIRST PLACE. Absolute hack. Don't know if this has any side-effects. Maybe it's how the renderer is created?
 
 export function enableRenderTimeInfoLog() {
-    logRenderTimeInfo = true;
+	logRenderTimeInfo = true;
 }
 
 export function disableRenderTimeInfoLog() {
-    logRenderTimeInfo = false;
+	logRenderTimeInfo = false;
 }
 
 type RenderingTask = (dt?: number) => any;
@@ -45,62 +45,62 @@ let lastFrameTime: number = null;
 let lastRenderInfoLogTime: number = null;
 
 function mainRenderingLoop() {
-    let startTime = performance.now();
+	let startTime = performance.now();
 
 	requestAnimationFrame(mainRenderingLoop);
 	
 	let dt = 1/60;
 	if (lastFrameTime !== null) dt = startTime - lastFrameTime;
 	inbetweenFrameTimes.push(dt);
-    lastFrameTime = startTime;
+	lastFrameTime = startTime;
 
-    for (let i = 0; i < renderingTasks.length; i++) {
-        renderingTasks[i](dt);
-    }
+	for (let i = 0; i < renderingTasks.length; i++) {
+		renderingTasks[i](dt);
+	}
 
-    renderer.render(stage);
+	renderer.render(stage);
 
-    if (!logRenderTimeInfo) return;
+	if (!logRenderTimeInfo) return;
 
-    // Frame time logger:
-    let now = performance.now();
-    let elapsedTime = now - startTime;
-    frameTimes.push(elapsedTime);
+	// Frame time logger:
+	let now = performance.now();
+	let elapsedTime = now - startTime;
+	frameTimes.push(elapsedTime);
 
-    if ((now - lastRenderInfoLogTime) >= LOG_RENDER_INFO_INTERVAL && frameTimes.length > 0 && inbetweenFrameTimes.length > 0) {
-        let data1 = MathUtil.getAggregateValuesFromArray(frameTimes),
-            data2 = MathUtil.getAggregateValuesFromArray(inbetweenFrameTimes);
-            
-        console.log("---");
-        console.log(`Frame time info: Average: ${data1.avg.toFixed(3)}ms, Shortest: ${data1.min.toFixed(3)}ms, Longest: ${data1.max.toFixed(3)}ms`);
-        console.log(`Frame period info: Average: ${data2.avg.toFixed(3)}ms, Shortest: ${data2.min.toFixed(3)}ms, Longest: ${data2.max.toFixed(3)}ms`);
+	if ((now - lastRenderInfoLogTime) >= LOG_RENDER_INFO_INTERVAL && frameTimes.length > 0 && inbetweenFrameTimes.length > 0) {
+		let data1 = MathUtil.getAggregateValuesFromArray(frameTimes),
+			data2 = MathUtil.getAggregateValuesFromArray(inbetweenFrameTimes);
+			
+		console.log("---");
+		console.log(`Frame time info: Average: ${data1.avg.toFixed(3)}ms, Shortest: ${data1.min.toFixed(3)}ms, Longest: ${data1.max.toFixed(3)}ms`);
+		console.log(`Frame period info: Average: ${data2.avg.toFixed(3)}ms, Shortest: ${data2.min.toFixed(3)}ms, Longest: ${data2.max.toFixed(3)}ms`);
 
-        frameTimes.length = 0;
-        inbetweenFrameTimes.length = 0;
-        lastRenderInfoLogTime = now;
-    }
+		frameTimes.length = 0;
+		inbetweenFrameTimes.length = 0;
+		lastRenderInfoLogTime = now;
+	}
 
-    if (lastRenderInfoLogTime === null) lastRenderInfoLogTime = now;
+	if (lastRenderInfoLogTime === null) lastRenderInfoLogTime = now;
 }
 requestAnimationFrame(mainRenderingLoop);
 
 export function addRenderingTask(task: RenderingTask) {
-    let index = renderingTasks.indexOf(task);
-    if (index !== -1) return;
+	let index = renderingTasks.indexOf(task);
+	if (index !== -1) return;
 
-    renderingTasks.push(task);
+	renderingTasks.push(task);
 }
 
 export function removeRenderingTask(task: RenderingTask) {
-    let index = renderingTasks.indexOf(task);
-    if (index === -1) return;
+	let index = renderingTasks.indexOf(task);
+	if (index === -1) return;
 
-    renderingTasks.splice(index, 1);
+	renderingTasks.splice(index, 1);
 }
 
 // TODO: Maybe disable PIXI GC?
 export function uploadTexture(tex: PIXI.Texture) {
-    renderer.texture.bind(tex, 15); // Use slot 15 for all texture uploaded in this way. While that means that only the last uploaded texture will still be bound, all uploaded textures still remain in video memory.
+	renderer.texture.bind(tex, 15); // Use slot 15 for all texture uploaded in this way. While that means that only the last uploaded texture will still be bound, all uploaded textures still remain in video memory.
 }
 
 export let softwareCursor = new PIXI.Sprite(PIXI.Texture.from("./assets/img/cursor.png"));

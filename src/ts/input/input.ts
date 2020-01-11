@@ -4,40 +4,40 @@ import { normalizeWheelEvent } from "../util/misc_util";
 import { tickAll } from "../util/ticker";
 
 let currentMousePosition: Point = {
-    x: window.innerWidth / 2, // Before any events, just center the mouse
-    y: window.innerHeight / 2
+	x: window.innerWidth / 2, // Before any events, just center the mouse
+	y: window.innerHeight / 2
 };
 
 export function getCurrentMousePosition() {
-    return clonePoint(currentMousePosition);
+	return clonePoint(currentMousePosition);
 }
 
 window.onmousemove = (e: MouseEvent) => {
 	tickAll();
 
-    currentMousePosition.x = e.clientX;
-    currentMousePosition.y = e.clientY;
+	currentMousePosition.x = e.clientX;
+	currentMousePosition.y = e.clientY;
 
-    inputEventEmitter.emit('mouseMove');
+	inputEventEmitter.emit('mouseMove');
 };
 
 const PREVENT_NATIVE_CONTEXT_MENU = true;
 
 enum KeyCode {
-    X = 88,
-    Y = 89
+	X = 88,
+	Y = 89
 }
 
 enum FunctionalInput {
-    GameKeyA,
-    GameKeyB,
-    GameMouseButtonA,
-    GameMouseButtonB
+	GameKeyA,
+	GameKeyB,
+	GameMouseButtonA,
+	GameMouseButtonB
 }
 
 enum MouseButton {
-    Left = 0,
-    Right = 2
+	Left = 0,
+	Right = 2
 }
 
 const gameKeys = [FunctionalInput.GameKeyA, FunctionalInput.GameKeyB];
@@ -45,9 +45,9 @@ const gameKeys = [FunctionalInput.GameKeyA, FunctionalInput.GameKeyB];
 const functionalInputState: { [key: string]: boolean } = {};
 
 for (let key in FunctionalInput) {
-    if (isNaN(Number(key))) continue; // Skip the text 
+	if (isNaN(Number(key))) continue; // Skip the text 
 
-    functionalInputState[key] = false;
+	functionalInputState[key] = false;
 }
 
 let keyCodeMappings = new Map<KeyCode, FunctionalInput>();
@@ -63,28 +63,28 @@ window.addEventListener('keydown', (e) => {
 
 	let keyCode = e.keyCode;
 
-    let mappedFunctionalInput = keyCodeMappings.get(keyCode);
+	let mappedFunctionalInput = keyCodeMappings.get(keyCode);
 	if (mappedFunctionalInput === undefined) return;
 
-    if (functionalInputState[mappedFunctionalInput] !== true) {
-        functionalInputState[mappedFunctionalInput] = true;
-        if (gameKeys.includes(mappedFunctionalInput)) {
-            handleGameButtonDown(mappedFunctionalInput);
-        }
-    }
+	if (functionalInputState[mappedFunctionalInput] !== true) {
+		functionalInputState[mappedFunctionalInput] = true;
+		if (gameKeys.includes(mappedFunctionalInput)) {
+			handleGameButtonDown(mappedFunctionalInput);
+		}
+	}
 });
 
 window.addEventListener('keyup', (e) => {
 	tickAll();
 
-    let keyCode = e.keyCode;
+	let keyCode = e.keyCode;
 
-    let mappedFunctionalInput = keyCodeMappings.get(keyCode);
-    if (mappedFunctionalInput === undefined) return;
+	let mappedFunctionalInput = keyCodeMappings.get(keyCode);
+	if (mappedFunctionalInput === undefined) return;
 
-    if (functionalInputState[mappedFunctionalInput] !== false) {
-        functionalInputState[mappedFunctionalInput] = false;
-    }
+	if (functionalInputState[mappedFunctionalInput] !== false) {
+		functionalInputState[mappedFunctionalInput] = false;
+	}
 });
 
 // TODO: Eventually add touch support. Eventually.
@@ -95,26 +95,26 @@ window.addEventListener('mousedown', (e) => {
 	
 	inputEventEmitter.emit('mouseDown', e);
 
-    let mappedFunctionalInput = mouseButtonMappings.get(button);
-    if (mappedFunctionalInput === undefined) return;
+	let mappedFunctionalInput = mouseButtonMappings.get(button);
+	if (mappedFunctionalInput === undefined) return;
 
-    if (functionalInputState[mappedFunctionalInput] !== true) {
-        functionalInputState[mappedFunctionalInput] = true;
-        handleGameButtonDown(mappedFunctionalInput);
-    }
+	if (functionalInputState[mappedFunctionalInput] !== true) {
+		functionalInputState[mappedFunctionalInput] = true;
+		handleGameButtonDown(mappedFunctionalInput);
+	}
 });
 
 window.addEventListener('mouseup', (e) => {
 	tickAll();
 
-    let button = e.button;
+	let button = e.button;
 
-    let mappedFunctionalInput = mouseButtonMappings.get(button);
-    if (mappedFunctionalInput === undefined) return;
+	let mappedFunctionalInput = mouseButtonMappings.get(button);
+	if (mappedFunctionalInput === undefined) return;
 
-    if (functionalInputState[mappedFunctionalInput] !== false) {
-        functionalInputState[mappedFunctionalInput] = false;
-    }
+	if (functionalInputState[mappedFunctionalInput] !== false) {
+		functionalInputState[mappedFunctionalInput] = false;
+	}
 });
 
 // Prevent context menu from opening on right click
@@ -124,41 +124,41 @@ window.addEventListener('contextmenu', (e) => {
 });
 
 function handleGameButtonDown(button: FunctionalInput) {
-    switch (button) {
-        case FunctionalInput.GameKeyA: {
-            // Keys can't cause a game button press if their respective mouse version is being pressed right now
-            if (functionalInputState[FunctionalInput.GameMouseButtonA] === false) {
-                emitGameButtonDown();
-            }
-        }; break;
-        case FunctionalInput.GameKeyB: {
-            if (functionalInputState[FunctionalInput.GameMouseButtonB] === false) {
-                emitGameButtonDown();
-            }
-        }; break;
-        case FunctionalInput.GameMouseButtonA: {
-            // Similarly, mouse button can't cause a game button press if their respective key version is being pressed right now
-            if (functionalInputState[FunctionalInput.GameKeyA] === false) {
-                emitGameButtonDown();
-            }
-        }; break;
-        case FunctionalInput.GameMouseButtonB: {
-            if (functionalInputState[FunctionalInput.GameKeyB] === false) {
-                emitGameButtonDown();
-            }
-        }; break;
-    }
+	switch (button) {
+		case FunctionalInput.GameKeyA: {
+			// Keys can't cause a game button press if their respective mouse version is being pressed right now
+			if (functionalInputState[FunctionalInput.GameMouseButtonA] === false) {
+				emitGameButtonDown();
+			}
+		}; break;
+		case FunctionalInput.GameKeyB: {
+			if (functionalInputState[FunctionalInput.GameMouseButtonB] === false) {
+				emitGameButtonDown();
+			}
+		}; break;
+		case FunctionalInput.GameMouseButtonA: {
+			// Similarly, mouse button can't cause a game button press if their respective key version is being pressed right now
+			if (functionalInputState[FunctionalInput.GameKeyA] === false) {
+				emitGameButtonDown();
+			}
+		}; break;
+		case FunctionalInput.GameMouseButtonB: {
+			if (functionalInputState[FunctionalInput.GameKeyB] === false) {
+				emitGameButtonDown();
+			}
+		}; break;
+	}
 }
 
 function emitGameButtonDown() {
-    inputEventEmitter.emit('gameButtonDown');
+	inputEventEmitter.emit('gameButtonDown');
 }
 
 export function anyGameButtonIsPressed() {
-    return functionalInputState[FunctionalInput.GameKeyA] ||
-        functionalInputState[FunctionalInput.GameKeyB] ||
-        functionalInputState[FunctionalInput.GameMouseButtonA] ||
-        functionalInputState[FunctionalInput.GameMouseButtonB];
+	return functionalInputState[FunctionalInput.GameKeyA] ||
+		functionalInputState[FunctionalInput.GameKeyB] ||
+		functionalInputState[FunctionalInput.GameMouseButtonA] ||
+		functionalInputState[FunctionalInput.GameMouseButtonB];
 }
 
 window.addEventListener('wheel', (ev) => {

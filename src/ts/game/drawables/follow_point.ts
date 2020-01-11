@@ -14,132 +14,132 @@ const FOLLOW_POINT_FADE_IN_TIME_ANIMTED = 800; // For animated follow points, th
 const FOLLOW_POINT_FADE_OUT_TIME = 400;
 
 export class FollowPoint {
-    public container: PIXI.Container;
-    private hitObjectA: ProcessedHitObject;
-    private hitObjectB: ProcessedHitObject;
-    private startTime: number;
-    private endTime: number;
-    private startPoint: Point;
-    private endPoint: Point;
-    private length: number;
-    private parts: PIXI.Container[];
-    public renderStartTime: number;
-    public renderFinished: boolean = false;
+	public container: PIXI.Container;
+	private hitObjectA: ProcessedHitObject;
+	private hitObjectB: ProcessedHitObject;
+	private startTime: number;
+	private endTime: number;
+	private startPoint: Point;
+	private endPoint: Point;
+	private length: number;
+	private parts: PIXI.Container[];
+	public renderStartTime: number;
+	public renderFinished: boolean = false;
 
-    constructor(hitObjectA: ProcessedHitObject, hitObjectB: ProcessedHitObject) {
-        let { headedHitObjectTextureFactor } = gameState.currentPlay;
+	constructor(hitObjectA: ProcessedHitObject, hitObjectB: ProcessedHitObject) {
+		let { headedHitObjectTextureFactor } = gameState.currentPlay;
 
-        this.hitObjectA = hitObjectA;
-        this.hitObjectB = hitObjectB;
+		this.hitObjectA = hitObjectA;
+		this.hitObjectB = hitObjectB;
 
-        this.startTime = hitObjectA.endTime; // Should this really be called "start time"??
-        this.endTime = hitObjectB.startTime;
-        this.startPoint = this.hitObjectA.endPoint;
-        this.endPoint = this.hitObjectB.startPoint;
+		this.startTime = hitObjectA.endTime; // Should this really be called "start time"??
+		this.endTime = hitObjectB.startTime;
+		this.startPoint = this.hitObjectA.endPoint;
+		this.endPoint = this.hitObjectB.startPoint;
 
-        this.renderStartTime = this.startTime - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
+		this.renderStartTime = this.startTime - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
 
-        this.length = pointDistance(this.startPoint, this.endPoint);
-        let angle = pointAngle(this.startPoint, this.endPoint);
+		this.length = pointDistance(this.startPoint, this.endPoint);
+		let angle = pointAngle(this.startPoint, this.endPoint);
 
-        this.parts = [];
-        this.container = new PIXI.Container();
-        this.container.rotation = angle;
+		this.parts = [];
+		this.container = new PIXI.Container();
+		this.container.rotation = angle;
 
-        let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
-        let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
+		let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
+		let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
 
-        let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor));
-        let texture = osuTexture.getForResolution(resolution);
-        let width = osuTexture.getWidthForResolution(resolution) * headedHitObjectTextureFactor;
-        let height = osuTexture.getHeightForResolution(resolution) * headedHitObjectTextureFactor;
+		let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor));
+		let texture = osuTexture.getForResolution(resolution);
+		let width = osuTexture.getWidthForResolution(resolution) * headedHitObjectTextureFactor;
+		let height = osuTexture.getHeightForResolution(resolution) * headedHitObjectTextureFactor;
 
-        for (let i = 0; i < partCount; i++) {
-            let sprite = new PIXI.Sprite(texture);
+		for (let i = 0; i < partCount; i++) {
+			let sprite = new PIXI.Sprite(texture);
 
-            sprite.anchor.set(0.5, 0.5);
-            sprite.width = width;
-            sprite.height = height;
+			sprite.anchor.set(0.5, 0.5);
+			sprite.width = width;
+			sprite.height = height;
 
-            let wrapper = new PIXI.Container();
-            wrapper.addChild(sprite);
+			let wrapper = new PIXI.Container();
+			wrapper.addChild(sprite);
 
-            this.container.addChild(wrapper);
-            this.parts.push(wrapper);
-        }
-    }
+			this.container.addChild(wrapper);
+			this.parts.push(wrapper);
+		}
+	}
 
-    show() {
-        followPointContainer.addChild(this.container);
-        
-        this.position();
-    }
+	show() {
+		followPointContainer.addChild(this.container);
+		
+		this.position();
+	}
 
-    position() {
-        let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
-        this.container.position.set(screenCoordinates.x, screenCoordinates.y);
-    }
+	position() {
+		let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
+		this.container.position.set(screenCoordinates.x, screenCoordinates.y);
+	}
 
-    remove() {
-        followPointContainer.removeChild(this.container);
-    }
+	remove() {
+		followPointContainer.removeChild(this.container);
+	}
 
-    update(currentTime: number) {
-        if (currentTime >= this.endTime + FOLLOW_POINT_FADE_OUT_TIME) {
-            this.renderFinished = true;
-            return;
-        }
+	update(currentTime: number) {
+		if (currentTime >= this.endTime + FOLLOW_POINT_FADE_OUT_TIME) {
+			this.renderFinished = true;
+			return;
+		}
 
-        let { headedHitObjectTextureFactor, hitObjectPixelRatio } = gameState.currentPlay;
+		let { headedHitObjectTextureFactor, hitObjectPixelRatio } = gameState.currentPlay;
 
-        let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
-        let frameCount = osuTexture.getAnimationFrameCount();
-        const partFadeInTime = (frameCount === 0)? FOLLOW_POINT_FADE_IN_TIME : FOLLOW_POINT_FADE_IN_TIME_ANIMTED;
+		let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
+		let frameCount = osuTexture.getAnimationFrameCount();
+		const partFadeInTime = (frameCount === 0)? FOLLOW_POINT_FADE_IN_TIME : FOLLOW_POINT_FADE_IN_TIME_ANIMTED;
 
-        for (let i = 0; i < this.parts.length; i++) {
-            let part = this.parts[i];
+		for (let i = 0; i < this.parts.length; i++) {
+			let part = this.parts[i];
 
-            let x = (i + 1.5) * POINT_DISTANCE; // First point is at 1.5 * POINT_DISTANCE
-            part.x = x * hitObjectPixelRatio;
+			let x = (i + 1.5) * POINT_DISTANCE; // First point is at 1.5 * POINT_DISTANCE
+			part.x = x * hitObjectPixelRatio;
 
-            let fadeOutBeginning = MathUtil.lerp(this.startTime, this.endTime, x/this.length);
-            let fadeInBeginning = fadeOutBeginning - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
-            
-            let fadeInCompletion = (currentTime - fadeInBeginning) / partFadeInTime;
-            fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
-            let easedFadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
- 
-            let fadeOutCompletion = (currentTime - fadeOutBeginning) / FOLLOW_POINT_FADE_OUT_TIME;
-            fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+			let fadeOutBeginning = MathUtil.lerp(this.startTime, this.endTime, x/this.length);
+			let fadeInBeginning = fadeOutBeginning - (FOLLOW_POINT_SCREENTIME - FOLLOW_POINT_FADE_OUT_TIME);
+			
+			let fadeInCompletion = (currentTime - fadeInBeginning) / partFadeInTime;
+			fadeInCompletion = MathUtil.clamp(fadeInCompletion, 0, 1);
+			let easedFadeInCompletion = MathUtil.ease(EaseType.EaseOutQuad, fadeInCompletion);
 
-            if (frameCount === 0) {
-                // This animates the follow points in a certain way. Check the default skin for reference.
-                part.x -= (1 - easedFadeInCompletion) * POINT_DISTANCE*2 * hitObjectPixelRatio;
-                part.scale.set(1 + (1 - easedFadeInCompletion)*0.75);
-                part.alpha = fadeInCompletion;
-                part.alpha -= fadeOutCompletion;
-            } else {
-                // If the skin has defined custom follow point animations, use those.
-                let sprite = part.children[0] as PIXI.Sprite;
-                let frame: number;
+			let fadeOutCompletion = (currentTime - fadeOutBeginning) / FOLLOW_POINT_FADE_OUT_TIME;
+			fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
 
-                if (fadeInCompletion < 1) {
-                    frame = Math.floor(fadeInCompletion * (frameCount - 1));
-                } else {
-                    frame = Math.floor((1 - fadeOutCompletion) * (frameCount - 1));
-                }
+			if (frameCount === 0) {
+				// This animates the follow points in a certain way. Check the default skin for reference.
+				part.x -= (1 - easedFadeInCompletion) * POINT_DISTANCE*2 * hitObjectPixelRatio;
+				part.scale.set(1 + (1 - easedFadeInCompletion)*0.75);
+				part.alpha = fadeInCompletion;
+				part.alpha -= fadeOutCompletion;
+			} else {
+				// If the skin has defined custom follow point animations, use those.
+				let sprite = part.children[0] as PIXI.Sprite;
+				let frame: number;
 
-                let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor), frame);
-                let texture = osuTexture.getForResolution(resolution, frame);
-                let width = osuTexture.getWidthForResolution(resolution, frame) * headedHitObjectTextureFactor;
-                let height = osuTexture.getHeightForResolution(resolution, frame) * headedHitObjectTextureFactor;
+				if (fadeInCompletion < 1) {
+					frame = Math.floor(fadeInCompletion * (frameCount - 1));
+				} else {
+					frame = Math.floor((1 - fadeOutCompletion) * (frameCount - 1));
+				}
 
-                sprite.texture = texture;
-                sprite.width = width;
-                sprite.height = height;
+				let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor), frame);
+				let texture = osuTexture.getForResolution(resolution, frame);
+				let width = osuTexture.getWidthForResolution(resolution, frame) * headedHitObjectTextureFactor;
+				let height = osuTexture.getHeightForResolution(resolution, frame) * headedHitObjectTextureFactor;
 
-                part.alpha = fadeInCompletion - fadeOutCompletion;
-            }
-        }
-    }
+				sprite.texture = texture;
+				sprite.width = width;
+				sprite.height = height;
+
+				part.alpha = fadeInCompletion - fadeOutCompletion;
+			}
+		}
+	}
 }

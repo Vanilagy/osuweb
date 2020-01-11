@@ -2,40 +2,40 @@ import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
 import { getFileNameWithoutExtension } from "../util/file_util";
 
 export class VirtualFile extends VirtualFileSystemEntry {
-    private resource: Blob | File | string;
-    private blob: Blob = null;
-    private cachedResourceUrl: string;
+	private resource: Blob | File | string;
+	private blob: Blob = null;
+	private cachedResourceUrl: string;
 
-    private constructor() {
-        super();
-    }
+	private constructor() {
+		super();
+	}
 
-    async load() {
-        if (this.blob) return;
+	async load() {
+		if (this.blob) return;
 
-        if (typeof this.resource === "string") {
-            let response = await fetch(this.resource);
-            this.blob = await response.blob();
-        } else {
-            this.blob = this.resource;
-        }
-    }
+		if (typeof this.resource === "string") {
+			let response = await fetch(this.resource);
+			this.blob = await response.blob();
+		} else {
+			this.blob = this.resource;
+		}
+	}
 
-    async readAsText() {
-        await this.load();
-        return await new Response(this.blob).text();
-    }
+	async readAsText() {
+		await this.load();
+		return await new Response(this.blob).text();
+	}
 
-    async readAsArrayBuffer() {
-        await this.load();
-        return await new Response(this.blob).arrayBuffer();
-    }
+	async readAsArrayBuffer() {
+		await this.load();
+		return await new Response(this.blob).arrayBuffer();
+	}
 
-    async readAsResourceUrl() {
-        if (this.cachedResourceUrl !== undefined) return this.cachedResourceUrl;
+	async readAsResourceUrl() {
+		if (this.cachedResourceUrl !== undefined) return this.cachedResourceUrl;
 
-        await this.load();
-        return this.cachedResourceUrl = URL.createObjectURL(this.blob);
+		await this.load();
+		return this.cachedResourceUrl = URL.createObjectURL(this.blob);
 	}
 	
 	async getBlob() {
@@ -43,24 +43,24 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		return this.blob;
 	}
 
-    getUrl() {
-        if (typeof this.resource === "string") return this.resource;
-        return URL.createObjectURL(this.resource);
-    }
+	getUrl() {
+		if (typeof this.resource === "string") return this.resource;
+		return URL.createObjectURL(this.resource);
+	}
 
-    getSize() {
-        if (this.blob) return this.blob.size;
-        else if (this.resource instanceof File) return this.resource.size;
-        return null;
-    }
+	getSize() {
+		if (this.blob) return this.blob.size;
+		else if (this.resource instanceof File) return this.resource.size;
+		return null;
+	}
 
-    getLastModifiedDate() {
-        if (this.resource instanceof File) return new Date(this.resource.lastModified);
-        return null;
-    }
+	getLastModifiedDate() {
+		if (this.resource instanceof File) return new Date(this.resource.lastModified);
+		return null;
+	}
 
-    getNameWithoutExtension() {
-        return getFileNameWithoutExtension(this.name);
+	getNameWithoutExtension() {
+		return getFileNameWithoutExtension(this.name);
 	}
 
 	revokeResourceUrl() {
@@ -68,30 +68,30 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		URL.revokeObjectURL(this.cachedResourceUrl);
 	}
 
-    static fromUrl(url: string, resourceName: string) {
-        let newFile = new VirtualFile();
+	static fromUrl(url: string, resourceName: string) {
+		let newFile = new VirtualFile();
 
-        newFile.resource = url;
-        newFile.name = resourceName;
+		newFile.resource = url;
+		newFile.name = resourceName;
 
-        return newFile;
-    }
+		return newFile;
+	}
 
-    static fromFile(file: File) {
-        let newFile = new VirtualFile();
+	static fromFile(file: File) {
+		let newFile = new VirtualFile();
 
-        newFile.resource = file;
-        newFile.name = file.name;
+		newFile.resource = file;
+		newFile.name = file.name;
 
-        return newFile;
-    }
+		return newFile;
+	}
 
-    static fromBlob(blob: Blob, resourceName: string) {
-        let newFile = new VirtualFile();
+	static fromBlob(blob: Blob, resourceName: string) {
+		let newFile = new VirtualFile();
 
-        newFile.resource = blob;
-        newFile.name = resourceName;
+		newFile.resource = blob;
+		newFile.name = resourceName;
 
-        return newFile;
-    }
+		return newFile;
+	}
 }

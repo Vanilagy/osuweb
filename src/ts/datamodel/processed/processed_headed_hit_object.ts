@@ -7,17 +7,17 @@ export abstract class ProcessedHeadedHitObject extends ProcessedHitObject {
 	abstract applyStackPosition(): void;
 
 	addPlayEvents(playEventArray: PlayEvent[]) {
-        playEventArray.push({
-            type: PlayEventType.PerfectHeadHit,
-            hitObject: this,
-            time: this.startTime,
-            position: this.startPoint
-        });
+		playEventArray.push({
+			type: PlayEventType.PerfectHeadHit,
+			hitObject: this,
+			time: this.startTime,
+			position: this.startPoint
+		});
 
-        playEventArray.push({
-            type: PlayEventType.HeadHitWindowEnd,
-            hitObject: this,
-            time: this.startTime + this.processedBeatmap.difficulty.getHitDeltaForJudgement(50)
-        });
-    }
+		playEventArray.push({
+			type: PlayEventType.HeadHitWindowEnd,
+			hitObject: this,
+			time: this.startTime + this.processedBeatmap.difficulty.getHitDeltaForJudgement(50)
+		});
+	}
 }

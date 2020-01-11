@@ -1,10 +1,10 @@
 export const PLAYFIELD_DIMENSIONS = { // In osu!pixels
-    width: 512,
-    height: 384
+	width: 512,
+	height: 384
 };
 export const STANDARD_SCREEN_DIMENSIONS = {
-    width: 640,
-    height: 480
+	width: 640,
+	height: 480
 };
 
 export const SCREEN_COORDINATES_X_FACTOR = 0.5; // See this constant's use for an explanation.
@@ -23,6 +23,6 @@ export const UNSCALED_NUMBER_HEIGHT = 47;
 export const PROCEDURAL_HEAD_INNER_TYPE: "number" | "dot" = "number";
 
 export const SLIDER_SETTINGS = {
-    debugDrawing: false,
-    snaking: true
+	debugDrawing: false,
+	snaking: true
 };

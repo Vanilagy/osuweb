@@ -7,14 +7,14 @@ export class ProcessedCircle extends ProcessedHeadedHitObject {
 	public hitObject: Circle;
 
 	constructor(circle: Circle, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo, processedBeatmap: ProcessedBeatmap) {
-        super(circle, comboInfo, timingInfo, processedBeatmap);
+		super(circle, comboInfo, timingInfo, processedBeatmap);
 
-        this.endTime = this.startTime;
-        this.endPoint = this.startPoint;
+		this.endTime = this.startTime;
+		this.endPoint = this.startPoint;
 	}
 	
 	applyStackPosition() {
-        // Since start point == end point, this changes both points
-        stackShiftPoint(this.startPoint, this.stackHeight);
-    }
+		// Since start point == end point, this changes both points
+		stackShiftPoint(this.startPoint, this.stackHeight);
+	}
 }

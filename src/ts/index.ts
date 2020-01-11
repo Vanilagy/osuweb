@@ -7,10 +7,10 @@ import { showChooseFile } from './visuals/simple_beatmap_selector';
 const osu: string | null = 'ORERU!';
 
 async function init() {
-    await baseSkin.init();
-    showChooseFile();
+	await baseSkin.init();
+	showChooseFile();
 
-    console.log(osu!); // Love the syntax <3
+	console.log(osu!); // Love the syntax <3
 }
 
 window.addEventListener('load', init);

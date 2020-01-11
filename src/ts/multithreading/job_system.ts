@@ -24,12 +24,12 @@ function getNextRoundRobinIndex() {
 }
 
 for (let i = 0; i < workerCount; i++) {
-    let worker = new Worker('./js/worker_bundle.js');
-    workerPool.push(worker);
+	let worker = new Worker('./js/worker_bundle.js');
+	workerPool.push(worker);
 
-    worker.onmessage = (e) => {
-        let response = e.data as JobResponseWrapper;
-        let promiseWrapper = jobPromises.get(response.id);
+	worker.onmessage = (e) => {
+		let response = e.data as JobResponseWrapper;
+		let promiseWrapper = jobPromises.get(response.id);
 		if (!promiseWrapper) return;
 
 		if (response.status === 'fulfilled') {
@@ -39,32 +39,32 @@ for (let i = 0; i < workerCount; i++) {
 		}
 
 		jobPromises.delete(response.id);
-    };
+	};
 }
 
 export function startJob(task: JobTask.GetExtendedBetamapData, data: GetBeatmapMetadataRequest["data"]): Promise<ExtendedBeatmapData>;
 export function startJob(task: JobTask.GetImageBitmap, data: GetImageBitmapRequest["data"]): Promise<ImageBitmap>;
 export function startJob<T>(task: JobTask, data?: any, transfer?: Transferable[]): Promise<T> {
-    let worker = workerPool[getNextRoundRobinIndex()];
-    let jobId = currentJobId++;
+	let worker = workerPool[getNextRoundRobinIndex()];
+	let jobId = currentJobId++;
 
-    worker.postMessage({
-        id: jobId,
+	worker.postMessage({
+		id: jobId,
 		task: task,
 		data: data
-    }, transfer);
+	}, transfer);
 
-    let promiseResolve: Function, promiseReject: Function;
-    let promise = new Promise<T>((resolve, reject) => {
-        promiseResolve = resolve;
-        promiseReject = reject;
-    });
+	let promiseResolve: Function, promiseReject: Function;
+	let promise = new Promise<T>((resolve, reject) => {
+		promiseResolve = resolve;
+		promiseReject = reject;
+	});
 
 	jobPromises.set(jobId, {
-        promise: promise,
-        resolve: promiseResolve,
-        reject: promiseReject
-    });
+		promise: promise,
+		resolve: promiseResolve,
+		reject: promiseReject
+	});
 
-    return promise;
+	return promise;
 }

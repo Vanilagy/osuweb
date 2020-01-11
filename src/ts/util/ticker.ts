@@ -5,17 +5,17 @@ let tickingTasks: TickingTask[] = [];
 let lastTickTime: number = null;
 
 export function addTickingTask(task: TickingTask) {
-    let index = tickingTasks.indexOf(task);
-    if (index !== -1) return;
+	let index = tickingTasks.indexOf(task);
+	if (index !== -1) return;
 
-    tickingTasks.push(task);
+	tickingTasks.push(task);
 }
 
 export function removeTickingTask(task: TickingTask) {
-    let index = tickingTasks.indexOf(task);
-    if (index === -1) return;
+	let index = tickingTasks.indexOf(task);
+	if (index === -1) return;
 
-    tickingTasks.splice(index, 1);
+	tickingTasks.splice(index, 1);
 }
 
 // Should run as often as possible.

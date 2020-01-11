@@ -10,19 +10,19 @@ export abstract class ProcessedHitObject {
 	public timingInfo: CurrentTimingPointInfo;
 	public processedBeatmap: ProcessedBeatmap;
 
-    public startPoint: Point;
-    public endPoint: Point;
-    public startTime: number;
+	public startPoint: Point;
+	public endPoint: Point;
+	public startTime: number;
 	public endTime: number;
 	
 	constructor(hitObject: HitObject, comboInfo: ComboInfo, timingInfo: CurrentTimingPointInfo, processedBeatmap: ProcessedBeatmap) {
-        this.hitObject = hitObject;
+		this.hitObject = hitObject;
 
-        this.startPoint = { // It is important that we "duplicate" the point here. This decouples the raw hitObject from the drawable.
-            x: this.hitObject.x,
-            y: this.hitObject.y
-        };
-        this.startTime = this.hitObject.time;
+		this.startPoint = { // It is important that we "duplicate" the point here. This decouples the raw hitObject from the drawable.
+			x: this.hitObject.x,
+			y: this.hitObject.y
+		};
+		this.startTime = this.hitObject.time;
 
 		this.comboInfo = comboInfo;
 		this.timingInfo = timingInfo;

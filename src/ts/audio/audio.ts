@@ -16,5 +16,5 @@ soundEffectsNode.gain.value = 1.0;
 soundEffectsNode.connect(masterGain);
 
 export function createAudioBuffer(arrayBuffer: ArrayBuffer) {
-    return audioContext.decodeAudioData(arrayBuffer);
+	return audioContext.decodeAudioData(arrayBuffer);
 }

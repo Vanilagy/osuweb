@@ -16,10 +16,10 @@ export function getGlobalScalingFactor() {
 export let uiEventEmitter = new CustomEventEmitter();
 
 function onResize() {
-    let width = window.innerWidth,
-        height = window.innerHeight;
+	let width = window.innerWidth,
+		height = window.innerHeight;
 
-    mainCanvas.setAttribute('width', String(width));
+	mainCanvas.setAttribute('width', String(width));
 	mainCanvas.setAttribute('height', String(height));
 
 	renderer.resize(width, height);
@@ -33,43 +33,43 @@ onResize();
 window.addEventListener('resize', onResize);
 
 interface CursorRipple {
-    time: number,
-    position: Point
+	time: number,
+	position: Point
 }
 let currentCursorRipples: CursorRipple[] = [];
 
 export function addCursorRipple(position?: Point) {
-    if (!CURSOR_RIPPLES) return;
+	if (!CURSOR_RIPPLES) return;
 
-    position = position || getCurrentMousePosition();
+	position = position || getCurrentMousePosition();
 
-    currentCursorRipples.push({
-        time: performance.now(),
-        position: position
-    });
+	currentCursorRipples.push({
+		time: performance.now(),
+		position: position
+	});
 }
 inputEventEmitter.addListener('gameButtonDown', addCursorRipple);
 
 addRenderingTask(() => {
-    let now = performance.now();
-    cursorRippleGraphics.clear();
+	let now = performance.now();
+	cursorRippleGraphics.clear();
 
-    for (let i = 0; i < currentCursorRipples.length; i++) {
-        let ripple = currentCursorRipples[i];
+	for (let i = 0; i < currentCursorRipples.length; i++) {
+		let ripple = currentCursorRipples[i];
 
-        let completion = (now - ripple.time) / CURSOR_RIPPLE_DURATION;
-        completion = MathUtil.clamp(completion, 0, 1);
+		let completion = (now - ripple.time) / CURSOR_RIPPLE_DURATION;
+		completion = MathUtil.clamp(completion, 0, 1);
 
-        if (completion === 1) {
-            currentCursorRipples.splice(i--, 1);
-            continue;
-        }
+		if (completion === 1) {
+			currentCursorRipples.splice(i--, 1);
+			continue;
+		}
 
-        let alpha = 1 - completion;
-        let radius = MathUtil.lerp(50, 90, completion);
+		let alpha = 1 - completion;
+		let radius = MathUtil.lerp(50, 90, completion);
 
-        cursorRippleGraphics.beginFill(0xffffff, 0.12 * alpha);
-        cursorRippleGraphics.drawCircle(ripple.position.x, ripple.position.y, radius);
-        cursorRippleGraphics.endFill();
-    }
+		cursorRippleGraphics.beginFill(0xffffff, 0.12 * alpha);
+		cursorRippleGraphics.drawCircle(ripple.position.x, ripple.position.y, radius);
+		cursorRippleGraphics.endFill();
+	}
 });

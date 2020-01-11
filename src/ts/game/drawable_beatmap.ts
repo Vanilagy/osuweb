@@ -39,26 +39,26 @@ export class DrawableBeatmap {
 	}
 
 	draw() {
-        for (let i = 0; i < this.drawableHitObjects.length; i++) {
-            let drawable = this.drawableHitObjects[i];
-            drawable.draw();
-        }
+		for (let i = 0; i < this.drawableHitObjects.length; i++) {
+			let drawable = this.drawableHitObjects[i];
+			drawable.draw();
+		}
 	}
 	
 	generateFollowPoints() {
-        for (let i = 1; i < this.processedBeatmap.hitObjects.length; i++) {
-            let objA = this.processedBeatmap.hitObjects[i - 1];
-            let objB = this.processedBeatmap.hitObjects[i];
+		for (let i = 1; i < this.processedBeatmap.hitObjects.length; i++) {
+			let objA = this.processedBeatmap.hitObjects[i - 1];
+			let objB = this.processedBeatmap.hitObjects[i];
 
-            // No follow points to spinners!
-            if (objA instanceof ProcessedSpinner || objB instanceof ProcessedSpinner) continue;
+			// No follow points to spinners!
+			if (objA instanceof ProcessedSpinner || objB instanceof ProcessedSpinner) continue;
 
-            if (objA.comboInfo.comboNum === objB.comboInfo.comboNum && objA.comboInfo.n !== objB.comboInfo.n) {
-                let distSquared = pointDistanceSquared(objA.endPoint, objB.startPoint);
+			if (objA.comboInfo.comboNum === objB.comboInfo.comboNum && objA.comboInfo.n !== objB.comboInfo.n) {
+				let distSquared = pointDistanceSquared(objA.endPoint, objB.startPoint);
 
-                if (distSquared < FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED) continue;
-                this.followPoints.push(new FollowPoint(objA, objB));
-            }
-        }
-    }
+				if (distSquared < FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED) continue;
+				this.followPoints.push(new FollowPoint(objA, objB));
+			}
+		}
+	}
 }

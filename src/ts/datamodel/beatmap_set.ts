@@ -4,26 +4,26 @@ import { VirtualFile } from "../file_system/virtual_file";
 import { Skin } from "../game/skin/skin";
 
 export class BeatmapSet {
-    public directory: VirtualDirectory;
+	public directory: VirtualDirectory;
 
-    constructor(directory: VirtualDirectory) {
-        this.directory = directory;
-    }
+	constructor(directory: VirtualDirectory) {
+		this.directory = directory;
+	}
 
-    getBeatmapFiles() {
-        let arr: VirtualFile[] = [];
+	getBeatmapFiles() {
+		let arr: VirtualFile[] = [];
 
-        this.directory.forEach((entry) => {
-            if (entry instanceof VirtualFile && isOsuBeatmapFile(entry.name)) arr.push(entry);
-        });
+		this.directory.forEach((entry) => {
+			if (entry instanceof VirtualFile && isOsuBeatmapFile(entry.name)) arr.push(entry);
+		});
 
-        return arr;
-    }
+		return arr;
+	}
 
-    async getBeatmapSkin() {
-        let skin = new Skin(this.directory);
-        await skin.init();
+	async getBeatmapSkin() {
+		let skin = new Skin(this.directory);
+		await skin.init();
 
-        return skin;
-    }
+		return skin;
+	}
 }

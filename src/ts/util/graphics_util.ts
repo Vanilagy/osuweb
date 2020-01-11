@@ -2,104 +2,104 @@ import { MathUtil, EaseType } from "./math_util";
 import { getNow } from "./misc_util";
 
 export interface Dimensions {
-    width: number,
-    height: number
+	width: number,
+	height: number
 }
 
 export interface Color {
-    r: number, // 0-255
-    g: number, // 0-255
-    b: number, // 0-255
-    a?: number // 0.0-1.0
+	r: number, // 0-255
+	g: number, // 0-255
+	b: number, // 0-255
+	a?: number // 0.0-1.0
 }
 
 export function colorToHexNumber(color: Color) {
-    return color.r * 0x10000 + color.g * 0x100 + color.b * 0x1;
+	return color.r * 0x10000 + color.g * 0x100 + color.b * 0x1;
 }
 
 export function colorToHexString(color: Color) {
-    return '#' + ('000000' + colorToHexNumber(color).toString(16)).slice(-6);
+	return '#' + ('000000' + colorToHexNumber(color).toString(16)).slice(-6);
 }
 
 export function lerpColors(c1: Color, c2: Color, t: number) {
-    return {
-        r: MathUtil.lerp(c1.r, c2.r, t) | 0,
-        g: MathUtil.lerp(c1.g, c2.g, t) | 0,
-        b: MathUtil.lerp(c1.b, c2.b, t) | 0
-    };
+	return {
+		r: MathUtil.lerp(c1.r, c2.r, t) | 0,
+		g: MathUtil.lerp(c1.g, c2.g, t) | 0,
+		b: MathUtil.lerp(c1.b, c2.b, t) | 0
+	};
 }
 
 export const Colors = {
-    White: {r: 255, g: 255, b: 255} as Color,
-    Black: {r: 0, g: 0, b: 0} as Color,
-    Red: {r: 255, g: 0, b: 0} as Color,
-    Green: {r: 0, g: 255, b: 0} as Color,
-    Blue: {r: 0, g: 0, b: 255} as Color,
-    Yellow: {r: 255, g: 255, b: 0} as Color
+	White: {r: 255, g: 255, b: 255} as Color,
+	Black: {r: 0, g: 0, b: 0} as Color,
+	Red: {r: 255, g: 0, b: 0} as Color,
+	Green: {r: 0, g: 255, b: 0} as Color,
+	Blue: {r: 0, g: 0, b: 255} as Color,
+	Yellow: {r: 255, g: 255, b: 0} as Color
 };
 
 type InterpolatedCounterDurationCallback = (distanceToGoal: number) => number;
 
 interface InterpolatedCounterOptions {
-    initial: number,
-    duration: number | InterpolatedCounterDurationCallback, // In ms
+	initial: number,
+	duration: number | InterpolatedCounterDurationCallback, // In ms
 	ease: EaseType,
 	p?: number
 }
 
 // For animating numbers going from x to y
 export class InterpolatedCounter {
-    private options: InterpolatedCounterOptions;
-    private start: number;
-    private end: number;
+	private options: InterpolatedCounterOptions;
+	private start: number;
+	private end: number;
 	public ease: EaseType;
 	private p: number;
-    private duration: number;
-    private startTime: number = -Infinity;
+	private duration: number;
+	private startTime: number = -Infinity;
 
-    constructor(options: InterpolatedCounterOptions) {
-        this.options = options;
-        this.start = options.initial;
-        this.end = this.start;
-        this.duration = this.getDuration();
+	constructor(options: InterpolatedCounterOptions) {
+		this.options = options;
+		this.start = options.initial;
+		this.end = this.start;
+		this.duration = this.getDuration();
 		this.ease = options.ease;
 		this.p = options.p;
-    }
+	}
 
-    getDuration() {
-        if (typeof this.options.duration === 'number') return this.options.duration;
-        else return this.options.duration(this.end - this.start);
-    }
+	getDuration() {
+		if (typeof this.options.duration === 'number') return this.options.duration;
+		else return this.options.duration(this.end - this.start);
+	}
 
-    getCurrentValue(customTime?: number) {
-        let now = getNow(customTime);
-        let timePassed = (now === this.startTime)? 0 : now - this.startTime; // This check might seem unnecessary, since x - x = 0, however that does not hold true for x = +-Infinity. Since some maps are... questionable, we need to add this check.
-        
-        let completion = MathUtil.clamp(timePassed / this.duration, 0, 1);
-        completion = MathUtil.ease(this.ease, completion, this.p);
+	getCurrentValue(customTime?: number) {
+		let now = getNow(customTime);
+		let timePassed = (now === this.startTime)? 0 : now - this.startTime; // This check might seem unnecessary, since x - x = 0, however that does not hold true for x = +-Infinity. Since some maps are... questionable, we need to add this check.
+		
+		let completion = MathUtil.clamp(timePassed / this.duration, 0, 1);
+		completion = MathUtil.ease(this.ease, completion, this.p);
 
-        return MathUtil.lerp(this.start, this.end, completion);
-    }
+		return MathUtil.lerp(this.start, this.end, completion);
+	}
 
-    setGoal(goal: number, customTime?: number) {
-        let now = getNow(customTime);
+	setGoal(goal: number, customTime?: number) {
+		let now = getNow(customTime);
 		let current = this.getCurrentValue(now);
 		
-        this.start = current;
-        this.end = goal;
-        this.startTime = now;
-        this.duration = this.getDuration();
-    }
+		this.start = current;
+		this.end = goal;
+		this.startTime = now;
+		this.duration = this.getDuration();
+	}
 
-    getCurrentGoal() {
-        return this.end;
-    }
+	getCurrentGoal() {
+		return this.end;
+	}
 
-    reset(to: number) {
-        this.start = to;
-        this.end = to;
-        this.startTime = -Infinity;
-    }
+	reset(to: number) {
+		this.start = to;
+		this.end = to;
+		this.startTime = -Infinity;
+	}
 }
 
 export enum ReverseMode {
@@ -135,7 +135,7 @@ export class Interpolator {
 	private startTime: number;
 	private reversed = false;
 
-    constructor(options: InterpolatorOptions) {
+	constructor(options: InterpolatorOptions) {
 		Object.assign(this, options);
 		this.reset();
 	}
@@ -152,17 +152,17 @@ export class Interpolator {
 		return (this.reversed && this.reverseP !== undefined)? this.reverseP : this.p;
 	}
 
-    /**
-     * 
-     * @param customTime A custom time parameter to override performance.now with your own timekeeping system.
-     */
-    start(customTime?: number) {
-        this.startTime = getNow(customTime);
-    }
+	/**
+	 * 
+	 * @param customTime A custom time parameter to override performance.now with your own timekeeping system.
+	 */
+	start(customTime?: number) {
+		this.startTime = getNow(customTime);
+	}
 
-    /** Instantly finish the animation. */
-    end() {
-        this.startTime = -Infinity;
+	/** Instantly finish the animation. */
+	end() {
+		this.startTime = -Infinity;
 	}
 	
 	reset() {
@@ -206,11 +206,11 @@ export class Interpolator {
 		return completion;
 	}
 
-    getCurrentValue(customTime?: number) {
+	getCurrentValue(customTime?: number) {
 		let completion = this.getCurrentCompletion(customTime);
-        completion = MathUtil.ease(this.getEase(), completion, this.getEaseP());
+		completion = MathUtil.ease(this.getEase(), completion, this.getEaseP());
 
-        return MathUtil.lerp(this.from, this.to, completion);
+		return MathUtil.lerp(this.from, this.to, completion);
 	}
 
 	isReversed() {

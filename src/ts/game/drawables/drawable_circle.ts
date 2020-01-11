@@ -13,76 +13,76 @@ import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beat
 export class DrawableCircle extends DrawableHeadedHitObject {
 	public parent: ProcessedCircle;
 
-    public scoring: CircleScoring;
-    private hitSound: HitSoundInfo;
+	public scoring: CircleScoring;
+	private hitSound: HitSoundInfo;
 
-    constructor(processedCircle: ProcessedCircle) {
-        super(processedCircle);
+	constructor(processedCircle: ProcessedCircle) {
+		super(processedCircle);
 
-        this.scoring = getDefaultCircleScoring();
+		this.scoring = getDefaultCircleScoring();
 
-        this.initSounds(processedCircle.hitObject, processedCircle.timingInfo);
-    }
+		this.initSounds(processedCircle.hitObject, processedCircle.timingInfo);
+	}
 
-    protected initSounds(circle: Circle, timingInfo: CurrentTimingPointInfo) {
-        let currentTimingPoint = timingInfo.timingPoint;
+	protected initSounds(circle: Circle, timingInfo: CurrentTimingPointInfo) {
+		let currentTimingPoint = timingInfo.timingPoint;
 
-        this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this.parent.startPoint);
-    }
+		this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this.parent.startPoint);
+	}
 
-    draw() {
-        let { approachTime, activeMods } = gameState.currentPlay;
+	draw() {
+		let { approachTime, activeMods } = gameState.currentPlay;
 
-        this.renderStartTime = this.parent.startTime - gameState.currentPlay.approachTime;
-    
-        this.head = new HitCirclePrimitive({
-            fadeInStart: this.parent.startTime - approachTime,
-            hitObject: this,
-            hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.parent.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
-            hasNumber: true,
-            type: HitCirclePrimitiveType.HitCircle
-        });
-        this.head.container.zIndex = -this.parent.startTime;
-    }
+		this.renderStartTime = this.parent.startTime - gameState.currentPlay.approachTime;
+	
+		this.head = new HitCirclePrimitive({
+			fadeInStart: this.parent.startTime - approachTime,
+			hitObject: this,
+			hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.parent.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
+			hasNumber: true,
+			type: HitCirclePrimitiveType.HitCircle
+		});
+		this.head.container.zIndex = -this.parent.startTime;
+	}
 
-    update(currentTime: number) {
-        if (this.head.renderFinished) {
-            this.renderFinished = true;
-            return;
-        }
+	update(currentTime: number) {
+		if (this.head.renderFinished) {
+			this.renderFinished = true;
+			return;
+		}
 
-        this.updateHeadElements(currentTime);
-    }
+		this.updateHeadElements(currentTime);
+	}
 
-    score(time: number, judgement: number) {
-        let scoreCounter = gameState.currentPlay.scoreCounter;
+	score(time: number, judgement: number) {
+		let scoreCounter = gameState.currentPlay.scoreCounter;
 
-        this.scoring.head.time = time;
-        this.scoring.head.hit = judgement;
+		this.scoring.head.time = time;
+		this.scoring.head.hit = judgement;
 
-        HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
-        scoreCounter.add(judgement, false, true, true, this, time);
-    }
+		HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
+		scoreCounter.add(judgement, false, true, true, this, time);
+	}
 
-    hitHead(time: number, judgementOverride?: number) {
-        if (this.scoring.head.hit !== ScoringValue.NotHit) return;
+	hitHead(time: number, judgementOverride?: number) {
+		if (this.scoring.head.hit !== ScoringValue.NotHit) return;
 
-        let { processedBeatmap } = gameState.currentPlay;
+		let { processedBeatmap } = gameState.currentPlay;
 
-        let timeInaccuracy = time - this.parent.startTime;
-        let judgement: number;
+		let timeInaccuracy = time - this.parent.startTime;
+		let judgement: number;
 
-        if (judgementOverride !== undefined) {
-            judgement = judgementOverride;
-        } else {
-            let hitDelta = Math.abs(timeInaccuracy);
-            judgement = processedBeatmap.difficulty.getJudgementForHitDelta(hitDelta);
-        }
+		if (judgementOverride !== undefined) {
+			judgement = judgementOverride;
+		} else {
+			let hitDelta = Math.abs(timeInaccuracy);
+			judgement = processedBeatmap.difficulty.getJudgementForHitDelta(hitDelta);
+		}
 
-        this.score(time, judgement);
-        if (judgement !== 0) {
-            gameState.currentGameplaySkin.playHitSound(this.hitSound);
-            accuracyMeter.addAccuracyLine(timeInaccuracy, time);
-        }
-    }
+		this.score(time, judgement);
+		if (judgement !== 0) {
+			gameState.currentGameplaySkin.playHitSound(this.hitSound);
+			accuracyMeter.addAccuracyLine(timeInaccuracy, time);
+		}
+	}
 }
