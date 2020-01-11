@@ -72,18 +72,20 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 	}
 
 	loadBeatmapData(extendedData: ExtendedBeatmapData) {
-		this.lengthAttribute.setValue(extendedData.playableLength);
-		this.bpmAttribute.setValue(extendedData.bpmMax);
-		this.objectCountAttribute.setValue(extendedData.objectCount);
-		this.circleCountAttribute.setValue(extendedData.circleCount);
-		this.sliderCountAttribute.setValue(extendedData.sliderCount);
-		this.spinnerCountAttribute.setValue(extendedData.spinnerCount);
+		let now = performance.now();
 
-		this.circleSizeAttribute.setValue(extendedData.difficulty.CS);
-		this.hpDrainAttribute.setValue(extendedData.difficulty.HP);
-		this.overallDifficultyAttribute.setValue(extendedData.difficulty.OD);
-		this.approachRateAttribute.setValue(extendedData.difficulty.AR);
-		this.starRatingAttribute.setValue(extendedData.difficultyAttributes.starRating);
+		this.lengthAttribute.setValue(extendedData.playableLength, now);
+		this.bpmAttribute.setValue(extendedData.bpmMax, now);
+		this.objectCountAttribute.setValue(extendedData.objectCount, now);
+		this.circleCountAttribute.setValue(extendedData.circleCount, now);
+		this.sliderCountAttribute.setValue(extendedData.sliderCount, now);
+		this.spinnerCountAttribute.setValue(extendedData.spinnerCount, now);
+
+		this.circleSizeAttribute.setValue(extendedData.difficulty.CS, now);
+		this.hpDrainAttribute.setValue(extendedData.difficulty.HP, now);
+		this.overallDifficultyAttribute.setValue(extendedData.difficulty.OD, now);
+		this.approachRateAttribute.setValue(extendedData.difficulty.AR, now);
+		this.starRatingAttribute.setValue(extendedData.difficultyAttributes.starRating, now);
 
 		this.tagsContents.text = extendedData.tags || 'N/A';
 		this.emitBackgroundHeight();
@@ -145,9 +147,9 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 		this.parent.setTabBackgroundNormalizedHeight(this, this.getProperBackgroundHeight());
 	}
 
-	update() {
-		for (let a of this.allNumericalAttributes) a.update();
-		for (let a of this.allRangedAttributes) a.update();
+	update(now: number) {
+		for (let a of this.allNumericalAttributes) a.update(now);
+		for (let a of this.allRangedAttributes) a.update(now);
 	}
 
 	focus() {
@@ -203,12 +205,12 @@ class NamedNumericalAttribute {
 		this.valueText.y = Math.floor(2 * scalingFactor);
 	}
 
-	setValue(value: number) {
-		this.interpolator.setGoal(value);
+	setValue(value: number, now: number) {
+		this.interpolator.setGoal(value, now);
 	}
 
-	update() {
-		let value = this.interpolator.getCurrentValue();
+	update(now: number) {
+		let value = this.interpolator.getCurrentValue(now);
 		this.valueText.text = this.formatter(value);
 	}
 }
@@ -293,19 +295,19 @@ class RangedAttribute {
 		this.valueText.x = Math.floor(232 * scalingFactor) - Math.floor(this.valueText.width / 2);
 	}
 
-	setValue(val: number) {
-		this.barInterpolator.setGoal(val);
-		this.numberInterpolator.setGoal(val);
+	setValue(val: number, now: number) {
+		this.barInterpolator.setGoal(val, now);
+		this.numberInterpolator.setGoal(val, now);
 	}
 
-	update() {
+	update(now: number) {
 		let scalingFactor = getGlobalScalingFactor();
-		let barValue = this.barInterpolator.getCurrentValue();
+		let barValue = this.barInterpolator.getCurrentValue(now);
 		let percent = MathUtil.clamp(barValue / this.cap, 0, 1);
 
 		this.barProgress.width = Math.floor(140 * scalingFactor * percent);
 
-		this.valueText.text = this.numberInterpolator.getCurrentValue().toFixed(this.decimals);
+		this.valueText.text = this.numberInterpolator.getCurrentValue(now).toFixed(this.decimals);
 		this.centerText();
 	}
 }

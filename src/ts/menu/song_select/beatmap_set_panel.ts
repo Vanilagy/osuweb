@@ -80,7 +80,9 @@ export class BeatmapSetPanel {
 			ease: EaseType.EaseOutCubic,
 			duration: 500,
 			reverseDuration: 500,
-			reverseEase: EaseType.EaseInQuart
+			reverseEase: EaseType.EaseInQuart,
+			beginReversed: true,
+			defaultToFinished: true
 		});
 		this.imageFadeIn = new Interpolator({
 			duration: 250,
@@ -91,7 +93,6 @@ export class BeatmapSetPanel {
 			ease: EaseType.EaseOutCubic,
 			reverseEase: EaseType.EaseInCubic
 		});
-		this.hoverInterpolator.reverse();
 		
 		this.initInteractions();
 
@@ -109,11 +110,11 @@ export class BeatmapSetPanel {
 		});
 
 		this.interaction.addListener('mouseEnter', () => {
-			this.hoverInterpolator.setReversedState(false);
+			this.hoverInterpolator.setReversedState(false, performance.now());
 		});
 
 		this.interaction.addListener('mouseLeave', () => {
-			this.hoverInterpolator.setReversedState(true);
+			this.hoverInterpolator.setReversedState(true, performance.now());
 		});
 	}
 
@@ -137,7 +138,7 @@ export class BeatmapSetPanel {
 			this.backgroundImageSprite.texture = texture;
 			fitSpriteIntoContainer(this.backgroundImageSprite, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor, new PIXI.Point(0.0, 0.25));
 
-			this.imageFadeIn.start();
+			this.imageFadeIn.start(performance.now());
 		}
 	}
 
@@ -193,7 +194,7 @@ export class BeatmapSetPanel {
 		}
 	}
 
-	update(newY: number, lastCalculatedHeight: number) {
+	update(now: number, newY: number, lastCalculatedHeight: number) {
 		this.currentNormalizedY = newY;
 
 		if (!this.imageLoadingStarted) {
@@ -222,12 +223,12 @@ export class BeatmapSetPanel {
 		let scalingFactor = getGlobalScalingFactor();
 		this.container.y = this.currentNormalizedY * scalingFactor;
 
-		this.backgroundImageSprite.alpha = this.imageFadeIn.getCurrentValue();
+		this.backgroundImageSprite.alpha = this.imageFadeIn.getCurrentValue(now);
 
 		this.panelContainer.x = 0;
 
 		let combinedPanelHeight = BEATMAP_PANEL_HEIGHT + BEATMAP_PANEL_MARGIN;
-		let expansionValue = this.expandInterpolator.getCurrentValue();
+		let expansionValue = this.expandInterpolator.getCurrentValue(now);
 
 		this.panelContainer.x -= 99 * expansionValue * scalingFactor;
 
@@ -241,16 +242,16 @@ export class BeatmapSetPanel {
 			let panel = this.beatmapPanels[i];
 
 			let y = BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue;
-			panel.update(y);
+			panel.update(now, y);
 
 			if (!this.isExpanded) {
-				panel.container.alpha = this.expandInterpolator.getCurrentValue();
+				panel.container.alpha = this.expandInterpolator.getCurrentValue(now);
 			}
 		}
 
 		this.panelContainer.x += getNormalizedOffsetOnCarousel(this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor;
 
-		let hoverValue = this.hoverInterpolator.getCurrentValue() * (1 - this.expandInterpolator.getCurrentCompletion());
+		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * (1 - this.expandInterpolator.getCurrentCompletion(now));
 		this.panelContainer.x += hoverValue * -15 * scalingFactor;
 		this.imageColorFilter.brightness(1 + hoverValue * 0.2, false);
 
@@ -266,11 +267,11 @@ export class BeatmapSetPanel {
 		}
 	}
 
-	getTotalHeight() {
+	getTotalHeight(now: number) {
 		let combinedSetPanelHeight = BEATMAP_SET_PANEL_HEIGHT + BEATMAP_SET_PANEL_MARGIN;
 		let combinedPanelHeight = BEATMAP_PANEL_HEIGHT + BEATMAP_PANEL_MARGIN;
 
-		return combinedSetPanelHeight + this.expandInterpolator.getCurrentValue() * combinedPanelHeight * this.beatmapFiles.length;
+		return combinedSetPanelHeight + this.expandInterpolator.getCurrentValue(now) * combinedPanelHeight * this.beatmapFiles.length;
 	}
 
 	private async expand() {
@@ -288,8 +289,7 @@ export class BeatmapSetPanel {
 		setSelectedPanel(this);
 		setReferencePanel(this, this.currentNormalizedY);
 
-		this.expandInterpolator.setReversedState(false);
-		this.expandInterpolator.start();
+		this.expandInterpolator.setReversedState(false, performance.now());
 
 		beatmapInfoPanel.loadBeatmapSet(this.representingBeatmap);
 
@@ -347,7 +347,7 @@ export class BeatmapSetPanel {
 			setSelectedSubpanel(null);
 		}
 
-		this.expandInterpolator.setReversedState(true);
+		this.expandInterpolator.setReversedState(true, performance.now());
 		this.isExpanded = false;
 
 		for (let i = 0; i < this.beatmapPanels.length; i++) {

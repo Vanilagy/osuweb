@@ -33,6 +33,8 @@ export class BeatmapPanel {
 	private colorBar: PIXI.Sprite;
 
 	constructor(parentPanel: BeatmapSetPanel) {
+		let now = performance.now();
+
 		this.parentPanel = parentPanel;
 		this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
@@ -44,15 +46,18 @@ export class BeatmapPanel {
 		this.hoverInterpolator = new Interpolator({
 			duration: 333,
 			ease: EaseType.EaseOutCubic,
-			reverseEase: EaseType.EaseInCubic
+			reverseEase: EaseType.EaseInCubic,
+			beginReversed: true,
+			defaultToFinished: true
 		});
-		this.hoverInterpolator.reverse();
 		this.expandInterpolator = new Interpolator({
 			ease: EaseType.EaseOutElastic,
 			duration: 500,
 			p: 0.9,
 			reverseDuration: 500,
-			reverseEase: EaseType.EaseInQuart
+			reverseEase: EaseType.EaseInQuart,
+			beginReversed: true,
+			defaultToFinished: true
 		});
 
 		this.mainMask = new PIXI.Sprite();
@@ -92,11 +97,11 @@ export class BeatmapPanel {
 		this.interaction.addListener('mouseDown', () => this.select());
 
 		this.interaction.addListener('mouseEnter', () => {
-			this.hoverInterpolator.setReversedState(false);
+			this.hoverInterpolator.setReversedState(false, performance.now());
 		});
 
 		this.interaction.addListener('mouseLeave', () => {
-			this.hoverInterpolator.setReversedState(true);
+			this.hoverInterpolator.setReversedState(true, performance.now());
 		});
 	}
 
@@ -174,28 +179,28 @@ export class BeatmapPanel {
 	}
 
 	load(beatmapFile: VirtualFile,  extendedData: ExtendedBeatmapData) {
-		this.fadeInInterpolator.start();
+		this.fadeInInterpolator.start(performance.now());
 		this.beatmapFile = beatmapFile;
 		this.extendedBeatmapData = extendedData;
 
 		this.draw();
 	}
 
-	update(newY?: number) {
+	update(now: number, newY: number) {
 		let scalingFactor = getGlobalScalingFactor();
 
-		if (newY !== undefined) this.currentNormalizedY = newY;
+		this.currentNormalizedY = newY;
 		this.container.y = this.currentNormalizedY * scalingFactor;
 
-		this.infoContainer.alpha = this.fadeInInterpolator.getCurrentValue();
+		this.infoContainer.alpha = this.fadeInInterpolator.getCurrentValue(now);
 
 		let normalizedY = this.container.getGlobalPosition().y / scalingFactor;
 		this.container.x = getNormalizedOffsetOnCarousel(normalizedY + BEATMAP_PANEL_HEIGHT/2) * scalingFactor;
 
-		let expansionValue = this.expandInterpolator.getCurrentValue();
+		let expansionValue = this.expandInterpolator.getCurrentValue(now);
 		this.container.x += expansionValue * -40 * scalingFactor;
 
-		let hoverValue = this.hoverInterpolator.getCurrentValue() * (1 - this.expandInterpolator.getCurrentCompletion());
+		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * (1 - this.expandInterpolator.getCurrentCompletion(now));
 		this.container.x += hoverValue * -7 * scalingFactor;
 
 		this.container.x = Math.floor(this.container.x);
@@ -235,8 +240,8 @@ export class BeatmapPanel {
 		}
 		setSelectedSubpanel(this);
 
-		this.expandInterpolator.setReversedState(false);
-		this.expandInterpolator.start();
+		let now = performance.now();
+		this.expandInterpolator.setReversedState(false, now);
 
 		if (doSnap) {
 			let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
@@ -265,7 +270,7 @@ export class BeatmapPanel {
 	}
 
 	deselect() {
-		this.expandInterpolator.setReversedState(true);
-		this.expandInterpolator.start();
+		let now = performance.now();
+		this.expandInterpolator.setReversedState(true, now);
 	}
 }

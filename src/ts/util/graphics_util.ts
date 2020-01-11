@@ -1,5 +1,4 @@
 import { MathUtil, EaseType } from "./math_util";
-import { getNow } from "./misc_util";
 
 export interface Dimensions {
 	width: number,
@@ -71,8 +70,7 @@ export class InterpolatedCounter {
 		else return this.options.duration(this.end - this.start);
 	}
 
-	getCurrentValue(customTime?: number) {
-		let now = getNow(customTime);
+	getCurrentValue(now: number) {
 		let timePassed = (now === this.startTime)? 0 : now - this.startTime; // This check might seem unnecessary, since x - x = 0, however that does not hold true for x = +-Infinity. Since some maps are... questionable, we need to add this check.
 		
 		let completion = MathUtil.clamp(timePassed / this.duration, 0, 1);
@@ -81,8 +79,7 @@ export class InterpolatedCounter {
 		return MathUtil.lerp(this.start, this.end, completion);
 	}
 
-	setGoal(goal: number, customTime?: number) {
-		let now = getNow(customTime);
+	setGoal(goal: number, now: number) {
 		let current = this.getCurrentValue(now);
 		
 		this.start = current;
@@ -118,6 +115,7 @@ interface InterpolatorOptions {
 	reverseP?: number,
 	reverseMode?: ReverseMode
 	defaultToFinished?: boolean,
+	beginReversed?: boolean
 }
 
 export class Interpolator {
@@ -137,6 +135,8 @@ export class Interpolator {
 
 	constructor(options: InterpolatorOptions) {
 		Object.assign(this, options);
+
+		if (options.beginReversed) this.reversed = true;
 		this.reset();
 	}
 	
@@ -152,12 +152,8 @@ export class Interpolator {
 		return (this.reversed && this.reverseP !== undefined)? this.reverseP : this.p;
 	}
 
-	/**
-	 * 
-	 * @param customTime A custom time parameter to override performance.now with your own timekeeping system.
-	 */
-	start(customTime?: number) {
-		this.startTime = getNow(customTime);
+	start(now: number) {
+		this.startTime = now;
 	}
 
 	/** Instantly finish the animation. */
@@ -169,10 +165,9 @@ export class Interpolator {
 		this.startTime = this.defaultToFinished? -Infinity : Infinity;
 	}
 
-	reverse(customTime?: number) {
-		let now = getNow(customTime);
-		let currentCompletion = this.getCurrentCompletion(customTime);
-		let currentValue = this.getCurrentValue(customTime);
+	reverse(now: number) {
+		let currentCompletion = this.getCurrentCompletion(now);
+		let currentValue = this.getCurrentValue(now);
 
 		this.reversed = !this.reversed;
 
@@ -192,13 +187,11 @@ export class Interpolator {
 		this.startTime = now - (1 - currentCompletion) * this.getDuration();
 	}
 
-	setReversedState(state: boolean) {
-		if (state !== this.reversed) this.reverse();
+	setReversedState(state: boolean, now: number) {
+		if (state !== this.reversed) this.reverse(now);
 	}
 
-	getCurrentCompletion(customTime?: number) {
-		let now = getNow(customTime);
-
+	getCurrentCompletion(now: number) {
 		let completion = (now - this.startTime) / this.getDuration();
 		completion = MathUtil.clamp(completion, 0, 1);
 
@@ -206,8 +199,8 @@ export class Interpolator {
 		return completion;
 	}
 
-	getCurrentValue(customTime?: number) {
-		let completion = this.getCurrentCompletion(customTime);
+	getCurrentValue(now: number) {
+		let completion = this.getCurrentCompletion(now);
 		completion = MathUtil.ease(this.getEase(), completion, this.getEaseP());
 
 		return MathUtil.lerp(this.from, this.to, completion);

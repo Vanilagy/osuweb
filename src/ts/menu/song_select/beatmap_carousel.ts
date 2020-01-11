@@ -69,7 +69,7 @@ export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: numb
 
 export function snapReferencePanel(from: number, to: number) {
 	snapToSelectionInterpolator.setValueRange(from, to);
-	snapToSelectionInterpolator.start();
+	snapToSelectionInterpolator.start(performance.now());
 	snapToSelectedIntervened = false;
 	scrollVelocity = 0;
 }
@@ -95,7 +95,7 @@ addRenderingTask((now: number, dt: number) => {
 
 	if (scrollVelocity !== 0) snapToSelectedIntervened = true;
 	if (!snapToSelectedIntervened) {
-		referencePanelY = snapToSelectionInterpolator.getCurrentValue();
+		referencePanelY = snapToSelectionInterpolator.getCurrentValue(now);
 	}
 
 	/* 
@@ -116,27 +116,27 @@ addRenderingTask((now: number, dt: number) => {
 	referencePanelY -= distanceScrolled;
 	if (Math.abs(scrollVelocity) < 1) scrollVelocity = 0;
 
-	referencePanel.update(referencePanelY, referencePanel.getTotalHeight());
+	referencePanel.update(now, referencePanelY, referencePanel.getTotalHeight(now));
 
 	let currentY = referencePanelY;
 	for (let i = referenceIndex-1; i >= 0; i--) {
 		let panel = beatmapSetPanels[i];
-		let height = panel.getTotalHeight();
+		let height = panel.getTotalHeight(now);
 		currentY -= height;
 
 		panel.container.visible = true;
-		panel.update(currentY, height);
+		panel.update(now, currentY, height);
 	}
 
 	currentY = referencePanelY;
 	for (let i = referenceIndex+1; i < beatmapSetPanels.length; i++) {
 		let prevPanel = beatmapSetPanels[i-1];
 		let panel = beatmapSetPanels[i];
-		let height = prevPanel.getTotalHeight();
+		let height = prevPanel.getTotalHeight(now);
 		currentY += height;
 		
 		panel.container.visible = true;
-		panel.update(currentY, panel.getTotalHeight());
+		panel.update(now, currentY, panel.getTotalHeight(now));
 	}
 
 	// Calculate snapback when user scrolls off one of the carousel edges

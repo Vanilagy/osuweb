@@ -76,14 +76,14 @@ export function updateBeatmapInfoPanelSizing() {
 	beatmapInfoPanel.resize();
 }
 
-addRenderingTask(() => {
+addRenderingTask((now) => {
 	if (!beatmapInfoPanel) return;
-	beatmapInfoPanel.update();
+	beatmapInfoPanel.update(now);
 });
 
 export interface BeatmapInfoPanelTab {
 	resize: Function;
-	update: Function;
+	update: (now: number) => any;
 	focus: Function;
 
 	container: PIXI.Container;
@@ -172,9 +172,10 @@ export class BeatmapInfoPanel {
 			let interpolator = new Interpolator({
 				duration: 150,
 				ease: EaseType.EaseOutCubic,
-				reverseEase: EaseType.EaseInCubic
+				reverseEase: EaseType.EaseInCubic,
+				beginReversed: true,
+				defaultToFinished: true
 			});
-			interpolator.reverse();
 			this.tabFadeInterpolators.set(t, interpolator);
 		}
 
@@ -187,16 +188,18 @@ export class BeatmapInfoPanel {
 		if (index === this.currentTabIndex) return;
 		this.currentTabIndex = index;
 
+		let now = performance.now();
+
 		for (let i = 0; i < this.tabs.length; i++) {
 			let tab = this.tabs[i];
 			let isSelected = i === this.currentTabIndex;
 			let interpolator = this.tabFadeInterpolators.get(tab);
 
 			if (isSelected) {
-				interpolator.setReversedState(false);
+				interpolator.setReversedState(false, now);
 				tab.focus();
 			} else {
-				interpolator.setReversedState(true);
+				interpolator.setReversedState(true, now);
 			}
 		}
 	}
@@ -204,6 +207,8 @@ export class BeatmapInfoPanel {
 	async loadBeatmapSet(representingBeatmap: Beatmap) {
 		let beatmapSet = representingBeatmap.beatmapSet;
 		if (this.currentBeatmapSet === beatmapSet) return;
+
+		let now = performance.now();
 
 		let imageFile = await representingBeatmap.getBackgroundImageFile();
 		if (imageFile) {
@@ -232,12 +237,12 @@ export class BeatmapInfoPanel {
 				duration: 333,
 				ease: EaseType.EaseOutCubic
 			});
-			interpolator.start();
+			interpolator.start(now);
 			this.imageInterpolators.set(spriteContainer, interpolator);
 		}
 
 		this.updateText(representingBeatmap, false);
-		this.detailsFadeIn.start();
+		this.detailsFadeIn.start(now);
 	}
 
 	private updateText(beatmap: Beatmap | ExtendedBeatmapData, showDifficulty = true) {
@@ -365,9 +370,9 @@ export class BeatmapInfoPanel {
 		this.tabBackground.position.set(tabX, tabY);
 	}
 
-	update() {
+	update(now: number) {
 		let scalingFactor = getGlobalScalingFactor();
-		let fadeInValue = this.detailsFadeIn.getCurrentValue();
+		let fadeInValue = this.detailsFadeIn.getCurrentValue(now);
 
 		this.difficultyText.alpha = fadeInValue;
 
@@ -378,24 +383,24 @@ export class BeatmapInfoPanel {
 		for (let obj of this.backgroundImageContainer.children) {
 			let container = obj as PIXI.Container;
 			let interpolator = this.imageInterpolators.get(container);
-			let value = interpolator.getCurrentValue();
+			let value = interpolator.getCurrentValue(now);
 
 			container.alpha = value;
 			container.scale.set(MathUtil.lerp(1.07, 1.0, value));
 		}
 
-		this.tabSelector.update();
-		this.tabs[this.currentTabIndex].update();
+		this.tabSelector.update(now);
+		this.tabs[this.currentTabIndex].update(now);
 
 		for (let t of this.tabs) {
 			let interpolator = this.tabFadeInterpolators.get(t);
-			let value = interpolator.getCurrentValue();
+			let value = interpolator.getCurrentValue(now);
 
 			t.container.alpha = value;
 			t.container.visible = value !== 0;
 		}
 
-		this.tabBackground.height = Math.floor(this.tabBackgroundHeightInterpolator.getCurrentValue() * scalingFactor);
+		this.tabBackground.height = Math.floor(this.tabBackgroundHeightInterpolator.getCurrentValue(now) * scalingFactor);
 	}
 
 	setTabBackgroundNormalizedHeight(executer: BeatmapInfoPanelTab, height: number) {
@@ -408,7 +413,7 @@ export class BeatmapInfoPanel {
 				duration: 150
 			});
 		} else {
-			this.tabBackgroundHeightInterpolator.setGoal(height);
+			this.tabBackgroundHeightInterpolator.setGoal(height, performance.now());
 		}
 	}
 }

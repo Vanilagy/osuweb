@@ -67,10 +67,12 @@ export abstract class BackgroundManager {
 	static async setState(newState: BackgroundState) {
 		if (newState === this.state) return;
 
+		let now = performance.now();
+
 		if (newState === BackgroundState.SongSelect) {
-			this.gameplayInterpolator.setReversedState(true);
-			this.blurInterpolator.setReversedState(true);
-			this.scaleInterpolator.setReversedState(true);
+			this.gameplayInterpolator.setReversedState(true, now);
+			this.blurInterpolator.setReversedState(true, now);
+			this.scaleInterpolator.setReversedState(true, now);
 		} else if (newState === BackgroundState.Gameplay) {
 			if (this.currentImageFile) {
 				let fullResBitmap = await getBitmapFromImageFile(this.currentImageFile, BitmapQuality.High);
@@ -78,9 +80,9 @@ export abstract class BackgroundManager {
 				sprite.texture = PIXI.Texture.from(fullResBitmap as any);
 			}
 
-			this.gameplayInterpolator.setReversedState(false);
-			this.blurInterpolator.setReversedState(false);
-			this.scaleInterpolator.setReversedState(false);
+			this.gameplayInterpolator.setReversedState(false, now);
+			this.blurInterpolator.setReversedState(false, now);
+			this.scaleInterpolator.setReversedState(false, now);
 		}
 
 		this.state = newState;
@@ -109,7 +111,7 @@ export abstract class BackgroundManager {
 			ease: EaseType.EaseInOutSine,
 			duration: IMAGE_FADE_IN_DURATION
 		});
-		fadeInterpolator.start();
+		fadeInterpolator.start(performance.now());
 		this.fadeInterpolators.set(newSprite, fadeInterpolator);
 	}
 
@@ -162,19 +164,19 @@ export abstract class BackgroundManager {
 		this.currentGameplayBrightness = newBrightness;
 	}
 
-	static update() {
-		let t = this.gameplayInterpolator.getCurrentValue();
+	static update(now: number) {
+		let t = this.gameplayInterpolator.getCurrentValue(now);
 		let brightness = MathUtil.lerp(0.7, this.currentGameplayBrightness, t);
 
 		this.colorMatrixFilter.brightness(brightness, false);
 
 		for (let obj of this.imageContainer.children) {
 			let sprite = obj as PIXI.Sprite;
-			sprite.alpha = this.fadeInterpolators.get(sprite).getCurrentValue();
+			sprite.alpha = this.fadeInterpolators.get(sprite).getCurrentValue(now);
 		}
 
-		backgroundContainer.scale.set(this.scaleInterpolator.getCurrentValue());
-		this.blurFilter.blur = 5 * getGlobalScalingFactor() * this.blurInterpolator.getCurrentValue();
+		backgroundContainer.scale.set(this.scaleInterpolator.getCurrentValue(now));
+		this.blurFilter.blur = 5 * getGlobalScalingFactor() * this.blurInterpolator.getCurrentValue(now);
 		this.blurFilter.enabled = this.blurFilter.blur !== 0;
 	}
 
@@ -193,6 +195,6 @@ export abstract class BackgroundManager {
 }
 BackgroundManager.initialize();
 
-addRenderingTask(() => BackgroundManager.update());
+addRenderingTask((now: number) => BackgroundManager.update(now));
 
 uiEventEmitter.addListener('resize', () => BackgroundManager.resize());

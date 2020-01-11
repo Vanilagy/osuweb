@@ -34,9 +34,10 @@ export class TabSelector extends CustomEventEmitter {
 				to: 0.9,
 				ease: EaseType.EaseOutCubic,
 				reverseEase: EaseType.EaseInCubic,
-				duration: 150
+				duration: 150,
+				beginReversed: true,
+				defaultToFinished: true
 			});
-			hoverInterpolator.reverse();
 			this.hoverInterpolators.set(container, hoverInterpolator);
 
 			let interaction = Interactivity.registerDisplayObject(container);
@@ -45,10 +46,10 @@ export class TabSelector extends CustomEventEmitter {
 				this.emit('selection', i);
 			});
 			interaction.addListener('mouseEnter', () => {
-				hoverInterpolator.setReversedState(false);
+				hoverInterpolator.setReversedState(false, performance.now());
 			});
 			interaction.addListener('mouseLeave', () => {
-				hoverInterpolator.setReversedState(true);
+				hoverInterpolator.setReversedState(true, performance.now());
 			});
 		}
 
@@ -70,15 +71,17 @@ export class TabSelector extends CustomEventEmitter {
 			let isSelected = i === this.selectedIndex;
 
 			text.style.fontFamily = isSelected? 'Exo2-Bold' : 'Exo2-Regular';
-			
+
 			if (isSelected) {
 				selectionBarWidth = text.width;
 				selectionBarX = text.x;
 			}
 		}
 
-		this.selectionBarXInterpolator.setGoal(selectionBarX);
-		this.selectionBarWidthInterpolator.setGoal(selectionBarWidth);
+		let now = performance.now();
+
+		this.selectionBarXInterpolator.setGoal(selectionBarX, now);
+		this.selectionBarWidthInterpolator.setGoal(selectionBarWidth, now);
 	}
 
 	resize(scalingFactor: number) {
@@ -122,8 +125,10 @@ export class TabSelector extends CustomEventEmitter {
 				ease: EaseType.EaseOutCubic
 			});
 		} else {
-			this.selectionBarXInterpolator.setGoal(selectionBarX);
-			this.selectionBarWidthInterpolator.setGoal(selectionBarWidth);
+			let now = performance.now();
+
+			this.selectionBarXInterpolator.setGoal(selectionBarX, now);
+			this.selectionBarWidthInterpolator.setGoal(selectionBarWidth, now);
 		}
 
 		this.selectionBar.width = Math.ceil(selectionBarWidth);
@@ -133,7 +138,7 @@ export class TabSelector extends CustomEventEmitter {
 		this.container.pivot.y = this.container.height;
 	}
 
-	update() {
+	update(now: number) {
 		for (let i = 0; i < this.tabContainers.length; i++) {
 			let c = this.tabContainers[i];
 			let isSelected = i === this.selectedIndex;
@@ -141,13 +146,13 @@ export class TabSelector extends CustomEventEmitter {
 			if (isSelected) {
 				c.alpha = 1.0;
 			} else {
-				c.alpha = this.hoverInterpolators.get(c).getCurrentValue();
+				c.alpha = this.hoverInterpolators.get(c).getCurrentValue(now);
 			}
 		}
 
 		if (this.selectionBarXInterpolator) {
-			this.selectionBar.x = this.selectionBarXInterpolator.getCurrentValue();
-			this.selectionBar.width = this.selectionBarWidthInterpolator.getCurrentValue();
+			this.selectionBar.x = this.selectionBarXInterpolator.getCurrentValue(now);
+			this.selectionBar.width = this.selectionBarWidthInterpolator.getCurrentValue(now);
 		}
 	}
 }
