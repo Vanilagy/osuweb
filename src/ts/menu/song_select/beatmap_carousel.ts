@@ -5,7 +5,7 @@ import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState 
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, jsonClone } from "../../util/misc_util";
+import { NormalizedWheelEvent, last, shallowObjectClone } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup, Interactivity } from "../../input/interactivity";
@@ -61,7 +61,7 @@ dragListener.addListener('mouseMove', () => {
 		}
 	}
 
-	lastMousePos = jsonClone(mousePos);
+	lastMousePos = shallowObjectClone(mousePos);
 	lastMousePosSampleTime = now;
 });
 dragListener.addListener('mouseDown', () => {

@@ -3,7 +3,7 @@ import { Circle } from "../circle";
 import { Slider } from "../slider";
 import { MathUtil } from "../../util/math_util";
 import { PlayEvent } from "../play_events";
-import { last, assert } from "../../util/misc_util";
+import { last, assert, shallowObjectClone } from "../../util/misc_util";
 import { Spinner } from "../spinner";
 import { ProcessedHitObject } from "./processed_hit_object";
 import { ProcessedCircle } from "./processed_circle";
@@ -118,13 +118,14 @@ export class ProcessedBeatmap {
 			}
 
 			let newProcessedObject = null;
+			let duplicatedTimingPointInfo = shallowObjectClone(currentTimingPointInfo);
 
 			if (rawHitObject instanceof Circle) {
-				newProcessedObject = new ProcessedCircle(rawHitObject, comboInfo, currentTimingPointInfo, this);
+				newProcessedObject = new ProcessedCircle(rawHitObject, comboInfo, duplicatedTimingPointInfo, this);
 			} else if (rawHitObject instanceof Slider) {
-				newProcessedObject = new ProcessedSlider(rawHitObject, comboInfo, currentTimingPointInfo, this);
+				newProcessedObject = new ProcessedSlider(rawHitObject, comboInfo, duplicatedTimingPointInfo, this);
 			} else if (rawHitObject instanceof Spinner) {
-				newProcessedObject = new ProcessedSpinner(rawHitObject, comboInfo, currentTimingPointInfo, this);
+				newProcessedObject = new ProcessedSpinner(rawHitObject, comboInfo, duplicatedTimingPointInfo, this);
 			}
 
 			if (newProcessedObject !== null) {

@@ -12,6 +12,8 @@ const DEFAULT_TIMING_POINT_METER = 4;
 const DEFAULT_TIMING_POINT_SAMPLE_SET = 1;
 const DEFAULT_TIMING_POINT_SAMPLE_INDEX = 1;
 const DEFAULT_TIMING_POINT_VOLUME = 100;
+const DEFAULT_TIMING_POINT_INHERITABLE = true;
+const DEFAULT_TIMING_POINT_KIAI = false;
 
 interface BeatmapCreationOptions {
 	text: string;
@@ -285,8 +287,8 @@ export class Beatmap {
 			sampleSet: values[3]? parseInt(values[3]) : DEFAULT_TIMING_POINT_SAMPLE_SET,
 			sampleIndex: values[4]? parseInt(values[4]) : DEFAULT_TIMING_POINT_SAMPLE_INDEX,
 			volume: values[5]? parseInt(values[5]) : DEFAULT_TIMING_POINT_VOLUME,
-			inheritable: values[6]? values[6] === "1" : true, // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
-			kiai: values[7]? Boolean(parseInt(values[7])) : false,
+			inheritable: values[6]? values[6] === "1" : DEFAULT_TIMING_POINT_INHERITABLE, // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
+			kiai: values[7]? Boolean(parseInt(values[7])) : DEFAULT_TIMING_POINT_KIAI,
 		});
 	}
 

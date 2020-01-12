@@ -2,7 +2,7 @@ import { VirtualFile } from "../file_system/virtual_file";
 import { startJob } from "../multithreading/job_system";
 import { JobTask } from "../multithreading/job";
 import { Dimensions } from "./graphics_util";
-import { jsonClone } from "./misc_util";
+import { shallowObjectClone } from "./misc_util";
 
 export enum BitmapQuality {
 	Low,
@@ -63,7 +63,7 @@ export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality
 let imageDimensionsCache = new WeakMap<VirtualFile, Dimensions>();
 export function getDimensionsFromImageFile(file: VirtualFile): Promise<Dimensions> {
 	let cached = imageDimensionsCache.get(file);
-	if (cached) return Promise.resolve(jsonClone(cached));
+	if (cached) return Promise.resolve(shallowObjectClone(cached));
 
 	return new Promise<Dimensions>(async (resolve) => {
 		let img = new Image();
@@ -76,7 +76,7 @@ export function getDimensionsFromImageFile(file: VirtualFile): Promise<Dimension
 			};
 
 			imageDimensionsCache.set(file, dimensions);
-			resolve(jsonClone(dimensions));
+			resolve(shallowObjectClone(dimensions));
 		};
 	});
 }
