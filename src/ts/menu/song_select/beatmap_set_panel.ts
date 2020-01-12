@@ -2,7 +2,7 @@ import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { BeatmapPanel } from "./beatmap_panel";
 import { Beatmap } from "../../datamodel/beatmap";
-import { EaseType } from "../../util/math_util";
+import { EaseType, MathUtil } from "../../util/math_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
@@ -39,6 +39,7 @@ export class BeatmapSetPanel {
 	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
 	private glowSprite: PIXI.Sprite;
 	public needsResize = true;
+	private mouseDownBrightnessInterpolator: Interpolator;
 
 	constructor(beatmapSet: BeatmapSet) {
 		this.beatmapSet = beatmapSet;
@@ -91,7 +92,18 @@ export class BeatmapSetPanel {
 		this.hoverInterpolator = new Interpolator({
 			duration: 500,
 			ease: EaseType.EaseOutCubic,
-			reverseEase: EaseType.EaseInCubic
+			reverseEase: EaseType.EaseInCubic,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+
+		this.mouseDownBrightnessInterpolator = new Interpolator({
+			duration: 50,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic,
+			reverseDuration: 400,
+			beginReversed: true,
+			defaultToFinished: true
 		});
 		
 		this.initInteractions();
@@ -105,16 +117,32 @@ export class BeatmapSetPanel {
 		this.interaction = Interactivity.registerDisplayObject(this.panelContainer, true);
 		carouselInteractionGroup.add(this.interaction);
 
-		this.interaction.addListener('mouseDown', () => {
+		this.interaction.addListener('mouseClick', () => {
 			if (!this.isExpanded) this.expand();
+
+			this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now());
 		});
 
-		this.interaction.addListener('mouseEnter', () => {
+		this.interaction.addListener('mouseDown', () => {
+			this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now());
+		});
+
+		this.interaction.addListener('mouseEnter', (e) => {
 			this.hoverInterpolator.setReversedState(false, performance.now());
+
+			if (e.wasPressedDown) {
+				this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now());
+			}
+		});
+
+		this.interaction.addListener('mouseUp', () => {
+			this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now());
 		});
 
 		this.interaction.addListener('mouseLeave', () => {
 			this.hoverInterpolator.setReversedState(true, performance.now());
+
+			this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now());
 		});
 	}
 
@@ -208,7 +236,7 @@ export class BeatmapSetPanel {
 			}
 		}
 
-		if (this.currentNormalizedY + lastCalculatedHeight < 0 || (this.currentNormalizedY + 10) * scalingFactor > currentWindowDimensions.height) { // Add +10 'cause of the glow
+		if (this.currentNormalizedY + lastCalculatedHeight < 0 || (this.currentNormalizedY - 10) * scalingFactor > currentWindowDimensions.height) { // Subtract 10 'cause of the glow
 			// Culling!
 
 			this.container.visible = false;
@@ -230,7 +258,7 @@ export class BeatmapSetPanel {
 		let combinedPanelHeight = BEATMAP_PANEL_HEIGHT + BEATMAP_PANEL_MARGIN;
 		let expansionValue = this.expandInterpolator.getCurrentValue(now);
 
-		this.panelContainer.x -= 99 * expansionValue * scalingFactor;
+		this.panelContainer.x -= 95 * expansionValue * scalingFactor;
 
 		// Remove beatmap panel elements if there's no need to keep them
 		if (!this.isExpanded && expansionValue === 0 && this.beatmapPanels.length > 0) {
@@ -251,9 +279,10 @@ export class BeatmapSetPanel {
 
 		this.panelContainer.x += getNormalizedOffsetOnCarousel((this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor)  * scalingFactor;
 
-		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * (1 - this.expandInterpolator.getCurrentCompletion(now));
+		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * MathUtil.lerp(1, 0.2, this.expandInterpolator.getCurrentCompletion(now));
 		this.panelContainer.x += hoverValue * -15 * scalingFactor;
-		this.imageColorFilter.brightness(1 + hoverValue * 0.2, false);
+
+		this.imageColorFilter.brightness(1 + this.mouseDownBrightnessInterpolator.getCurrentValue(now) * 0.2, false);
 
 		this.container.x = Math.floor(this.container.x);
 		this.container.y = Math.floor(this.container.y);

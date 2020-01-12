@@ -7,9 +7,18 @@ let currentMousePosition: Point = {
 	x: window.innerWidth / 2, // Before any events, just center the mouse
 	y: window.innerHeight / 2
 };
+let currentMouseButtonState = {
+	lmb: false,
+	rmb: false,
+	// TODO: mmb?
+};
 
 export function getCurrentMousePosition() {
 	return clonePoint(currentMousePosition);
+}
+
+export function getCurrentMouseButtonState() {
+	return currentMouseButtonState;
 }
 
 window.onmousemove = (e: MouseEvent) => {
@@ -18,7 +27,7 @@ window.onmousemove = (e: MouseEvent) => {
 	currentMousePosition.x = e.clientX;
 	currentMousePosition.y = e.clientY;
 
-	inputEventEmitter.emit('mouseMove');
+	inputEventEmitter.emit('mouseMove', e);
 };
 
 const PREVENT_NATIVE_CONTEXT_MENU = true;
@@ -92,7 +101,9 @@ window.addEventListener('mousedown', (e) => {
 	tickAll();
 
 	let button = e.button;
-	
+
+	if (button === 0) currentMouseButtonState.lmb = true;
+	else if (button === 2) currentMouseButtonState.rmb = true;
 	inputEventEmitter.emit('mouseDown', e);
 
 	let mappedFunctionalInput = mouseButtonMappings.get(button);
@@ -108,6 +119,10 @@ window.addEventListener('mouseup', (e) => {
 	tickAll();
 
 	let button = e.button;
+
+	if (button === 0) currentMouseButtonState.lmb = false;
+	else if (button === 2) currentMouseButtonState.rmb = false;
+	inputEventEmitter.emit('mouseUp', e);
 
 	let mappedFunctionalInput = mouseButtonMappings.get(button);
 	if (mappedFunctionalInput === undefined) return;

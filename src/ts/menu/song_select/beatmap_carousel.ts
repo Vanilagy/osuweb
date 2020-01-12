@@ -1,17 +1,18 @@
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { stage, addRenderingTask } from "../../visuals/rendering";
-import { inputEventEmitter } from "../../input/input";
+import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState } from "../../input/input";
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last } from "../../util/misc_util";
+import { NormalizedWheelEvent, last, jsonClone } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { InteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, Interactivity } from "../../input/interactivity";
 import { BeatmapPanel } from "./beatmap_panel";
 import { songSelectContainer } from "./song_select";
 import { Interpolator } from "../../util/interpolation";
+import { Point } from "../../util/point";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
@@ -25,6 +26,50 @@ export const BEATMAP_SET_PANEL_SNAP_TARGET = 225;
 export const BEATMAP_PANEL_SNAP_TARGET = 300;
 const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEIGHT/2; // When either the top or bottom panel of the carousel cross this line, the carousel should snap back.
 const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the velocity will have fallen off by this much.
+
+let carouselDragTarget = new PIXI.Container();
+songSelectContainer.addChild(carouselDragTarget);
+
+let lastMousePos: Point = null;
+let lastMousePosSampleTime: number = null;
+let lastDt: number = null;
+let lastDragMovement: Point = {x: 0, y: 0};
+let scrollStart: Point = null;
+
+let dragListener = Interactivity.registerDisplayObject(carouselDragTarget);
+dragListener.addListener('mouseMove', () => {
+	let mousePos = getCurrentMousePosition();
+	let now = performance.now();
+
+	if (!getCurrentMouseButtonState().lmb) {
+		lastMousePos = null;
+		lastMousePosSampleTime = null;
+
+		return;
+	}
+
+	if (lastMousePos) {
+		lastDragMovement.x = mousePos.x - lastMousePos.x;
+		lastDragMovement.y = mousePos.y - lastMousePos.y;
+
+		snapToSelectedIntervened = true;
+		referencePanelY += lastDragMovement.y / getCarouselScalingFactor();
+		lastDt = now - lastMousePosSampleTime;
+
+		if (Math.abs(mousePos.y - scrollStart.y) > 5) {
+			carouselInteractionGroup.resetWasPressedDown();
+		}
+	}
+
+	lastMousePos = jsonClone(mousePos);
+	lastMousePosSampleTime = now;
+});
+dragListener.addListener('mouseDown', () => {
+	scrollVelocity = 0;
+	lastMousePos = getCurrentMousePosition();
+	lastMousePosSampleTime = performance.now();
+	scrollStart = getCurrentMousePosition();
+});
 
 export let beatmapCarouselContainer = new PIXI.Container();
 export let beatmapSetPanels: BeatmapSetPanel[] = [];
@@ -78,6 +123,7 @@ export function snapReferencePanel(from: number, to: number) {
 	snapToSelectionInterpolator.start(performance.now());
 	snapToSelectedIntervened = false;
 	scrollVelocity = 0;
+	lastDt = null;
 }
 
 export function createCarouselFromDirectory(directory: VirtualDirectory) {
@@ -120,6 +166,15 @@ addRenderingTask((now: number, dt: number) => {
 	let distanceScrolled = scrollVelocity * (Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000) - 1) / Math.log(SCROLL_VELOCITY_DECAY_FACTOR);
 	scrollVelocity = scrollVelocity * Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000);
 	referencePanelY -= distanceScrolled;
+
+	if (!getCurrentMouseButtonState().lmb && lastDt) {
+		scrollVelocity -= lastDragMovement.y / (lastDt / 1000) / getCarouselScalingFactor();
+		lastDragMovement.y = 0;
+		lastMousePos = null;
+		lastMousePosSampleTime = null;
+		lastDt = null;
+	}
+
 	if (Math.abs(scrollVelocity) < 1) scrollVelocity = 0;
 
 	referencePanel.update(now, referencePanelY, referencePanel.getTotalHeight(now));
@@ -188,6 +243,8 @@ export function updateCarouselSizing() {
 	updateBeatmapSetPanelMasks();
 	updateBeatmapPanelMasks();
 	updateDifficultyColorBar();
+	
+	carouselDragTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
 
 	for (let i = 0; i < beatmapSetPanels.length; i++) {
 		let panel = beatmapSetPanels[i];

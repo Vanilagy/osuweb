@@ -92,7 +92,7 @@ export class BeatmapPanel {
 		this.interaction = Interactivity.registerDisplayObject(this.container);
 		carouselInteractionGroup.add(this.interaction);
 
-		this.interaction.addListener('mouseDown', () => this.select());
+		this.interaction.addListener('mouseClick', () => this.select());
 
 		this.interaction.addListener('mouseEnter', () => {
 			this.hoverInterpolator.setReversedState(false, performance.now());
@@ -193,12 +193,12 @@ export class BeatmapPanel {
 		this.infoContainer.alpha = this.fadeInInterpolator.getCurrentValue(now);
 
 		let normalizedY = this.container.getGlobalPosition().y / scalingFactor;
-		this.container.x = getNormalizedOffsetOnCarousel(normalizedY + BEATMAP_PANEL_HEIGHT/2) * scalingFactor;
+		this.container.x = getNormalizedOffsetOnCarousel((normalizedY + BEATMAP_PANEL_HEIGHT/2) * scalingFactor) * scalingFactor;
 
 		let expansionValue = this.expandInterpolator.getCurrentValue(now);
 		this.container.x += expansionValue * -40 * scalingFactor;
 
-		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * (1 - this.expandInterpolator.getCurrentCompletion(now));
+		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * MathUtil.lerp(1, 0.5, this.expandInterpolator.getCurrentCompletion(now));
 		this.container.x += hoverValue * -7 * scalingFactor;
 
 		this.container.x = Math.floor(this.container.x);
