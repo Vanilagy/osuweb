@@ -119,8 +119,6 @@ export class BeatmapSetPanel {
 
 		this.interaction.addListener('mouseClick', () => {
 			if (!this.isExpanded) this.expand();
-
-			this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now());
 		});
 
 		this.interaction.addListener('mouseDown', () => {

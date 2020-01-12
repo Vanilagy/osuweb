@@ -31,6 +31,7 @@ export class BeatmapPanel {
 	private expandInterpolator: Interpolator;
 	private glowSprite: PIXI.Sprite;
 	private colorBar: PIXI.Sprite;
+	private pressDownInterpolator: Interpolator;
 
 	constructor(parentPanel: BeatmapSetPanel) {
 		this.parentPanel = parentPanel;
@@ -54,6 +55,14 @@ export class BeatmapPanel {
 			p: 0.9,
 			reverseDuration: 500,
 			reverseEase: EaseType.EaseInQuart,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+		this.pressDownInterpolator = new Interpolator({
+			duration: 50,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic,
+			reverseDuration: 400,
 			beginReversed: true,
 			defaultToFinished: true
 		});
@@ -94,12 +103,26 @@ export class BeatmapPanel {
 
 		this.interaction.addListener('mouseClick', () => this.select());
 
-		this.interaction.addListener('mouseEnter', () => {
+		this.interaction.addListener('mouseDown', () => {
+			this.pressDownInterpolator.setReversedState(false, performance.now());
+		});
+
+		this.interaction.addListener('mouseEnter', (e) => {
 			this.hoverInterpolator.setReversedState(false, performance.now());
+
+			if (e.wasPressedDown) {
+				this.pressDownInterpolator.setReversedState(false, performance.now());
+			}
+		});
+
+		this.interaction.addListener('mouseUp', () => {
+			this.pressDownInterpolator.setReversedState(true, performance.now());
 		});
 
 		this.interaction.addListener('mouseLeave', () => {
 			this.hoverInterpolator.setReversedState(true, performance.now());
+
+			this.pressDownInterpolator.setReversedState(true, performance.now());
 		});
 	}
 
@@ -204,7 +227,8 @@ export class BeatmapPanel {
 		this.container.x = Math.floor(this.container.x);
 		this.container.y = Math.floor(this.container.y);
 
-		this.background.alpha = MathUtil.lerp(0.45, 0.8, expansionValue);
+		let bonusAlpha = this.pressDownInterpolator.getCurrentValue(now) * 0.1;
+		this.background.alpha = MathUtil.lerp(0.45, 0.8, expansionValue) + bonusAlpha;
 		this.colorBar.alpha = 1 - expansionValue;
 
 		if (expansionValue === 0) {
