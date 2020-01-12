@@ -1,6 +1,6 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { VirtualFile } from "../../file_system/virtual_file";
-import { BeatmapPanel } from "./beatmap_panel";
+import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
 import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
@@ -23,7 +23,7 @@ export class BeatmapSetPanel {
 	public isExpanded: boolean = false;
 	private difficultyContainer: PIXI.Container;
 	private expandInterpolator: Interpolator;
-	private beatmapPanels: BeatmapPanel[] = [];
+	private beatmapDifficultyPanels: BeatmapDifficultyPanel[] = [];
 	private representingBeatmap: Beatmap;
 	private mainMask: PIXI.Sprite;
 	private backgroundImageSprite: PIXI.Sprite;
@@ -215,8 +215,8 @@ export class BeatmapSetPanel {
 		this.primaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(10 * scalingFactor));
 		this.secondaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(35 * scalingFactor));
 
-		for (let i = 0; i < this.beatmapPanels.length; i++) {
-			this.beatmapPanels[i].resize();
+		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
+			this.beatmapDifficultyPanels[i].resize();
 		}
 	}
 
@@ -259,13 +259,13 @@ export class BeatmapSetPanel {
 		this.panelContainer.x -= 95 * expansionValue * scalingFactor;
 
 		// Remove beatmap panel elements if there's no need to keep them
-		if (!this.isExpanded && expansionValue === 0 && this.beatmapPanels.length > 0) {
-			this.beatmapPanels.length = 0;
+		if (!this.isExpanded && expansionValue === 0 && this.beatmapDifficultyPanels.length > 0) {
+			this.beatmapDifficultyPanels.length = 0;
 			this.difficultyContainer.removeChildren();
 		}
 
-		for (let i = 0; i < this.beatmapPanels.length; i++) {
-			let panel = this.beatmapPanels[i];
+		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
+			let panel = this.beatmapDifficultyPanels[i];
 
 			let y = BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue;
 			panel.update(now, y);
@@ -305,7 +305,7 @@ export class BeatmapSetPanel {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
-		this.beatmapPanels.length = 0;
+		this.beatmapDifficultyPanels.length = 0;
 		this.difficultyContainer.removeChildren();
 
 		let selectedPanel = getSelectedPanel();
@@ -321,11 +321,11 @@ export class BeatmapSetPanel {
 		beatmapInfoPanel.loadBeatmapSet(this.representingBeatmap);
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
-			let beatmapPanel = new BeatmapPanel(this);
-			beatmapPanel.container.zIndex = -i;
+			let difficultyPanel = new BeatmapDifficultyPanel(this);
+			difficultyPanel.container.zIndex = -i;
 
-			this.difficultyContainer.addChild(beatmapPanel.container);
-			this.beatmapPanels.push(beatmapPanel);
+			this.difficultyContainer.addChild(difficultyPanel.container);
+			this.beatmapDifficultyPanels.push(difficultyPanel);
 		}
 
 		this.representingBeatmap.getBackgroundImageFile().then((backgroundImage) => {
@@ -355,14 +355,14 @@ export class BeatmapSetPanel {
 			return 0;
 		});
 
-		for (let i = 0; i < this.beatmapPanels.length; i++) {
+		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
 			let result = data[i];
 			if (result.status === 'fulfilled') {
-				this.beatmapPanels[i].load(map.get(result), result.value);
+				this.beatmapDifficultyPanels[i].load(map.get(result), result.value);
 			}
 		}
 
-		this.beatmapPanels[0].select(false);
+		this.beatmapDifficultyPanels[0].select(false);
 	}
 
 	private collapse() {
@@ -377,8 +377,8 @@ export class BeatmapSetPanel {
 		this.expandInterpolator.setReversedState(true, performance.now());
 		this.isExpanded = false;
 
-		for (let i = 0; i < this.beatmapPanels.length; i++) {
-			this.beatmapPanels[i].disable();
+		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
+			this.beatmapDifficultyPanels[i].disable();
 		}
 	}
 }

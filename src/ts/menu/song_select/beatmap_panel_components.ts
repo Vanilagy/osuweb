@@ -87,18 +87,18 @@ export function getBeatmapSetPanelGlowTexture() {
 	return beatmapSetPanelGlowTexture;
 }
 
-let beatmapPanelMask = document.createElement('canvas');
-let beatmapPanelMaskInverted = document.createElement('canvas');
-let beatmapPanelMaskCtx = beatmapPanelMask.getContext('2d');
-let beatmapPanelMaskInvertedCtx = beatmapPanelMaskInverted.getContext('2d');
-let beatmapPanelGlowTexture: PIXI.RenderTexture;
+let beatmapDifficultyPanelMask = document.createElement('canvas');
+let beatmapDifficultyPanelMaskInverted = document.createElement('canvas');
+let beatmapDifficultyPanelMaskCtx = beatmapDifficultyPanelMask.getContext('2d');
+let beatmapDifficultyPanelMaskInvertedCtx = beatmapDifficultyPanelMaskInverted.getContext('2d');
+let beatmapDifficultyPanelGlowTexture: PIXI.RenderTexture;
 
-export function updateBeatmapPanelMasks() {
+export function updateBeatmapDifficultyPanelMasks() {
 	let scalingFactor = getCarouselScalingFactor();
 
 	for (let i = 0; i < 2; i++) {
-		let canvas = (i === 0)? beatmapPanelMask : beatmapPanelMaskInverted;
-		let ctx = (i === 0)? beatmapPanelMaskCtx : beatmapPanelMaskInvertedCtx;
+		let canvas = (i === 0)? beatmapDifficultyPanelMask : beatmapDifficultyPanelMaskInverted;
+		let ctx = (i === 0)? beatmapDifficultyPanelMaskCtx : beatmapDifficultyPanelMaskInvertedCtx;
 
 		canvas.setAttribute('width', String(Math.ceil((BEATMAP_PANEL_WIDTH + TEXTURE_MARGIN) * scalingFactor)));
 		canvas.setAttribute('height', String(Math.ceil((BEATMAP_PANEL_HEIGHT + TEXTURE_MARGIN * 2) * scalingFactor)));
@@ -117,13 +117,13 @@ export function updateBeatmapPanelMasks() {
 		ctx.fill();
 	}
 
-	let glowSprite = new PIXI.Sprite(PIXI.Texture.from(beatmapPanelMask));
+	let glowSprite = new PIXI.Sprite(PIXI.Texture.from(beatmapDifficultyPanelMask));
 	glowSprite.texture.update();
 
 	let glowFilter = new PIXI.filters.GlowFilter(5 * scalingFactor, 5, 0, 0xffffff, 1.0);
 	glowSprite.filters = [glowFilter];
 
-	let glowMask = new PIXI.Sprite(PIXI.Texture.from(beatmapPanelMaskInverted));
+	let glowMask = new PIXI.Sprite(PIXI.Texture.from(beatmapDifficultyPanelMaskInverted));
 	glowMask.texture.update();
 
 	let glowSpriteContainer = new PIXI.Container();
@@ -131,23 +131,23 @@ export function updateBeatmapPanelMasks() {
 	glowSpriteContainer.addChild(glowMask);
 	glowSpriteContainer.mask = glowMask;
 
-	beatmapPanelGlowTexture = PIXI.RenderTexture.create({
+	beatmapDifficultyPanelGlowTexture = PIXI.RenderTexture.create({
 		width: Math.ceil((BEATMAP_PANEL_WIDTH + TEXTURE_MARGIN) * scalingFactor),
 		height: Math.ceil((BEATMAP_PANEL_HEIGHT + TEXTURE_MARGIN * 2) * scalingFactor)
 	});
-	renderer.render(glowSpriteContainer, beatmapPanelGlowTexture);
+	renderer.render(glowSpriteContainer, beatmapDifficultyPanelGlowTexture);
 }
 
-export function getBeatmapPanelMask() {
-	return beatmapPanelMask;
+export function getBeatmapDifficultyPanelMask() {
+	return beatmapDifficultyPanelMask;
 }
 
-export function getBeatmapPanelMaskInverted() {
-	return beatmapPanelMaskInverted;
+export function getBeatmapDifficultyPanelMaskInverted() {
+	return beatmapDifficultyPanelMaskInverted;
 }
 
-export function getBeatmapPanelGlowTexture() {
-	return beatmapPanelGlowTexture;
+export function getBeatmapDifficultyPanelGlowTexture() {
+	return beatmapDifficultyPanelGlowTexture;
 }
 
 let difficultyColorBar = document.createElement('canvas');

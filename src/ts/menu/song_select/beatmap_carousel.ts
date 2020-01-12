@@ -4,12 +4,12 @@ import { stage, addRenderingTask } from "../../visuals/rendering";
 import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState } from "../../input/input";
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
-import { updateDarkeningOverlay, updateBeatmapPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
+import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
 import { NormalizedWheelEvent, last, jsonClone } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup, Interactivity } from "../../input/interactivity";
-import { BeatmapPanel } from "./beatmap_panel";
+import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
 import { songSelectContainer } from "./song_select";
 import { Interpolator } from "../../util/interpolation";
 import { Point } from "../../util/point";
@@ -86,7 +86,7 @@ let snapToSelectionInterpolator = new Interpolator({
 });
 let snapToSelectedIntervened = true;
 
-let selectedSubpanel: BeatmapPanel = null;
+let selectedSubpanel: BeatmapDifficultyPanel = null;
 
 songSelectContainer.addChild(beatmapCarouselContainer);
 
@@ -103,7 +103,7 @@ export function getSelectedPanel() {
 	return selectedPanel;
 }
 
-export function setSelectedSubpanel(subpanel: BeatmapPanel) {
+export function setSelectedSubpanel(subpanel: BeatmapDifficultyPanel) {
 	selectedSubpanel = subpanel;
 }
 
@@ -241,7 +241,7 @@ export function updateCarouselSizing() {
 
 	updateDarkeningOverlay();
 	updateBeatmapSetPanelMasks();
-	updateBeatmapPanelMasks();
+	updateBeatmapDifficultyPanelMasks();
 	updateDifficultyColorBar();
 	
 	carouselDragTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
