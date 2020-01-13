@@ -10,7 +10,7 @@ let currentMousePosition: Point = {
 let currentMouseButtonState = {
 	lmb: false,
 	rmb: false,
-	// TODO: mmb?
+	mmb: false
 };
 
 export function getCurrentMousePosition() {
@@ -103,6 +103,7 @@ window.addEventListener('mousedown', (e) => {
 	let button = e.button;
 
 	if (button === 0) currentMouseButtonState.lmb = true;
+	else if (button === 1) currentMouseButtonState.mmb = true;
 	else if (button === 2) currentMouseButtonState.rmb = true;
 	inputEventEmitter.emit('mouseDown', e);
 
@@ -121,6 +122,7 @@ window.addEventListener('mouseup', (e) => {
 	let button = e.button;
 
 	if (button === 0) currentMouseButtonState.lmb = false;
+	else if (button === 1) currentMouseButtonState.mmb = false;
 	else if (button === 2) currentMouseButtonState.rmb = false;
 	inputEventEmitter.emit('mouseUp', e);
 

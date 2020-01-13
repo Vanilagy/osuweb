@@ -2,7 +2,8 @@ import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
 import { VirtualFile } from "./virtual_file";
 
 export class VirtualDirectory extends VirtualFileSystemEntry {
-	private entries: { [name: string]: VirtualFileSystemEntry };
+	private entries: Map<string, VirtualFileSystemEntry>;
+	private caseInsensitiveEntries: Map<string, VirtualFileSystemEntry>;
 	public networkFallbackUrl: string;
 	public failedNetworkFallbacks: Set<string>; // In order to prevent hitting the network twice for a 404 resource.
 
@@ -11,18 +12,28 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 		this.name = name;
 		this.networkFallbackUrl = null;
-		this.entries = {};
+		this.entries = new Map();
+		this.caseInsensitiveEntries = new Map();
 		this.failedNetworkFallbacks = new Set();
 	}
 
 	addEntry(entry: VirtualFileSystemEntry) {
-		this.entries[entry.name] = entry;
+		this.entries.set(entry.name, entry);
+		this.caseInsensitiveEntries.set(entry.name.toLowerCase(), entry);
+
 		entry.setParent(this);
 	}
 
-	async getEntryByName(name: string) {
-		let entry = this.entries[name];
-		if (entry) return entry;
+	removeEntry(entry: VirtualFileSystemEntry) {
+		this.entries.delete(entry.name);
+		this.caseInsensitiveEntries.delete(entry.name.toLowerCase());
+	}
+
+	async getEntryByName(name: string, caseInsensitive = false) {
+		if (name !== null && name !== undefined) {
+			let entry = caseInsensitive? this.caseInsensitiveEntries.get(name.toLowerCase()) : this.entries.get(name);
+			if (entry) return entry;
+		}
 
 		if (this.networkFallbackUrl) {
 			let url = this.networkFallbackUrl + '/' + name;
@@ -43,26 +54,23 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		return null;
 	}
 
-	async getFileByName(name: string) {
-		let entry = await this.getEntryByName(name);
+	async getFileByName(name: string, caseInsensitive = false) {
+		let entry = await this.getEntryByName(name, caseInsensitive);
 
 		if (entry instanceof VirtualFile) return entry as VirtualFile;
 		return null;
 	}
 
 	forEach(func: (entry: VirtualFileSystemEntry) => any) {
-		for (let key in this.entries) {
-			func(this.entries[key]);
-		}
+		this.entries.forEach((entry) => {
+			func(entry);
+		});
 	}
 
 	forEachFile(func: (entry: VirtualFile) => any) {
-		for (let key in this.entries) {
-			let entry = this.entries[key];
-			if (!(entry instanceof VirtualFile)) continue;
-
-			func(entry);
-		}
+		this.entries.forEach((entry) => {
+			if (entry instanceof VirtualFile) func(entry);
+		});
 	}
 
 	/** Load all files in this directory. */
@@ -99,7 +107,7 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 			while (true) {
 				if (index >= pathSegments.length - 1) return currentDir;
 
-				let entry = currentDir.entries[pathSegments[index]] as VirtualDirectory;
+				let entry = currentDir.entries.get(pathSegments[index]) as VirtualDirectory;
 				if (!entry) {
 					entry = new VirtualDirectory(pathSegments[index]);
 					currentDir.addEntry(entry);

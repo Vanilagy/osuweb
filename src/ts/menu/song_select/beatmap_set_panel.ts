@@ -128,7 +128,7 @@ export class BeatmapSetPanel {
 		this.interaction.addListener('mouseEnter', (e) => {
 			this.hoverInterpolator.setReversedState(false, performance.now());
 
-			if (e.wasPressedDown) {
+			if (e.pressedDown) {
 				this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now());
 			}
 		});

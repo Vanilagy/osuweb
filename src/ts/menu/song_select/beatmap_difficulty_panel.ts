@@ -110,7 +110,7 @@ export class BeatmapDifficultyPanel {
 		this.interaction.addListener('mouseEnter', (e) => {
 			this.hoverInterpolator.setReversedState(false, performance.now());
 
-			if (e.wasPressedDown) {
+			if (e.pressedDown) {
 				this.pressDownInterpolator.setReversedState(false, performance.now());
 			}
 		});

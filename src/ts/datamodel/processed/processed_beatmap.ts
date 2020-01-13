@@ -131,9 +131,9 @@ export class ProcessedBeatmap {
 			if (newProcessedObject !== null) {
 				newProcessedObject.index = currentObjectIndex;
 				this.hitObjects.push(newProcessedObject);
+
+				currentObjectIndex++;
 			}
-	
-			currentObjectIndex++;
 		}
 	}
 

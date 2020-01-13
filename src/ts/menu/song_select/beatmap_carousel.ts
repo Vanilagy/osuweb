@@ -57,7 +57,7 @@ dragListener.addListener('mouseMove', () => {
 		lastDt = now - lastMousePosSampleTime;
 
 		if (Math.abs(mousePos.y - scrollStart.y) > 5) {
-			carouselInteractionGroup.resetWasPressedDown();
+			carouselInteractionGroup.releaseAllPresses();
 		}
 	}
 

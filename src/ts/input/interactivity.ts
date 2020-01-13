@@ -6,8 +6,8 @@ type Interaction = 'mouseDown' | 'mouseUp' | 'mouseClick' | 'mouseEnter' | 'mous
 let registrations: InteractionRegistration[] = [];
 
 interface InteractionEventData {
-	wasPressedDown?: boolean,
-	mouseDown?: boolean
+	pressedDown: boolean,
+	triggeringEvent?: MouseEvent
 }
 
 abstract class InteractionUnit {
@@ -18,7 +18,7 @@ abstract class InteractionUnit {
 	abstract enable(): void;
 	abstract disable(): void;
 	abstract setBlocked(state: boolean): void;
-	abstract resetWasPressedDown(): void;
+	abstract releaseAllPresses(): void;
 
 	detach() {
 		if (this.parent !== null) this.parent.remove(this);
@@ -40,7 +40,7 @@ export class InteractionRegistration extends InteractionUnit {
 	private listeners: Map<Interaction, ((data?: InteractionEventData) => any)[]> = new Map();
 	public mouseInside = false;
 	private destroyed = false;
-	public wasPressedDown = false; // A necessary flag in order to make clicking work (CLICKING, not mouse-downing!!)
+	public pressedDown = false; // A necessary flag in order to make clicking work (CLICKING, not mouse-downing!!)
 
 	constructor(obj: PIXI.DisplayObject, enabled: boolean) {
 		super();
@@ -78,15 +78,15 @@ export class InteractionRegistration extends InteractionUnit {
 		}
 	}
 
-	trigger(interaction: Interaction, addedData?: any) {
+	trigger(interaction: Interaction, event: MouseEvent) {
 		if (this.destroyed) return;
 
 		let arr = this.listeners.get(interaction);
 		if (!arr) return;
 
 		let data: InteractionEventData = {
-			mouseDown: getCurrentMouseButtonState().lmb,
-			wasPressedDown: this.wasPressedDown
+			pressedDown: this.pressedDown,
+			triggeringEvent: event
 		};
 
 		// OMFG TILT. TODO clean up this addedData shit
@@ -145,10 +145,15 @@ export class InteractionRegistration extends InteractionUnit {
 		else if (!this.blocked && this.enabled) this.performEnable();
 	}
 
-	resetWasPressedDown() {
-		this.wasPressedDown = false;
+	releaseAllPresses() {
+		if (this.pressedDown) {
+			this.pressedDown = false;
 
-		this.trigger('mouseUp'); // TODO TEMP
+			let mousePosition = getCurrentMousePosition();
+			if (this.overlaps(mousePosition.x, mousePosition.y)) {
+				this.trigger('mouseUp', null);
+			}
+		}
 	}
 }
 
@@ -226,9 +231,9 @@ export class InteractionGroup extends InteractionUnit {
 		}
 	}
 
-	resetWasPressedDown() {
+	releaseAllPresses() {
 		for (let i = 0; i < this.children.length; i++) {
-			this.children[i].resetWasPressedDown();
+			this.children[i].releaseAllPresses();
 		}
 	}
 }
@@ -241,10 +246,9 @@ export abstract class Interactivity {
 	}
 }
 
-function handleMouseInteraction(interaction: Interaction, func: (mousePosition: Point, registration: InteractionRegistration) => {success: boolean, data?: any}) {
+function handleMouseInteraction(interaction: Interaction, event: MouseEvent, func: (mousePosition: Point, registration: InteractionRegistration) => boolean) {
 	let mousePosition = getCurrentMousePosition();
 	let toTrigger: InteractionRegistration[] = [];
-	let data: any[] = [];
 
 	// We determine first which registrations need to be triggered.
 	for (let i = 0; i < registrations.length; i++) {
@@ -252,80 +256,70 @@ function handleMouseInteraction(interaction: Interaction, func: (mousePosition: 
 		if (!reg.handlesInteraction(interaction)) continue;
 
 		let result = func(mousePosition, reg);
-		if (!result.success) continue;
+		if (!result) continue;
 
 		toTrigger.push(reg);
-		data.push(result.data);
 	}
 
 	// Then, one after another, we trigger them. This separation happens so that the interaction doesn't trigger additional registrations that could be added as a SIDE-EFFECT of a trigger.
 	for (let i = 0; i < toTrigger.length; i++) {
-		toTrigger[i].trigger(interaction, data[i]);
+		toTrigger[i].trigger(interaction, event);
 	}
 }
 
-inputEventEmitter.addListener('mouseDown', () => handleMouseInteraction('mouseDown', (pos, reg) => {
-	return {
-		success: reg.overlaps(pos.x, pos.y)
-	};
+inputEventEmitter.addListener('mouseDown', (e) => handleMouseInteraction('mouseDown', e, (pos, reg) => {
+	return reg.overlaps(pos.x, pos.y);
 }));
 
-inputEventEmitter.addListener('mouseDown', () => handleMouseInteraction('mouseClick', (pos, reg) => {
+inputEventEmitter.addListener('mouseDown', (e) => handleMouseInteraction('mouseClick', e, (pos, reg) => {
 	let overlaps = reg.overlaps(pos.x, pos.y);
-	if (overlaps) reg.wasPressedDown = true;
+	if (overlaps) reg.pressedDown = true;
 
-	return {success: false}; // Never trigger mouseClick, just set the flag.
+	return false; // Never trigger mouseClick, just set the flag.
 }));
 
-inputEventEmitter.addListener('mouseUp', () => handleMouseInteraction('mouseUp', (pos, reg) => {
-	return {
-		success: reg.overlaps(pos.x, pos.y)
-	};
+inputEventEmitter.addListener('mouseUp', (e) => handleMouseInteraction('mouseUp', e, (pos, reg) => {
+	return reg.overlaps(pos.x, pos.y);
 }));
 
-inputEventEmitter.addListener('mouseUp', () => handleMouseInteraction('mouseClick', (pos, reg) => {
+inputEventEmitter.addListener('mouseUp', (e) => handleMouseInteraction('mouseClick', e, (pos, reg) => {
 	let success = false;
 	let overlaps = reg.overlaps(pos.x, pos.y);
-	if (overlaps && reg.wasPressedDown) success = true;
+	if (overlaps && reg.pressedDown) success = true;
 
-	reg.wasPressedDown = false;
+	reg.pressedDown = false;
 
-	return {
-		success: success
-	};
+	return success;
 }));
 
-inputEventEmitter.addListener('mouseMove', (e: MouseEvent) => handleMouseInteraction('mouseMove', (pos, reg) => {
-	return {
-		success: reg.overlaps(pos.x, pos.y),
-		data: e
-	};
+inputEventEmitter.addListener('mouseMove', (e) => handleMouseInteraction('mouseMove', e, (pos, reg) => {
+	return reg.overlaps(pos.x, pos.y);
 }));
 
 let lastMouseMoveHandleTime = -Infinity;
-function onMouseMove() {
+function onMouseMove(e: MouseEvent) {
 	lastMouseMoveHandleTime = performance.now();
 
-	handleMouseInteraction('mouseEnter', (pos, reg) => {
+	handleMouseInteraction('mouseEnter', e, (pos, reg) => {
 		let overlaps = reg.overlaps(pos.x, pos.y);
-		if (!overlaps) return {success: false};
-		if (reg.mouseInside) return {success: false};
+		if (!overlaps) return false;
+		if (reg.mouseInside) return false;
 	
 		reg.mouseInside = true;
-		return {success: true};
+		return true;
 	});
 
-	handleMouseInteraction('mouseLeave', (pos, reg) => {
+	handleMouseInteraction('mouseLeave', e, (pos, reg) => {
 		let overlaps = reg.overlaps(pos.x, pos.y);
-		if (overlaps) return {success: false};
-		if (!reg.mouseInside) return {success: false};
+		if (overlaps) return false;
+		if (!reg.mouseInside) return false;
 	
 		reg.mouseInside = false;
-		return {success: true};
+		return true;
 	});
 }
 inputEventEmitter.addListener('mouseMove', onMouseMove);
 
 addRenderingTask((now) => {
-	if (now - lastMouseMoveHandleTime >= 1000/30) onMouseMove(); // Call it, even though the mouse didn't move, so that we catch objects having moved out of or into the cursor.
+	if (now - lastMouseMoveHandleTime >= 1000/30) onMouseMove(null); // Call it, even though the mouse didn't move, so that we catch objects having moved out of or into the cursor.
 });
