@@ -1,6 +1,6 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { Beatmap } from "../../datamodel/beatmap";
-import { songSelectContainer } from "./song_select";
+import { songSelectContainer, songSelectInteractionGroup } from "./song_select";
 import { BeatmapDetailsTab } from "./beatmap_details_tab";
 import { addRenderingTask } from "../../visuals/rendering";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
@@ -10,12 +10,16 @@ import { EaseType, MathUtil } from "../../util/math_util";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { TabSelector } from "../components/tab_selector";
 import { BeatmapRankingTab } from "./beatmap_ranking_tab";
-import { getGlobalScalingFactor, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
+import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
+import { Interactivity } from "../../input/interactivity";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
 const IMAGE_FADE_IN_TIME = 333;
+const beatmapInfoPanelInteractionGroup = Interactivity.createGroup();
+beatmapInfoPanelInteractionGroup.setZIndex(2);
+songSelectInteractionGroup.add(beatmapInfoPanelInteractionGroup);
 
 let infoPanelMask = document.createElement('canvas');
 let infoPanelMaskCtx = infoPanelMask.getContext('2d');
@@ -165,7 +169,6 @@ export class BeatmapInfoPanel {
 		this.upperPanelContainer.addChild(this.difficultyText);
 
 		this.tabSelector = new TabSelector(["Details", "Ranking"]);
-		this.tabSelector.addListener('selection', (index: number) => this.selectTab(index));
 		this.container.addChild(this.tabSelector.container);
 
 		this.tabBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
@@ -188,8 +191,18 @@ export class BeatmapInfoPanel {
 		}
 
 		this.selectTab(0);
-
+		this.initInteraction();
 		this.resize();
+	}
+
+	private initInteraction() {
+		let reg = Interactivity.registerDisplayObject(this.container);
+		reg.enableEmptyListeners(['wheel']);
+		reg.setZIndex(-1);
+		beatmapInfoPanelInteractionGroup.add(reg);
+
+		this.tabSelector.addListener('selection', (index: number) => this.selectTab(index));
+		beatmapInfoPanelInteractionGroup.add(this.tabSelector.interactionGroup);
 	}
 	
 	private selectTab(index: number) {

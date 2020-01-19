@@ -14,7 +14,10 @@ export function getGlobalScalingFactor() {
 	return globalScaingFactor;
 }
 
-export let uiEventEmitter = new CustomEventEmitter();
+export let uiEventEmitter = new CustomEventEmitter<{
+	resize: void,
+	gameButtonDown: void
+}>();
 
 // So we don't need to call window.innerWidth/innerHeight all the time
 export const currentWindowDimensions: Dimensions = {
@@ -58,7 +61,7 @@ export function addCursorRipple(position?: Point) {
 		position: position
 	});
 }
-inputEventEmitter.addListener('gameButtonDown', addCursorRipple);
+inputEventEmitter.addListener('gameButtonDown', () => addCursorRipple());
 
 addRenderingTask((now) => {
 	cursorRippleGraphics.clear();

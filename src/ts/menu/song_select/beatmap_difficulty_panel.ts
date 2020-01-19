@@ -8,7 +8,7 @@ import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, carouselInteractio
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
-import { songSelectContainer } from "./song_select";
+import { songSelectContainer, songSelectInteractionGroup } from "./song_select";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
 import { Interpolator } from "../../util/interpolation";
@@ -278,7 +278,7 @@ export class BeatmapDifficultyPanel {
 		if (!this.beatmapFile) return;
 
 		songSelectContainer.visible = false;
-		carouselInteractionGroup.disable();
+		songSelectInteractionGroup.disable();
 
 		this.beatmapFile.readAsText().then((text) => {
 			let map = new Beatmap({

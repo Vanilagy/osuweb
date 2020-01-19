@@ -3,6 +3,10 @@ import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { createCarouselFromDirectory, updateCarouselSizing } from "./beatmap_carousel";
 import { initBeatmapInfoPanel, updateBeatmapInfoPanelSizing } from "./beatmap_info_panel";
 import { uiEventEmitter } from "../../visuals/ui";
+import { Interactivity } from "../../input/interactivity";
+
+export const songSelectInteractionGroup = Interactivity.createGroup();
+songSelectInteractionGroup.disable();
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 
@@ -16,6 +20,8 @@ songFolderSelect.addEventListener('change', () => {
 
 	createCarouselFromDirectory(directory);
 	initBeatmapInfoPanel();
+
+	songSelectInteractionGroup.enable();
 });
 
 function onResize() {

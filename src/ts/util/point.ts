@@ -103,6 +103,13 @@ export function vector2Dot(v1: Vector2, v2: Vector2) {
 	return v1.x * v2.x + v1.y * v2.y;
 }
 
+export function scaleVector2(v: Vector2, scalar: number) {
+	v.x *= scalar;
+	v.y *= scalar;
+
+	return v;
+}
+
 /** Modifies an array representing a polyline's points to fit a certain length. Returns an array the length of the resulting point array, where each element is a number from 0 to 1 marking the percentage of how far the point at the corresponding index is along the track. */
 export function fitPolylineToLength(points: Point[], arcLength: number) {
 	let completions: number[] = [];

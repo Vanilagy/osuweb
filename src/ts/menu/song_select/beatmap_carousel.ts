@@ -5,12 +5,12 @@ import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState 
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, shallowObjectClone } from "../../util/misc_util";
+import { NormalizedWheelEvent, last, shallowObjectClone, EMPTY_FUNCTION } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup, Interactivity } from "../../input/interactivity";
 import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
-import { songSelectContainer } from "./song_select";
+import { songSelectContainer, songSelectInteractionGroup } from "./song_select";
 import { Interpolator } from "../../util/interpolation";
 import { Point } from "../../util/point";
 
@@ -27,53 +27,12 @@ export const BEATMAP_PANEL_SNAP_TARGET = 300;
 const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEIGHT/2; // When either the top or bottom panel of the carousel cross this line, the carousel should snap back.
 const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the velocity will have fallen off by this much.
 
-let carouselDragTarget = new PIXI.Container();
-songSelectContainer.addChild(carouselDragTarget);
-
-let lastMousePos: Point = null;
-let lastMousePosSampleTime: number = null;
-let lastDt: number = null;
-let lastDragMovement: Point = {x: 0, y: 0};
-let scrollStart: Point = null;
-
-let dragListener = Interactivity.registerDisplayObject(carouselDragTarget);
-dragListener.addListener('mouseMove', () => {
-	let mousePos = getCurrentMousePosition();
-	let now = performance.now();
-
-	if (!getCurrentMouseButtonState().lmb) {
-		lastMousePos = null;
-		lastMousePosSampleTime = null;
-
-		return;
-	}
-
-	if (lastMousePos) {
-		lastDragMovement.x = mousePos.x - lastMousePos.x;
-		lastDragMovement.y = mousePos.y - lastMousePos.y;
-
-		snapToSelectedIntervened = true;
-		referencePanelY += lastDragMovement.y / getCarouselScalingFactor();
-		lastDt = now - lastMousePosSampleTime;
-
-		if (Math.abs(mousePos.y - scrollStart.y) > 5) {
-			carouselInteractionGroup.releaseAllPresses();
-		}
-	}
-
-	lastMousePos = shallowObjectClone(mousePos);
-	lastMousePosSampleTime = now;
-});
-dragListener.addListener('mouseDown', () => {
-	scrollVelocity = 0;
-	lastMousePos = getCurrentMousePosition();
-	lastMousePosSampleTime = performance.now();
-	scrollStart = getCurrentMousePosition();
-});
-
 export let beatmapCarouselContainer = new PIXI.Container();
 export let beatmapSetPanels: BeatmapSetPanel[] = [];
-export let carouselInteractionGroup = new InteractionGroup();
+export let carouselInteractionGroup = Interactivity.createGroup();
+carouselInteractionGroup.setZIndex(1);
+songSelectInteractionGroup.add(carouselInteractionGroup);
+
 let selectedPanel: BeatmapSetPanel = null;
 let referencePanel: BeatmapSetPanel = null;
 let referencePanelY = 0;
@@ -85,8 +44,29 @@ let snapToSelectionInterpolator = new Interpolator({
 	defaultToFinished: true
 });
 let snapToSelectedIntervened = true;
-
 let selectedSubpanel: BeatmapDifficultyPanel = null;
+
+let carouselDragTarget = new PIXI.Container();
+songSelectContainer.addChild(carouselDragTarget);
+let dragListener = Interactivity.registerDisplayObject(carouselDragTarget);
+dragListener.setZIndex(1);
+carouselInteractionGroup.add(dragListener);
+let pressDownStopped = true;
+dragListener.passThrough = true;
+dragListener.makeDraggable(() => {
+	snapToSelectedIntervened = true;
+	scrollVelocity = 0;
+	pressDownStopped = false;
+}, (e) => {
+	referencePanelY += e.movement.y / getCarouselScalingFactor();
+
+	if (Math.abs(e.distanceFromStart.y) > 5 && !pressDownStopped) {
+		pressDownStopped = true;
+		carouselInteractionGroup.releaseAllPresses();
+	}
+}, (e) => {
+	scrollVelocity -= e.velocity.y / getCarouselScalingFactor();
+});
 
 songSelectContainer.addChild(beatmapCarouselContainer);
 
@@ -123,7 +103,6 @@ export function snapReferencePanel(from: number, to: number) {
 	snapToSelectionInterpolator.start(performance.now());
 	snapToSelectedIntervened = false;
 	scrollVelocity = 0;
-	lastDt = null;
 }
 
 export function createCarouselFromDirectory(directory: VirtualDirectory) {
@@ -145,7 +124,6 @@ addRenderingTask((now: number, dt: number) => {
 
 	let referenceIndex = beatmapSetPanels.indexOf(referencePanel);
 
-	if (scrollVelocity !== 0) snapToSelectedIntervened = true;
 	if (!snapToSelectedIntervened) {
 		referencePanelY = snapToSelectionInterpolator.getCurrentValue(now);
 	}
@@ -166,14 +144,6 @@ addRenderingTask((now: number, dt: number) => {
 	let distanceScrolled = scrollVelocity * (Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000) - 1) / Math.log(SCROLL_VELOCITY_DECAY_FACTOR);
 	scrollVelocity = scrollVelocity * Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000);
 	referencePanelY -= distanceScrolled;
-
-	if (!getCurrentMouseButtonState().lmb && lastDt) {
-		scrollVelocity -= lastDragMovement.y / (lastDt / 1000) / getCarouselScalingFactor();
-		lastDragMovement.y = 0;
-		lastMousePos = null;
-		lastMousePosSampleTime = null;
-		lastDt = null;
-	}
 
 	if (Math.abs(scrollVelocity) < 1) scrollVelocity = 0;
 
@@ -215,6 +185,8 @@ addRenderingTask((now: number, dt: number) => {
 });
 
 inputEventEmitter.addListener('wheel', (data) => {
+	if (beatmapSetPanels.length === 0) return;
+
 	let wheelEvent = data as NormalizedWheelEvent;
 	let effectiveness = 1.0; // How much the scroll "counts"	
 
@@ -232,6 +204,7 @@ inputEventEmitter.addListener('wheel', (data) => {
 	effectiveness = Math.min(effectiveness, Math.pow(0.9, Math.max(0, diff/30)));
 
 	scrollVelocity += wheelEvent.dy * 4 * effectiveness;
+	snapToSelectedIntervened = true;
 });
 
 export function updateCarouselSizing() {

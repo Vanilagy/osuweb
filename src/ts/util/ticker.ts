@@ -1,21 +1,16 @@
 import { addRenderingTask } from "../visuals/rendering";
+import { removeItem, pushItemUnique } from "./misc_util";
 
 export type TickingTask = (now?: number, dt?: number) => any;
 let tickingTasks: TickingTask[] = [];
 let lastTickTime: number = null;
 
 export function addTickingTask(task: TickingTask) {
-	let index = tickingTasks.indexOf(task);
-	if (index !== -1) return;
-
-	tickingTasks.push(task);
+	pushItemUnique(tickingTasks, task);
 }
 
 export function removeTickingTask(task: TickingTask) {
-	let index = tickingTasks.indexOf(task);
-	if (index === -1) return;
-
-	tickingTasks.splice(index, 1);
+	removeItem(tickingTasks, task);
 }
 
 // Should run as often as possible.

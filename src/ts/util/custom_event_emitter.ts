@@ -1,28 +1,27 @@
-// Like EventTarget, but without the event loop bullshittery.
-export class CustomEventEmitter {
-	private listeners: Map<string, Function[]> = new Map();
+import { removeItem, pushItemUnique } from "./misc_util";
 
-	addListener(name: string, func: (data?: any) => any) {
+// Like EventTarget, but without the event loop bullshittery.
+export class CustomEventEmitter <T extends {} = any> {
+	private listeners: Map<keyof T, ((data?: T[keyof T]) => any)[]> = new Map();
+
+	addListener<K extends Extract<keyof T, string>>(name: K, func: (data?: T[K]) => any) {
 		let listeners = this.listeners.get(name);
 		if (!listeners) {
 			listeners = [];
 			this.listeners.set(name, listeners);
 		}
 		
-		listeners.push(func);
+		pushItemUnique(listeners, func);
 	}
 
-	removeListener(name: string, func: (data?: any) => any) {
+	removeListener<K extends Extract<keyof T, string>>(name: K, func: (data?: T[K]) => any) {
 		let listeners = this.listeners.get(name);
 		if (!listeners) return;
 
-		let index = listeners.indexOf(func);
-		if (index === -1) return;
-
-		listeners.splice(index, 1);
+		removeItem(listeners, func);
 	}
 
-	emit(name: string, data?: any) {
+	emit<K extends Extract<keyof T, string>>(name: K, data?: T[K]) {
 		let listeners = this.listeners.get(name);
 		if (!listeners) return;
 

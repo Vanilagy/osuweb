@@ -1,5 +1,5 @@
 import { EaseType } from "../../util/math_util";
-import { Interactivity } from "../../input/interactivity";
+import { Interactivity, InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
 import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
 
@@ -12,12 +12,14 @@ export class TabSelector extends CustomEventEmitter {
 	private selectionBarXInterpolator: InterpolatedValueChanger;
 	private selectionBarWidthInterpolator: InterpolatedValueChanger;
 	private hoverInterpolators = new WeakMap<PIXI.Container, Interpolator>();
+	public interactionGroup: InteractionGroup;
 
 	constructor(tabStrings: string[]) {
 		super();
 
 		this.container = new PIXI.Container();
 		this.tabStrings = tabStrings;
+		this.interactionGroup = Interactivity.createGroup();
 
 		for (let i = 0; i < this.tabStrings.length; i++) {
 			let s = this.tabStrings[i];
@@ -51,6 +53,8 @@ export class TabSelector extends CustomEventEmitter {
 			interaction.addListener('mouseLeave', () => {
 				hoverInterpolator.setReversedState(true, performance.now());
 			});
+
+			this.interactionGroup.add(interaction);
 		}
 
 		this.selectionBar = new PIXI.Sprite(PIXI.Texture.WHITE);

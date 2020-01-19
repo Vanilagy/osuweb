@@ -1,11 +1,13 @@
 const APPROXIMATE_LINE_HEIGHT = 32;
 const APPROXIMATE_PAGE_HEIGHT = 800;
 
+export const EMPTY_FUNCTION = () => {};
+
 export interface NormalizedWheelEvent {
-	dx: number,
-	dy: number,
-	dz: number,
-	event: WheelEvent
+	readonly dx: number,
+	readonly dy: number,
+	readonly dz: number,
+	readonly event: WheelEvent
 }
 
 export function padNumberWithZeroes(num: number, zeroes: number) {
@@ -148,4 +150,39 @@ export function normalizeWheelEvent(e: WheelEvent): NormalizedWheelEvent {
 		dx, dy, dz,
 		event: e
 	}
+}
+
+/** Inserts an item into an array at a specific point, satisfying a comparator. */
+export function insertItem<T>(arr: T[], item: T, comparator: (a: T, b: T) => number) {
+	for (let i = 0; i < arr.length; i++) {
+		let comp = comparator(item, arr[i]);
+		if (comp <= 0) {
+			arr.splice(i, 0, item);
+			return;
+		}
+	}
+
+	arr.push(item);
+}
+
+/** Removes an item from an array, if it's in there. Returns true if the item was removed. */
+export function removeItem<T>(arr: T[], item: T) {
+	let index = arr.indexOf(item);
+	if (index !== -1) {
+		arr.splice(index, 1);
+		return true;
+	}
+
+	return false;
+}
+
+/** Pushes an item into an array if it's not already in there. Returns true if the item wasn't in there before. */
+export function pushItemUnique<T>(arr: T[], item: T) {
+	let index = arr.indexOf(item);
+	if (index === -1) {
+		arr.push(item);
+		return true;
+	}
+
+	return false;
 }

@@ -1,7 +1,15 @@
 import { Point, clonePoint } from "../util/point";
 import { CustomEventEmitter } from "../util/custom_event_emitter";
-import { normalizeWheelEvent } from "../util/misc_util";
+import { normalizeWheelEvent, NormalizedWheelEvent } from "../util/misc_util";
 import { tickAll } from "../util/ticker";
+
+export let inputEventEmitter = new CustomEventEmitter<{
+	mouseMove: MouseEvent,
+	mouseDown: MouseEvent,
+	mouseUp: MouseEvent,
+	gameButtonDown: void,
+	wheel: NormalizedWheelEvent
+}>();
 
 let currentMousePosition: Point = {
 	x: window.innerWidth / 2, // Before any events, just center the mouse
@@ -182,5 +190,3 @@ window.addEventListener('wheel', (ev) => {
 	tickAll();
 	inputEventEmitter.emit('wheel', normalizeWheelEvent(ev));
 });
-
-export let inputEventEmitter = new CustomEventEmitter();

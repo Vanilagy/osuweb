@@ -1,4 +1,5 @@
 import { MathUtil } from "../util/math_util";
+import { pushItemUnique, removeItem } from "../util/misc_util";
 
 let logRenderTimeInfo = false;
 
@@ -85,17 +86,11 @@ function mainRenderingLoop() {
 requestAnimationFrame(mainRenderingLoop);
 
 export function addRenderingTask(task: RenderingTask) {
-	let index = renderingTasks.indexOf(task);
-	if (index !== -1) return;
-
-	renderingTasks.push(task);
+	pushItemUnique(renderingTasks, task);
 }
 
 export function removeRenderingTask(task: RenderingTask) {
-	let index = renderingTasks.indexOf(task);
-	if (index === -1) return;
-
-	renderingTasks.splice(index, 1);
+	removeItem(renderingTasks, task);
 }
 
 // TODO: Maybe disable PIXI GC?
