@@ -345,29 +345,29 @@ export class InteractionGroup extends InteractionUnit {
 		return causedInteraction;
 	}
 
-	handleMouseEnterAndLeave(mousePosition: Point, mouseEvent: MouseEvent, collided: boolean) {
+	handleMouseEnterAndLeave(acc: Map<InteractionRegistration, Interaction>, mousePosition: Point, collided: boolean) {
 		let interactionUnits = this.active;
 
 		for (let i = 0; i < interactionUnits.length; i++) {
 			let unit = interactionUnits[i];
 
 			if (unit instanceof InteractionGroup) {
-				let causedAction = unit.handleMouseEnterAndLeave(mousePosition, mouseEvent, collided);
+				let causedAction = unit.handleMouseEnterAndLeave(acc, mousePosition, collided);
 				if (causedAction && !unit.passThrough) collided = true;
 			} else if (unit instanceof InteractionRegistration) {
 				if (!collided && unit.handlesInteraction('mouseEnter')) {
 					let overlaps = unit.overlaps(mousePosition.x, mousePosition.y);
 
 					if (overlaps) {
-						if (!unit.mouseInside) unit.trigger('mouseEnter', mouseEvent);
+						if (!unit.mouseInside) acc.set(unit, 'mouseEnter');
 						if (!unit.passThrough) collided = true;
 						unit.mouseInside = true;
 					} else {
-						if (unit.mouseInside) unit.trigger('mouseLeave', mouseEvent);
+						if (unit.mouseInside) acc.set(unit, 'mouseLeave');
 						unit.mouseInside = false;
 					}
 				} else {
-					if (unit.mouseInside) unit.trigger('mouseLeave', mouseEvent);
+					if (unit.mouseInside) acc.set(unit, 'mouseLeave');
 					unit.mouseInside = false;
 				}
 			}
@@ -426,7 +426,13 @@ inputEventEmitter.addListener('mouseMove', (e) => masterGroup.handleInteraction(
 let lastMouseMoveHandleTime = -Infinity;
 function onMouseMove(e: MouseEvent) {
 	lastMouseMoveHandleTime = performance.now();
-	masterGroup.handleMouseEnterAndLeave(getCurrentMousePosition(), e, false);
+
+	let acc = new Map<InteractionRegistration, Interaction>();
+	masterGroup.handleMouseEnterAndLeave(acc, getCurrentMousePosition(), false);
+
+	acc.forEach((interaction, reg) => {
+		reg.trigger(interaction, e);
+	});
 }
 inputEventEmitter.addListener('mouseMove', onMouseMove);
 
