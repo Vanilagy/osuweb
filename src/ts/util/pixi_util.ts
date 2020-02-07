@@ -33,3 +33,29 @@ export function fitSpriteIntoContainer(sprite: PIXI.Sprite, containerWidth: numb
 		sprite.y = 0;
 	}
 }
+
+export function createPolygonTexture(width: number, height: number, polygon: PIXI.Point[], scalingFactor = 1.0) {
+	let canvas = document.createElement('canvas');
+	let ctx = canvas.getContext('2d');
+
+	canvas.setAttribute('width', String(Math.ceil(width * scalingFactor)));
+	canvas.setAttribute('height', String(Math.ceil(height * scalingFactor)));
+
+	ctx.beginPath();
+	for (let i = 0; i < polygon.length; i++) {
+		let p = polygon[i];
+
+		let x = Math.floor(p.x * scalingFactor),
+			y = Math.floor(p.y * scalingFactor);
+		
+		if (i === 0) ctx.moveTo(x, y);
+		else ctx.lineTo(x, y);
+	}
+
+	ctx.closePath();
+	ctx.fillStyle = '#ffffff';
+	ctx.fill();
+
+	let texture = PIXI.Texture.from(canvas);
+	return texture;
+}

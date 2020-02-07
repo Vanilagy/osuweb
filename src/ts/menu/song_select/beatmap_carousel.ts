@@ -147,6 +147,19 @@ addRenderingTask((now: number, dt: number) => {
 
 	if (Math.abs(scrollVelocity) < 1) scrollVelocity = 0;
 
+	// Calculate snapback when user scrolls off one of the carousel edges
+	let firstPanel = beatmapSetPanels[0];
+	let lastPanel = last(beatmapSetPanels);
+	let diff: number;
+
+	// Top edge snapback
+	diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
+	if (diff > 0) referencePanelY += diff * (Math.pow(0.0015, dt/1000) - 1);
+
+	// Bottom edge snapback
+	diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
+	if (diff > 0) referencePanelY -= diff * (Math.pow(0.0015, dt/1000) - 1);
+
 	referencePanel.update(now, referencePanelY, referencePanel.getTotalHeight(now));
 
 	let currentY = referencePanelY;
@@ -169,19 +182,6 @@ addRenderingTask((now: number, dt: number) => {
 		panel.container.visible = true;
 		panel.update(now, currentY, panel.getTotalHeight(now));
 	}
-
-	// Calculate snapback when user scrolls off one of the carousel edges
-	let firstPanel = beatmapSetPanels[0];
-	let lastPanel = last(beatmapSetPanels);
-	let diff: number;
-
-	// Top edge snapback
-	diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
-	if (diff > 0) referencePanelY += diff * (Math.pow(0.0015, dt/1000) - 1);
-
-	// Bottom edge snapback
-	diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
-	if (diff > 0) referencePanelY -= diff * (Math.pow(0.0015, dt/1000) - 1);
 });
 
 inputEventEmitter.addListener('wheel', (data) => {

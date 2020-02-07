@@ -24,7 +24,7 @@ export let renderer = new PIXI.Renderer({
 	height: window.innerHeight,
 	context: gl,
 	antialias: true,
-	resolution: window.devicePixelRatio || 1.0 // TODO: Make this an option?
+	//resolution: window.devicePixelRatio || 1.0 // TODO: Make this an option?
 });
 export let stage = new PIXI.Container();
 

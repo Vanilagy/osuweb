@@ -4,6 +4,7 @@ import { createCarouselFromDirectory, updateCarouselSizing } from "./beatmap_car
 import { initBeatmapInfoPanel, updateBeatmapInfoPanelSizing } from "./beatmap_info_panel";
 import { uiEventEmitter } from "../../visuals/ui";
 import { Interactivity } from "../../input/interactivity";
+import { initSideControlPanel, updateSideControlPanelSizing } from "./side_control_panel";
 
 export const songSelectInteractionGroup = Interactivity.createGroup();
 songSelectInteractionGroup.disable();
@@ -20,6 +21,7 @@ songFolderSelect.addEventListener('change', () => {
 
 	createCarouselFromDirectory(directory);
 	initBeatmapInfoPanel();
+	initSideControlPanel();
 
 	songSelectInteractionGroup.enable();
 });
@@ -27,6 +29,7 @@ songFolderSelect.addEventListener('change', () => {
 function onResize() {
 	updateCarouselSizing();
 	updateBeatmapInfoPanelSizing();
+	updateSideControlPanelSizing();
 }
 uiEventEmitter.addListener('resize', onResize);
 setTimeout(onResize); // TODO DO THIS CLEANLY
