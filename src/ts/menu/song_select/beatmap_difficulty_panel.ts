@@ -1,14 +1,11 @@
 import { VirtualFile } from "../../file_system/virtual_file";
 import { colorToHexNumber } from "../../util/graphics_util";
-import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { startPlayFromBeatmap } from "../../game/play";
 import { getBeatmapDifficultyPanelMask, TEXTURE_MARGIN, getBeatmapDifficultyPanelGlowTexture, getDifficultyColorBar } from "./beatmap_panel_components";
 import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET, getCarouselScalingFactor } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
-import { beatmapInfoPanel } from "./beatmap_info_panel";
-import { songSelectContainer, songSelectInteractionGroup } from "./song_select";
+import { selectBeatmapDifficulty, triggerSelectedBeatmap } from "./song_select";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
 import { Interpolator } from "../../util/interpolation";
@@ -271,24 +268,11 @@ export class BeatmapDifficultyPanel {
 			snapReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
 		}
 
-		beatmapInfoPanel.loadBeatmapData(this.extendedBeatmapData);
+		selectBeatmapDifficulty(this.beatmapFile, this.parentPanel.beatmapSet, this.extendedBeatmapData);
 	}
 
 	private trigger() {
-		if (!this.beatmapFile) return;
-
-		songSelectContainer.visible = false;
-		songSelectInteractionGroup.disable();
-
-		this.beatmapFile.readAsText().then((text) => {
-			let map = new Beatmap({
-				text: text,
-				beatmapSet: this.parentPanel.beatmapSet,
-				metadataOnly: false
-			});
-
-			startPlayFromBeatmap(map);
-		});
+		triggerSelectedBeatmap();
 	}
 
 	deselect() {

@@ -274,7 +274,7 @@ export class Beatmap {
 		// of the song. It defines when the timing point starts. A timing point
 		// ends when the next one starts. The first timing point starts at 0,
 		// disregarding its offset.
-		if (this.timingPoints.length === 0) offset = 0;
+		// if (this.timingPoints.length === 0) offset = 0; // Disabled for now. Wasn't needed and messed with some BPM stuff.
 
 		let msPerBeat = parseFloat(values[1]);
 

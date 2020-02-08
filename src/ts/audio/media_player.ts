@@ -24,12 +24,16 @@ export class MediaPlayer {
 	private loopStart = 0;
 	private loopEnd = -1;
 	private tickingTask: TickingTask = null;
+	private analyserNode: AnalyserNode;
 
 	constructor(destination: AudioNode) {
 		this.gainNode = audioContext.createGain();
 		this.setVolume(this.volume);
 
 		this.gainNode.connect(destination);
+
+		this.analyserNode = audioContext.createAnalyser();
+		this.analyserNode.fftSize = 2**15;
 		
 		this.tickingTask = () => {
 			// Handle loop end behavior
@@ -67,6 +71,7 @@ export class MediaPlayer {
 		this.audioElement.playbackRate = this.playbackRate;
 		this.audioNode = audioContext.createMediaElementSource(this.audioElement);
 		this.audioNode.connect(this.gainNode);
+		this.audioNode.connect(this.analyserNode);
 		this.timingDeltas.length = 0;
 		this.lastNudgeTime = null;
 		this.pausedTime = null;
@@ -213,6 +218,24 @@ export class MediaPlayer {
 		if (this.doLoop) {
 			this.start(this.loopStart);
 		}
+	}
+
+	getTimeDomainData() {
+		let b = new Uint8Array(this.analyserNode.fftSize);
+		this.analyserNode.getByteTimeDomainData(b);
+
+		return b;
+	}
+
+	getAverageCurrentAmplitude() {
+		let timeDomainData = this.getTimeDomainData();
+		let total = 0;
+
+		for (let i = 0; i < timeDomainData.length; i++) {
+			total += Math.abs(timeDomainData[i] - 128) / 128;
+		}
+
+		return total / timeDomainData.length;
 	}
 }
 

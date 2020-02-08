@@ -59,3 +59,16 @@ export function createPolygonTexture(width: number, height: number, polygon: PIX
 	let texture = PIXI.Texture.from(canvas);
 	return texture;
 }
+
+// TODO: Support non-square SVGs
+export function svgToTexture(svgImageElement: HTMLImageElement) {
+	let canvas = document.createElement('canvas');
+	let ctx = canvas.getContext('2d');
+
+	canvas.setAttribute('width', '256');
+	canvas.setAttribute('height', '256');
+
+	ctx.drawImage(svgImageElement, 0, 0, 256, 256);
+
+	return PIXI.Texture.from(canvas);
+}

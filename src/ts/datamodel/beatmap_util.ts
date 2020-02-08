@@ -18,7 +18,8 @@ export interface ExtendedBeatmapData {
 	spinnerCount: number,
 	difficulty: Exclude<BeatmapDifficulty, Function>,
 	difficultyAttributes: DifficultyAttributes,
-	playableLength: number
+	playableLength: number,
+	msPerBeatTimings: number[][]
 }
 
 export abstract class BeatmapUtil {
@@ -36,6 +37,14 @@ export abstract class BeatmapUtil {
 
 		let difficultyAttributes = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
 
+		let msPerBeatTimings: number[][] = [];
+		for (let i = 0; i < beatmap.timingPoints.length; i++) {
+			let timingPoint = beatmap.timingPoints[i];
+			if (!timingPoint.inheritable) continue;
+
+			msPerBeatTimings.push([timingPoint.offset, timingPoint.msPerBeat]);
+		}
+
 		return {
 			title: beatmap.title,
 			artist: beatmap.artist,
@@ -50,7 +59,8 @@ export abstract class BeatmapUtil {
 			spinnerCount: beatmap.spinnerCount,
 			difficulty: beatmap.difficulty,
 			difficultyAttributes: difficultyAttributes,
-			playableLength: processedBeatmap.getPlayableLength()
+			playableLength: processedBeatmap.getPlayableLength(),
+			msPerBeatTimings: msPerBeatTimings
 		};
 	}
 }

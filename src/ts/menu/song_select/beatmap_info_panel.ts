@@ -19,7 +19,7 @@ export const INFO_PANEL_HEIGHT = 260;
 const IMAGE_FADE_IN_TIME = 333;
 const beatmapInfoPanelInteractionGroup = Interactivity.createGroup();
 beatmapInfoPanelInteractionGroup.setZIndex(2);
-songSelectInteractionGroup.add(beatmapInfoPanelInteractionGroup);
+setTimeout(() => songSelectInteractionGroup.add(beatmapInfoPanelInteractionGroup)); // TEMP OMFGG
 
 let infoPanelMask = document.createElement('canvas');
 let infoPanelMaskCtx = infoPanelMask.getContext('2d');

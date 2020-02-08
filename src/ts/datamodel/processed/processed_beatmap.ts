@@ -102,7 +102,7 @@ export class ProcessedBeatmap {
 					currentTimingPointInfo.msPerBeat = nextTimingPoint.msPerBeat;
 				}
 
-				// LMFAO! PPY'S CODE IS SUCH A MESS! Turns out that if a timing point that can be inherited from has negative msPerBeat (it's positive for normal maps), it is counted as BOTH an inherited AND non-inherited timing point. BOTH! What the heck! That's why the following if is based on solely msPerBeat and not on the inherited-ness of the timing point specified in the .osu file. Whew.
+				// LMFAO! PPY'S CODE IS SUCH A MESS! Turns out that if a inheritable timing point has negative msPerBeat (it's positive for normal maps), it is counted as BOTH an inherited AND non-inherited timing point. BOTH! What the heck! That's why the following condition is based solely on msPerBeat and not on the inheritability of the timing point specified in the .osu file. Whew.
 				if (nextTimingPoint.msPerBeat < 0) {
 					// timingPoint.msPerBeat is negative. An exaplanation pulled from the osu website:
 					// The milliseconds per beat field (Decimal) defines the duration of one beat. It affect the scrolling speed in osu!taiko or osu!mania, and the slider speed in osu!standard, among other things. When positive, it is faithful to its name. When negative, it is a percentage of previous non-negative milliseconds per beat. For instance, 3 consecutive timing points with 500, -50, -100 will have a resulting beat duration of half a second, a quarter of a second, and half a second, respectively.
