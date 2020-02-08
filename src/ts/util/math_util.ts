@@ -405,6 +405,16 @@ export abstract class MathUtil {
 
 		return middle;
 	}
+
+	static getPercentile(values: number[], percentile: number, sortInPlace = false) {
+		let arr = sortInPlace? values : values.slice();
+		arr.sort((a, b) => a-b);
+
+		if (percentile === 0) return -Infinity;
+
+		let index = Math.ceil(percentile / 100 * (arr.length - 1));
+		return arr[index];
+	}
 }
 
 let valueNoiseRng = MathUtil.createSeededRng(1337);

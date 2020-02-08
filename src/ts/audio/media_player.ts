@@ -226,17 +226,6 @@ export class MediaPlayer {
 
 		return b;
 	}
-
-	getAverageCurrentAmplitude() {
-		let timeDomainData = this.getTimeDomainData();
-		let total = 0;
-
-		for (let i = 0; i < timeDomainData.length; i++) {
-			total += Math.abs(timeDomainData[i] - 128) / 128;
-		}
-
-		return total / timeDomainData.length;
-	}
 }
 
 export let mainMusicMediaPlayer = new MediaPlayer(mediaAudioNode);

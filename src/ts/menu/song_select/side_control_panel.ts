@@ -21,9 +21,9 @@ setTimeout(() => songSelectInteractionGroup.add(sideControlPanelInteractionGroup
 let sideControlPanelScalingFactor = 1.0;
 let sideControlPanelBg = document.createElement('canvas');
 let sideControlPanelBgCtx = sideControlPanelBg.getContext('2d');
-let randomButtonTexture = svgToTexture(document.querySelector('#svg-shuffle'));
-let modsButtonTexture = svgToTexture(document.querySelector('#svg-options'));
-let cdTexture = svgToTexture(document.querySelector('#svg-cd'));
+let randomButtonTexture = svgToTexture(document.querySelector('#svg-shuffle'), true);
+let modsButtonTexture = svgToTexture(document.querySelector('#svg-options'), true);
+let cdTexture = svgToTexture(document.querySelector('#svg-cd'), true);
 
 export function getSideControlPanelScalingFactor() {
 	return sideControlPanelScalingFactor;
@@ -89,6 +89,10 @@ addRenderingTask((now) => {
 	sideControlPanel.update(now);
 });
 
+export function resetLastBeatTime() {
+	sideControlPanel.resetLastBeatTime();
+}
+
 class SongSelectSideControlPanel {
     public container: PIXI.Container;
     private pulsar: SideControlPulsar;
@@ -145,6 +149,10 @@ class SongSelectSideControlPanel {
 		this.pulsar.update(now);
 		for (let b of this.buttons) b.update(now);
 	}
+	
+	resetLastBeatTime() {
+		this.pulsar.resetLastBeatTime();
+	}
 }
 
 class SideControlPanelButton {
@@ -169,10 +177,6 @@ class SideControlPanelButton {
 		this.icon = new PIXI.Sprite();
 		this.icon.texture = iconTexture;
 		this.container.addChild(this.icon);
-
-		let inverter = new PIXI.filters.ColorMatrixFilter();
-		inverter.negative(true);
-		this.icon.filters = [inverter];
 
 		this.hoverInterpolator = new Interpolator({
 			duration: 150,
@@ -229,6 +233,8 @@ class SideControlPulsar {
 	private hoverInterpolator: Interpolator;
 	private hitbox: PIXI.Circle;
 	private icon: PIXI.Sprite;
+	private pulseInterpolator: Interpolator;
+	private lastBeatTime: number = -Infinity;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -241,6 +247,7 @@ class SideControlPulsar {
 		this.icon = new PIXI.Sprite();
 		this.icon.anchor.set(0.5, 0.5);
 		this.icon.texture = cdTexture;
+		this.icon.tint = 0x000000;
 		this.container.addChild(this.icon);
 
 		let shadow = new PIXI.filters.DropShadowFilter({
@@ -260,6 +267,14 @@ class SideControlPulsar {
 			reverseEase: EaseType.EaseInCubic,
 			beginReversed: true,
 			defaultToFinished: true
+		});
+
+		this.pulseInterpolator = new Interpolator({
+			duration: 500,
+			ease: EaseType.EaseOutCubic,
+			defaultToFinished: true,
+			from: 0.2,
+			to: 0.0
 		});
 
 		this.initInteraction();
@@ -298,8 +313,8 @@ class SideControlPulsar {
 	}
 
 	update(now: number) {
-		let pulse = 0.0;
 		let currentExtendedData = getSelectedExtendedBeatmapData();
+
 		outer: if (currentExtendedData) {
 			let msPerBeatTimings = currentExtendedData.msPerBeatTimings;
 			if (msPerBeatTimings.length === 0) break outer;
@@ -316,21 +331,35 @@ class SideControlPulsar {
 			}
 
 			let elapsed = currentTime - latest[0];
-			if (elapsed < 0) {
-				pulse = 0;
-			} else  {
-				let beatElapsed = elapsed % latest[1];
-				let completion = MathUtil.ease(EaseType.EaseOutCubic, MathUtil.clamp(beatElapsed / 500, 0, 1));
-				pulse = 1 - completion;
-			}
+			if (elapsed >= 0) {
+				let beatTime = latest[0] + Math.floor(elapsed / latest[1]) * latest[1];
 
-			let currentAmplitude = mainMusicMediaPlayer.getAverageCurrentAmplitude();
-			pulse *= Math.min(1, currentAmplitude * 4);
+				if (beatTime > this.lastBeatTime || beatTime < this.lastBeatTime - latest[1]) {
+					this.lastBeatTime = beatTime;
+					let beatElapsed = elapsed % latest[1];
+
+					this.pulseInterpolator.start(now - beatElapsed);
+
+					let timeDomainData = mainMusicMediaPlayer.getTimeDomainData();
+					let normalized: number[] = [];
+
+					for (let i = 0; i < timeDomainData.length; i++) {
+						normalized.push(Math.abs(timeDomainData[i] - 128) / 128);
+					}
+
+					let averageAmplitude = Math.min(0.25, MathUtil.getPercentile(normalized, 85, true) * 0.4);
+					this.pulseInterpolator.setValueRange(averageAmplitude, 0);
+				}
+			}
 		}
 
-		let pulsarScale = 1 + this.hoverInterpolator.getCurrentValue(now) * 0.1 + pulse * 0.2;
+		let pulsarScale = 1 + this.hoverInterpolator.getCurrentValue(now) * 0.1 + this.pulseInterpolator.getCurrentValue(now);
 
 		this.container.scale.set(pulsarScale);
 		this.hitbox.radius = pulsarScale * PULSAR_IDLE_RADIUS * getSideControlPanelScalingFactor();
+	}
+
+	resetLastBeatTime() {
+		this.lastBeatTime = mainMusicMediaPlayer.getCurrentTime() * 1000;
 	}
 }

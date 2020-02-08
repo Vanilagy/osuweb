@@ -14,6 +14,7 @@ import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { JobUtil } from "../../multithreading/job_util";
 import { Interpolator } from "../../util/interpolation";
+import { resetLastBeatTime } from "./side_control_panel";
 
 export class BeatmapSetPanel {
 	public beatmapSet: BeatmapSet;
@@ -340,6 +341,7 @@ export class BeatmapSetPanel {
 			let startTime = this.representingBeatmap.getAudioPreviewTimeInSeconds();
 			mainMusicMediaPlayer.start(startTime)
 			mainMusicMediaPlayer.setLoopBehavior(true, startTime);
+			resetLastBeatTime();
 		});
 
 		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
