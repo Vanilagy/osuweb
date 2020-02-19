@@ -12,14 +12,16 @@ export class TabSelector extends CustomEventEmitter {
 	private selectionBarXInterpolator: InterpolatedValueChanger;
 	private selectionBarWidthInterpolator: InterpolatedValueChanger;
 	private hoverInterpolators = new WeakMap<PIXI.Container, Interpolator>();
+	private margin: number;
 	public interactionGroup: InteractionGroup;
 
-	constructor(tabStrings: string[]) {
+	constructor(tabStrings: string[], margin = 11) {
 		super();
 
 		this.container = new PIXI.Container();
 		this.tabStrings = tabStrings;
 		this.interactionGroup = Interactivity.createGroup();
+		this.margin = margin;
 
 		for (let i = 0; i < this.tabStrings.length; i++) {
 			let s = this.tabStrings[i];
@@ -98,7 +100,7 @@ export class TabSelector extends CustomEventEmitter {
 			let text = c.children[0] as PIXI.Text;
 			let isSelected = i === this.selectedIndex;
 
-			text.x = Math.floor(currentX);
+			c.x = Math.floor(currentX);
 			text.style = {
 				fontFamily: isSelected? 'Exo2-Bold' : 'Exo2-Regular',
 				fill: 0xffffff,
@@ -108,8 +110,14 @@ export class TabSelector extends CustomEventEmitter {
 				dropShadowBlur: 0
 			};
 
-			let textWidth = text.width;
-			currentX += textWidth + 11 * scalingFactor; // some margin thing, TODO make parameterizable
+			let textWidth = text.width,
+				textHeight = text.height;
+			currentX += textWidth + this.margin * scalingFactor;
+
+			let halfMarginScaled = this.margin/2 * scalingFactor;
+			let marginTop = textHeight/5;
+			let hitbox = new PIXI.Rectangle(-halfMarginScaled, -marginTop, textWidth + 2*halfMarginScaled, textHeight + marginTop);
+			c.hitArea = hitbox;
 
 			if (isSelected) {
 				selectionBarWidth = textWidth;

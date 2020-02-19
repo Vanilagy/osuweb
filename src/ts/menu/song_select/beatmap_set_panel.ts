@@ -6,7 +6,7 @@ import { EaseType, MathUtil } from "../../util/math_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
-import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_PANEL_HEIGHT, BEATMAP_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup, getSelectedSubpanel, setSelectedSubpanel, getCarouselScalingFactor } from "./beatmap_carousel";
+import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup, getSelectedSubpanel, setSelectedSubpanel, getCarouselScalingFactor } from "./beatmap_carousel";
 import { InteractionRegistration, Interactivity } from "../../input/interactivity";
 import { mainMusicMediaPlayer } from "../../audio/media_player";
 import { beatmapInfoPanel } from "./beatmap_info_panel";
@@ -59,7 +59,7 @@ export class BeatmapSetPanel {
 		this.backgroundImageSprite = new PIXI.Sprite();
 		this.panelContainer.addChild(this.backgroundImageSprite);
 
-		this.darkening = new PIXI.Sprite(PIXI.Texture.from(getDarkeningOverlay()));
+		this.darkening = new PIXI.Sprite();
 		this.darkening.y = -1;
 		this.panelContainer.addChild(this.darkening);
 
@@ -181,8 +181,7 @@ export class BeatmapSetPanel {
 
 		this.panelContainer.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor);
 
-		this.mainMask.texture = PIXI.Texture.from(getBeatmapSetPanelMask());
-		this.mainMask.texture.update();
+		this.mainMask.texture = getBeatmapSetPanelMask();
 		this.mainMask.pivot.set(TEXTURE_MARGIN * scalingFactor, TEXTURE_MARGIN * scalingFactor);
 
 		this.glowSprite.texture = getBeatmapSetPanelGlowTexture();
@@ -192,7 +191,7 @@ export class BeatmapSetPanel {
 		
 		fitSpriteIntoContainer(this.backgroundImageSprite, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor, new PIXI.Point(0.0, 0.25));
 
-		this.darkening.texture.update();
+		this.darkening.texture = getDarkeningOverlay();
 
 		this.primaryText.style = {
 			fontFamily: 'Exo2-Regular',
@@ -254,7 +253,7 @@ export class BeatmapSetPanel {
 
 		this.panelContainer.x = 0;
 
-		let combinedPanelHeight = BEATMAP_PANEL_HEIGHT + BEATMAP_PANEL_MARGIN;
+		let combinedPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
 		let expansionValue = this.expandInterpolator.getCurrentValue(now);
 
 		this.panelContainer.x -= 95 * expansionValue * scalingFactor;
@@ -297,7 +296,7 @@ export class BeatmapSetPanel {
 
 	getTotalHeight(now: number) {
 		let combinedSetPanelHeight = BEATMAP_SET_PANEL_HEIGHT + BEATMAP_SET_PANEL_MARGIN;
-		let combinedPanelHeight = BEATMAP_PANEL_HEIGHT + BEATMAP_PANEL_MARGIN;
+		let combinedPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
 
 		return combinedSetPanelHeight + this.expandInterpolator.getCurrentValue(now) * combinedPanelHeight * this.beatmapFiles.length;
 	}

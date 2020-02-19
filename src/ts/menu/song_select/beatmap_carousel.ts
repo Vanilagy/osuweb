@@ -18,14 +18,14 @@ export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
 export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;
-export const BEATMAP_PANEL_WIDTH = 650;
-export const BEATMAP_PANEL_HEIGHT = 50;
 export const BEATMAP_SET_PANEL_MARGIN = 10;
-export const BEATMAP_PANEL_MARGIN = 10;
 export const BEATMAP_SET_PANEL_SNAP_TARGET = 225;
-export const BEATMAP_PANEL_SNAP_TARGET = 300;
+export const BEATMAP_DIFFICULTY_PANEL_WIDTH = 650;
+export const BEATMAP_DIFFICULTY_PANEL_HEIGHT = 50;
+export const BEATMAP_DIFFICULTY_PANEL_MARGIN = 10;
+export const BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET = 300;
 const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEIGHT/2; // When either the top or bottom panel of the carousel cross this line, the carousel should snap back.
-const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the velocity will have fallen off by this much.
+const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the scroll velocity will have fallen off by this much.
 
 export let beatmapCarouselContainer = new PIXI.Container();
 export let beatmapSetPanels: BeatmapSetPanel[] = [];
@@ -105,16 +105,15 @@ export function snapReferencePanel(from: number, to: number) {
 	scrollVelocity = 0;
 }
 
-export function createCarouselFromDirectory(directory: VirtualDirectory) {
-	directory.forEach((entry) => {
-		if (!(entry instanceof VirtualDirectory)) return;
+export function createCarouselFromBeatmapSets(beatmapSets: BeatmapSet[]) {
+	for (let i = 0; i < beatmapSets.length; i++) {
+		let set = beatmapSets[i];
 
-		let beatmapSet = new BeatmapSet(entry);
-		let panel = new BeatmapSetPanel(beatmapSet);
+		let panel = new BeatmapSetPanel(set);
 		beatmapCarouselContainer.addChild(panel.container);
 
 		beatmapSetPanels.push(panel);
-	});
+	}
 
 	referencePanel = beatmapSetPanels[0];
 }

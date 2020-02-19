@@ -1,6 +1,6 @@
 import { stage } from "../../visuals/rendering";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
-import { createCarouselFromDirectory, updateCarouselSizing } from "./beatmap_carousel";
+import { updateCarouselSizing, createCarouselFromBeatmapSets } from "./beatmap_carousel";
 import { initBeatmapInfoPanel, updateBeatmapInfoPanelSizing, beatmapInfoPanel } from "./beatmap_info_panel";
 import { uiEventEmitter } from "../../visuals/ui";
 import { Interactivity } from "../../input/interactivity";
@@ -10,6 +10,7 @@ import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { Beatmap } from "../../datamodel/beatmap";
 import { startPlayFromBeatmap } from "../../game/play";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
+import { initSearchBar, updateSearchBarSizing } from "./search";
 
 export const songSelectInteractionGroup = Interactivity.createGroup();
 songSelectInteractionGroup.disable();
@@ -19,14 +20,23 @@ const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLI
 export let songSelectContainer = new PIXI.Container();
 stage.addChild(songSelectContainer);
 
+export let loadedBeatmapSets: BeatmapSet[] = [];
+
 songFolderSelect.addEventListener('change', () => {
 	(document.querySelector('#tempControls') as HTMLElement).style.display = 'none';
 
 	let directory = VirtualDirectory.fromFileList(songFolderSelect.files);
+	directory.forEach((entry) => {
+		if (!(entry instanceof VirtualDirectory)) return;
 
-	createCarouselFromDirectory(directory);
+		let beatmapSet = new BeatmapSet(entry);
+		loadedBeatmapSets.push(beatmapSet);
+	});
+
+	createCarouselFromBeatmapSets(loadedBeatmapSets);
 	initBeatmapInfoPanel();
 	initSideControlPanel();
+	initSearchBar();
 
 	songSelectInteractionGroup.enable();
 });
@@ -35,6 +45,7 @@ function onResize() {
 	updateCarouselSizing();
 	updateBeatmapInfoPanelSizing();
 	updateSideControlPanelSizing();
+	updateSearchBarSizing();
 }
 uiEventEmitter.addListener('resize', onResize);
 setTimeout(onResize); // TODO DO THIS CLEANLY

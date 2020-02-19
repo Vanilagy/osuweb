@@ -2,7 +2,7 @@ import { VirtualFile } from "../../file_system/virtual_file";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { getBeatmapDifficultyPanelMask, TEXTURE_MARGIN, getBeatmapDifficultyPanelGlowTexture, getDifficultyColorBar } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_PANEL_SNAP_TARGET, getCarouselScalingFactor } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_DIFFICULTY_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET, getCarouselScalingFactor } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { selectBeatmapDifficulty, triggerSelectedBeatmap } from "./song_select";
@@ -167,13 +167,12 @@ export class BeatmapDifficultyPanel {
 	resize() {
 		let scalingFactor = getCarouselScalingFactor();
 
-		this.container.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_PANEL_WIDTH * scalingFactor, BEATMAP_PANEL_HEIGHT * scalingFactor);
+		this.container.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_DIFFICULTY_PANEL_WIDTH * scalingFactor, BEATMAP_DIFFICULTY_PANEL_HEIGHT * scalingFactor);
 
-		this.background.width = BEATMAP_PANEL_WIDTH * scalingFactor;
-		this.background.height = BEATMAP_PANEL_HEIGHT * scalingFactor;
+		this.background.width = BEATMAP_DIFFICULTY_PANEL_WIDTH * scalingFactor;
+		this.background.height = BEATMAP_DIFFICULTY_PANEL_HEIGHT * scalingFactor;
 
-		this.mainMask.texture = PIXI.Texture.from(getBeatmapDifficultyPanelMask());
-		this.mainMask.texture.update();
+		this.mainMask.texture = getBeatmapDifficultyPanelMask();
 		this.mainMask.position.set(-TEXTURE_MARGIN * scalingFactor, -TEXTURE_MARGIN * scalingFactor);
 
 		this.glowSprite.texture = getBeatmapDifficultyPanelGlowTexture();
@@ -192,8 +191,7 @@ export class BeatmapDifficultyPanel {
 		this.starRatingTicks.y = Math.floor(35 * scalingFactor);
 		this.starRatingTicks.x = Math.floor(30 * scalingFactor);
 
-		this.colorBar.texture = PIXI.Texture.from(getDifficultyColorBar());
-		this.colorBar.texture.update();
+		this.colorBar.texture = getDifficultyColorBar();
 	}
 
 	load(beatmapFile: VirtualFile,  extendedData: ExtendedBeatmapData) {
@@ -213,7 +211,7 @@ export class BeatmapDifficultyPanel {
 		this.infoContainer.alpha = this.fadeInInterpolator.getCurrentValue(now);
 
 		let normalizedY = this.container.getGlobalPosition().y / scalingFactor;
-		this.container.x = getNormalizedOffsetOnCarousel((normalizedY + BEATMAP_PANEL_HEIGHT/2) * scalingFactor) * scalingFactor;
+		this.container.x = getNormalizedOffsetOnCarousel((normalizedY + BEATMAP_DIFFICULTY_PANEL_HEIGHT/2) * scalingFactor) * scalingFactor;
 
 		let expansionValue = this.expandInterpolator.getCurrentValue(now);
 		this.container.x += expansionValue * -40 * scalingFactor;
@@ -264,7 +262,7 @@ export class BeatmapDifficultyPanel {
 
 		if (doSnap) {
 			let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
-			let diff = BEATMAP_PANEL_SNAP_TARGET - totalNormalizedY;
+			let diff = BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET - totalNormalizedY;
 			snapReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
 		}
 

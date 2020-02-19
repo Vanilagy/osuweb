@@ -4,7 +4,7 @@ import { songSelectContainer, songSelectInteractionGroup } from "./song_select";
 import { BeatmapDetailsTab } from "./beatmap_details_tab";
 import { addRenderingTask } from "../../visuals/rendering";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
-import { fitSpriteIntoContainer } from "../../util/pixi_util";
+import { fitSpriteIntoContainer, createPolygonTexture, createLinearGradientTexture } from "../../util/pixi_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
@@ -21,10 +21,6 @@ const beatmapInfoPanelInteractionGroup = Interactivity.createGroup();
 beatmapInfoPanelInteractionGroup.setZIndex(2);
 setTimeout(() => songSelectInteractionGroup.add(beatmapInfoPanelInteractionGroup)); // TEMP OMFGG
 
-let infoPanelMask = document.createElement('canvas');
-let infoPanelMaskCtx = infoPanelMask.getContext('2d');
-let infoPanelGradient = document.createElement('canvas');
-let infoPanelGradientCtx = infoPanelGradient.getContext('2d');
 export let beatmapInfoPanel: BeatmapInfoPanel = null;
 
 export function initBeatmapInfoPanel() {
@@ -39,40 +35,20 @@ export function getBeatmapInfoPanelScalingFactor() {
 	return beatmapInfoPanelScalingFactor;
 }
 
-function updateInfoPanelMask() {
+function createInfoPanelMaskTexture() {
 	let scalingFactor = getBeatmapInfoPanelScalingFactor();
 	let slantWidth = INFO_PANEL_HEIGHT/5;
 
-	infoPanelMask.setAttribute('width', String(Math.ceil((INFO_PANEL_WIDTH + slantWidth) * scalingFactor)));
-	infoPanelMask.setAttribute('height', String(Math.ceil(INFO_PANEL_HEIGHT * scalingFactor)));
-
-	infoPanelMaskCtx.clearRect(0, 0, infoPanelMask.width, infoPanelMask.height);
-
-	infoPanelMaskCtx.beginPath();
-	infoPanelMaskCtx.moveTo(0, 0);
-	infoPanelMaskCtx.lineTo(Math.floor(slantWidth * scalingFactor), Math.floor(INFO_PANEL_HEIGHT * scalingFactor));
-	infoPanelMaskCtx.lineTo(Math.floor((slantWidth + INFO_PANEL_WIDTH) * scalingFactor), Math.floor(INFO_PANEL_HEIGHT * scalingFactor));
-	infoPanelMaskCtx.lineTo(Math.floor(INFO_PANEL_WIDTH * scalingFactor), 0);
-	infoPanelMaskCtx.closePath();
-
-	infoPanelMaskCtx.fillStyle = '#ffffff';
-	infoPanelMaskCtx.fill();
+	return createPolygonTexture(INFO_PANEL_WIDTH + slantWidth, INFO_PANEL_HEIGHT,
+        [new PIXI.Point(0, 0), new PIXI.Point(slantWidth, INFO_PANEL_HEIGHT), new PIXI.Point(slantWidth + INFO_PANEL_WIDTH, INFO_PANEL_HEIGHT), new PIXI.Point(INFO_PANEL_WIDTH, 0)],
+    scalingFactor);
 }
 
-function updateInfoPanelGradient() {
+function createInfoPanelGradientTexture() {
 	let scalingFactor = getBeatmapInfoPanelScalingFactor();
 	let slantWidth = INFO_PANEL_HEIGHT/5;
 
-	infoPanelGradient.setAttribute('width', String(Math.ceil((INFO_PANEL_WIDTH + slantWidth) * scalingFactor)));
-	infoPanelGradient.setAttribute('height', String(Math.ceil(INFO_PANEL_HEIGHT * scalingFactor)));
-
-	infoPanelGradientCtx.clearRect(0, 0, infoPanelGradient.width, infoPanelGradient.height);
-
-	let gradient = infoPanelGradientCtx.createLinearGradient(0, infoPanelGradient.height, 0, 0);
-	gradient.addColorStop(0, 'rgba(0,0,0,0.55)');
-	gradient.addColorStop(0.38, 'rgba(0,0,0,0.0)');
-	infoPanelGradientCtx.fillStyle = gradient;
-	infoPanelGradientCtx.fillRect(0, 0, infoPanelGradient.width, infoPanelGradient.height);
+	return createLinearGradientTexture(INFO_PANEL_WIDTH + slantWidth, INFO_PANEL_HEIGHT, new PIXI.Point(0, INFO_PANEL_HEIGHT+1), new PIXI.Point(0, 0), [[0, 'rgba(0,0,0,0.55)'], [0.38, 'rgba(0,0,0,0)']], scalingFactor);
 }
 
 export function updateBeatmapInfoPanelSizing() {
@@ -291,13 +267,8 @@ export class BeatmapInfoPanel {
 	resize() {
 		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 
-		updateInfoPanelMask();
-		this.mask.texture = PIXI.Texture.from(infoPanelMask);
-		this.mask.texture.update();
-
-		updateInfoPanelGradient();
-		this.darkening.texture = PIXI.Texture.from(infoPanelGradient);
-		this.darkening.texture.update();
+		this.mask.texture = createInfoPanelMaskTexture();
+		this.darkening.texture = createInfoPanelGradientTexture();
 
 		for (let obj of this.backgroundImageContainer.children) {
 			let container = obj as PIXI.Container;

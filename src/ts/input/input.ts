@@ -8,7 +8,8 @@ export let inputEventEmitter = new CustomEventEmitter<{
 	mouseDown: MouseEvent,
 	mouseUp: MouseEvent,
 	gameButtonDown: void,
-	wheel: NormalizedWheelEvent
+	wheel: NormalizedWheelEvent,
+	keyDown: KeyboardEvent
 }>();
 
 let currentMousePosition: Point = {
@@ -77,6 +78,8 @@ mouseButtonMappings.set(MouseButton.Right, FunctionalInput.GameMouseButtonB);
 
 window.addEventListener('keydown', (e) => {
 	tickAll();
+
+	inputEventEmitter.emit('keyDown', e);
 
 	let keyCode = e.keyCode;
 

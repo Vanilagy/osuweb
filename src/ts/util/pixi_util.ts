@@ -34,19 +34,19 @@ export function fitSpriteIntoContainer(sprite: PIXI.Sprite, containerWidth: numb
 	}
 }
 
-export function createPolygonTexture(width: number, height: number, polygon: PIXI.Point[], scalingFactor = 1.0) {
+export function createPolygonTexture(width: number, height: number, polygon: PIXI.Point[], scalingFactor = 1.0, margin = 0, invert = false) {
 	let canvas = document.createElement('canvas');
 	let ctx = canvas.getContext('2d');
 
-	canvas.setAttribute('width', String(Math.ceil(width * scalingFactor)));
-	canvas.setAttribute('height', String(Math.ceil(height * scalingFactor)));
+	canvas.setAttribute('width', String(Math.ceil((width + 2*margin) * scalingFactor)));
+	canvas.setAttribute('height', String(Math.ceil((height + 2*margin) * scalingFactor)));
 
 	ctx.beginPath();
 	for (let i = 0; i < polygon.length; i++) {
 		let p = polygon[i];
 
-		let x = Math.floor(p.x * scalingFactor),
-			y = Math.floor(p.y * scalingFactor);
+		let x = Math.floor((p.x + margin) * scalingFactor),
+			y = Math.floor((p.y + margin) * scalingFactor);
 		
 		if (i === 0) ctx.moveTo(x, y);
 		else ctx.lineTo(x, y);
@@ -56,8 +56,28 @@ export function createPolygonTexture(width: number, height: number, polygon: PIX
 	ctx.fillStyle = '#ffffff';
 	ctx.fill();
 
-	let texture = PIXI.Texture.from(canvas);
-	return texture;
+	if (invert) {
+		ctx.globalCompositeOperation = 'source-out';
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+	}
+
+	return PIXI.Texture.from(canvas);
+}
+
+export function createLinearGradientTexture(width: number, height: number, start: PIXI.Point, end: PIXI.Point, colorStops: [number, string][], scalingFactor = 1.0) {
+	let canvas = document.createElement('canvas');
+	let ctx = canvas.getContext('2d');
+
+	canvas.setAttribute('width', String(Math.ceil(width * scalingFactor)));
+	canvas.setAttribute('height', String(Math.ceil(height * scalingFactor)));
+
+	let gradient = ctx.createLinearGradient(start.x * scalingFactor, start.y * scalingFactor, end.x * scalingFactor, end.y * scalingFactor);
+	for (let cs of colorStops) gradient.addColorStop(cs[0], cs[1]);
+
+	ctx.fillStyle = gradient;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	return PIXI.Texture.from(canvas);
 }
 
 // TODO: Support non-square SVGs

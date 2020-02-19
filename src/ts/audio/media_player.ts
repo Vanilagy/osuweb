@@ -2,6 +2,7 @@ import { audioContext, mediaAudioNode } from "./audio";
 import { MathUtil } from "../util/math_util";
 import { VirtualFile } from "../file_system/virtual_file";
 import { TickingTask, addTickingTask, removeTickingTask } from "../util/ticker";
+import { AnalyserNodeWrapper } from "./analyser_node_wrapper";
 
 const MEDIA_NUDGE_INTERVAL = 333; // In ms
 const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
@@ -24,16 +25,13 @@ export class MediaPlayer {
 	private loopStart = 0;
 	private loopEnd = -1;
 	private tickingTask: TickingTask = null;
-	private analyserNode: AnalyserNode;
+	private analysers: AnalyserNodeWrapper[] = [];
 
 	constructor(destination: AudioNode) {
 		this.gainNode = audioContext.createGain();
 		this.setVolume(this.volume);
 
 		this.gainNode.connect(destination);
-
-		this.analyserNode = audioContext.createAnalyser();
-		this.analyserNode.fftSize = 2**15;
 		
 		this.tickingTask = () => {
 			// Handle loop end behavior
@@ -71,7 +69,7 @@ export class MediaPlayer {
 		this.audioElement.playbackRate = this.playbackRate;
 		this.audioNode = audioContext.createMediaElementSource(this.audioElement);
 		this.audioNode.connect(this.gainNode);
-		this.audioNode.connect(this.analyserNode);
+		for (let a of this.analysers) a.hook(this.audioNode);
 		this.timingDeltas.length = 0;
 		this.lastNudgeTime = null;
 		this.pausedTime = null;
@@ -220,11 +218,13 @@ export class MediaPlayer {
 		}
 	}
 
-	getTimeDomainData() {
-		let b = new Uint8Array(this.analyserNode.fftSize);
-		this.analyserNode.getByteTimeDomainData(b);
+	createAnalyser(fftSize: number) {
+		let analyserWrapper = new AnalyserNodeWrapper(fftSize);
+		if (this.audioNode) analyserWrapper.hook(this.audioNode);
 
-		return b;
+		this.analysers.push(analyserWrapper);
+
+		return analyserWrapper;
 	}
 }
 

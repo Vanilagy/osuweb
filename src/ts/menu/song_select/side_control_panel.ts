@@ -8,6 +8,7 @@ import { Interactivity } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { mainMusicMediaPlayer } from "../../audio/media_player";
+import { AnalyserNodeWrapper } from "../../audio/analyser_node_wrapper";
 
 const PULSAR_IDLE_RADIUS = 60;
 const SIDE_CONTROL_PANEL_WIDTH = 42;
@@ -234,7 +235,8 @@ class SideControlPulsar {
 	private hitbox: PIXI.Circle;
 	private icon: PIXI.Sprite;
 	private pulseInterpolator: Interpolator;
-	private lastBeatTime: number = -Infinity;
+    private lastBeatTime: number = -Infinity;
+    private analyser: AnalyserNodeWrapper;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -275,7 +277,9 @@ class SideControlPulsar {
 			defaultToFinished: true,
 			from: 0.2,
 			to: 0.0
-		});
+        });
+        
+        this.analyser = mainMusicMediaPlayer.createAnalyser(2**15);
 
 		this.initInteraction();
 	}
@@ -315,9 +319,8 @@ class SideControlPulsar {
 	update(now: number) {
 		let currentExtendedData = getSelectedExtendedBeatmapData();
 
-		outer: if (currentExtendedData) {
-			let msPerBeatTimings = currentExtendedData.msPerBeatTimings;
-			if (msPerBeatTimings.length === 0) break outer;
+		if (currentExtendedData && currentExtendedData.msPerBeatTimings.length > 0) {
+            let { msPerBeatTimings } = currentExtendedData;
 
 			let currentTime = mainMusicMediaPlayer.getCurrentTime() * 1000;
 			let latest = msPerBeatTimings[0];
@@ -340,7 +343,8 @@ class SideControlPulsar {
 
 					this.pulseInterpolator.start(now - beatElapsed);
 
-					let timeDomainData = mainMusicMediaPlayer.getTimeDomainData();
+                    this.analyser.updateByteTimeDomainData();
+					let timeDomainData = this.analyser.getByteTimeDomainBuffer();
 					let normalized: number[] = [];
 
 					for (let i = 0; i < timeDomainData.length; i++) {
