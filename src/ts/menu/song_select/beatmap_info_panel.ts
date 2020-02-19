@@ -7,23 +7,23 @@ import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer, createPolygonTexture, createLinearGradientTexture } from "../../util/pixi_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { TabSelector } from "../components/tab_selector";
 import { BeatmapRankingTab } from "./beatmap_ranking_tab";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
 import { Interactivity } from "../../input/interactivity";
+import { ExtendedBeatmapData } from "../../util/beatmap_util";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
 const IMAGE_FADE_IN_TIME = 333;
 const beatmapInfoPanelInteractionGroup = Interactivity.createGroup();
 beatmapInfoPanelInteractionGroup.setZIndex(2);
-setTimeout(() => songSelectInteractionGroup.add(beatmapInfoPanelInteractionGroup)); // TEMP OMFGG
 
 export let beatmapInfoPanel: BeatmapInfoPanel = null;
 
 export function initBeatmapInfoPanel() {
+	songSelectInteractionGroup.add(beatmapInfoPanelInteractionGroup);
 	beatmapInfoPanel = new BeatmapInfoPanel();
 	songSelectContainer.addChild(beatmapInfoPanel.container);
 

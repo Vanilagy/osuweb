@@ -1,9 +1,6 @@
 import { JobTask, JobResponseWrapper, JobRequestMessage } from "./job";
-import { Beatmap } from "../datamodel/beatmap";
-import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
-import { DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
-import { BeatmapUtil } from "../datamodel/beatmap_util";
 import { VirtualFile } from "../file_system/virtual_file";
+import { BeatmapUtil } from "../util/beatmap_util";
 
 self.onmessage = async (e: MessageEvent) => {
 	let msg = e.data as JobRequestMessage;

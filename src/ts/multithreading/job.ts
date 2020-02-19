@@ -1,4 +1,4 @@
-import { ExtendedBeatmapData } from "../datamodel/beatmap_util";
+import { ExtendedBeatmapData } from "../util/beatmap_util";
 
 export enum JobTask {
 	GetExtendedBetamapData,

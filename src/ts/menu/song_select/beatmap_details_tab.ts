@@ -1,8 +1,7 @@
 import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab, getBeatmapInfoPanelScalingFactor } from "./beatmap_info_panel";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { padNumberWithZeroes } from "../../util/misc_util";
-import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
-import { InterpolatedValueChanger } from "../../util/interpolation";
+import { padNumberWithZeroes } from "../../util/misc_util";import { InterpolatedValueChanger } from "../../util/interpolation";
+import { ExtendedBeatmapData } from "../../util/beatmap_util";
 
 const CIRCLE_CIZE_CAP = 7;
 const HP_DRAIN_CAP = 10;

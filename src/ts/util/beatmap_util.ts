@@ -1,8 +1,8 @@
 import { VirtualFile } from "../file_system/virtual_file";
-import { Beatmap } from "./beatmap";
-import { ProcessedBeatmap } from "./processed/processed_beatmap";
-import { DifficultyCalculator, DifficultyAttributes } from "./difficulty/difficulty_calculator";
-import { BeatmapDifficulty } from "./beatmap_difficulty";
+import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
+import { DifficultyAttributes, DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
+import { Beatmap } from "../datamodel/beatmap";
+import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 
 export interface ExtendedBeatmapData {
 	title: string,

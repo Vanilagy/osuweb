@@ -6,9 +6,9 @@ import { getNormalizedOffsetOnCarousel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, carouse
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { selectBeatmapDifficulty, triggerSelectedBeatmap } from "./song_select";
-import { ExtendedBeatmapData } from "../../datamodel/beatmap_util";
 import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
 import { Interpolator } from "../../util/interpolation";
+import { ExtendedBeatmapData } from "../../util/beatmap_util";
 
 export class BeatmapDifficultyPanel {
 	public container: PIXI.Container;

@@ -17,7 +17,6 @@ const SIDE_CONTROL_PANEL_HEIGHT = 290;
 let sideControlPanel: SongSelectSideControlPanel = null;
 let sideControlPanelInteractionGroup = Interactivity.createGroup();
 sideControlPanelInteractionGroup.setZIndex(4);
-setTimeout(() => songSelectInteractionGroup.add(sideControlPanelInteractionGroup)); // TEMP TEEEEEEEMp
 
 let sideControlPanelScalingFactor = 1.0;
 let sideControlPanelBg = document.createElement('canvas');
@@ -31,6 +30,7 @@ export function getSideControlPanelScalingFactor() {
 }
 
 export function initSideControlPanel() {
+	songSelectInteractionGroup.add(sideControlPanelInteractionGroup);
     sideControlPanel = new SongSelectSideControlPanel();
     songSelectContainer.addChild(sideControlPanel.container);
 

@@ -1,6 +1,6 @@
 import { JobTask, JobResponseWrapper, GetBeatmapMetadataRequest, GetImageBitmapRequest } from "./job";
 import { MathUtil } from "../util/math_util";
-import { ExtendedBeatmapData } from "../datamodel/beatmap_util";
+import { ExtendedBeatmapData } from "../util/beatmap_util";
 
 interface JobPromiseWrapper {
 	promise: Promise<unknown>,
