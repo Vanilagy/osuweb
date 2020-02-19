@@ -1,7 +1,10 @@
-import { songSelectContainer } from "./song_select";
+import { songSelectContainer, loadedBeatmapSets } from "./song_select";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { inputEventEmitter } from "../../input/input";
-import { textInputEventEmitter } from "../../input/text_input";
+import { textInputEventEmitter, TextInputStorage } from "../../input/text_input";
+import { BeatmapSet } from "../../datamodel/beatmap_set";
+import { createCarouselFromBeatmapSets } from "./beatmap_carousel";
+import { OverridableDelay } from "../../util/misc_util";
 
 let searchBar: SearchBar = null;
 
@@ -13,17 +16,22 @@ export function initSearchBar() {
 }
 
 export function updateSearchBarSizing() {
+	if (!searchBar) return;
+
     searchBar.container.y = 0;
     searchBar.container.x = currentWindowDimensions.width - searchBar.container.width;
 }
 
 class SearchBar {
     public container: PIXI.Container;
-    private text: PIXI.Text;
-    private currentQuery: string = "";
+    private textElement: PIXI.Text;
+	private delay: OverridableDelay = new OverridableDelay();
+	private textStorage: TextInputStorage;
 
     constructor() {
-        this.container = new PIXI.Container();
+		this.container = new PIXI.Container();
+		this.textStorage = new TextInputStorage();
+		this.textStorage.enable();
 
         let bg = new PIXI.Sprite(PIXI.Texture.WHITE);
         bg.tint = 0xff0000;
@@ -31,18 +39,25 @@ class SearchBar {
         bg.width = 400;
         this.container.addChild(bg);
 
-        this.text = new PIXI.Text(this.currentQuery);
-        this.container.addChild(this.text);
+        this.textElement = new PIXI.Text(this.textStorage.stored);
+		this.container.addChild(this.textElement);
+		
+		this.textStorage.addListener('change', () => this.updateText());
+	}
+	
+	private updateText() {
+		this.textElement.text = this.textStorage.stored;
+		let query = this.textStorage.stored.toLowerCase();
 
-        textInputEventEmitter.addListener('textInput', (str) => {
-            this.currentQuery += str;
-            this.text.text = this.currentQuery;
-        });
-        inputEventEmitter.addListener('keyDown', (e) => {
-            if (e.keyCode === 8 && this.currentQuery.length > 0) {
-                this.currentQuery = this.currentQuery.slice(0, -1);
-                this.text.text = this.currentQuery;
-            }
-        });
-    }
+		let matching: BeatmapSet[] = [];
+		for (let set of loadedBeatmapSets) {
+			if (set.searchableString.includes(query)) {
+				matching.push(set);
+			}
+		}
+
+		if (matching.length > 0) {
+			this.delay.schedule(250, () => createCarouselFromBeatmapSets(matching));
+		}
+	}
 }

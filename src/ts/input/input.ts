@@ -41,7 +41,8 @@ window.onmousemove = (e: MouseEvent) => {
 
 const PREVENT_NATIVE_CONTEXT_MENU = true;
 
-enum KeyCode {
+export enum KeyCode {
+	Backspace = 8,
 	X = 88,
 	Y = 89
 }

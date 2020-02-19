@@ -186,3 +186,23 @@ export function pushItemUnique<T>(arr: T[], item: T) {
 
 	return false;
 }
+
+export function createSearchableString(substrings: string[]) {
+	let str = '';
+
+	for (let i = 0; i < substrings.length; i++) {
+		str += substrings[i];
+		if (i !== substrings.length-1) str += ' ';
+	}
+
+	return str.toLowerCase();
+}
+
+export class OverridableDelay {
+	private timeoutId: number = null;
+
+	schedule(delay: number, func: Function) {
+		clearTimeout(this.timeoutId);
+		this.timeoutId = setTimeout(func, delay);
+	}
+}

@@ -5,7 +5,7 @@ import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState 
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, shallowObjectClone, EMPTY_FUNCTION } from "../../util/misc_util";
+import { NormalizedWheelEvent, last, shallowObjectClone, EMPTY_FUNCTION, charIsDigit } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup, Interactivity } from "../../input/interactivity";
@@ -33,6 +33,7 @@ export let carouselInteractionGroup = Interactivity.createGroup();
 carouselInteractionGroup.setZIndex(1);
 songSelectInteractionGroup.add(carouselInteractionGroup);
 
+let panelCache = new WeakMap<BeatmapSet, BeatmapSetPanel>();
 let selectedPanel: BeatmapSetPanel = null;
 let referencePanel: BeatmapSetPanel = null;
 let referencePanelY = 0;
@@ -43,7 +44,8 @@ let snapToSelectionInterpolator = new Interpolator({
 	p: 0.9,
 	defaultToFinished: true
 });
-let snapToSelectedIntervened = true;
+let snapToSelected = false;
+let skipSnapbackNextFrame = true;
 let selectedSubpanel: BeatmapDifficultyPanel = null;
 
 let carouselDragTarget = new PIXI.Container();
@@ -54,7 +56,7 @@ carouselInteractionGroup.add(dragListener);
 let pressDownStopped = true;
 dragListener.passThrough = true;
 dragListener.makeDraggable(() => {
-	snapToSelectedIntervened = true;
+	snapToSelected = false;
 	scrollVelocity = 0;
 	pressDownStopped = false;
 }, (e) => {
@@ -95,27 +97,46 @@ export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: numb
 	referencePanel = panel;
 	referencePanelY = currentYPosition;
 
-	snapReferencePanel(currentYPosition, BEATMAP_SET_PANEL_SNAP_TARGET);
+	snapToReferencePanel(currentYPosition, BEATMAP_SET_PANEL_SNAP_TARGET);
 }
 
-export function snapReferencePanel(from: number, to: number) {
+export function snapToReferencePanel(from: number, to: number) {
 	snapToSelectionInterpolator.setValueRange(from, to);
 	snapToSelectionInterpolator.start(performance.now());
-	snapToSelectedIntervened = false;
+	snapToSelected = true;
 	scrollVelocity = 0;
 }
 
 export function createCarouselFromBeatmapSets(beatmapSets: BeatmapSet[]) {
+	for (let p of beatmapSetPanels) {
+		beatmapCarouselContainer.removeChild(p.container);
+	}
+	beatmapSetPanels.length = 0;
+
 	for (let i = 0; i < beatmapSets.length; i++) {
 		let set = beatmapSets[i];
+		let cachedPanel = panelCache.get(set);
+		let panel: BeatmapSetPanel;
 
-		let panel = new BeatmapSetPanel(set);
+		if (cachedPanel) {
+			panel = cachedPanel;
+		} else {
+			panel = new BeatmapSetPanel(set);
+			panelCache.set(set, panel);
+		}
+
 		beatmapCarouselContainer.addChild(panel.container);
-
 		beatmapSetPanels.push(panel);
 	}
 
-	referencePanel = beatmapSetPanels[0];
+	if (!beatmapSetPanels.includes(referencePanel)) {
+		referencePanel = beatmapSetPanels[0];
+		referencePanelY = 200;
+		scrollVelocity = 200; // For sick effect hehe
+	}
+
+	skipSnapbackNextFrame = true;
+	snapToSelected = false;
 }
 
 addRenderingTask((now: number, dt: number) => {
@@ -123,7 +144,7 @@ addRenderingTask((now: number, dt: number) => {
 
 	let referenceIndex = beatmapSetPanels.indexOf(referencePanel);
 
-	if (!snapToSelectedIntervened) {
+	if (snapToSelected) {
 		referencePanelY = snapToSelectionInterpolator.getCurrentValue(now);
 	}
 
@@ -146,18 +167,21 @@ addRenderingTask((now: number, dt: number) => {
 
 	if (Math.abs(scrollVelocity) < 1) scrollVelocity = 0;
 
-	// Calculate snapback when user scrolls off one of the carousel edges
-	let firstPanel = beatmapSetPanels[0];
-	let lastPanel = last(beatmapSetPanels);
-	let diff: number;
+	if (!skipSnapbackNextFrame) {
+		// Calculate snapback when user scrolls off one of the carousel edges
+		let firstPanel = beatmapSetPanels[0];
+		let lastPanel = last(beatmapSetPanels);
+		let diff: number;
 
-	// Top edge snapback
-	diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
-	if (diff > 0) referencePanelY += diff * (Math.pow(0.0015, dt/1000) - 1);
+		// Top edge snapback
+		diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
+		if (diff > 0) referencePanelY += diff * (Math.pow(0.0015, dt/1000) - 1);
 
-	// Bottom edge snapback
-	diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
-	if (diff > 0) referencePanelY -= diff * (Math.pow(0.0015, dt/1000) - 1);
+		// Bottom edge snapback
+		diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
+		if (diff > 0) referencePanelY -= diff * (Math.pow(0.0015, dt/1000) - 1);
+	}
+	skipSnapbackNextFrame = false;
 
 	referencePanel.update(now, referencePanelY, referencePanel.getTotalHeight(now));
 
@@ -203,7 +227,7 @@ inputEventEmitter.addListener('wheel', (data) => {
 	effectiveness = Math.min(effectiveness, Math.pow(0.9, Math.max(0, diff/30)));
 
 	scrollVelocity += wheelEvent.dy * 4 * effectiveness;
-	snapToSelectedIntervened = true;
+	snapToSelected = false;
 });
 
 export function updateCarouselSizing() {

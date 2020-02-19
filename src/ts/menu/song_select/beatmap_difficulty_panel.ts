@@ -2,7 +2,7 @@ import { VirtualFile } from "../../file_system/virtual_file";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { getBeatmapDifficultyPanelMask, TEXTURE_MARGIN, getBeatmapDifficultyPanelGlowTexture, getDifficultyColorBar } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_DIFFICULTY_PANEL_WIDTH, snapReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET, getCarouselScalingFactor } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_DIFFICULTY_PANEL_WIDTH, snapToReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET, getCarouselScalingFactor } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { selectBeatmapDifficulty, triggerSelectedBeatmap } from "./song_select";
@@ -263,7 +263,7 @@ export class BeatmapDifficultyPanel {
 		if (doSnap) {
 			let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
 			let diff = BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET - totalNormalizedY;
-			snapReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
+			snapToReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
 		}
 
 		selectBeatmapDifficulty(this.beatmapFile, this.parentPanel.beatmapSet, this.extendedBeatmapData);

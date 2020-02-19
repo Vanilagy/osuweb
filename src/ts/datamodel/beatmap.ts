@@ -6,7 +6,7 @@ import { Color } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 import { Spinner } from "./spinner";
-import { last, unholeArray } from "../util/misc_util";
+import { last, unholeArray, createSearchableString } from "../util/misc_util";
 
 const DEFAULT_TIMING_POINT_METER = 4;
 const DEFAULT_TIMING_POINT_SAMPLE_SET = 1;
@@ -359,5 +359,9 @@ export class Beatmap {
 		}
 
 		return last(this.timingPoints);
+	}
+
+	getSearchableString() {
+		return createSearchableString([this.title, this.titleUnicode, this.artist, this.artistUnicode, this.creator, this.version, this.tags]);
 	}
 }

@@ -25,7 +25,6 @@ export class BeatmapSetPanel {
 	private difficultyContainer: PIXI.Container;
 	private expandInterpolator: Interpolator;
 	private beatmapDifficultyPanels: BeatmapDifficultyPanel[] = [];
-	private representingBeatmap: Beatmap;
 	private mainMask: PIXI.Sprite;
 	private backgroundImageSprite: PIXI.Sprite;
 	private backgroundImageBitmap: ImageBitmap = null;
@@ -108,10 +107,7 @@ export class BeatmapSetPanel {
 		});
 		
 		this.initInteractions();
-
-		this.load().then(() => {
-			this.draw();
-		});
+		this.draw();
 	}
 
 	private initInteractions() {
@@ -145,19 +141,10 @@ export class BeatmapSetPanel {
 		});
 	}
 
-	private async load() {
-		let representingBeatmap = new Beatmap({
-			text: await this.beatmapFiles[0].readAsText(),
-			beatmapSet: this.beatmapSet,
-			metadataOnly: true
-		});
-		this.representingBeatmap = representingBeatmap;
-	}
-
 	private async loadImage() {
 		let scalingFactor = getCarouselScalingFactor();
 
-		let imageFile = await this.representingBeatmap.getBackgroundImageFile();
+		let imageFile = await this.beatmapSet.representingBeatmap.getBackgroundImageFile();
 		if (imageFile) this.backgroundImageBitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
 
 		if (this.backgroundImageBitmap) {
@@ -170,8 +157,10 @@ export class BeatmapSetPanel {
 	}
 
 	private draw() {
-		this.primaryText.text = this.representingBeatmap.title + ' '; // Adding the extra space so that the canvas doesn't cut off the italics
-		this.secondaryText.text = this.representingBeatmap.artist + ' | ' + this.representingBeatmap.creator + ' ';
+		let beatmap = this.beatmapSet.representingBeatmap;
+
+		this.primaryText.text = beatmap.title + ' '; // Adding the extra space so that the canvas doesn't cut off the italics
+		this.secondaryText.text = beatmap.artist + ' | ' + beatmap.creator + ' ';
 	}
 
 	private resize() {
@@ -228,7 +217,7 @@ export class BeatmapSetPanel {
 			// If the top of the panel is at most a full screen height away
 			let isClose = this.currentNormalizedY * scalingFactor >= -currentWindowDimensions.height && this.currentNormalizedY * scalingFactor <= (currentWindowDimensions.height * 2);
 
-			if (isClose && this.representingBeatmap) {
+			if (isClose) {
 				this.imageLoadingStarted = true;
 				this.loadImage();
 			}
@@ -318,7 +307,8 @@ export class BeatmapSetPanel {
 
 		this.expandInterpolator.setReversedState(false, performance.now());
 
-		beatmapInfoPanel.loadBeatmapSet(this.representingBeatmap);
+		let representingBeatmap = this.beatmapSet.representingBeatmap;
+		beatmapInfoPanel.loadBeatmapSet(representingBeatmap);
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			let difficultyPanel = new BeatmapDifficultyPanel(this);
@@ -328,16 +318,16 @@ export class BeatmapSetPanel {
 			this.beatmapDifficultyPanels.push(difficultyPanel);
 		}
 
-		this.representingBeatmap.getBackgroundImageFile().then((backgroundImage) => {
+		representingBeatmap.getBackgroundImageFile().then((backgroundImage) => {
 			if (backgroundImage) BackgroundManager.setImage(backgroundImage);
 		});
 
-		this.representingBeatmap.getAudioFile().then(async (audioFile) => {
+		representingBeatmap.getAudioFile().then(async (audioFile) => {
 			if (!audioFile) return;
 
 			await mainMusicMediaPlayer.loadFromVirtualFile(audioFile);
 
-			let startTime = this.representingBeatmap.getAudioPreviewTimeInSeconds();
+			let startTime = representingBeatmap.getAudioPreviewTimeInSeconds();
 			mainMusicMediaPlayer.start(startTime)
 			mainMusicMediaPlayer.setLoopBehavior(true, startTime);
 			resetLastBeatTime();

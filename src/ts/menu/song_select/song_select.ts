@@ -22,16 +22,21 @@ stage.addChild(songSelectContainer);
 
 export let loadedBeatmapSets: BeatmapSet[] = [];
 
-songFolderSelect.addEventListener('change', () => {
+songFolderSelect.addEventListener('change', async () => {
 	(document.querySelector('#tempControls') as HTMLElement).style.display = 'none';
 
 	let directory = VirtualDirectory.fromFileList(songFolderSelect.files);
+	let promises: Promise<unknown>[] = [];
+
 	directory.forEach((entry) => {
 		if (!(entry instanceof VirtualDirectory)) return;
 
 		let beatmapSet = new BeatmapSet(entry);
 		loadedBeatmapSets.push(beatmapSet);
+		promises.push(beatmapSet.init());
 	});
+
+	await Promise.all(promises);
 
 	createCarouselFromBeatmapSets(loadedBeatmapSets);
 	initBeatmapInfoPanel();
