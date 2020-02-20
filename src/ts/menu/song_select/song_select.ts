@@ -1,6 +1,6 @@
 import { stage } from "../../visuals/rendering";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
-import { updateCarouselSizing, createCarouselFromBeatmapSets } from "./beatmap_carousel";
+import { updateCarouselSizing, createCarouselFromBeatmapSets, defaultBeatmapCarouselSortingType } from "./beatmap_carousel";
 import { initBeatmapInfoPanel, updateBeatmapInfoPanelSizing, beatmapInfoPanel } from "./beatmap_info_panel";
 import { uiEventEmitter } from "../../visuals/ui";
 import { Interactivity } from "../../input/interactivity";
@@ -38,7 +38,7 @@ songFolderSelect.addEventListener('change', async () => {
 
 	await Promise.all(promises);
 
-	createCarouselFromBeatmapSets(loadedBeatmapSets);
+	createCarouselFromBeatmapSets(loadedBeatmapSets, defaultBeatmapCarouselSortingType);
 	initBeatmapInfoPanel();
 	initSideControlPanel();
 	initSearchBar();

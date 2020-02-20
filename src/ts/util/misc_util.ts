@@ -206,3 +206,7 @@ export class OverridableDelay {
 		this.timeoutId = setTimeout(func, delay);
 	}
 }
+
+export function compareStringsLowerCase(a: string, b: string) {
+	return a.toLowerCase().localeCompare(b.toLowerCase());
+}

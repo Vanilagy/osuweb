@@ -60,6 +60,10 @@ export class InterpolatedValueChanger {
 		this.end = to;
 		this.startTime = -Infinity;
 	}
+
+	finish() {
+		this.startTime = -Infinity;
+	}
 }
 
 export enum ReverseMode {

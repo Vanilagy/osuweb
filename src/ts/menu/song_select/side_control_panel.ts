@@ -109,7 +109,7 @@ class SongSelectSideControlPanel {
 
         this.background = new PIXI.Sprite();
         this.background.tint = 0x000000;
-        this.background.alpha = 0.6;
+        this.background.alpha = 0.8;
         this.container.addChild(this.background);
 
         // omg give this a more descriptive name

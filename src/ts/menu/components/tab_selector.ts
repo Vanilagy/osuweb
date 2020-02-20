@@ -1,9 +1,9 @@
 import { EaseType } from "../../util/math_util";
-import { Interactivity, InteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { Interactivity, InteractionGroup } from "../../input/interactivity";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
 import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
 
-export class TabSelector extends CustomEventEmitter {
+export class TabSelector extends CustomEventEmitter<{selection: number}> {
 	public container: PIXI.Container;
 	private tabStrings: string[];
 	private tabContainers: PIXI.Container[] = [];
@@ -15,7 +15,7 @@ export class TabSelector extends CustomEventEmitter {
 	private margin: number;
 	public interactionGroup: InteractionGroup;
 
-	constructor(tabStrings: string[], margin = 11) {
+	constructor(tabStrings: string[], defaultIndex = 0, margin = 11) {
 		super();
 
 		this.container = new PIXI.Container();
@@ -62,6 +62,8 @@ export class TabSelector extends CustomEventEmitter {
 		this.selectionBar = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.selectionBar.tint = 0x6FC2FF;
 		this.container.addChild(this.selectionBar);
+
+		this.selectedIndex = defaultIndex;
 	}
 
 	private setSelection(index: number) {
@@ -72,15 +74,15 @@ export class TabSelector extends CustomEventEmitter {
 		let selectionBarX: number;
 
 		for (let i = 0; i < this.tabContainers.length; i++) {
-			let c = this.tabContainers[i];
-			let text = c.children[0] as PIXI.Text;
+			let container = this.tabContainers[i];
+			let text = container.children[0] as PIXI.Text;
 			let isSelected = i === this.selectedIndex;
 
 			text.style.fontFamily = isSelected? 'Exo2-Bold' : 'Exo2-Regular';
 
 			if (isSelected) {
 				selectionBarWidth = text.width;
-				selectionBarX = text.x;
+				selectionBarX = container.x;
 			}
 		}
 
@@ -90,17 +92,21 @@ export class TabSelector extends CustomEventEmitter {
 		this.selectionBarWidthInterpolator.setGoal(selectionBarWidth, now);
 	}
 
+	getSelectedIndex() {
+		return this.selectedIndex;
+	}
+
 	resize(scalingFactor: number) {
 		let currentX = 0;
 		let selectionBarWidth: number;
 		let selectionBarX: number;
 		
 		for (let i = 0; i < this.tabContainers.length; i++) {
-			let c = this.tabContainers[i];
-			let text = c.children[0] as PIXI.Text;
+			let container = this.tabContainers[i];
+			let text = container.children[0] as PIXI.Text;
 			let isSelected = i === this.selectedIndex;
 
-			c.x = Math.floor(currentX);
+			container.x = Math.floor(currentX);
 			text.style = {
 				fontFamily: isSelected? 'Exo2-Bold' : 'Exo2-Regular',
 				fill: 0xffffff,
@@ -117,11 +123,11 @@ export class TabSelector extends CustomEventEmitter {
 			let halfMarginScaled = this.margin/2 * scalingFactor;
 			let marginTop = textHeight/5;
 			let hitbox = new PIXI.Rectangle(-halfMarginScaled, -marginTop, textWidth + 2*halfMarginScaled, textHeight + marginTop);
-			c.hitArea = hitbox;
+			container.hitArea = hitbox;
 
 			if (isSelected) {
 				selectionBarWidth = textWidth;
-				selectionBarX = text.x;
+				selectionBarX = container.x;
 			}
 		}
 

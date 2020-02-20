@@ -5,7 +5,7 @@ import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState 
 import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, shallowObjectClone, EMPTY_FUNCTION, charIsDigit } from "../../util/misc_util";
+import { NormalizedWheelEvent, last, shallowObjectClone, EMPTY_FUNCTION, charIsDigit, compareStringsLowerCase } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup, Interactivity } from "../../input/interactivity";
@@ -47,6 +47,26 @@ let snapToSelectionInterpolator = new Interpolator({
 let snapToSelected = false;
 let skipSnapbackNextFrame = true;
 let selectedSubpanel: BeatmapDifficultyPanel = null;
+
+export enum BeatmapCarouselSortingType {
+	None = "",
+	Title = "Title",
+	Artist = "Artist",
+	Difficulty = "Difficulty",
+	Length = "Length",
+	DateAdded = "Date Added",
+	Mapper = "Mapper"
+}
+export let beatmapCarouselSortingTypes = [BeatmapCarouselSortingType.Title, BeatmapCarouselSortingType.Artist, BeatmapCarouselSortingType.Difficulty, BeatmapCarouselSortingType.Length, BeatmapCarouselSortingType.DateAdded, BeatmapCarouselSortingType.Mapper];
+export let defaultBeatmapCarouselSortingType = BeatmapCarouselSortingType.Title;
+export let beatmapCarouselSortingTypeFunctions = new Map<BeatmapCarouselSortingType, (a: BeatmapSet, b: BeatmapSet) => number>();
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.None, (a, b) => 0);
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Title, (a, b) => compareStringsLowerCase(a.representingBeatmap.title, b.representingBeatmap.title));
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Artist, (a, b) => compareStringsLowerCase(a.representingBeatmap.artist, b.representingBeatmap.artist));
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Difficulty, (a, b) => 0);
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Length, (a, b) => 0);
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.DateAdded, (a, b) => 0);
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Mapper, (a, b) => compareStringsLowerCase(a.representingBeatmap.creator, b.representingBeatmap.creator));
 
 let carouselDragTarget = new PIXI.Container();
 songSelectContainer.addChild(carouselDragTarget);
@@ -107,11 +127,13 @@ export function snapToReferencePanel(from: number, to: number) {
 	scrollVelocity = 0;
 }
 
-export function createCarouselFromBeatmapSets(beatmapSets: BeatmapSet[]) {
+export function createCarouselFromBeatmapSets(beatmapSets: BeatmapSet[], sortingType: BeatmapCarouselSortingType) {
 	for (let p of beatmapSetPanels) {
 		beatmapCarouselContainer.removeChild(p.container);
 	}
 	beatmapSetPanels.length = 0;
+
+	beatmapSets.sort(beatmapCarouselSortingTypeFunctions.get(sortingType));
 
 	for (let i = 0; i < beatmapSets.length; i++) {
 		let set = beatmapSets[i];
@@ -132,7 +154,7 @@ export function createCarouselFromBeatmapSets(beatmapSets: BeatmapSet[]) {
 	if (!beatmapSetPanels.includes(referencePanel)) {
 		referencePanel = beatmapSetPanels[0];
 		referencePanelY = 200;
-		scrollVelocity = 200; // For sick effect hehe
+		scrollVelocity = 100; // For sick effect hehe
 	}
 
 	skipSnapbackNextFrame = true;
