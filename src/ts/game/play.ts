@@ -186,7 +186,7 @@ export class Play {
 	async start() {
 		console.time("Audio load");
 		
-		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP
+		
 		
 		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
 		await mainMusicMediaPlayer.loadFromVirtualFile(songFile);
@@ -217,6 +217,8 @@ export class Play {
 		console.timeEnd("Audio load");
 
 		if (this.activeMods.has(Mod.Auto)) softwareCursor.visible = true;
+
+		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP
 
 		addRenderingTask(() => this.render());
 		addTickingTask(() => this.tick());

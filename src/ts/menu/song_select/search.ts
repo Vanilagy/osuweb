@@ -112,7 +112,7 @@ class SearchBar {
 
 		this.sortSelector.resize(scalingFactor);
 		this.sortSelector.container.x = Math.floor(28 * scalingFactor);
-		this.sortSelector.container.y = Math.floor(49 * scalingFactor);
+		this.sortSelector.container.y = Math.floor(SEARCH_BAR_HEIGHT * scalingFactor);
 	}
 
 	update(now: number) {

@@ -190,11 +190,8 @@ export abstract class MathUtil {
 	}
 
 	static clamp(val: number, min: number, max: number) {
-		if (val < min) {
-			return min;
-		} else if (val > max) {
-			return max;
-		}
+		if (val < min) return min;
+		else if (val > max) return max;
 		return val;
 	}
 

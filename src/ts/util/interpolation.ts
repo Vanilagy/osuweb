@@ -134,17 +134,17 @@ export class Interpolator {
 
 	reverse(now: number) {
 		let currentCompletion = this.getCurrentCompletion(now);
-		let currentValue = this.getCurrentValue(now);
+		let currentEasedCompletion = this.getCurrentEasedCompletion(now);
 
 		this.reversed = !this.reversed;
 
 		if (this.reverseMode === ReverseMode.ByValue && this.reverseEase && this.reverseEase !== this.ease) {
 			let ease = this.getEase();
 			let easeP = this.getEaseP();
-			let clampedValue = MathUtil.clamp(currentValue, 0, 1); // For some ease types, values can reach out of [0, 1], which would mean that no root can be found - that's why we clamp here.
+			let clampedEasedCompletion = MathUtil.clamp(currentEasedCompletion, 0, 1); // For some ease types, values can reach out of [0, 1], which would mean that no root can be found - that's why we clamp here.
 
 			let root = MathUtil.findRootInInterval((x) => {
-				return MathUtil.ease(ease, x, easeP) - clampedValue;
+				return MathUtil.ease(ease, x, easeP) - clampedEasedCompletion;
 			}, 0.0, 1.0);
 
 			if (!isNaN(root)) currentCompletion = root;
@@ -167,11 +167,15 @@ export class Interpolator {
 		return completion;
 	}
 
-	getCurrentValue(now: number) {
+	getCurrentEasedCompletion(now: number) {
 		let completion = this.getCurrentCompletion(now);
-		completion = MathUtil.ease(this.getEase(), completion, this.getEaseP());
+		let easedCompletion = MathUtil.ease(this.getEase(), completion, this.getEaseP());
+		
+		return easedCompletion;
+	}
 
-		return MathUtil.lerp(this.from, this.to, completion);
+	getCurrentValue(now: number) {
+		return MathUtil.lerp(this.from, this.to, this.getCurrentEasedCompletion(now));
 	}
 
 	isReversed() {
