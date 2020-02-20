@@ -121,8 +121,16 @@ export function setReferencePanel(panel: BeatmapSetPanel, currentYPosition: numb
 }
 
 export function snapToReferencePanel(from: number, to: number) {
+	let now = performance.now();
+
+	// It could be that we snap to a position that's off the end of the carousel, where the carousel would normally snap back. Here, we catch this case and only snap as far as we should.
+	let lastPanel = last(beatmapSetPanels);
+	let projectedY = lastPanel.currentNormalizedY - (from - to);
+	let diff = CAROUSEL_END_THRESHOLD - (projectedY + lastPanel.getAdditionalExpansionHeight(now));
+	if (diff > 0) to += diff;
+
 	snapToSelectionInterpolator.setValueRange(from, to);
-	snapToSelectionInterpolator.start(performance.now());
+	snapToSelectionInterpolator.start(now);
 	snapToSelected = true;
 	scrollVelocity = 0;
 }
@@ -133,6 +141,7 @@ export function createCarouselFromBeatmapSets(beatmapSets: BeatmapSet[], sorting
 	}
 	beatmapSetPanels.length = 0;
 
+	beatmapSets = beatmapSets.slice();
 	beatmapSets.sort(beatmapCarouselSortingTypeFunctions.get(sortingType));
 
 	for (let i = 0; i < beatmapSets.length; i++) {
@@ -200,7 +209,7 @@ addRenderingTask((now: number, dt: number) => {
 		if (diff > 0) referencePanelY += diff * (Math.pow(0.0015, dt/1000) - 1);
 
 		// Bottom edge snapback
-		diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
+		diff = CAROUSEL_END_THRESHOLD - (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now));
 		if (diff > 0) referencePanelY -= diff * (Math.pow(0.0015, dt/1000) - 1);
 	}
 	skipSnapbackNextFrame = false;

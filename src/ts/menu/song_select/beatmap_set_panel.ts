@@ -285,9 +285,12 @@ export class BeatmapSetPanel {
 
 	getTotalHeight(now: number) {
 		let combinedSetPanelHeight = BEATMAP_SET_PANEL_HEIGHT + BEATMAP_SET_PANEL_MARGIN;
-		let combinedPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
+		return combinedSetPanelHeight + this.getAdditionalExpansionHeight(now);
+	}
 
-		return combinedSetPanelHeight + this.expandInterpolator.getCurrentValue(now) * combinedPanelHeight * this.beatmapFiles.length;
+	getAdditionalExpansionHeight(now: number) {
+		let combinedDifficultyPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
+		return this.expandInterpolator.getCurrentValue(now) * combinedDifficultyPanelHeight * this.beatmapFiles.length;
 	}
 
 	private async expand() {

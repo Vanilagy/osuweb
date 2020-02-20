@@ -141,9 +141,10 @@ export class Interpolator {
 		if (this.reverseMode === ReverseMode.ByValue && this.reverseEase && this.reverseEase !== this.ease) {
 			let ease = this.getEase();
 			let easeP = this.getEaseP();
+			let clampedValue = MathUtil.clamp(currentValue, 0, 1); // For some ease types, values can reach out of [0, 1], which would mean that no root can be found - that's why we clamp here.
 
 			let root = MathUtil.findRootInInterval((x) => {
-				return MathUtil.ease(ease, x, easeP) - currentValue;
+				return MathUtil.ease(ease, x, easeP) - clampedValue;
 			}, 0.0, 1.0);
 
 			if (!isNaN(root)) currentCompletion = root;
