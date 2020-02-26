@@ -80,6 +80,7 @@ dragListener.makeDraggable(() => {
 	scrollVelocity = 0;
 	pressDownStopped = false;
 }, (e) => {
+	if (!referencePanel) return;
 	referencePanelY += e.movement.y / getCarouselScalingFactor();
 
 	if (Math.abs(e.distanceFromStart.y) > 5 && !pressDownStopped) {
@@ -161,7 +162,7 @@ export function createCarouselFromBeatmapSets(beatmapSets: BeatmapSet[], sorting
 	}
 
 	if (!beatmapSetPanels.includes(referencePanel)) {
-		referencePanel = beatmapSetPanels[0];
+		referencePanel = beatmapSetPanels[0] || null;
 		referencePanelY = 200;
 		scrollVelocity = 100; // For sick effect hehe
 	}
@@ -174,6 +175,7 @@ addRenderingTask((now: number, dt: number) => {
 	if (!referencePanel) return;
 
 	let referenceIndex = beatmapSetPanels.indexOf(referencePanel);
+	if (referenceIndex === -1) return;
 
 	if (snapToSelected) {
 		referencePanelY = snapToSelectionInterpolator.getCurrentValue(now);

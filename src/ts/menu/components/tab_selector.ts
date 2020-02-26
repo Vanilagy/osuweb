@@ -15,7 +15,7 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 	private margin: number;
 	public interactionGroup: InteractionGroup;
 
-	constructor(tabStrings: string[], defaultIndex = 0, margin = 11) {
+	constructor(tabStrings: string[], defaultIndex = 0, margin = 12) {
 		super();
 
 		this.container = new PIXI.Container();

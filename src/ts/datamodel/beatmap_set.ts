@@ -3,6 +3,7 @@ import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { Skin } from "../game/skin/skin";
 import { Beatmap } from "./beatmap";
+import { BeatmapUtil } from "../util/beatmap_util";
 
 export class BeatmapSet {
 	public directory: VirtualDirectory;

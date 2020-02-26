@@ -12,7 +12,7 @@ async function init() {
 	await baseSkin.init();
 	showChooseFile();
 	initSongSelect();
-
+	
 	console.log(osu!); // Love the syntax <3
 }
 
