@@ -63,16 +63,16 @@ export class DrawableSpinner extends DrawableHitObject {
 	private spinnerSpin: PIXI.Container;
 	private spinnerClear: PIXI.Container;
 	private spinnerBonus: SpriteNumber;
-	private spinnerSpinFadeOutStart: number = null;
+	private spinnerSpinFadeOutStart: number;
 
-	private lastSpinPosition: Point = null;
-	private lastInputTime: number = null;
-	private lastAccelerationTime: number = null;
-	private spinnerAngle = 0;
-	private totalRadiansSpun = 0; // The sum of all absolute angles this spinner has been spun (the total "angular distance")
+	private lastSpinPosition: Point;
+	private lastInputTime: number;
+	private lastAccelerationTime: number;
+	private spinnerAngle: number;
+	private totalRadiansSpun: number; // The sum of all absolute angles this spinner has been spun (the total "angular distance")
 	private cleared: boolean;
 	private bonusSpins: number;
-	private angularVelocity = 0;
+	private angularVelocity: number;
 
 	public spinSoundEmitter: SoundEmitter = null;
 	// TODO: Clean this up. Ergh. Disgusting.
@@ -81,9 +81,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	constructor(processedSpinner: ProcessedSpinner) {
 		super(processedSpinner);
 
-		this.cleared = false;
-		this.bonusSpins = 0;
-
+		this.reset();
 		this.initSounds(processedSpinner.hitObject, processedSpinner.timingInfo);
 	}
 
@@ -102,6 +100,22 @@ export class DrawableSpinner extends DrawableHitObject {
 		}
 
 		this.bonusSoundVolume = volume;
+	}
+
+	reset() {
+		this.clearTextInterpolator.reset();
+		this.bonusSpinsInterpolator.reset();
+		this.glowInterpolator.reset();
+
+		this.spinnerSpinFadeOutStart = null;
+		this.lastSpinPosition = null;
+		this.lastInputTime = null;
+		this.lastAccelerationTime = null;
+		this.spinnerAngle = 0;
+		this.totalRadiansSpun = 0;
+		this.cleared = false;
+		this.bonusSpins = 0;
+		this.angularVelocity = 0;
 	}
 
 	draw() {

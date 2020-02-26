@@ -10,8 +10,8 @@ import { FollowPoint } from "./drawables/follow_point";
 import "./hud/hud";
 import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
-import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter } from "../input/input";
-import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer, gameplayWarningArrows } from "./hud/hud";
+import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter, KeyCode } from "../input/input";
+import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer, gameplayWarningArrows, pauseScreen } from "./hud/hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
@@ -48,6 +48,7 @@ export class Play {
 	public preludeTime: number;
 	private playbackRate: number = 1.0;
 	private hasVideo: boolean = false;
+	private paused: boolean = false;
 
 	private currentHitObjectIndex: number;
 	private onscreenHitObjects: DrawableHitObject[];
@@ -186,10 +187,10 @@ export class Play {
 	async start() {
 		console.time("Audio load");
 		
-		
-		
 		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
 		await mainMusicMediaPlayer.loadFromVirtualFile(songFile);
+
+		console.timeEnd("Audio load");
 
 		let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
 		if (backgroundImageFile) BackgroundManager.setImage(backgroundImageFile);
@@ -214,8 +215,6 @@ export class Play {
 		mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
 		mainMusicMediaPlayer.setLoopBehavior(false);
 
-		console.timeEnd("Audio load");
-
 		if (this.activeMods.has(Mod.Auto)) softwareCursor.visible = true;
 
 		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP
@@ -230,6 +229,14 @@ export class Play {
 		});
 		inputEventEmitter.addListener('gameButtonDown', () => {
 			this.handleButtonDown();
+		});
+		inputEventEmitter.addListener('keyDown', (e) => {
+			switch (e.keyCode) {
+				case KeyCode.Escape: {
+					if (this.paused) this.unpause();
+					else this.pause();
+				}; break;
+			}
 		});
 	}
 
@@ -409,6 +416,7 @@ export class Play {
 	}
 
 	tick(currentTimeOverride?: number) {
+		if (this.paused) return;
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
 
 		if (this.lastTickTime === null) {
@@ -468,7 +476,7 @@ export class Play {
 					if (drawable instanceof DrawableSlider) {
 						let slider = drawable;
 
-						slider.beginSliderSlideSound();
+						slider.beginSliderSlideSound(currentTime);
 
 						let distance = pointDistance(osuMouseCoordinates, playEvent.position);
 						let hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
@@ -617,8 +625,45 @@ export class Play {
 		}
 	}
 
+	pause() {
+		if (this.paused) return;
+		this.paused = true;
+
+		mainMusicMediaPlayer.pause();
+		
+		for (let hitObject of this.onscreenHitObjects) {
+			if (hitObject instanceof DrawableSlider) {
+				hitObject.stopSliderSlideSound();
+			}
+		}
+
+		pauseScreen.show();
+	}
+
+	unpause() {
+		if (!this.paused) return;
+
+		mainMusicMediaPlayer.unpause();
+		this.paused = false;
+
+		let currentTime = this.getCurrentSongTime();
+
+		for (let hitObject of this.onscreenHitObjects) {
+			if (hitObject instanceof DrawableSlider) {
+				hitObject.beginSliderSlideSound(currentTime);
+			}
+		}
+
+		pauseScreen.hide();
+	}
+
+	reset() {
+		this.drawableBeatmap.reset();
+		this.currentHitObjectIndex = 0;
+	}
+
 	handleButtonDown() {
-		if (this.activeMods.has(Mod.Auto)) return;
+		if (!this.shouldHandleInputRightNow()) return;
 
 		let currentTime = this.getCurrentSongTime();
 		let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
@@ -632,7 +677,7 @@ export class Play {
 	}
 
 	handleMouseMove() {
-		if (this.activeMods.has(Mod.Auto)) return;
+		if (!this.shouldHandleInputRightNow()) return;
 
 		let currentTime = this.getCurrentSongTime();
 		let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
@@ -645,6 +690,10 @@ export class Play {
 				spinner.handleMouseMove(osuMouseCoordinates, currentTime);
 			}
 		}
+	}
+
+	private shouldHandleInputRightNow() {
+		return !this.paused && !this.activeMods.has(Mod.Auto);
 	}
 
 	getCurrentSongTime() {

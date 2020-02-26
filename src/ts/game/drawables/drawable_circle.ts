@@ -19,8 +19,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 	constructor(processedCircle: ProcessedCircle) {
 		super(processedCircle);
 
-		this.scoring = getDefaultCircleScoring();
-
+		this.reset();
 		this.initSounds(processedCircle.hitObject, processedCircle.timingInfo);
 	}
 
@@ -62,6 +61,11 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 
 		HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
 		scoreCounter.add(judgement, false, true, true, this, time);
+	}
+
+	reset() {
+		super.reset();
+		this.scoring = getDefaultCircleScoring();
 	}
 
 	hitHead(time: number, judgementOverride?: number) {

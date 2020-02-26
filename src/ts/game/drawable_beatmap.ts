@@ -61,4 +61,11 @@ export class DrawableBeatmap {
 			}
 		}
 	}
+
+	reset() {
+		for (let i = 0; i < this.drawableHitObjects.length; i++) {
+			let drawable = this.drawableHitObjects[i];
+			drawable.reset();
+		}
+	}
 }

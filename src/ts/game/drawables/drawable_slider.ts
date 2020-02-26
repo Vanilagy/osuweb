@@ -37,8 +37,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	private baseSprite: PIXI.Sprite;
 	public hasFullscreenBaseSprite: boolean = false; // If a slider is really big, like bigger-than-the-screen big, we change slider body rendering to happen in relation to the entire screen rather than a local slider texture. This way, we don't get WebGL errors from trying to draw to too big of a texture buffer, and it allows us to support slider distortions with some matrix magic.
 	private sliderBodyMesh: PIXI.Mesh;
-	private sliderBodyHasBeenRendered = false;
-	private lastGeneratedSnakingCompletion = 0;
+	private sliderBodyHasBeenRendered: boolean;
+	private lastGeneratedSnakingCompletion: number;
 	
 	private container: PIXI.Container;
 	private overlayContainer: PIXI.Container;
@@ -47,9 +47,9 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	private tickElements: (PIXI.Container | null)[];
 	private followCircle: PIXI.Container;
 	private followCircleAnimator: AnimatedOsuSprite;
-	private followCircleHoldStartTime: number = null;
-	private followCircleReleaseStartTime: number = null;
-	private followCirclePulseStartTime: number = -Infinity;
+	private followCircleHoldStartTime: number;
+	private followCircleReleaseStartTime: number;
+	private followCirclePulseStartTime: number;
 	private reverseArrowContainer: PIXI.Container;
 	public sliderEnds: HitCirclePrimitive[] = [];
 	
@@ -123,6 +123,22 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			sliderSlideEmitters.push(emitter);
 		}
 		this.slideEmitters = sliderSlideEmitters;
+	}
+
+	reset() {
+		super.reset();
+
+		this.sliderBodyHasBeenRendered = false;
+		this.lastGeneratedSnakingCompletion = 0;
+		this.followCircleHoldStartTime = null;
+		this.followCircleReleaseStartTime = null;
+		this.followCirclePulseStartTime = -Infinity;
+
+		for (let i = 0; i < this.sliderEnds.length; i++) {
+			this.sliderEnds[i].reset();
+		}
+
+		this.stopSliderSlideSound();
 	}
 
 	draw() {
@@ -362,7 +378,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.sliderBodyMesh.destroy();
 	}
 
-	beginSliderSlideSound() {
+	beginSliderSlideSound(currentTime: number) {
+		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
 		for (let i = 0; i < this.slideEmitters.length; i++) {

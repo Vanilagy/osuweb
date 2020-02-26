@@ -53,16 +53,15 @@ export class HitCirclePrimitive {
 	private number: PIXI.Container;
 	public approachCircle: PIXI.Container;
 	public reverseArrow: PIXI.Container;
-	private shakeStartTime: number = -Infinity;
+	private shakeStartTime: number;
 	public renderFinished: boolean;
 
 	constructor(options: HitCirclePrimitiveOptions) {
 		this.options = options;
-		this.fadeOut = null;
 		this.approachCircle = null;
 		this.reverseArrow = null;
-		this.renderFinished = false;
 
+		this.reset();
 		this.init();
 	}
 
@@ -200,6 +199,12 @@ export class HitCirclePrimitive {
 		wrapper.addChild(sprite);
 
 		this.approachCircle = wrapper;
+	}
+
+	reset() {
+		this.fadeOut = null;
+		this.renderFinished = false;
+		this.shakeStartTime = -Infinity;
 	}
 
 	update(currentTime: number) {

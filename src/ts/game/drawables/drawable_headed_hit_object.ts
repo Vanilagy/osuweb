@@ -99,4 +99,9 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 	updateHeadElements(currentTime: number) {
 		this.head.update(currentTime);
 	}
+
+	reset() {
+		super.reset();
+		this.head.reset();
+	}
 }

@@ -7,6 +7,7 @@ import { Scorebar } from "./scorebar";
 import { SectionStateDisplayer } from "./section_state_displayer";
 import { GameplayWarningArrows } from "./gameplay_warning_arrows";
 import { currentWindowDimensions } from "../../visuals/ui";
+import { PauseScreen } from "./pause_screen";
 
 export let scoreDisplay: SpriteNumber;
 export let phantomComboDisplay: SpriteNumber;
@@ -17,6 +18,7 @@ export let accuracyMeter: AccuracyMeter;
 export let scorebar: Scorebar;
 export let sectionStateDisplayer: SectionStateDisplayer;
 export let gameplayWarningArrows: GameplayWarningArrows;
+export let pauseScreen: PauseScreen;
 
 export function initHud() {
 	let scoreHeight = currentWindowDimensions.height * 0.0575,
@@ -91,6 +93,8 @@ export function initHud() {
 
 	gameplayWarningArrows = new GameplayWarningArrows();
 
+	pauseScreen = new PauseScreen();
+
 	hudContainer.addChild(sectionStateDisplayer.container);
 	hudContainer.addChild(scorebar.container);
 	hudContainer.addChild(gameplayWarningArrows.container);
@@ -100,4 +104,5 @@ export function initHud() {
 	hudContainer.addChild(comboDisplay.container);
 	hudContainer.addChild(accuracyDisplay.container);
 	hudContainer.addChild(progressIndicator.container);
+	hudContainer.addChild(pauseScreen.container);
 }

@@ -43,6 +43,7 @@ const PREVENT_NATIVE_CONTEXT_MENU = true;
 
 export enum KeyCode {
 	Backspace = 8,
+	Escape = 27,
 	X = 88,
 	Y = 89
 }
