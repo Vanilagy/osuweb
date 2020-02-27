@@ -221,8 +221,13 @@ export class HitCirclePrimitive {
 			let hiddenFadeOutCompletion = hasHidden? this.getHiddenFadeOutCompletion(currentTime) : 0;
 
 			this.container.alpha = fadeInCompletion * (1 - hiddenFadeOutCompletion);
+
+			this.base.scale.set(1.0);
+			if (this.overlay) this.overlay.scale.set(1.0);
 			
 			if (this.reverseArrow) {
+				this.reverseArrow.scale.set(1.0);
+
 				// When using HD, any reverse arrow but the first one will receive no fade-in animation whatsoever
 				if (this.options.baseElementsHidden) this.reverseArrow.alpha = Math.ceil(fadeInCompletion);
 				else {
@@ -243,6 +248,7 @@ export class HitCirclePrimitive {
 				this.approachCircle.alpha = fadeInCompletion * (1 - hiddenFadeOutCompletion);
 	
 				if (approachCircleCompletion === 1) this.approachCircle.visible = false;
+				else this.approachCircle.visible = true;
 			}
 
 			if (this.reverseArrow !== null) {
@@ -250,6 +256,8 @@ export class HitCirclePrimitive {
 				this.reverseArrow.scale.set(scale);
 			}
 
+			if (this.number) this.number.alpha = 1;
+			
 			// Dirty?
 			if (this.fadeOut) {
 				this.container.visible = false;
@@ -281,9 +289,9 @@ export class HitCirclePrimitive {
 				}
 			}
 
-			let numberFadeOutCompletion = (currentTime - this.fadeOut.time) / HIT_CIRCLE_NUMBER_FADE_OUT_TIME;
-			numberFadeOutCompletion = MathUtil.clamp(numberFadeOutCompletion, 0, 1);
 			if (this.number) {
+				let numberFadeOutCompletion = (currentTime - this.fadeOut.time) / HIT_CIRCLE_NUMBER_FADE_OUT_TIME;
+				numberFadeOutCompletion = MathUtil.clamp(numberFadeOutCompletion, 0, 1);
 				this.number.alpha = 1 - numberFadeOutCompletion;
 			}
 

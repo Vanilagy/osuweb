@@ -92,20 +92,23 @@ export abstract class BackgroundManager {
 		if (this.currentImageFile === file) return;
 		this.currentImageFile = file;
 
-		let bitmap = await getBitmapFromImageFile(file, (this.state === BackgroundState.Gameplay)? BitmapQuality.High : BitmapQuality.Medium);
+		let newSprite = new PIXI.Sprite();
+		newSprite.visible = false;
+		this.imageContainer.addChild(newSprite);
 
-		let newSprite = new PIXI.Sprite(PIXI.Texture.from(bitmap as any));
+		let bitmap = await getBitmapFromImageFile(file, (this.state === BackgroundState.Gameplay)? BitmapQuality.High : BitmapQuality.Medium);
+		newSprite.texture = PIXI.Texture.from(bitmap as any);
+		newSprite.visible = true;
+		
 		fitSpriteIntoContainer(newSprite, currentWindowDimensions.width, currentWindowDimensions.height);
 
 		for (let obj of this.imageContainer.children) {
 			let sprite = obj as PIXI.Sprite;
-			if (this.markedForDeletionSprites.has(sprite)) continue;
+			if (this.markedForDeletionSprites.has(sprite) || sprite === newSprite) continue;
 
 			this.markedForDeletionSprites.add(sprite);
 			setTimeout(() => this.imageContainer.removeChild(sprite), IMAGE_FADE_IN_DURATION);
 		}
-
-		this.imageContainer.addChild(newSprite);
 
 		let fadeInterpolator = new Interpolator({
 			ease: EaseType.EaseInOutSine,
@@ -172,7 +175,10 @@ export abstract class BackgroundManager {
 
 		for (let obj of this.imageContainer.children) {
 			let sprite = obj as PIXI.Sprite;
-			sprite.alpha = this.fadeInterpolators.get(sprite).getCurrentValue(now);
+			let interpolator = this.fadeInterpolators.get(sprite);
+			if (!interpolator) continue;
+
+			sprite.alpha = interpolator.getCurrentValue(now);
 		}
 
 		backgroundContainer.scale.set(this.scaleInterpolator.getCurrentValue(now));

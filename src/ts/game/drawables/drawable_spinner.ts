@@ -103,9 +103,11 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	reset() {
-		this.clearTextInterpolator.reset();
-		this.bonusSpinsInterpolator.reset();
-		this.glowInterpolator.reset();
+		super.reset();
+
+		if (this.clearTextInterpolator) this.clearTextInterpolator.reset();
+		if (this.bonusSoundVolume) this.bonusSpinsInterpolator.reset();
+		if (this.glowInterpolator) this.glowInterpolator.reset();
 
 		this.spinnerSpinFadeOutStart = null;
 		this.lastSpinPosition = null;

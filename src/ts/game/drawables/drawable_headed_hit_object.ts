@@ -102,6 +102,6 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 
 	reset() {
 		super.reset();
-		this.head.reset();
+		if (this.head) this.head.reset();
 	}
 }

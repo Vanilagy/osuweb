@@ -52,11 +52,12 @@ export class Play {
 
 	private currentHitObjectIndex: number;
 	private onscreenHitObjects: DrawableHitObject[];
+	private currentFollowPointIndex = 0;
 	private onscreenFollowPoints: FollowPoint[];
 	private showHitObjectsQueue: DrawableHitObject[]; // New hit objects that have to get added to the scene next frame
 	private scorePopups: ScorePopup[];
 
-	private passiveHealthDrain: number; // In health/ms
+	private passiveHealthDrain: number = 0.00005; // In health/ms
 	public currentHealth: number;
 	public scoreCounter: ScoreCounter;
 	public activeMods: Set<Mod>;
@@ -64,9 +65,8 @@ export class Play {
 
 	private lastTickTime: number = null;
 	private playEvents: PlayEvent[] = [];
-	private currentSustainedEvents: PlayEvent[] = [];
+	private currentSustainedEvents: PlayEvent[];
 	private currentPlayEvent: number = 0;
-	private currentFollowPointIndex = 0; // is this dirty? idk
 	private currentBreakIndex = 0;
 	private breakEndWarningTimes: number[] = [];
 	
@@ -89,22 +89,11 @@ export class Play {
 		this.processedBeatmap = processedBeatmap;
 		this.drawableBeatmap = new DrawableBeatmap(this.processedBeatmap);
 		this.scoreCounter = new ScoreCounter(this.processedBeatmap);
-
-		this.preludeTime = 0;
-		this.currentHitObjectIndex = 0;
-		this.onscreenHitObjects = [];
-		this.onscreenFollowPoints = [];
-		this.showHitObjectsQueue = [];
-		this.scorePopups = [];
 		this.activeMods = new Set();
-
-		this.hitObjectPixelRatio = null;
-		this.circleDiameter = null;
 	}
 	
 	async init() {
 		let screenHeight = currentWindowDimensions.height * 1; // The factor was determined through experimentation. Makes sense it's 1.
-		let screenWidth = screenHeight * (STANDARD_SCREEN_DIMENSIONS.width / STANDARD_SCREEN_DIMENSIONS.height);
 		this.hitObjectPixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
 		this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
 
@@ -164,14 +153,11 @@ export class Play {
 
 		accuracyMeter.init();
 
-		this.passiveHealthDrain = 0.00005;
-		this.currentHealth = 1.0;
-
 		this.autohit = AUTOHIT_OVERRIDE;
 		if (this.activeMods.has(Mod.Auto)) {
 			this.playthroughInstructions = ModHelper.generateAutoPlaythroughInstructions(this);
-			this.currentPlaythroughInstruction = 0;
 			this.autohit = true;
+			softwareCursor.visible = true;
 		}
 
 		// Compute break end warning times
@@ -182,14 +168,12 @@ export class Play {
 			let warningTime = Math.max(osuBreak.startTime, osuBreak.endTime + GAMEPLAY_WARNING_ARROWS_FLICKER_START);
 			this.breakEndWarningTimes.push(warningTime);
 		}
-	}
 
-	async start() {
+		this.reset();
+
 		console.time("Audio load");
-		
 		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
 		await mainMusicMediaPlayer.loadFromVirtualFile(songFile);
-
 		console.timeEnd("Audio load");
 
 		let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
@@ -205,19 +189,13 @@ export class Play {
 			}
 		}
 
+		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP ?
+
 		// TODO: Apply pitch changes and percussion
 		if (this.activeMods.has(Mod.HalfTime) || this.activeMods.has(Mod.Daycore)) this.playbackRate = HALF_TIME_PLAYBACK_RATE;
 		if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) this.playbackRate = DOUBLE_TIME_PLAYBACK_RATE;
 
-		mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
-
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
-		mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
-		mainMusicMediaPlayer.setLoopBehavior(false);
-
-		if (this.activeMods.has(Mod.Auto)) softwareCursor.visible = true;
-
-		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP
 
 		addRenderingTask(() => this.render());
 		addTickingTask(() => this.tick());
@@ -238,6 +216,16 @@ export class Play {
 				}; break;
 			}
 		});
+	}
+
+	async start() {
+		this.unpause(false);
+
+		mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
+		mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
+		mainMusicMediaPlayer.setLoopBehavior(false);
+
+		this.paused = false;
 	}
 
 	render() {
@@ -640,10 +628,10 @@ export class Play {
 		pauseScreen.show();
 	}
 
-	unpause() {
+	unpause(unpauseMusic = true) {
 		if (!this.paused) return;
 
-		mainMusicMediaPlayer.unpause();
+		if (unpauseMusic) mainMusicMediaPlayer.unpause();
 		this.paused = false;
 
 		let currentTime = this.getCurrentSongTime();
@@ -660,6 +648,42 @@ export class Play {
 	reset() {
 		this.drawableBeatmap.reset();
 		this.currentHitObjectIndex = 0;
+
+		if (this.onscreenHitObjects) {
+			for (let hitObject of this.onscreenHitObjects) {
+				hitObject.remove();
+			}
+		}
+		this.onscreenHitObjects = [];
+
+		if (this.onscreenFollowPoints) {
+			for (let followPoint of this.onscreenFollowPoints) {
+				followPoint.remove();
+			}
+		}
+		this.onscreenFollowPoints = [];
+
+		this.showHitObjectsQueue = [];
+
+		if (this.scorePopups) {
+			for (let scorePopup of this.scorePopups) {
+				scorePopup.remove();
+			}
+		}
+		this.scorePopups = [];
+
+		this.currentHealth = 1.0;
+		this.lastTickTime = null;
+		this.currentPlayEvent = 0;
+		this.currentSustainedEvents = [];
+		this.currentFollowPointIndex = 0;
+		this.currentBreakIndex = 0;
+
+		if (this.activeMods.has(Mod.Auto)) {
+			this.currentPlaythroughInstruction = 0;
+		}
+
+		this.scoreCounter.reset();
 	}
 
 	handleButtonDown() {

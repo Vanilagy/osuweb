@@ -58,7 +58,12 @@ export class PauseScreen {
 
         Interactivity.registerDisplayObject(resumeContainer).addListener('mouseClick', () => {
             gameState.currentPlay.unpause();
-        });
+		});
+		
+		Interactivity.registerDisplayObject(restartContainer).addListener('mouseClick', () => {
+			gameState.currentPlay.reset();
+			gameState.currentPlay.start();
+		});
     }
 
     show() {

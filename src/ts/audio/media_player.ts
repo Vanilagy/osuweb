@@ -91,7 +91,8 @@ export class MediaPlayer {
 		return new Promise<void>((resolve) => {
 			this.resetAudioElement();
 			this.audioElement.src = url;
-			this.audioElement.preload = 'auto';   
+			this.audioElement.preload = 'auto';
+			this.audioElement.load();
 
 			// Fires once the browser thinks it can play the whole file without buffering
 			this.audioElement.addEventListener('canplaythrough', () => {
@@ -121,6 +122,8 @@ export class MediaPlayer {
 			this.audioElement.play();
 			this.audioElement.playbackRate = this.playbackRate;
 		} else {
+			this.audioElement.currentTime = 0;
+
 			// Any inaccuracies in this timeout (+-2ms) will be ironed out by the nudging algorithm in getCurrentTime
 			this.timeout = setTimeout(() => {
 				this.audioElement.play();

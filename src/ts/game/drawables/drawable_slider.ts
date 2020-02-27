@@ -134,10 +134,13 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.followCircleReleaseStartTime = null;
 		this.followCirclePulseStartTime = -Infinity;
 
-		for (let i = 0; i < this.sliderEnds.length; i++) {
-			this.sliderEnds[i].reset();
+		if (this.sliderEnds) {
+			for (let i = 0; i < this.sliderEnds.length; i++) {
+				this.sliderEnds[i].reset();
+			}
 		}
 
+		this.scoring = getDefaultSliderScoring();
 		this.stopSliderSlideSound();
 	}
 
@@ -241,7 +244,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.sliderBodyMesh = sliderBodyMesh;
 
 		this.sliderBall = new SliderBall(this);
-		this.sliderBall.container.visible = false;
 
 		let followCircleOsuTexture = gameState.currentGameplaySkin.textures["followCircle"];
 		let followCircleAnimator = new AnimatedOsuSprite(followCircleOsuTexture, headedHitObjectTextureFactor);
@@ -372,13 +374,19 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			mainHitObjectContainer.removeChild(this.sliderEnds[i].container);
 		}
 
+		// TODO: Clean all this stuff when exiting a play
+		/*
+
 		// CLEAN UP THAT DARN VRAM! GIMME VRAM!
 		this.baseSprite.texture.destroy(true);
 		this.sliderBodyMesh.geometry.dispose();
 		this.sliderBodyMesh.destroy();
+
+		*/
 	}
 
 	beginSliderSlideSound(currentTime: number) {
+		if (!this.slideEmitters) return;
 		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
@@ -388,6 +396,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	stopSliderSlideSound() {
+		if (!this.slideEmitters) return;
+
 		for (let i = 0; i < this.slideEmitters.length; i++) {
 			this.slideEmitters[i].stop();
 		}
@@ -549,14 +559,12 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	private updateSliderBall(completion: number, currentTime: number) {
-		if (completion === 0) return;
-
 		let sliderBallPos = gameState.currentPlay.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
 
 		if (currentTime < this.parent.endTime) {
 			let baseElement = this.sliderBall.base.sprite;
 
-			this.sliderBall.container.visible = true;
+			this.sliderBall.container.visible = currentTime >= this.parent.startTime;
 			this.sliderBall.container.position.set(sliderBallPos.x, sliderBallPos.y);
 			baseElement.rotation = this.drawablePath.getAngleFromPercentage(MathUtil.mirror(completion));
 

@@ -32,7 +32,7 @@ export class Score {
 	public katu: number;
 	public maxCombo: number;
 
-	constructor() {
+	reset() {
 		this.points = 0;
 		this.accuracy = 1;
 
@@ -70,23 +70,10 @@ export class ScoreCounter {
 	}
 
 	init() {
-		this.score = new Score();
-		this.delayedVisualComboIncreases = [];
-
-		this.currentCombo = 0;
-		// These are used to calculate accuracy:
-		this.totalNumberOfHits = 0;
-		this.totalValueOfHits = 0;
+		this.score = new Score();		
 
 		this.difficultyMultiplier = this.processedBeatmap.beatmap.difficulty.calculateDifficultyMultiplier(); // Get the difficulty from the beatmap, not the processed beatmap, because: "Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier. It will only account for original values only."
 		this.modMultiplier = ModHelper.calculateModMultiplier(gameState.currentPlay.activeMods);
-
-		this.resetGekiAndKatu();
-
-		scoreDisplay.setValue(0);
-		accuracyDisplay.setValue(100);
-		phantomComboDisplay.setValue(0);
-		comboDisplay.setValue(0);
 	}
 
 	/**
@@ -211,6 +198,29 @@ export class ScoreCounter {
 		}
 
 		accuracyDisplay.setValue(accuracyInterpolator.getCurrentValue(currentTime) * 100);
+	}
+
+	reset() {
+		this.delayedVisualComboIncreases = [];
+
+		this.currentCombo = 0;
+		// These are used to calculate accuracy:
+		this.totalNumberOfHits = 0;
+		this.totalValueOfHits = 0;
+
+		this.score.reset();
+
+		this.resetGekiAndKatu();
+
+		scoreDisplay.setValue(0);
+		accuracyDisplay.setValue(100);
+		phantomComboDisplay.setValue(0);
+		comboDisplay.setValue(0);
+
+		scoreInterpolator.reset(0);
+		accuracyInterpolator.reset(1);
+		phantomComboAnimationInterpolator.reset();
+		comboAnimationInterpolator.reset();
 	}
 }
 
