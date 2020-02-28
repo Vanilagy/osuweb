@@ -301,3 +301,17 @@ export abstract class Mp3Util {
 		return Mp3Util.getFrameHeaderIndexAtTime(view, Mp3Util.getFileHeaderByteLength(view, 0), Infinity).exactTime;
 	}
 }
+
+export class AudioUtil {
+	static async changeTempoAndPitch(buffer: AudioBuffer, referenceContext: AudioContext, tempo: number, pitch: number) {
+		let newBufferLength = Math.floor(buffer.length / tempo);
+		let offlineContext = new OfflineAudioContext(2, newBufferLength, referenceContext.sampleRate);
+
+		let shifter = new PitchShifter(offlineContext, buffer, 8192);
+		shifter.tempo = tempo;
+		shifter.pitch = pitch;
+		shifter.connect(offlineContext.destination);
+
+		return offlineContext.startRendering();
+	}
+}

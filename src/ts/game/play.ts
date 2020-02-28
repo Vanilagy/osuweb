@@ -173,6 +173,7 @@ export class Play {
 		console.time("Audio load");
 		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
 		await gameplayMediaPlayer.loadFromVirtualFile(songFile);
+
 		console.timeEnd("Audio load");
 
 		let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
@@ -223,6 +224,8 @@ export class Play {
 		//mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
 		//mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
 		//mainMusicMediaPlayer.setLoopBehavior(false);
+		gameplayMediaPlayer.setTempo(1.5);
+		gameplayMediaPlayer.setPitch(1.0);
 		await gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
 
 		this.paused = false;
