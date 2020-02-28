@@ -142,12 +142,12 @@ export class HighAccuracyMediaPlayer {
 		let useNativePlaybackRate = this.tempo === this.pitch;
 		// If the buffer speed has been changed using playbackRate, then we don't need to divide. If it hasn't and we instead loaded a custom, sped-up buffer, then we do need to divide.
 		let startDurationDivisor = useNativePlaybackRate? 1 : this.tempo;
-		// The tempo and pitch change has an observed delay of 8192 samples, so we need to shift the playback by that much.
-		let startDurationAdditionalOffset = useNativePlaybackRate? 0 : 8192 / audioContext.sampleRate;
+		// The tempo and pitch change has an observed delay of 8192 samples, so we need to shift the playback by that much. And a bit more.
+		let startDurationAdditionalOffset = useNativePlaybackRate? 0 : 8192 / audioContext.sampleRate + 0.008;
 
 		let frameHeaderIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, this.lastBufferOffset, SECTION_LENGTH);
 		// Get the index to a frame a small amount of time later. This will give us a margin to blend over the two audio sources.
-		let padddingIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, frameHeaderIndex.offset, 0.2 + 4 * startDurationAdditionalOffset);
+		let padddingIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, frameHeaderIndex.offset, 0.2 + 3 * startDurationAdditionalOffset);
 
 		if (frameHeaderIndex.eofReached && frameHeaderIndex.exactTime === 0) {
 			this.endOfDataReached = true;
@@ -248,14 +248,13 @@ export class HighAccuracyMediaPlayer {
 			}
 		}
 
-		output -= 0.003; // Shift by 3ms. Generally observed to be "feel" and sound more accurate. Will have to be observe more in the future.
+		output -= 0.005; // Shift by 5ms. Generally observed to be "feel" and sound more accurate. Will have to be observe more in the future.
 
 		// This comparison is made so that we can guarantee a monotonically increasing currentTime. In reality, the value might hop back a few milliseconds, but to the outside world this is unexpected behavior and therefore should be avoided.
 		if (output > this.lastCurrentTimeValue) {
 			this.lastCurrentTimeValue = output;
 			return output;
 		} else {
-			console.log("eh whut?");
 			return this.lastCurrentTimeValue;
 		}
 	}

@@ -185,15 +185,22 @@ export class Play {
 				await BackgroundManager.setVideo(backgroundVideoFile);
 				this.hasVideo = true;
 			} catch (e) {
-				console.error(e);
+				console.error("Video load error", e);
 			}
 		}
 
 		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP ?
 
-		// TODO: Apply pitch changes and percussion
+		// TODO: Add nightcore percussion
+
 		if (this.activeMods.has(Mod.HalfTime) || this.activeMods.has(Mod.Daycore)) this.playbackRate = HALF_TIME_PLAYBACK_RATE;
 		if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) this.playbackRate = DOUBLE_TIME_PLAYBACK_RATE;
+
+		gameplayMediaPlayer.setTempo(this.playbackRate);
+		gameplayMediaPlayer.setPitch(1.0);
+
+		if (this.activeMods.has(Mod.Nightcore)) gameplayMediaPlayer.setPitch(DOUBLE_TIME_PLAYBACK_RATE);
+		if (this.activeMods.has(Mod.Daycore)) gameplayMediaPlayer.setPitch(HALF_TIME_PLAYBACK_RATE);
 
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
 
@@ -221,11 +228,6 @@ export class Play {
 	async start() {
 		this.unpause(false);
 
-		//mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
-		//mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
-		//mainMusicMediaPlayer.setLoopBehavior(false);
-		gameplayMediaPlayer.setTempo(1.5);
-		gameplayMediaPlayer.setPitch(1.0);
 		await gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
 
 		this.paused = false;

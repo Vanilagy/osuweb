@@ -24,6 +24,7 @@ modMultipliers.set(Mod.HardRock, 1.06);
 modMultipliers.set(Mod.SuddenDeath, 1.0);
 modMultipliers.set(Mod.Perfect, 1.0);
 modMultipliers.set(Mod.DoubleTime, 1.12);
+modMultipliers.set(Mod.Nightcore, 1.12);
 modMultipliers.set(Mod.Hidden, 1.06);
 modMultipliers.set(Mod.Flashlight, 1.12);
 modMultipliers.set(Mod.Relax, 0.0);
