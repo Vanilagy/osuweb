@@ -1,28 +1,32 @@
 import { Mp3Util } from "../util/audio_util";
 import { audioContext, mediaAudioNode } from "./audio";
 import { addTickingTask, removeTickingTask } from "../util/ticker";
+import { VirtualFile } from "../file_system/virtual_file";
 
 const SECTION_LENGTH = 5.0; // In seconds
 const NEXT_SECTION_MARGIN = 2.0; // How many seconds before the end of the current section the next section should start being prepared
 
-export class AdvancedMediaPlayer {
+export class HighAccuracyMediaPlayer {
 	private data: ArrayBuffer;
 	private dataView: DataView;
-	private id3Tag: ArrayBuffer;
+	private fileHeader: ArrayBuffer;
 
 	private destination: AudioNode;
 	private currentMasterNode: AudioNode = null;
 	private lastAudioNode: AudioBufferSourceNode = null;
 
-	private started = false;
+	private started = false; // doesn't imply 'playing', as the buffer could still be decoding
+	private playing = false;
 	private startTime: number;
-	private performanceNowStartTime: number;
-	private lastCurrentTimeOutput = -Infinity;
 	private pausedTime: number = null;
 	private currentBufferEndTime: number = 0.0;
 	private lastBufferOffset: number;
 	private suppressTick = false;
 	private endOfDataReached = false;
+
+	private lastSampledContextTime: number = null;
+	private lastContextTimeSamplingTime: number = null;
+	private lastCurrentTimeValue: number = -Infinity;
 	
 	private tickingTask = () => { this.tick(); };
 
@@ -31,24 +35,35 @@ export class AdvancedMediaPlayer {
 	}
 
 	loadBuffer(data: ArrayBuffer) {
+		if (this.started) this.stop();
+
 		this.data = data;
 		this.dataView = new DataView(this.data);
 
 		// TODO: Handle more files
-		if (!Mp3Util.isId3Tag(this.dataView)) throw new Error("Non-MP3 files are not handled yet!");
+		if (!Mp3Util.isId3Tag(this.dataView, 0)) throw new Error("Non-MP3 files are not handled yet!");
 
-		// Get the ID3 header. This will be appended to the start of every audio buffer slice.
-		let id3TagByteLength = Mp3Util.getId3TagByteLength(this.dataView);
-		this.id3Tag = this.data.slice(0, id3TagByteLength);
+		// Get the file header. This will be appended to the start of every audio buffer slice.
+		let fileHeaderByteLength = Mp3Util.getFileHeaderByteLength(this.dataView, 0);
+		this.fileHeader = this.data.slice(0, fileHeaderByteLength);
+
+		Mp3Util.isXingFrame(this.dataView, fileHeaderByteLength);
 	}
 
-	async start(offset = 0.5) {
+	async loadFromVirtualFile(file: VirtualFile) {
+		let arrayBuffer = await file.readAsArrayBuffer();
+		this.loadBuffer(arrayBuffer);
+	}
+
+	async start(offset = 0) {
+		audioContext.resume()
+
 		if (this.started) {
 			this.stop();
 		}
 
 		// Seek for the right frame to begin playback from
-		let frameHeaderIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, this.id3Tag.byteLength, Math.max(offset, 0));
+		let frameHeaderIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, this.fileHeader.byteLength, Math.max(offset, 0));
 
 		this.currentMasterNode = audioContext.createGain();
 		this.currentMasterNode.connect(this.destination);
@@ -69,7 +84,7 @@ export class AdvancedMediaPlayer {
 		this.startTime -= offset;
 		if (frameHeaderIndex.eofReached) this.pause();
 
-		this.performanceNowStartTime = performance.now() - (audioContext.currentTime - this.startTime)*1000;
+		this.playing = true;
 	}
 
 	stop() {
@@ -80,7 +95,8 @@ export class AdvancedMediaPlayer {
 		this.currentMasterNode.disconnect();
 		this.currentMasterNode = null;
 		this.pausedTime = null;
-		this.lastCurrentTimeOutput = -Infinity;
+		this.playing = false;
+		this.lastCurrentTimeValue = -Infinity;
 
 		removeTickingTask(this.tickingTask);
 	}
@@ -89,12 +105,12 @@ export class AdvancedMediaPlayer {
 		if (this.pausedTime !== null) return;
 
 		let currentTime = this.getContextCurrentTime();
-		let lastCurrentTimeOutput = this.lastCurrentTimeOutput;
+		let lastCurrentTimeValue = this.lastCurrentTimeValue; // Remember this to set it back after stopping
 
 		this.stop();
 
 		this.pausedTime = currentTime;
-		this.lastCurrentTimeOutput = lastCurrentTimeOutput;
+		this.lastCurrentTimeValue = lastCurrentTimeValue;
 	}
 
 	async unpause() {
@@ -124,9 +140,9 @@ export class AdvancedMediaPlayer {
 		}
 
 		// Construct the small MP3 snippet
-		let buffer = new Uint8Array(this.id3Tag.byteLength + (padddingIndex.offset - this.lastBufferOffset));
-		buffer.set(new Uint8Array(this.id3Tag), 0);
-		buffer.set(new Uint8Array(this.data.slice(this.lastBufferOffset, padddingIndex.offset)), this.id3Tag.byteLength);
+		let buffer = new Uint8Array(this.fileHeader.byteLength + (padddingIndex.offset - this.lastBufferOffset));
+		buffer.set(new Uint8Array(this.fileHeader), 0);
+		buffer.set(new Uint8Array(this.data.slice(this.lastBufferOffset, padddingIndex.offset)), this.fileHeader.byteLength);
 
 		let audioBuffer = await audioContext.decodeAudioData(buffer.buffer);
 		if (!this.started) return; // Could be that .stop() has been called while decoding was going on
@@ -141,7 +157,7 @@ export class AdvancedMediaPlayer {
 			bufferSource.start(currentContextTime - Math.min(offset, 0), Math.max(offset, 0));
 			this.startTime = currentContextTime;
 		} else {
-			let swapTime = this.currentBufferEndTime + this.startTime;
+			let swapTime = this.startTime + this.currentBufferEndTime;
 
 			// Since MP3s always contain a short amount of silence at the start, make sure to do the transition a bit later.
 			this.lastAudioNode.stop(swapTime + 0.1);
@@ -157,7 +173,7 @@ export class AdvancedMediaPlayer {
 
 	private async tick() {
 		if (!this.started) return;
-		if (this.endOfDataReached && this.getCurrentTime() === this.currentBufferEndTime) this.pause();
+		if (this.endOfDataReached && this.getContextCurrentTime() === this.currentBufferEndTime) this.pause();
 		if (this.suppressTick || this.endOfDataReached) return;
 
 		let currentTime = audioContext.currentTime;
@@ -170,43 +186,39 @@ export class AdvancedMediaPlayer {
 		}
 	}
 
-	private getContextCurrentTime() {
+	getContextCurrentTime() {
 		if (this.pausedTime !== null) return this.pausedTime;
-		if (!this.started) return 0;
+		if (!this.playing) return 0;
 		return Math.min(audioContext.currentTime - this.startTime, this.currentBufferEndTime);
 	}
 
 	getCurrentTime() {
+		let currentTime = this.getContextCurrentTime();
 		let output: number;
 
-		if (this.pausedTime !== null) output = this.pausedTime;
-		else if (!this.started) output = 0;
-		else output = Math.min((performance.now() - this.performanceNowStartTime) / 1000, this.currentBufferEndTime);
+		if (this.lastSampledContextTime !== currentTime) {
+			this.lastSampledContextTime = currentTime;
+			this.lastContextTimeSamplingTime = performance.now();
 
-		// This here code guarantees that the current time is always monotonically increasing.
-		if (output > this.lastCurrentTimeOutput) {
-			this.lastCurrentTimeOutput = output;
+			output = currentTime;
+		} else {
+			if (this.pausedTime !== null || !this.playing) {
+				output = this.lastSampledContextTime;
+			} else {
+				output = this.lastSampledContextTime + (performance.now() - this.lastContextTimeSamplingTime)/1000;
+			}
+		}
+
+		output -= 0.004; // Shift by 4ms. Generally observed to be "feel" and sound more accurate. Will have to be observe more in the future.
+
+		// This comparison is made so that we can guarantee a monotonically increasing currentTime. In reality, the value might hop back a few milliseconds, but to the outside world this is unexpected behavior and therefore should be avoided.
+		if (output > this.lastCurrentTimeValue) {
+			this.lastCurrentTimeValue = output;
 			return output;
 		} else {
-			return this.lastCurrentTimeOutput;
+			return this.lastCurrentTimeValue;
 		}
 	}
 }
 
-/*
-
-async function tester() {
-	let request = await fetch('./assets/test_maps/NewspapersForMagicians/audio.mp3');
-	let arrayBuffer = await request.arrayBuffer();
-
-	let player = new AdvancedMediaPlayer(mediaAudioNode);
-	player.loadBuffer(arrayBuffer);
-	await player.start(50);
-
-	setInterval(() => {
-		console.log(player.getCurrentTime());
-	}, 100);
-}
-window.addEventListener('mousedown', tester);
-
-*/
+export let gameplayMediaPlayer = new HighAccuracyMediaPlayer(mediaAudioNode);

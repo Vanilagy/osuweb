@@ -7,8 +7,6 @@ import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_
 import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { Point, pointDistance, lerpPoints } from "../util/point";
 import { FollowPoint } from "./drawables/follow_point";
-import "./hud/hud";
-import "../input/input";
 import { ScoreCounter, ScorePopup } from "./score";
 import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter, KeyCode } from "../input/input";
 import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer, gameplayWarningArrows, pauseScreen } from "./hud/hud";
@@ -29,7 +27,8 @@ import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
-import { addTickingTask, tickAll } from "../util/ticker";
+import { addTickingTask } from "../util/ticker";
+import { gameplayMediaPlayer } from "../audio/high_accuracy_media_player";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
@@ -173,7 +172,7 @@ export class Play {
 
 		console.time("Audio load");
 		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
-		await mainMusicMediaPlayer.loadFromVirtualFile(songFile);
+		await gameplayMediaPlayer.loadFromVirtualFile(songFile);
 		console.timeEnd("Audio load");
 
 		let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
@@ -221,9 +220,10 @@ export class Play {
 	async start() {
 		this.unpause(false);
 
-		mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
-		mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
-		mainMusicMediaPlayer.setLoopBehavior(false);
+		//mainMusicMediaPlayer.setPlaybackRate(this.playbackRate);
+		//mainMusicMediaPlayer.start(0 || -this.preludeTime / 1000);
+		//mainMusicMediaPlayer.setLoopBehavior(false);
+		await gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
 
 		this.paused = false;
 	}
@@ -721,7 +721,7 @@ export class Play {
 	}
 
 	getCurrentSongTime() {
-		return mainMusicMediaPlayer.getCurrentTime() * 1000;
+		return gameplayMediaPlayer.getCurrentTime() * 1000;
 	}
 
 	toScreenCoordinatesX(osuCoordinateX: number, floor = true) {

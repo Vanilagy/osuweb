@@ -210,3 +210,13 @@ export class OverridableDelay {
 export function compareStringsLowerCase(a: string, b: string) {
 	return a.toLowerCase().localeCompare(b.toLowerCase());
 }
+
+export function bytesToString(bytes: Uint8Array) {
+	let str = "";
+
+	for (let i = 0; i < bytes.byteLength; i++) {
+		str += String.fromCharCode(bytes[i]);
+	}
+
+	return str;
+}

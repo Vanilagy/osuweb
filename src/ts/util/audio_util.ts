@@ -1,3 +1,5 @@
+import { bytesToString } from "./misc_util";
+
 // All bitrate values are in 1000 bits per second
 const MPEGV1_BITRATES: { [layer: number]: { [bitrateIndex: number]: number } } = {
 	// reserved
@@ -150,30 +152,59 @@ const MPEG_SAMPLING_RATES: { [mpegVersion: number]: { [samplingRateIndex: number
 
 export abstract class Mp3Util {
 	//  Decode a [synchsafe](http://en.wikipedia.org/wiki/Synchsafe) value. Synchsafes are used in
-    //  ID3 tags, instead of regular ints, to avoid the unintended introduction of bogus
-    //  frame-syncs. Note that the spec requires that syncsafe be always stored in big-endian order
-    //  (Implementation shamefully lifted from relevant wikipedia article)
+	//  ID3 tags, instead of regular ints, to avoid the unintended introduction of bogus
+	//  frame-syncs. Note that the spec requires that syncsafe be always stored in big-endian order
+	//  (Implementation shamefully lifted from relevant wikipedia article)
 	static unsynchsafe(value: number) {
 		let out = 0;
-        let mask = 0x7F000000;
+		let mask = 0x7F000000;
 
-        while (mask) {
-            out >>= 1;
-            out |= value & mask;
-            mask >>= 8;
-        }
+		while (mask) {
+			out >>= 1;
+			out |= value & mask;
+			mask >>= 8;
+		}
 
-        return out;
+		return out;
 	}
 
-	// Gets the byte length of a id3 tag from its header
-	static getId3TagByteLength(view: DataView, offset = 0) {
+	// Gets the byte length of a id3 (and following xing/info) tag from its header
+	static getFileHeaderByteLength(view: DataView, offset: number) {
 		if (view.byteLength - offset < 10) return null;
-		return Mp3Util.unsynchsafe(view.getUint32(offset + 6)) + 10; // Have to add 10 because the number excludes the header length (which is always 10)
+
+		let byteLength = Mp3Util.unsynchsafe(view.getUint32(offset + 6)) + 10; // Have to add 10 because the number excludes the header length (which is always 10)
+		let nextFrameIndex = offset + byteLength;
+
+		let hasXingFrame = Mp3Util.isFrameHeader(view, nextFrameIndex) && Mp3Util.isXingFrame(view, nextFrameIndex);
+		if (hasXingFrame) {
+			let xingFrameLength = Mp3Util.getFrameByteLength(view, nextFrameIndex);
+			byteLength += xingFrameLength;
+		}
+
+		return byteLength;
 	}
 
-	static isId3Tag(view: DataView, offset = 0) {
+	static isId3Tag(view: DataView, offset: number) {
 		return view.getInt32(offset + 0 , true) === 53691465; // "ID3"
+	}
+
+	static isXingFrame(view: DataView, offset: number) {
+		let mpegVersion = Mp3Util.getMpegVersionfromFrameHeader(view, offset);
+		let channelMode = Mp3Util.getChannelModeFromFrameHeader(view, offset);
+
+		let xingOffset: number;
+		let isMono = channelMode === 3;
+
+        if (mpegVersion === 3) { // mpeg1
+            xingOffset = isMono? 21 : 36;
+        } else {
+            xingOffset = isMono? 13 : 21;
+		}
+		
+		let section = view.buffer.slice(offset + xingOffset, offset + xingOffset + 4);
+		let str = bytesToString(new Uint8Array(section));
+
+		return str === "Xing" || str === "Info";
 	}
 
 	static getBitrateFromFrameHeader(view: DataView, offset: number, mpegVersion: number, layer: number) {
@@ -191,23 +222,42 @@ export abstract class Mp3Util {
 		return MPEG_SAMPLING_RATES[mpegVersion][samplingRateIndex];
 	}
 
-	static getPaddingBitFromFrameHeader(view: DataView, offset = 0) {
+	static getPaddingBitFromFrameHeader(view: DataView, offset: number) {
 		return (view.getUint8(offset + 2) & 0b00000010) >> 1;
 	}
 
-	static getFrameByteLength(layer: number, bitrate: number, samplingRate: number, sampleLength: number, padding: number) {
-		let paddingSize = padding ? (layer === 3 ? 4 : 1) : 0;
-        let byteRate = bitrate * 1000 / 8;
-        return Math.floor((sampleLength * byteRate / samplingRate) + paddingSize);
+	static isFrameHeader(view: DataView, offset: number) {
+		return view.getUint8(offset) === 0xff; // Frames begin with FF
 	}
 
-	static getMpegVersionfromFrameHeader(view: DataView, offset = 0) {
+	static calculateFrameByteLength(layer: number, bitrate: number, samplingRate: number, sampleLength: number, padding: number) {
+		let paddingSize = padding ? (layer === 3 ? 4 : 1) : 0;
+		let byteRate = bitrate * 1000 / 8;
+		return Math.floor((sampleLength * byteRate / samplingRate) + paddingSize);
+	}
+
+	static getFrameByteLength(view: DataView, offset: number) {
+		let layer = Mp3Util.getLayerFromFrameHeader(view, offset);
+		let mpegVersion = Mp3Util.getMpegVersionfromFrameHeader(view, offset)
+		let bitrate = Mp3Util.getBitrateFromFrameHeader(view, offset, mpegVersion, layer);
+		let samplingRate = Mp3Util.getSamplingRateFromFrameHeader(view, offset, mpegVersion);
+		let sampleLength = Mp3Util.getSampleLengthForLayer(layer);
+		let padding = Mp3Util.getPaddingBitFromFrameHeader(view, offset);
+
+		return Mp3Util.calculateFrameByteLength(layer, bitrate, samplingRate, sampleLength, padding);
+	}
+
+	static getMpegVersionfromFrameHeader(view: DataView, offset: number) {
 		return (view.getUint8(offset + 1) & 0b00011000) >> 3;
 	}
 
-	static getLayerFromFrameHeader(view: DataView, offset = 0) {
+	static getLayerFromFrameHeader(view: DataView, offset: number) {
 		return (view.getUint8(offset + 1) & 0b00000110) >> 1;
 	}
+
+	static getChannelModeFromFrameHeader(view: DataView, offset: number) {
+		return (view.getUint8(offset + 3) & 0b11000000) >> 6;
+	} 
 
 	static getSampleLengthForLayer(layer: number) {
 		return (layer === 3)? 384 : 1152;
@@ -220,13 +270,7 @@ export abstract class Mp3Util {
 		let eofReached = false;
 
 		while (true) {
-			if (currentOffset >= view.byteLength) {
-				eofReached = true;
-				break;
-			}
-
-			let isNewFrame = view.getUint8(currentOffset) === 0xff; // Frames begin with FF
-			if (!isNewFrame) {
+			if (currentOffset >= view.byteLength || !Mp3Util.isFrameHeader(view, currentOffset)) {
 				eofReached = true;
 				break;
 			}
@@ -237,7 +281,7 @@ export abstract class Mp3Util {
 			let samplingRate = Mp3Util.getSamplingRateFromFrameHeader(view, currentOffset, mpegVersion);
 			let padding = Mp3Util.getPaddingBitFromFrameHeader(view, currentOffset);
 			let sampleLength = Mp3Util.getSampleLengthForLayer(layer);
-			let byteLength = Mp3Util.getFrameByteLength(layer, bitrate, samplingRate, sampleLength, padding);
+			let byteLength = Mp3Util.calculateFrameByteLength(layer, bitrate, samplingRate, sampleLength, padding);
 
 			let frameTime = sampleLength / samplingRate;
 			if (traversedTime + frameTime > time) break;
@@ -254,6 +298,6 @@ export abstract class Mp3Util {
 	}
 
 	static calulateDuration(view: DataView) {
-		return Mp3Util.getFrameHeaderIndexAtTime(view, Mp3Util.getId3TagByteLength(view, 0), Infinity).exactTime;
+		return Mp3Util.getFrameHeaderIndexAtTime(view, Mp3Util.getFileHeaderByteLength(view, 0), Infinity).exactTime;
 	}
 }
