@@ -1,0 +1,259 @@
+// All bitrate values are in 1000 bits per second
+const MPEGV1_BITRATES: { [layer: number]: { [bitrateIndex: number]: number } } = {
+	// reserved
+	0: null,
+	// layer 3
+	1: {
+		0x0: null, // "free"
+		0x1: 32,
+		0x2: 40,
+		0x3: 48,
+		0x4: 56,
+		0x5: 64,
+		0x6: 80,
+		0x7: 96,
+		0x8: 112,
+		0x9: 128,
+		0xa: 160,
+		0xb: 192,
+		0xc: 224,
+		0xd: 256,
+		0xe: 320,
+		0xf: null // "bad"
+	},
+	// layer 2
+	2: {
+		0x0: null, // "free"
+		0x1: 32,
+		0x2: 48,
+		0x3: 56,
+		0x4: 64,
+		0x5: 80,
+		0x6: 96,
+		0x7: 112,
+		0x8: 128,
+		0x9: 160,
+		0xa: 192,
+		0xb: 224,
+		0xc: 256,
+		0xd: 320,
+		0xe: 384,
+		0xf: null // "bad"
+	},
+	// layer 1
+	3: {
+		0x0: null, // "free"
+		0x1: 32,
+		0x2: 64,
+		0x3: 96,
+		0x4: 128,
+		0x5: 160,
+		0x6: 192,
+		0x7: 224,
+		0x8: 256,
+		0x9: 288,
+		0xa: 320,
+		0xb: 352,
+		0xc: 384,
+		0xd: 416,
+		0xe: 448,
+		0xf: null // "bad"
+	}
+};
+const MPEGV2_BITRATES: { [layer: number]: { [bitrateIndex: number]: number } } = {
+	// reserved
+	0: null,
+	// layer 3
+	1: {
+		0x0: null, // "free"
+		0x1: 32,
+		0x2: 48,
+		0x3: 56,
+		0x4: 64,
+		0x5: 80,
+		0x6: 96,
+		0x7: 112,
+		0x8: 128,
+		0x9: 144,
+		0xa: 160,
+		0xb: 176,
+		0xc: 192,
+		0xd: 224,
+		0xe: 256,
+		0xf: null // "bad"
+	},
+	// layer 2
+	2: {
+		0x0: null, // "free"
+		0x1: 8,
+		0x2: 16,
+		0x3: 24,
+		0x4: 32,
+		0x5: 40,
+		0x6: 48,
+		0x7: 56,
+		0x8: 64,
+		0x9: 80,
+		0xa: 96,
+		0xb: 112,
+		0xc: 128,
+		0xd: 144,
+		0xe: 160,
+		0xf: null // "bad"
+	},
+	// layer 1
+	3: {
+		0x0: null, // "free"
+		0x1: 8,
+		0x2: 16,
+		0x3: 24,
+		0x4: 32,
+		0x5: 40,
+		0x6: 48,
+		0x7: 56,
+		0x8: 64,
+		0x9: 80,
+		0xa: 96,
+		0xb: 112,
+		0xc: 128,
+		0xd: 144,
+		0xe: 160,
+		0xf: null // "bad"
+	}
+};
+
+// All values are in Hz
+const MPEG_SAMPLING_RATES: { [mpegVersion: number]: { [samplingRateIndex: number]: number } } = {
+	// MPEG Version 2.5
+	0: {
+		0: 11025,
+		1: 12000,
+		2: 8000,
+		3: null // reserved
+	},
+	1: null, // reserved
+	// MPEG Version 2 (ISO/IEC 13818-3)
+	2: {
+		0: 22050,
+		1: 24000,
+		2: 16000,
+		3: null // reserved
+	},
+	// MPEG Version 1 (ISO/IEC 11172-3)
+	3: {
+		0: 44100,
+		1: 48000,
+		2: 32000,
+		3: null // reserved
+	}
+};
+
+export abstract class Mp3Util {
+	//  Decode a [synchsafe](http://en.wikipedia.org/wiki/Synchsafe) value. Synchsafes are used in
+    //  ID3 tags, instead of regular ints, to avoid the unintended introduction of bogus
+    //  frame-syncs. Note that the spec requires that syncsafe be always stored in big-endian order
+    //  (Implementation shamefully lifted from relevant wikipedia article)
+	static unsynchsafe(value: number) {
+		let out = 0;
+        let mask = 0x7F000000;
+
+        while (mask) {
+            out >>= 1;
+            out |= value & mask;
+            mask >>= 8;
+        }
+
+        return out;
+	}
+
+	// Gets the byte length of a id3 tag from its header
+	static getId3TagByteLength(view: DataView, offset = 0) {
+		if (view.byteLength - offset < 10) return null;
+		return Mp3Util.unsynchsafe(view.getUint32(offset + 6)) + 10; // Have to add 10 because the number excludes the header length (which is always 10)
+	}
+
+	static isId3Tag(view: DataView, offset = 0) {
+		return view.getInt32(offset + 0 , true) === 53691465; // "ID3"
+	}
+
+	static getBitrateFromFrameHeader(view: DataView, offset: number, mpegVersion: number, layer: number) {
+		let bitrateIndex = view.getUint8(offset + 2) >> 4;
+
+		if (mpegVersion === 3) { // MPEG Version 1 (ISO/IEC 11172-3)
+			return MPEGV1_BITRATES[layer][bitrateIndex];
+		} else {
+			return MPEGV2_BITRATES[layer][bitrateIndex];
+		}
+	}
+
+	static getSamplingRateFromFrameHeader(view: DataView, offset: number, mpegVersion: number) {
+		let samplingRateIndex = (view.getUint8(offset + 2) & 0b00001100) >> 2;
+		return MPEG_SAMPLING_RATES[mpegVersion][samplingRateIndex];
+	}
+
+	static getPaddingBitFromFrameHeader(view: DataView, offset = 0) {
+		return (view.getUint8(offset + 2) & 0b00000010) >> 1;
+	}
+
+	static getFrameByteLength(layer: number, bitrate: number, samplingRate: number, sampleLength: number, padding: number) {
+		let paddingSize = padding ? (layer === 3 ? 4 : 1) : 0;
+        let byteRate = bitrate * 1000 / 8;
+        return Math.floor((sampleLength * byteRate / samplingRate) + paddingSize);
+	}
+
+	static getMpegVersionfromFrameHeader(view: DataView, offset = 0) {
+		return (view.getUint8(offset + 1) & 0b00011000) >> 3;
+	}
+
+	static getLayerFromFrameHeader(view: DataView, offset = 0) {
+		return (view.getUint8(offset + 1) & 0b00000110) >> 1;
+	}
+
+	static getSampleLengthForLayer(layer: number) {
+		return (layer === 3)? 384 : 1152;
+	}
+
+	// Not that since frames are usually 26 millseconds long, this method can't return the exact point of playback, but rather returns the index of the frame right before the wanted time.
+	static getFrameHeaderIndexAtTime(view: DataView, start: number, time: number) {
+		let traversedTime = 0;
+		let currentOffset = start;
+		let eofReached = false;
+
+		while (true) {
+			if (currentOffset >= view.byteLength) {
+				eofReached = true;
+				break;
+			}
+
+			let isNewFrame = view.getUint8(currentOffset) === 0xff; // Frames begin with FF
+			if (!isNewFrame) {
+				eofReached = true;
+				break;
+			}
+
+			let mpegVersion = Mp3Util.getMpegVersionfromFrameHeader(view, currentOffset);
+			let layer = Mp3Util.getLayerFromFrameHeader(view, currentOffset); 
+			let bitrate = Mp3Util.getBitrateFromFrameHeader(view, currentOffset, mpegVersion, layer);
+			let samplingRate = Mp3Util.getSamplingRateFromFrameHeader(view, currentOffset, mpegVersion);
+			let padding = Mp3Util.getPaddingBitFromFrameHeader(view, currentOffset);
+			let sampleLength = Mp3Util.getSampleLengthForLayer(layer);
+			let byteLength = Mp3Util.getFrameByteLength(layer, bitrate, samplingRate, sampleLength, padding);
+
+			let frameTime = sampleLength / samplingRate;
+			if (traversedTime + frameTime > time) break;
+
+			traversedTime += frameTime;
+			currentOffset += byteLength;
+		}
+
+		return {
+			offset: currentOffset,
+			exactTime: traversedTime,
+			eofReached: eofReached
+		};
+	}
+
+	static calulateDuration(view: DataView) {
+		return Mp3Util.getFrameHeaderIndexAtTime(view, Mp3Util.getId3TagByteLength(view, 0), Infinity).exactTime;
+	}
+}
