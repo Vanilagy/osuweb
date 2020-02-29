@@ -641,8 +641,7 @@ export class Play {
 
 	unpause() {
 		if (!this.paused) return;
-
-		gameplayMediaPlayer.unpause();
+		
 		this.paused = false;
 		this.playing = true;
 
@@ -654,6 +653,7 @@ export class Play {
 			}
 		}
 
+		gameplayMediaPlayer.unpause();
 		pauseScreen.hide();
 	}
 
@@ -698,6 +698,11 @@ export class Play {
 		}
 
 		this.scoreCounter.reset();
+	}
+
+	async restart() {
+		this.reset();
+		await this.start();
 	}
 
 	handleButtonDown() {

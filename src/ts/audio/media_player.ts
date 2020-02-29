@@ -118,6 +118,9 @@ export class MediaPlayer {
 		this.lastCurrentTime = -Infinity;
 
 		if (this.offset >= 0) {
+			// This code basically assumes the file is an MP3 and tries to quantize the offset based on its frames. This is purely approximate, but *can* decrease error when seeking.
+			this.offset = Math.floor(this.offset * 1000 / 26.122448979591837) * 26.122448979591837 / 1000;
+
 			this.audioElement.currentTime = this.offset;
 			this.audioElement.play();
 			this.audioElement.playbackRate = this.playbackRate;
@@ -178,7 +181,7 @@ export class MediaPlayer {
 				let average = MathUtil.getAggregateValuesFromArray(this.timingDeltas).avg; // Average of last deltas
 				let absAverage = Math.abs(average);
 
-				if (absAverage >= 5) console.warn("High average media playback delta: " + average + "ms - Nudging offset...");
+				// if (absAverage >= 5) console.warn("High average media playback delta: " + average + "ms - Nudging offset...");
 				if (absAverage >= 1) this.startTime += average / 2; // Nudge closer towards zero
 
 				this.timingDeltas.length = 0;
