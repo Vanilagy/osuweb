@@ -14,7 +14,6 @@ import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS } from "./skin/skin";
-import { mainMusicMediaPlayer } from "../audio/media_player";
 import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
 import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods/mods";
@@ -48,6 +47,7 @@ export class Play {
 	private playbackRate: number = 1.0;
 	private hasVideo: boolean = false;
 	private paused: boolean = false;
+	private playing: boolean = false;
 
 	private currentHitObjectIndex: number;
 	private onscreenHitObjects: DrawableHitObject[];
@@ -226,11 +226,11 @@ export class Play {
 	}
 
 	async start() {
-		this.unpause(false);
+		if (this.paused || this.playing) throw new Error("Can't start when paused or playing.");
 
 		await gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
 
-		this.paused = false;
+		this.playing = true;
 	}
 
 	render() {
@@ -261,31 +261,14 @@ export class Play {
 			}
 		}
 
-		// Render follow points
-		//followPointContainer.removeChildren(); // Families in Syria be like
-		for (let i = this.currentFollowPointIndex; i < this.drawableBeatmap.followPoints.length; i++) {
-			let followPoint = this.drawableBeatmap.followPoints[i];
-			if (currentTime < followPoint.renderStartTime) break;
-
-			this.onscreenFollowPoints.push(followPoint);
-			followPoint.show();
-
-			this.currentFollowPointIndex++;
-		}
-
-		for (let i = 0; i < this.onscreenFollowPoints.length; i++) {
-			let followPoint = this.onscreenFollowPoints[i];
-
-			followPoint.update(currentTime);
-
-			if (followPoint.renderFinished) {
-				followPoint.remove();
-				this.onscreenFollowPoints.splice(i--, 1);
-			}
-		}
-
 		// Update the score display
 		this.scoreCounter.updateDisplay(currentTime);
+
+		// Update scorebar
+		scorebar.update(currentTime);
+
+		// Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL, OMG)
+		sectionStateDisplayer.update(currentTime);
 
 		// Update the progress indicator
 		let firstHitObject = this.processedBeatmap.hitObjects[0],
@@ -307,7 +290,7 @@ export class Play {
 				progressIndicator.draw(completion, false); 
 			}
 		}
-		
+
 		// Update the accuracy meter
 		accuracyMeter.update(currentTime);
 
@@ -324,12 +307,6 @@ export class Play {
 			}
 		}
 
-		// Update scorebar
-		scorebar.update(currentTime);
-
-		// Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL, OMG)
-		sectionStateDisplayer.update(currentTime);
-
 		// Update the gameplay warning arrows
 		let currentGameplayWarningArrowsStartTime: number = null;
 		for (let i = 0; i < this.breakEndWarningTimes.length; i++) {
@@ -345,6 +322,50 @@ export class Play {
 			}
 		}
 		gameplayWarningArrows.update(currentTime, currentGameplayWarningArrowsStartTime);
+
+		if (this.hasVideo) {
+			// Take care of the video fading in in the first second of the audio
+			let videoFadeInCompletion = currentTime / VIDEO_FADE_IN_DURATION;
+			videoFadeInCompletion = MathUtil.clamp(videoFadeInCompletion, 0, 1);
+			BackgroundManager.setVideoOpacity(videoFadeInCompletion);
+
+			// Sync the video to the audio
+			let offsetDifference = Math.abs((BackgroundManager.getVideoCurrentTime() * 1000) - currentTime);
+			if (offsetDifference >= 30 && currentTime >= 0) {
+				BackgroundManager.setVideoCurrentTime(currentTime / 1000);
+			}
+
+			// Start the video when it's due
+			if (currentTime >= 0 && BackgroundManager.videoIsPaused()) {
+				BackgroundManager.setVideoPlaybackRate(this.playbackRate);
+				BackgroundManager.playVideo();
+			}
+		}
+
+		if (!this.playing) return;
+		// Don't run the following code if not playing
+
+		// Render follow points
+		for (let i = this.currentFollowPointIndex; i < this.drawableBeatmap.followPoints.length; i++) {
+			let followPoint = this.drawableBeatmap.followPoints[i];
+			if (currentTime < followPoint.renderStartTime) break;
+
+			this.onscreenFollowPoints.push(followPoint);
+			followPoint.show();
+
+			this.currentFollowPointIndex++;
+		}
+
+		for (let i = 0; i < this.onscreenFollowPoints.length; i++) {
+			let followPoint = this.onscreenFollowPoints[i];
+
+			followPoint.update(currentTime);
+
+			if (followPoint.renderFinished) {
+				followPoint.remove();
+				this.onscreenFollowPoints.splice(i--, 1);
+			}
+		}
 
 		// Handle breaks
 		while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
@@ -385,31 +406,12 @@ export class Play {
 			break;
 		}
 
-		if (this.hasVideo) {
-			// Take care of the video fading in in the first second of the audio
-			let videoFadeInCompletion = currentTime / VIDEO_FADE_IN_DURATION;
-			videoFadeInCompletion = MathUtil.clamp(videoFadeInCompletion, 0, 1);
-			BackgroundManager.setVideoOpacity(videoFadeInCompletion);
-
-			// Sync the video to the audio
-			let offsetDifference = Math.abs((BackgroundManager.getVideoCurrentTime() * 1000) - currentTime);
-			if (offsetDifference >= 30 && currentTime >= 0) {
-				BackgroundManager.setVideoCurrentTime(currentTime / 1000);
-			}
-
-			// Start the video when it's due
-			if (currentTime >= 0 && BackgroundManager.videoIsPaused()) {
-				BackgroundManager.setVideoPlaybackRate(this.playbackRate);
-				BackgroundManager.playVideo();
-			}
-		}
-
 		// Update the cursor position if rocking AT
 		if (this.activeMods.has(Mod.Auto)) this.handlePlaythroughInstructions(currentTime);
 	}
 
 	tick(currentTimeOverride?: number) {
-		if (this.paused) return;
+		if (!this.playing) return;
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
 
 		if (this.lastTickTime === null) {
@@ -620,9 +622,11 @@ export class Play {
 
 	pause() {
 		if (this.paused) return;
-		this.paused = true;
 
-		mainMusicMediaPlayer.pause();
+		this.paused = true;
+		this.playing = false;
+
+		gameplayMediaPlayer.pause();
 		
 		for (let hitObject of this.onscreenHitObjects) {
 			if (hitObject instanceof DrawableSlider) {
@@ -631,13 +635,16 @@ export class Play {
 		}
 
 		pauseScreen.show();
+
+		if (this.hasVideo) BackgroundManager.pauseVideo();
 	}
 
-	unpause(unpauseMusic = true) {
+	unpause() {
 		if (!this.paused) return;
 
-		if (unpauseMusic) mainMusicMediaPlayer.unpause();
+		gameplayMediaPlayer.unpause();
 		this.paused = false;
+		this.playing = true;
 
 		let currentTime = this.getCurrentSongTime();
 
@@ -683,6 +690,8 @@ export class Play {
 		this.currentSustainedEvents = [];
 		this.currentFollowPointIndex = 0;
 		this.currentBreakIndex = 0;
+		this.paused = false;
+		this.playing = false;
 
 		if (this.activeMods.has(Mod.Auto)) {
 			this.currentPlaythroughInstruction = 0;
@@ -726,6 +735,7 @@ export class Play {
 	}
 
 	getCurrentSongTime() {
+		//console.log(gameplayMediaPlayer.getCurrentTime() * 1000)
 		return gameplayMediaPlayer.getCurrentTime() * 1000;
 	}
 

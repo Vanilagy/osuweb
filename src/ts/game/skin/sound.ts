@@ -4,7 +4,7 @@ import { TimingPoint } from "../../datamodel/beatmap";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { charIsDigit, promiseAllSettled } from "../../util/misc_util";
-import { createAudioBuffer, soundEffectsNode } from "../../audio/audio";
+import { soundEffectsNode, audioContext } from "../../audio/audio";
 import { SoundEmitter } from "../../audio/sound_emitter";
 import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
 
@@ -140,11 +140,11 @@ export class OsuSound {
             let file = this.files[index];
             let arrayBuffer = await file.readAsArrayBuffer();
 
-            audioBufferPromises.push(createAudioBuffer(arrayBuffer));
+            audioBufferPromises.push(audioContext.decodeAudioData(arrayBuffer));
 
             /*
             try {
-                let audioBuffer = await createAudioBuffer(arrayBuffer);
+                let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
                 this.audioBuffers[index] = audioBuffer;
             } catch(e) {

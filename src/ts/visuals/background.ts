@@ -147,6 +147,10 @@ export abstract class BackgroundManager {
 		this.videoElement.play();
 	}
 
+	static pauseVideo() {
+		this.videoElement.pause();
+	}
+
 	static videoIsPaused() {
 		return this.videoElement.paused;
 	}

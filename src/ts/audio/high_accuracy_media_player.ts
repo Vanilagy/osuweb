@@ -79,6 +79,7 @@ export class HighAccuracyMediaPlayer {
 		this.lastBufferOffset = frameHeaderIndex.offset;
 		this.currentBufferEndTime = frameHeaderIndex.exactTime;
 		this.offset = offset;
+		this.lastSampledContextTime = null;
 
 		await this.readyNextBufferSource(offset - frameHeaderIndex.exactTime);
 		this.pausedTime = null;
@@ -88,9 +89,10 @@ export class HighAccuracyMediaPlayer {
 		addTickingTask(this.tickingTask);
 
 		// Can happen if 'offset' is outside of the song's length
-		if (frameHeaderIndex.eofReached) this.startTime = audioContext.currentTime;
-		//this.startTime -= offset / this.tempo;
-		if (frameHeaderIndex.eofReached) this.pause();
+		if (frameHeaderIndex.eofReached) {
+			this.startTime = audioContext.currentTime;
+			this.pause();
+		}
 
 		this.playing = true;
 	}
