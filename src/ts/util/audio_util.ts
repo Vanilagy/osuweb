@@ -185,7 +185,7 @@ export abstract class Mp3Util {
 	}
 
 	static isId3Tag(view: DataView, offset: number) {
-		return view.getInt32(offset + 0 , true) === 53691465; // "ID3"
+		return bytesToString(new Uint8Array(view.buffer.slice(offset, offset + 3))) === "ID3";
 	}
 
 	static isXingFrame(view: DataView, offset: number) {
