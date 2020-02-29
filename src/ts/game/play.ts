@@ -735,7 +735,6 @@ export class Play {
 	}
 
 	getCurrentSongTime() {
-		//console.log(gameplayMediaPlayer.getCurrentTime() * 1000)
 		return gameplayMediaPlayer.getCurrentTime() * 1000;
 	}
 

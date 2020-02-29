@@ -8,9 +8,17 @@ async function tester() {
 
 	let player = new HighAccuracyMediaPlayer(mediaAudioNode);
 	player.loadBuffer(arrayBuffer);
-	player.setTempo(1.5);
+	player.setTempo(1.0);
 	player.setPitch(1.0);
-	await player.start(-5);
+	await player.start(-1);
+
+	setTimeout(() => {
+		player.pause();
+
+		setTimeout(() => {
+			player.start(4);
+		}, 2000);
+	}, 2000);
 
 	setInterval(() => {
 		console.log(player.getCurrentTime());
