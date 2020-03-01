@@ -342,6 +342,8 @@ export class Play {
 			}
 		}
 
+		pauseScreen.update(performance.now());
+
 		if (!this.playing) return;
 		// Don't run the following code if not playing
 
@@ -631,6 +633,8 @@ export class Play {
 		for (let hitObject of this.onscreenHitObjects) {
 			if (hitObject instanceof DrawableSlider) {
 				hitObject.stopSliderSlideSound();
+			} else if (hitObject instanceof DrawableSpinner) {
+				hitObject.stopSpinningSound();
 			}
 		}
 

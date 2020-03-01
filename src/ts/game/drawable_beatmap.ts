@@ -67,5 +67,10 @@ export class DrawableBeatmap {
 			let drawable = this.drawableHitObjects[i];
 			drawable.reset();
 		}
+		
+		for (let i = 0; i < this.followPoints.length; i++) {
+			let followPoint = this.followPoints[i];
+			followPoint.reset();
+		}
 	}
 }

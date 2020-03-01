@@ -1,77 +1,237 @@
-import { currentWindowDimensions } from "../../visuals/ui";
-import { Interactivity } from "../../input/interactivity";
+import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT, uiEventEmitter } from "../../visuals/ui";
+import { Interactivity, InteractionGroup } from "../../input/interactivity";
 import { gameState } from "../game_state";
+import { createPolygonTexture } from "../../util/pixi_util";
+import { Interpolator } from "../../util/interpolation";
+import { EaseType, MathUtil } from "../../util/math_util";
+
+const ACTION_PANEL_WIDTH = 336;
+const ACTION_PANEL_HEIGHT = 52;
+
+export function getPauseScreenScalingFactor() {
+	return currentWindowDimensions.height / REFERENCE_SCREEN_HEIGHT;
+}
 
 export class PauseScreen {
-    public container: PIXI.Container;
+	public container: PIXI.Container;
+	private background: PIXI.Sprite;
+	private centerContainer: PIXI.Container;
+	private heading: PIXI.Text;
+	private actionPanels: PauseScreenActionPanel[];
+	private interactionGroup: InteractionGroup;
+	private fadeInterpolator: Interpolator;
 
     constructor() {
-        this.container = new PIXI.Container();
-        this.container.visible = false;
-
-        let bg = new PIXI.Sprite(PIXI.Texture.WHITE);
-        bg.tint = 0x000000;
-        bg.alpha = 0.666;
-        bg.width = currentWindowDimensions.width;
-        bg.height = currentWindowDimensions.height;
-        this.container.addChild(bg);
-
-        let shit = new PIXI.Container();
-        this.container.addChild(shit);
-
-        let resumeContainer = new PIXI.Container();
-        let resumeBg = new PIXI.Sprite(PIXI.Texture.WHITE);
-        resumeBg.tint = 0xff0000;
-        resumeBg.width = 300;
-        resumeBg.height = 50;
-        let resumeText = new PIXI.Text("resume");
-        resumeContainer.addChild(resumeBg);
-        resumeContainer.addChild(resumeText);
-
-        let restartContainer = new PIXI.Container();
-        let restartBg = new PIXI.Sprite(PIXI.Texture.WHITE);
-        restartBg.tint = 0x00ff00;
-        restartBg.width = 300;
-        restartBg.height = 50;
-        let restartText = new PIXI.Text("restart");
-        restartContainer.addChild(restartBg);
-        restartContainer.addChild(restartText);
-        restartContainer.y = 50;
-
-        let quitContainer = new PIXI.Container();
-        let quitBg = new PIXI.Sprite(PIXI.Texture.WHITE);
-        quitBg.tint = 0x0000ff;
-        quitBg.width = 300;
-        quitBg.height = 50;
-        let quitText = new PIXI.Text("quit");
-        quitContainer.addChild(quitBg);
-        quitContainer.addChild(quitText);
-        quitContainer.y = 100;
-
-        shit.addChild(resumeContainer);
-        shit.addChild(restartContainer);
-        shit.addChild(quitContainer);
-
-        shit.pivot.x = Math.floor(shit.width/2);
-        shit.pivot.y = Math.floor(shit.height/2);
-        shit.position.set(currentWindowDimensions.width/2, currentWindowDimensions.height/2);
-
-        Interactivity.registerDisplayObject(resumeContainer).addListener('mouseClick', () => {
-            gameState.currentPlay.unpause();
-		});
+		this.container = new PIXI.Container();
+		this.container.alpha = 0; // kinda temp? hack? cheap hack?
 		
-		Interactivity.registerDisplayObject(restartContainer).addListener('mouseClick', () => {
-			gameState.currentPlay.restart();
+		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.background.tint = 0x000000;
+		this.background.alpha = 0.9;
+		this.container.addChild(this.background);
 
+		this.centerContainer = new PIXI.Container();
+		this.container.addChild(this.centerContainer);
+
+		this.heading = new PIXI.Text("paused");
+		this.centerContainer.addChild(this.heading);
+
+		let resumePanel = new PauseScreenActionPanel("resume", 0x3baedf);
+		let restartPanel = new PauseScreenActionPanel("restart", 0xdfbb3b);
+		let quitPanel = new PauseScreenActionPanel("quit", 0xdf3b62);
+		this.actionPanels = [resumePanel, restartPanel, quitPanel];
+		for (let panel of this.actionPanels) this.centerContainer.addChild(panel.container);
+
+		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup.disable();
+		resumePanel.setupInteraction(this.interactionGroup, () => {
+			gameState.currentPlay.unpause();
+		});
+		restartPanel.setupInteraction(this.interactionGroup, () => {
+			gameState.currentPlay.restart();
 			this.hide();
 		});
-    }
+		quitPanel.setupInteraction(this.interactionGroup, () => {
+			console.log("Not yet implemented!");
+		});
+
+		this.fadeInterpolator = new Interpolator({
+			duration: 220,
+			reverseDuration: 100,
+			ease: EaseType.EaseOutCubic,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+
+		uiEventEmitter.addListener('resize', () => this.resize()); // TODO make sure to destroy and remove dis somehow then when its due
+		this.resize();
+	}
 
     show() {
-        this.container.visible = true;
+		this.fadeInterpolator.setReversedState(false, performance.now());
+		this.interactionGroup.enable();
     }
 
     hide() {
-        this.container.visible = false;
-    }
+		this.fadeInterpolator.setReversedState(true, performance.now());
+		this.interactionGroup.disable();
+	}
+	
+	resize() {
+		let scalingFactor = getPauseScreenScalingFactor();
+
+		this.background.width = currentWindowDimensions.width;
+		this.background.height = currentWindowDimensions.height;
+
+		this.centerContainer.x = Math.floor(currentWindowDimensions.width / 2);
+		this.centerContainer.y = Math.floor(currentWindowDimensions.height / 2);
+
+		this.heading.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			fontSize: Math.floor(36 * scalingFactor),
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
+		};
+		this.heading.y = Math.floor(-170 * scalingFactor);
+		this.heading.pivot.x = Math.floor(this.heading.width / 2);
+
+		for (let i = 0; i < this.actionPanels.length; i++) {
+			let panel = this.actionPanels[i];
+			panel.resize();
+		}
+	}
+
+	update(now: number) {
+		let scalingFactor = getPauseScreenScalingFactor();
+
+		let fadeCompletion = this.fadeInterpolator.getCurrentValue(now);
+		this.container.alpha = fadeCompletion;
+		this.heading.x = -7 * (1 - fadeCompletion) * scalingFactor;
+		if (fadeCompletion === 1) this.heading.x = Math.floor(this.heading.x);
+
+		for (let i = 0; i < this.actionPanels.length; i++) {
+			let panel = this.actionPanels[i];
+
+			panel.update(now);
+			panel.container.y = (-32 + 80 * i - MathUtil.lerp(10 + 15*i, 0, fadeCompletion)) * scalingFactor;
+			if (fadeCompletion === 1) panel.container.y = Math.floor(panel.container.y);
+		}
+	}
+}
+
+class PauseScreenActionPanel {
+	public container: PIXI.Container;
+	private mask: PIXI.Sprite;
+	private background: PIXI.Sprite;
+	private topHighlight: PIXI.Sprite;
+	private text: PIXI.Text;
+	private hoverInterpolator: Interpolator;
+	private pressdownInterpolator: Interpolator;
+
+	constructor(description: string, color: number) {
+		this.container = new PIXI.Container();
+
+		this.mask = new PIXI.Sprite();
+		this.container.addChild(this.mask);
+
+		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.background.alpha = 0.9;
+		this.background.mask = this.mask;
+		this.container.addChild(this.background);
+
+		this.topHighlight = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.topHighlight.tint = color;
+		this.topHighlight.mask = this.mask;
+		this.container.addChild(this.topHighlight);
+
+		this.text = new PIXI.Text(description);
+		this.container.addChild(this.text);
+
+		this.hoverInterpolator = new Interpolator({
+			duration: 150,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic,
+			reverseDuration: 400,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+		this.pressdownInterpolator = new Interpolator({
+			duration: 50,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic,
+			reverseDuration: 400,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+	}
+
+	resize() {
+		let scalingFactor = getPauseScreenScalingFactor();
+		let slantWidth = ACTION_PANEL_HEIGHT/5;
+
+		this.mask.texture = createPolygonTexture(ACTION_PANEL_WIDTH + slantWidth, ACTION_PANEL_HEIGHT, [
+			new PIXI.Point(0, 0), new PIXI.Point(ACTION_PANEL_WIDTH, 0), new PIXI.Point(ACTION_PANEL_WIDTH + slantWidth, ACTION_PANEL_HEIGHT), new PIXI.Point(slantWidth, ACTION_PANEL_HEIGHT)
+		], scalingFactor);
+		this.mask.x = -Math.floor((ACTION_PANEL_WIDTH + slantWidth)/2 * scalingFactor);
+
+		this.background.width = Math.floor((ACTION_PANEL_WIDTH + slantWidth) * scalingFactor);
+		this.background.height = Math.floor(ACTION_PANEL_HEIGHT * scalingFactor);
+		this.background.x = this.mask.x;
+
+		this.topHighlight.width = this.background.width;
+		this.topHighlight.height = Math.floor(2 * scalingFactor);
+		this.topHighlight.x = this.background.x;
+
+		this.text.style = {
+			fontFamily: 'Exo2-Light',
+			fontStyle: 'italic',
+			fill: 0xffffff,
+			fontSize: Math.floor(17 * scalingFactor),
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
+		};
+		this.text.pivot.x = Math.floor(this.text.width / 2);
+		this.text.pivot.y = Math.floor(this.text.height / 2);
+		this.text.y = Math.floor(ACTION_PANEL_HEIGHT/2 * scalingFactor);
+	}
+
+	update(now: number) {
+		let scalingFactor = getPauseScreenScalingFactor();
+		let hoverCompletion = this.hoverInterpolator.getCurrentValue(now);
+
+		this.text.alpha = MathUtil.lerp(0.75, 1.0, hoverCompletion);
+
+		this.container.pivot.x = 2 * scalingFactor * hoverCompletion;
+		if (hoverCompletion === 1) this.container.pivot.x = Math.ceil(this.container.pivot.x);
+		this.container.pivot.y = this.container.pivot.x;
+
+		let pressdownCompletion = this.pressdownInterpolator.getCurrentValue(now);
+		this.background.tint = Math.floor(MathUtil.lerp(9, 4, pressdownCompletion)) * 0x10101;
+	}
+
+	setupInteraction(group: InteractionGroup, onclick: () => any) {
+		let registration = Interactivity.registerDisplayObject(this.container);
+		group.add(registration);
+		registration.enableEmptyListeners();
+		registration.addListener('mouseClick', onclick);
+
+		registration.addListener('mouseEnter', (e) => {
+			this.hoverInterpolator.setReversedState(false, performance.now());
+
+			if (e.pressedDown) this.pressdownInterpolator.setReversedState(false, performance.now());
+		});
+		registration.addListener('mouseLeave', () => {
+			this.hoverInterpolator.setReversedState(true, performance.now());
+			this.pressdownInterpolator.setReversedState(true, performance.now());
+		});
+		registration.addListener('mouseDown', () => {
+			this.pressdownInterpolator.setReversedState(false, performance.now());
+		});
+		registration.addListener('mouseUp', () => {
+			this.pressdownInterpolator.setReversedState(true, performance.now());
+		});
+	}
 }

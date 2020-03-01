@@ -74,9 +74,9 @@ export class DrawableSpinner extends DrawableHitObject {
 	private bonusSpins: number;
 	private angularVelocity: number;
 
-	public spinSoundEmitter: SoundEmitter = null;
+	private spinSoundEmitter: SoundEmitter = null;
 	// TODO: Clean this up. Ergh. Disgusting.
-	public bonusSoundVolume: number;
+	private bonusSoundVolume: number;
 	
 	constructor(processedSpinner: ProcessedSpinner) {
 		super(processedSpinner);
@@ -118,6 +118,8 @@ export class DrawableSpinner extends DrawableHitObject {
 		this.cleared = false;
 		this.bonusSpins = 0;
 		this.angularVelocity = 0;
+
+		this.stopSpinningSound();
 	}
 
 	draw() {
@@ -501,7 +503,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			gameState.currentGameplaySkin.playHitSound(this.hitSound);
 		}
 
-		if (this.spinSoundEmitter) this.spinSoundEmitter.stop();
+		this.stopSpinningSound();
 	}
 
 	getSpinsSpun() {
@@ -623,10 +625,14 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		if (this.spinSoundEmitter) {
 			if (!this.spinSoundEmitter.isPlaying() && this.angularVelocity !== 0) this.spinSoundEmitter.start();
-			if (this.angularVelocity === 0) this.spinSoundEmitter.stop();
+			if (this.angularVelocity === 0) this.stopSpinningSound();
 
 			if (gameState.currentGameplaySkin.config.general.spinnerFrequencyModulate) this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
 		}
+	}
+
+	stopSpinningSound() {
+		if (this.spinSoundEmitter) this.spinSoundEmitter.stop();
 	}
 
 	remove() {

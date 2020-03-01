@@ -96,7 +96,6 @@ export class BeatmapSetPanel {
 			beginReversed: true,
 			defaultToFinished: true
 		});
-
 		this.mouseDownBrightnessInterpolator = new Interpolator({
 			duration: 50,
 			ease: EaseType.EaseOutCubic,

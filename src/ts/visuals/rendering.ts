@@ -123,6 +123,6 @@ stage.addChild(followPointContainer);
 stage.addChild(mainHitObjectContainer);
 stage.addChild(approachCircleContainer);
 stage.addChild(upperScorePopupContainer);
-stage.addChild(hudContainer);
 stage.addChild(cursorRippleGraphics);
-stage.addChild(softwareCursorContainer);
+stage.addChild(softwareCursorContainer); // TODO! For an actual software cursor, this has to be ABOVE the HUD. Just for when its an AUTO cursor, put it somewhere el-- idk. man. should probably just hide the auto cursor when paused and shit? idk man
+stage.addChild(hudContainer);

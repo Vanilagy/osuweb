@@ -142,4 +142,8 @@ export class FollowPoint {
 			}
 		}
 	}
+
+	reset() {
+		this.renderFinished = false;
+	}
 }
