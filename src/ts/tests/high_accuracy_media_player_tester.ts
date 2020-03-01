@@ -10,18 +10,18 @@ async function tester() {
 	player.loadBuffer(arrayBuffer);
 	player.setTempo(1.0);
 	player.setPitch(1.0);
-	await player.start(-1);
+	await player.start(0);
 
 	setTimeout(() => {
 		player.pause();
 
 		setTimeout(() => {
-			player.start(4);
-		}, 2000);
+			player.unpause();
+		}, 1000);
 	}, 2000);
 
 	setInterval(() => {
-		console.log(player.getCurrentTime());
-	}, 50)
+		//console.log(player.getCurrentTime());
+	}, 50);
 }
 window.addEventListener('mousedown', tester);

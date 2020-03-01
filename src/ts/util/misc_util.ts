@@ -165,7 +165,7 @@ export function insertItem<T>(arr: T[], item: T, comparator: (a: T, b: T) => num
 	arr.push(item);
 }
 
-/** Removes an item from an array, if it's in there. Returns true if the item was removed. */
+/** Removes an item from an array - if it's in there. Returns true if the item was removed. */
 export function removeItem<T>(arr: T[], item: T) {
 	let index = arr.indexOf(item);
 	if (index !== -1) {

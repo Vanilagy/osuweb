@@ -6,6 +6,15 @@ import { VirtualFile } from "../file_system/virtual_file";
 const SECTION_LENGTH = 5.0; // In seconds
 const NEXT_SECTION_MARGIN = 2.0; // How many seconds before the end of the current section the next section should start being prepared
 
+interface AudioBufferInfo {
+	startTime: number,
+	intendedDuration: number, // For how long the buffer SHOULD play, rather than its actual duration
+	buffer: AudioBuffer,
+	startOffset: number,
+	endOffset: number,
+	eofReached: boolean // If the audio buffer reaches into the end of file
+}
+
 export class HighAccuracyMediaPlayer {
 	private data: ArrayBuffer;
 	private dataView: DataView;
@@ -18,6 +27,7 @@ export class HighAccuracyMediaPlayer {
 	private currentMasterNode: AudioNode = null;
 	private currentMasterNodeId: number = 0;
 	private lastAudioNode: AudioBufferSourceNode = null;
+	private cachedAudioBuffers: AudioBufferInfo[] = []; // Keep as many sections as possible, so that repeated playing doesn't require re-decoding audio data
 
 	private starting = false;
 	private playing = false;
@@ -51,6 +61,8 @@ export class HighAccuracyMediaPlayer {
 		// Get the file header. This will be appended to the start of every audio buffer slice.
 		let fileHeaderByteLength = Mp3Util.getFileHeaderByteLength(this.dataView, 0);
 		this.fileHeader = this.data.slice(0, fileHeaderByteLength);
+
+		this.clearBufferCache();
 	}
 
 	async loadFromVirtualFile(file: VirtualFile) {
@@ -60,12 +72,18 @@ export class HighAccuracyMediaPlayer {
 
 	setTempo(newTempo: number) {
 		if (this.isPlaying()) throw new Error("Don't, uhm, set tempo while it's playing. The code's too primitive to support that at the moment.");
+		if (newTempo === this.tempo) return;
+
 		this.tempo = newTempo;
+		this.clearBufferCache();
 	}
 
 	setPitch(newPitch: number) {
 		if (this.isPlaying()) throw new Error("Don't, uhm, set pitch while it's playing. The code's too primitive to support that at the moment.");
+		if (newPitch === this.pitch) return;
+
 		this.pitch = newPitch;
+		this.clearBufferCache();
 	}
 
 	async start(offset = 0) {
@@ -96,7 +114,7 @@ export class HighAccuracyMediaPlayer {
 		this.offset = offset;
 		this.lastSampledContextTime = null;
 
-		await this.readyNextBufferSource(offset - frameHeaderIndex.exactTime);
+		await this.readyNextBufferSource();
 		
 		if (resetLastCurrentTimeValue) this.lastCurrentTimeValue = -Infinity; // Reset it after the await because someone may get the currentTime while decoding is happening
 		this.pausedTime = null;
@@ -111,7 +129,7 @@ export class HighAccuracyMediaPlayer {
 		}
 	}
 
-	private async readyNextBufferSource(offset?: number) {
+	private async readyNextBufferSource() {
 		let masterNodeId = this.currentMasterNodeId;
 		// If tempo === pitch, then we can naively speed up the playbackRate of a source node to yield the desired effect. This also avoids unnecessary processing.
 		let useNativePlaybackRate = this.tempo === this.pitch;
@@ -120,32 +138,58 @@ export class HighAccuracyMediaPlayer {
 		// The tempo and pitch change has an observed delay of 8192 samples, so we need to shift the playback by that much. And a bit more.
 		let startDurationAdditionalOffset = useNativePlaybackRate? 0 : 8192 / audioContext.sampleRate + 0.008;
 
-		let frameHeaderIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, this.lastBufferOffset, SECTION_LENGTH);
-		// Get the index to a frame a small amount of time later. This will give us a margin to blend over the two audio sources.
-		let padddingIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, frameHeaderIndex.offset, 0.2 + 3 * startDurationAdditionalOffset);
-
-		if (frameHeaderIndex.eofReached && frameHeaderIndex.exactTime === 0) {
-			this.endOfDataReached = true;
-			return;
-		}
-
-		// Construct the small MP3 snippet
-		let buffer = new Uint8Array(this.fileHeader.byteLength + (padddingIndex.offset - this.lastBufferOffset));
-		buffer.set(new Uint8Array(this.fileHeader), 0);
-		buffer.set(new Uint8Array(this.data.slice(this.lastBufferOffset, padddingIndex.offset)), this.fileHeader.byteLength);
-
 		let bufferSource = audioContext.createBufferSource();
-		let rawAudioBuffer = await audioContext.decodeAudioData(buffer.buffer);
+		let newBufferInfo: AudioBufferInfo;
+		let cachedBuffer = this.cachedAudioBuffers.find((x) => {
+			if (this.currentBufferEndTime >= x.startTime && this.currentBufferEndTime < x.startTime + x.intendedDuration) return true;
+			return false;
+		});
 
-		if (useNativePlaybackRate) {
-			bufferSource.buffer = rawAudioBuffer;
-			bufferSource.playbackRate.value = this.tempo;
+		if (cachedBuffer) {
+			newBufferInfo = cachedBuffer;
 		} else {
-			let processedBuffer = await AudioUtil.changeTempoAndPitch(rawAudioBuffer, audioContext, this.tempo, this.pitch);
-			bufferSource.buffer = processedBuffer;
+			let frameHeaderIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, this.lastBufferOffset, SECTION_LENGTH);
+			// Get the index to a frame a small amount of time later. This will give us a margin to blend over the two audio sources.
+			let padddingIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, frameHeaderIndex.offset, 0.2 + 3 * startDurationAdditionalOffset);
+	
+			if (frameHeaderIndex.eofReached && frameHeaderIndex.exactTime === 0) {
+				this.endOfDataReached = true;
+				return;
+			}
+	
+			// Construct the small MP3 snippet
+			let buffer = new Uint8Array(this.fileHeader.byteLength + (padddingIndex.offset - this.lastBufferOffset));
+			buffer.set(new Uint8Array(this.fileHeader), 0);
+			buffer.set(new Uint8Array(this.data.slice(this.lastBufferOffset, padddingIndex.offset)), this.fileHeader.byteLength);
+	
+			let rawAudioBuffer = await audioContext.decodeAudioData(buffer.buffer);
+			let finalAudioBuffer: AudioBuffer;
+	
+			if (useNativePlaybackRate) {
+				bufferSource.playbackRate.value = this.tempo;
+				finalAudioBuffer = rawAudioBuffer;
+			} else {
+				let processedBuffer = await AudioUtil.changeTempoAndPitch(rawAudioBuffer, audioContext, this.tempo, this.pitch);
+				finalAudioBuffer = processedBuffer;
+			}
+
+			newBufferInfo = {
+				startTime: this.currentBufferEndTime,
+				intendedDuration: frameHeaderIndex.exactTime,
+				buffer: finalAudioBuffer,
+				startOffset: this.lastBufferOffset,
+				endOffset: frameHeaderIndex.offset,
+				eofReached: frameHeaderIndex.eofReached
+			};
+
+			this.cachedAudioBuffers.push(newBufferInfo);
+			// Start removing old caches when the cache gets really big (to save memory)
+			if (this.cachedAudioBuffers.length > 150) this.cachedAudioBuffers.shift();
 		}
 
 		if (this.currentMasterNodeId !== masterNodeId) return; // Master node has changed while decoding! Abort!
+
+		bufferSource.buffer = newBufferInfo.buffer;
 
 		// This package here is a crossfader:
 		let gain1 = audioContext.createGain(); // Belongs to the freshly created buffer source
@@ -158,7 +202,10 @@ export class HighAccuracyMediaPlayer {
 		if (this.lastAudioNode === null) {
 			let currentContextTime = audioContext.currentTime;
 
-			bufferSource.start(currentContextTime - Math.min(offset, 0) / this.tempo, Math.max(offset, 0) / startDurationDivisor + startDurationAdditionalOffset);
+			let when = currentContextTime - Math.min(this.offset, 0) / this.tempo;
+			let offset = Math.max(this.offset - newBufferInfo.startTime, 0) / startDurationDivisor + startDurationAdditionalOffset;
+
+			bufferSource.start(when, offset);
 			this.startTime = currentContextTime;
 		} else {
 			const swapDelay = 0.1;
@@ -178,11 +225,13 @@ export class HighAccuracyMediaPlayer {
 			gain2.gain.linearRampToValueAtTime(0, swapTime + crossfadeDuration);
 		}
 
-		this.currentBufferEndTime += frameHeaderIndex.exactTime;
-		this.lastBufferOffset = frameHeaderIndex.offset;
+		this.currentBufferEndTime = newBufferInfo.startTime + newBufferInfo.intendedDuration;
+		this.lastBufferOffset = newBufferInfo.endOffset;
 		this.lastAudioNode = bufferSource;
 
-		if (frameHeaderIndex.eofReached) this.endOfDataReached = true;
+		if (newBufferInfo.eofReached) this.endOfDataReached = true;
+
+		this.tryNextBufferingStep(); // Could be that we're already so close to the end of the current buffer that we need to queue the next one.
 	}
 
 	private async tick() {
@@ -190,6 +239,10 @@ export class HighAccuracyMediaPlayer {
 		if (this.endOfDataReached && this.getContextCurrentTime() === this.currentBufferEndTime) this.pause();
 		if (this.suppressTick || this.endOfDataReached) return;
 
+		await this.tryNextBufferingStep();
+	}
+
+	private async tryNextBufferingStep() {
 		let swapTime = this.startTime + (this.currentBufferEndTime - this.offset) / this.tempo;
 		let remaining = swapTime - audioContext.currentTime;
 
@@ -233,6 +286,10 @@ export class HighAccuracyMediaPlayer {
 		}
 
 		await this.internalStart(this.pausedTime, false);
+	}
+
+	private clearBufferCache() {
+		this.cachedAudioBuffers.length = 0;
 	}
 
 	isPaused() {

@@ -195,7 +195,7 @@ export abstract class Mp3Util {
 		let xingOffset: number;
 		let isMono = channelMode === 3;
 
-        if (mpegVersion === 3) { // mpeg1
+        if (mpegVersion === 3) { // MPEG Version 1 (ISO/IEC 11172-3)
             xingOffset = isMono? 21 : 36;
         } else {
             xingOffset = isMono? 13 : 21;
