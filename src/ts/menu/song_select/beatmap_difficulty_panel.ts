@@ -98,29 +98,13 @@ export class BeatmapDifficultyPanel {
 		this.interaction = Interactivity.registerDisplayObject(this.container);
 		carouselInteractionGroup.add(this.interaction);
 
-		this.interaction.addListener('mouseClick', () => this.select());
-
-		this.interaction.addListener('mouseDown', () => {
-			this.pressDownInterpolator.setReversedState(false, performance.now());
-		});
-
-		this.interaction.addListener('mouseEnter', (e) => {
-			this.hoverInterpolator.setReversedState(false, performance.now());
-
-			if (e.pressedDown) {
-				this.pressDownInterpolator.setReversedState(false, performance.now());
-			}
-		});
-
-		this.interaction.addListener('mouseUp', () => {
-			this.pressDownInterpolator.setReversedState(true, performance.now());
-		});
-
-		this.interaction.addListener('mouseLeave', () => {
-			this.hoverInterpolator.setReversedState(true, performance.now());
-
-			this.pressDownInterpolator.setReversedState(true, performance.now());
-		});
+		this.interaction.addButtonHandlers(
+			() => this.select(),
+			() => this.hoverInterpolator.setReversedState(false, performance.now()),
+			() => this.hoverInterpolator.setReversedState(true, performance.now()),
+			() => this.pressDownInterpolator.setReversedState(false, performance.now()),
+			() => this.pressDownInterpolator.setReversedState(true, performance.now())
+		);
 	}
 
 	private draw() {

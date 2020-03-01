@@ -217,23 +217,13 @@ class PauseScreenActionPanel {
 	setupInteraction(group: InteractionGroup, onclick: () => any) {
 		let registration = Interactivity.registerDisplayObject(this.container);
 		group.add(registration);
-		registration.enableEmptyListeners();
-		registration.addListener('mouseClick', onclick);
 
-		registration.addListener('mouseEnter', (e) => {
-			this.hoverInterpolator.setReversedState(false, performance.now());
-
-			if (e.pressedDown) this.pressdownInterpolator.setReversedState(false, performance.now());
-		});
-		registration.addListener('mouseLeave', () => {
-			this.hoverInterpolator.setReversedState(true, performance.now());
-			this.pressdownInterpolator.setReversedState(true, performance.now());
-		});
-		registration.addListener('mouseDown', () => {
-			this.pressdownInterpolator.setReversedState(false, performance.now());
-		});
-		registration.addListener('mouseUp', () => {
-			this.pressdownInterpolator.setReversedState(true, performance.now());
-		});
+		registration.addButtonHandlers(
+			onclick,
+			() => this.hoverInterpolator.setReversedState(false, performance.now()),
+			() => this.hoverInterpolator.setReversedState(true, performance.now()),
+			() => this.pressdownInterpolator.setReversedState(false, performance.now()),
+			() => this.pressdownInterpolator.setReversedState(true, performance.now())
+		);
 	}
 }

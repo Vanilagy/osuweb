@@ -113,31 +113,13 @@ export class BeatmapSetPanel {
 		this.interaction = Interactivity.registerDisplayObject(this.panelContainer, true);
 		carouselInteractionGroup.add(this.interaction);
 
-		this.interaction.addListener('mouseClick', () => {
-			if (!this.isExpanded) this.expand();
-		});
-
-		this.interaction.addListener('mouseDown', () => {
-			this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now());
-		});
-
-		this.interaction.addListener('mouseEnter', (e) => {
-			this.hoverInterpolator.setReversedState(false, performance.now());
-
-			if (e.pressedDown) {
-				this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now());
-			}
-		});
-
-		this.interaction.addListener('mouseUp', () => {
-			this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now());
-		});
-
-		this.interaction.addListener('mouseLeave', () => {
-			this.hoverInterpolator.setReversedState(true, performance.now());
-
-			this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now());
-		});
+		this.interaction.addButtonHandlers(
+			() => this.expand(),
+			() => this.hoverInterpolator.setReversedState(false, performance.now()),
+			() => this.hoverInterpolator.setReversedState(true, performance.now()),
+			() => this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now()),
+			() => this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now())
+		);
 	}
 
 	private async loadImage() {

@@ -241,6 +241,21 @@ export class InteractionRegistration extends InteractionUnit {
 			}
 		}
 	}
+
+	/** Buttons typically have the following handlers: One for when it's clicked, then one for hover, one for unhover, one for pressing it down and one for releasing it. However, buttons typically connect these handlers, for example: When a button is held down, but then the mouse is moved out of it, then that should release the button. Similarly then, when the mouse moves back into the button area, that should run the press-down code again. This method takes care of that. */
+	addButtonHandlers(onclick: (data?: InteractionEventMap["mouseClick"]) => any, onmousenter: (data?: InteractionEventMap["mouseEnter"]) => any, onmouseleave: (data?: InteractionEventMap["mouseLeave"]) => any, onpressdown: (data?: InteractionEventMap["mouseDown"]) => any, onrelease: (data?: InteractionEventMap["mouseUp"]) => any) {
+		this.addListener('mouseClick', onclick);
+		this.addListener('mouseEnter', (e) => {
+			onmousenter();
+			if (e.pressedDown) onpressdown();
+		});
+		this.addListener('mouseLeave', () => {
+			onmouseleave();
+			onrelease();
+		});
+		this.addListener('mouseDown', onpressdown);
+		this.addListener('mouseUp', onrelease);
+	}
 }
 
 export class InteractionGroup extends InteractionUnit {
