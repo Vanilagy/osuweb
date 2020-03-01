@@ -2,6 +2,8 @@ import { EaseType } from "../../util/math_util";
 import { Interactivity, InteractionGroup } from "../../input/interactivity";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
 import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
+import { THEME_COLORS } from "../../util/constants";
+import { colorToHexNumber } from "../../util/graphics_util";
 
 export class TabSelector extends CustomEventEmitter<{selection: number}> {
 	public container: PIXI.Container;
@@ -60,7 +62,7 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 		}
 
 		this.selectionBar = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.selectionBar.tint = 0x6FC2FF;
+		this.selectionBar.tint = colorToHexNumber(THEME_COLORS.PrimaryBlue);
 		this.container.addChild(this.selectionBar);
 
 		this.selectedIndex = defaultIndex;

@@ -4,6 +4,8 @@ import { gameState } from "../game_state";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
+import { colorToHexNumber } from "../../util/graphics_util";
+import { THEME_COLORS } from "../../util/constants";
 
 const ACTION_PANEL_WIDTH = 336;
 const ACTION_PANEL_HEIGHT = 52;
@@ -36,9 +38,9 @@ export class PauseScreen {
 		this.heading = new PIXI.Text("paused");
 		this.centerContainer.addChild(this.heading);
 
-		let resumePanel = new PauseScreenActionPanel("resume", 0x3baedf);
-		let restartPanel = new PauseScreenActionPanel("restart", 0xdfbb3b);
-		let quitPanel = new PauseScreenActionPanel("quit", 0xdf3b62);
+		let resumePanel = new PauseScreenActionPanel("resume", colorToHexNumber(THEME_COLORS.PrimaryBlue));
+		let restartPanel = new PauseScreenActionPanel("restart", colorToHexNumber(THEME_COLORS.PrimaryYellow));
+		let quitPanel = new PauseScreenActionPanel("quit", colorToHexNumber(THEME_COLORS.PrimaryPink));
 		this.actionPanels = [resumePanel, restartPanel, quitPanel];
 		for (let panel of this.actionPanels) this.centerContainer.addChild(panel.container);
 
@@ -209,7 +211,7 @@ class PauseScreenActionPanel {
 		this.container.pivot.y = this.container.pivot.x;
 
 		let pressdownCompletion = this.pressdownInterpolator.getCurrentValue(now);
-		this.background.tint = Math.floor(MathUtil.lerp(9, 4, pressdownCompletion)) * 0x10101;
+		this.background.tint = Math.floor(MathUtil.lerp(15, 6, pressdownCompletion)) * 0x10101;
 	}
 
 	setupInteraction(group: InteractionGroup, onclick: () => any) {

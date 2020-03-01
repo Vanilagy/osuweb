@@ -20,7 +20,15 @@ export function colorToHexString(color: Color) {
 	return '#' + ('000000' + colorToHexNumber(color).toString(16)).slice(-6);
 }
 
-export function lerpColors(c1: Color, c2: Color, t: number) {
+export function hexNumberToColor(hexNumber: number): Color {
+	let r = (hexNumber & 0xFF0000) >> 16;
+	let g = (hexNumber & 0x00FF00) >> 8;
+	let b = (hexNumber & 0x0000FF) >> 0;
+
+	return {r, g, b};
+}
+
+export function lerpColors(c1: Color, c2: Color, t: number): Color {
 	return {
 		r: MathUtil.lerp(c1.r, c2.r, t) | 0,
 		g: MathUtil.lerp(c1.g, c2.g, t) | 0,
@@ -35,7 +43,7 @@ export const Colors = {
 	Green: {r: 0, g: 255, b: 0} as Color,
 	Blue: {r: 0, g: 0, b: 255} as Color,
 	Yellow: {r: 255, g: 255, b: 0} as Color
-};
+} as const;
 
 /**
  * @param actualWidth The actual width of the container for which the scaling factor is to be calculated

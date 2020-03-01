@@ -1,3 +1,5 @@
+import { hexNumberToColor, Color } from "./graphics_util";
+
 export const PLAYFIELD_DIMENSIONS = { // In osu!pixels
 	width: 512,
 	height: 384
@@ -26,3 +28,9 @@ export const SLIDER_SETTINGS = {
 	debugDrawing: false,
 	snaking: true
 };
+
+export const THEME_COLORS = {
+	PrimaryBlue: hexNumberToColor(0x6FC2FF),
+	PrimaryYellow: hexNumberToColor(0xFFD84B),
+	PrimaryPink: hexNumberToColor(0xFA557D)
+} as const;
