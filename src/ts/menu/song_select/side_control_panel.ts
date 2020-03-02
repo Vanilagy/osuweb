@@ -254,7 +254,6 @@ class SideControlPulsar {
 
 		let shadow = new PIXI.filters.DropShadowFilter({
 			rotation: 180,
-			distance: 6,
 			alpha: 0.25,
 			blur: 0,
 			quality: 10,
@@ -314,6 +313,9 @@ class SideControlPulsar {
 		g.drawCircle(0, 0, PULSAR_IDLE_RADIUS * 0.92 * scalingFactor);
 
 		this.icon.scale.set(scalingFactor * 0.15);
+
+		let shadowFilter = this.container.filters[0] as PIXI.filters.DropShadowFilter;
+		shadowFilter.distance = 4 * scalingFactor;
 	}
 
 	update(now: number) {

@@ -10,7 +10,6 @@ import { initSongSelect } from './menu/song_select/song_select';
 const osu: string | null = 'ORERU!';
 
 async function init() {
-	//return;
 	await baseSkin.init();
 	showChooseFile();
 	initSongSelect();

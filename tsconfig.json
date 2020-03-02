@@ -4,13 +4,14 @@
         "experimentalDecorators": true,
         "outDir": "./js",
         "module": "es6",
-        "moduleResolution": "classic",
+        "moduleResolution": "Node",
         "target": "esnext",
         "strict": true,
 		"strictNullChecks": false,
 		"lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"]
     },
     "include": [
-        "src/ts/**/*",
+		"src/ts/**/*",
+		"src/node_modules/**/*"
     ]
 }

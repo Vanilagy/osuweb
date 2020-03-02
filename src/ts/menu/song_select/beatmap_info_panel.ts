@@ -108,7 +108,6 @@ export class BeatmapInfoPanel {
 
 		let shadow = new PIXI.filters.DropShadowFilter({
 			rotation: 45,
-			distance: 6,
 			alpha: 0.25,
 			blur: 0,
 			quality: 10,
@@ -360,6 +359,9 @@ export class BeatmapInfoPanel {
 
 		this.tabBackground.width = Math.floor(INFO_PANEL_WIDTH * scalingFactor);
 		this.tabBackground.position.set(tabX, tabY);
+
+		let shadowFilter = this.upperPanelContainer.filters[0] as PIXI.filters.DropShadowFilter;
+		shadowFilter.distance = 4 * scalingFactor;
 	}
 
 	update(now: number) {
