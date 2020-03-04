@@ -41,24 +41,28 @@ export interface BeatmapInfoPanelTab {
 }
 
 export class BeatmapInfoPanel {
-	private currentBeatmapSet: BeatmapSet = null;
-
 	public songSelect: SongSelect;
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
 	public scalingFactor: number = 1.0;
+
+	private currentBeatmapSet: BeatmapSet = null;
+
 	private upperPanelContainer: PIXI.Container;
 	private mask: PIXI.Sprite;
+	private darkening: PIXI.Sprite;
+	private detailsFadeIn: Interpolator;
+
 	private backgroundImageContainer: PIXI.Container;
 	private markedForDeletionImages = new WeakSet<PIXI.Container>();
 	private imageInterpolators = new WeakMap<PIXI.Container, Interpolator>();
-	private darkening: PIXI.Sprite;
+	
 	private titleText: PIXI.Text;
 	private artistText: PIXI.Text;
-	private mapperTextPrefix: PIXI.Text; // Need to have two separate text thingeys because they have different styling, and PIXI isn't flexible enough
+	private mapperTextPrefix: PIXI.Text; // Need to have two separate text thingies because they have different styling, and PIXI isn't flexible enough
 	private mapperText: PIXI.Text;
 	private difficultyText: PIXI.Text;
-	private detailsFadeIn: Interpolator;
+
 	private tabSelector: TabSelector;
 	private tabBackground: PIXI.Sprite;
 	private tabBackgroundHeightInterpolator: InterpolatedValueChanger;

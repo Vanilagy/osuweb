@@ -59,6 +59,7 @@ export class SongSelectSideControlPanel {
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
 	public scalingFactor: number = 1.0;
+
     private pulsar: SideControlPulsar;
     private background: PIXI.Sprite;
     private buttons: SideControlPanelButton[] = [];
@@ -128,8 +129,9 @@ export class SongSelectSideControlPanel {
 
 class SideControlPanelButton {
 	private parent: SongSelectSideControlPanel;
+	public container: PIXI.Container;
+
     private label: string;
-    public container: PIXI.Container;
     private text: PIXI.Text;
 	private background: PIXI.Sprite;
 	private icon: PIXI.Sprite;
@@ -201,15 +203,17 @@ class SideControlPanelButton {
 }
 
 class SideControlPulsar {
-	public container: PIXI.Container;
 	private parent: SongSelectSideControlPanel;
+	public container: PIXI.Container;
+	
 	private graphics: PIXI.Graphics;
-	private hoverInterpolator: Interpolator;
 	private hitbox: PIXI.Circle;
 	private icon: PIXI.Sprite;
-	private pulseInterpolator: Interpolator;
-    private lastBeatTime: number = -Infinity;
+
+	private lastBeatTime: number = -Infinity;
     private analyser: AnalyserNodeWrapper;
+	private hoverInterpolator: Interpolator;
+	private pulseInterpolator: Interpolator;	
 
 	constructor(parent: SongSelectSideControlPanel) {
 		this.parent = parent;

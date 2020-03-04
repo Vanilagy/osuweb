@@ -12,21 +12,24 @@ import { ExtendedBeatmapData } from "../../util/beatmap_util";
 export class BeatmapDifficultyPanel {
 	public container: PIXI.Container;
 	public parentPanel: BeatmapSetPanel;
+	private registration: InteractionRegistration;
+
 	private beatmapFile?: VirtualFile = null;
-	private fadeInInterpolator: Interpolator;
+	private extendedBeatmapData?: ExtendedBeatmapData;
+
 	private infoContainer: PIXI.Container;
 	private background: PIXI.Sprite;
 	private mainMask: PIXI.Sprite;
 	private primaryText: PIXI.Text;
-	private extendedBeatmapData: ExtendedBeatmapData;
 	private starRatingTicks: PIXI.Graphics;
-	private currentNormalizedY: number = 0;
-	private enabled = true;
-	private registration: InteractionRegistration;
-	private hoverInterpolator: Interpolator;
-	private expandInterpolator: Interpolator;
 	private glowSprite: PIXI.Sprite;
 	private colorBar: PIXI.Sprite;
+
+	private enabled = true;
+	private currentNormalizedY: number = 0;
+	private fadeInInterpolator: Interpolator;
+	private hoverInterpolator: Interpolator;
+	private expandInterpolator: Interpolator;
 	private pressDownInterpolator: Interpolator;
 
 	constructor(parentPanel: BeatmapSetPanel) {

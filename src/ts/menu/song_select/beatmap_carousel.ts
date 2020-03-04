@@ -51,24 +51,28 @@ export class BeatmapCarousel {
 	public songSelect: SongSelect;
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
+	public scalingFactor: number = 1.0;
+
 	private beatmapSetPanels: BeatmapSetPanel[] = [];
 	private panelCache = new WeakMap<BeatmapSet, BeatmapSetPanel>();
+
 	public selectedPanel: BeatmapSetPanel = null;
+	public selectedSubpanel: BeatmapDifficultyPanel = null;
+
 	private referencePanel: BeatmapSetPanel = null;
 	private referencePanelY = 0;
 	private scrollVelocity = 0; // In normalized pixels per second
+	private snapToSelected = false;
+	private skipSnapbackNextFrame = true;
 	private snapToSelectionInterpolator = new Interpolator({
 		duration: 750,
 		ease: EaseType.EaseOutElastic,
 		p: 0.9,
 		defaultToFinished: true
 	});
-	private snapToSelected = false;
-	private skipSnapbackNextFrame = true;
-	public selectedSubpanel: BeatmapDifficultyPanel = null;
-	public scalingFactor: number = 1.0;
-	private pressDownStopped = true;
+
 	private dragTarget: PIXI.Container;
+	private pressDownStopped = true;	
 
 	constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;

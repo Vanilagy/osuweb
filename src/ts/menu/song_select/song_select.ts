@@ -16,6 +16,7 @@ import { uiEventEmitter } from "../../visuals/ui";
 export class SongSelect {
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
+	
 	public loadedBeatmapSets: BeatmapSet[] = [];
 	public selectedBeatmapFile: VirtualFile = null;
 	public selectedBeatmapSet: BeatmapSet = null;

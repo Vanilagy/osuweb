@@ -15,28 +15,33 @@ import { Interpolator } from "../../util/interpolation";
 
 export class BeatmapSetPanel {
 	public carousel: BeatmapCarousel;
+	public container: PIXI.Container;
+	public interactionGroup: InteractionGroup;
+
 	public beatmapSet: BeatmapSet;
 	private beatmapFiles: VirtualFile[];
-	public container: PIXI.Container;
+
 	private panelContainer: PIXI.Container;
-	public isExpanded: boolean = false;
-	private difficultyContainer: PIXI.Container;
-	private expandInterpolator: Interpolator;
-	private beatmapDifficultyPanels: BeatmapDifficultyPanel[] = [];
 	private mainMask: PIXI.Sprite;
-	private backgroundImageSprite: PIXI.Sprite;
-	private backgroundImageBitmap: ImageBitmap = null;
 	private darkening: PIXI.Sprite;
 	private primaryText: PIXI.Text;
 	private secondaryText: PIXI.Text;
+	private glowSprite: PIXI.Sprite;
+
+	private backgroundImageSprite: PIXI.Sprite;
+	private backgroundImageBitmap: ImageBitmap = null;
 	private imageLoadingStarted = false;
 	private imageFadeIn: Interpolator;
-	public currentNormalizedY: number = 0;
-	public interactionGroup: InteractionGroup;
-	private hoverInterpolator: Interpolator;
 	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
-	private glowSprite: PIXI.Sprite;
+
+	private difficultyContainer: PIXI.Container;
+	private beatmapDifficultyPanels: BeatmapDifficultyPanel[] = [];
+	
+	public isExpanded: boolean = false;
+	public currentNormalizedY: number = 0;
 	public needsResize = true;
+	private expandInterpolator: Interpolator;
+	private hoverInterpolator: Interpolator;
 	private mouseDownBrightnessInterpolator: Interpolator;
 
 	constructor(carousel: BeatmapCarousel, beatmapSet: BeatmapSet) {

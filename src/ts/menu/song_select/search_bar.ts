@@ -20,13 +20,16 @@ export class SearchBar {
 	public songSelect: SongSelect;
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
-	private scalingFactor: number = 1.0;
-    private textElement: PIXI.Text;
-	private delay: OverridableDelay = new OverridableDelay();
-	private textStorage: TextInputStorage;
+
 	private background: PIXI.Sprite;
-	private textBackground: PIXI.Sprite;
 	private sortSelector: TabSelector;
+
+	private scalingFactor: number = 1.0;
+	private delay: OverridableDelay = new OverridableDelay();
+
+	private textStorage: TextInputStorage;
+	private textElement: PIXI.Text;
+	private textBackground: PIXI.Sprite;
 
     constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
