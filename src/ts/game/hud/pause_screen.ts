@@ -54,7 +54,7 @@ export class PauseScreen {
 			this.hide();
 		});
 		quitPanel.setupInteraction(this.interactionGroup, () => {
-			console.log("Not yet implemented!");
+			// showSongSelect();
 		});
 
 		this.fadeInterpolator = new Interpolator({

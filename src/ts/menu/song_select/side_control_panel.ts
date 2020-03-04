@@ -1,73 +1,42 @@
-import { songSelectContainer, songSelectInteractionGroup, triggerSelectedBeatmap, getSelectedExtendedBeatmapData } from "./song_select";
-import { currentWindowDimensions } from "../../visuals/ui";
-import { getBeatmapInfoPanelScalingFactor } from "./beatmap_info_panel";
+import { SongSelect } from "./song_select";
+import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { scale } from "gl-matrix/src/gl-matrix/vec2";
 import { createPolygonTexture, svgToTexture } from "../../util/pixi_util";
 import { addRenderingTask } from "../../visuals/rendering";
-import { Interactivity } from "../../input/interactivity";
+import { Interactivity, InteractionGroup } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { mainMusicMediaPlayer } from "../../audio/media_player";
 import { AnalyserNodeWrapper } from "../../audio/analyser_node_wrapper";
+import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 
 const PULSAR_IDLE_RADIUS = 60;
 const SIDE_CONTROL_PANEL_WIDTH = 42;
 const SIDE_CONTROL_PANEL_HEIGHT = 290;
 
-let sideControlPanel: SongSelectSideControlPanel = null;
-let sideControlPanelInteractionGroup = Interactivity.createGroup();
-sideControlPanelInteractionGroup.setZIndex(4);
-
-let sideControlPanelScalingFactor = 1.0;
 let sideControlPanelBg = document.createElement('canvas');
 let sideControlPanelBgCtx = sideControlPanelBg.getContext('2d');
 let randomButtonTexture = svgToTexture(document.querySelector('#svg-shuffle'), true);
 let modsButtonTexture = svgToTexture(document.querySelector('#svg-options'), true);
 let cdTexture = svgToTexture(document.querySelector('#svg-cd'), true);
 
-export function getSideControlPanelScalingFactor() {
-	return sideControlPanelScalingFactor;
-}
-
-export function initSideControlPanel() {
-	songSelectInteractionGroup.add(sideControlPanelInteractionGroup);
-    sideControlPanel = new SongSelectSideControlPanel();
-    songSelectContainer.addChild(sideControlPanel.container);
-
-    updateSideControlPanelSizing();
-}
-
-export function updateSideControlPanelSizing() {
-    if (!sideControlPanel) return;
-
-    sideControlPanelScalingFactor = getBeatmapInfoPanelScalingFactor(); // TEMP for now
-    
-    sideControlPanel.container.x = currentWindowDimensions.width;
-    sideControlPanel.container.y = Math.floor(currentWindowDimensions.height / 2);
-
-    sideControlPanel.resize();
-}
-
-function createPanelBackgroundTexture() {
+function createPanelBackgroundTexture(scalingFactor: number) {
     let slantHeight = SIDE_CONTROL_PANEL_WIDTH / 5;
-    let scalingFactor = getSideControlPanelScalingFactor();
 
     return createPolygonTexture(SIDE_CONTROL_PANEL_WIDTH, SIDE_CONTROL_PANEL_HEIGHT + 2*slantHeight, 
         [new PIXI.Point(0, slantHeight), new PIXI.Point(SIDE_CONTROL_PANEL_WIDTH, 0), new PIXI.Point(SIDE_CONTROL_PANEL_WIDTH, SIDE_CONTROL_PANEL_HEIGHT + slantHeight), new PIXI.Point(0, SIDE_CONTROL_PANEL_HEIGHT + 2*slantHeight)],
     scalingFactor);
 }
 
-function createPanelButtonTexture() {
+function createPanelButtonTexture(scalingFactor: number) {
     let slantHeight = SIDE_CONTROL_PANEL_WIDTH / 5;
-    let scalingFactor = getSideControlPanelScalingFactor();
 
     return createPolygonTexture(SIDE_CONTROL_PANEL_WIDTH, SIDE_CONTROL_PANEL_WIDTH + 2*slantHeight, 
         [new PIXI.Point(0, slantHeight), new PIXI.Point(SIDE_CONTROL_PANEL_WIDTH, 0), new PIXI.Point(SIDE_CONTROL_PANEL_WIDTH, SIDE_CONTROL_PANEL_WIDTH + slantHeight), new PIXI.Point(0, SIDE_CONTROL_PANEL_WIDTH + 2*slantHeight)],
     scalingFactor);
 }
 
-export function updateSideControlPanelBg() {
-    let scalingFactor = getSideControlPanelScalingFactor();
+export function updateSideControlPanelBg(scalingFactor: number) {
 	let slantHeight = SIDE_CONTROL_PANEL_WIDTH/5;
 
 	sideControlPanelBg.setAttribute('width', String(Math.ceil(SIDE_CONTROL_PANEL_WIDTH * scalingFactor)));
@@ -85,25 +54,23 @@ export function updateSideControlPanelBg() {
 	sideControlPanelBgCtx.fill();
 }
 
-addRenderingTask((now) => {
-	if (!sideControlPanel) return;
-	sideControlPanel.update(now);
-});
-
-export function resetLastBeatTime() {
-	sideControlPanel.resetLastBeatTime();
-}
-
-class SongSelectSideControlPanel {
-    public container: PIXI.Container;
+export class SongSelectSideControlPanel {
+	public songSelect: SongSelect;
+	public container: PIXI.Container;
+	public interactionGroup: InteractionGroup;
+	public scalingFactor: number = 1.0;
     private pulsar: SideControlPulsar;
     private background: PIXI.Sprite;
     private buttons: SideControlPanelButton[] = [];
 
-    constructor() {
+    constructor(songSelect: SongSelect) {
+		this.songSelect = songSelect;
         this.container = new PIXI.Container();
-        this.container.sortableChildren = true;
-        this.pulsar = new SideControlPulsar();
+		this.container.sortableChildren = true;
+		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup.setZIndex(4);
+
+        this.pulsar = new SideControlPulsar(this);
 		this.container.addChild(this.pulsar.container);
 		this.pulsar.container.zIndex = 10;
 
@@ -113,35 +80,38 @@ class SongSelectSideControlPanel {
         this.container.addChild(this.background);
 
         // omg give this a more descriptive name
-        let b1 = new SideControlPanelButton('random', randomButtonTexture);
+        let b1 = new SideControlPanelButton(this, 'random', randomButtonTexture);
         this.container.addChild(b1.container);
         this.buttons.push(b1);
-        let b2 = new SideControlPanelButton('mods', modsButtonTexture);
+        let b2 = new SideControlPanelButton(this, 'mods', modsButtonTexture);
         this.container.addChild(b2.container);
 		this.buttons.push(b2);
 
 		let interaction = Interactivity.registerDisplayObject(this.background);
-		sideControlPanelInteractionGroup.add(interaction);
+		this.interactionGroup.add(interaction);
 		interaction.setZIndex(-1);
 		interaction.enableEmptyListeners();
     }
 
     resize() {
-        let scalingFactor = getSideControlPanelScalingFactor();
-        
-        this.background.texture = createPanelBackgroundTexture();
-        this.background.pivot.set(Math.floor(SIDE_CONTROL_PANEL_WIDTH/2 * scalingFactor), Math.floor((SIDE_CONTROL_PANEL_HEIGHT + 2*SIDE_CONTROL_PANEL_WIDTH/5) /2 * scalingFactor));
+		this.scalingFactor = calculateRatioBasedScalingFactor(currentWindowDimensions.width, currentWindowDimensions.height, 16/9, REFERENCE_SCREEN_HEIGHT);
 
-		this.container.pivot.x = Math.floor(SIDE_CONTROL_PANEL_WIDTH/2 * scalingFactor);
+		this.container.x = currentWindowDimensions.width;
+    	this.container.y = Math.floor(currentWindowDimensions.height / 2);
+        
+        this.background.texture = createPanelBackgroundTexture(this.scalingFactor);
+        this.background.pivot.set(Math.floor(SIDE_CONTROL_PANEL_WIDTH/2 * this.scalingFactor), Math.floor((SIDE_CONTROL_PANEL_HEIGHT + 2*SIDE_CONTROL_PANEL_WIDTH/5) /2 * this.scalingFactor));
+
+		this.container.pivot.x = Math.floor(SIDE_CONTROL_PANEL_WIDTH/2 * this.scalingFactor);
 		
 		this.pulsar.resize();
 
         for (let i = 0; i < this.buttons.length; i++) {
             let b = this.buttons[i];
 
-            b.container.pivot.y = Math.floor((SIDE_CONTROL_PANEL_WIDTH + 2*SIDE_CONTROL_PANEL_WIDTH/5) / 2 * scalingFactor);
-            b.container.y = Math.floor(Math.pow(-1, i+1) * SIDE_CONTROL_PANEL_HEIGHT * 0.4 * scalingFactor); // stupid math hack
-            b.container.x = -Math.floor(SIDE_CONTROL_PANEL_WIDTH/2 * scalingFactor);
+            b.container.pivot.y = Math.floor((SIDE_CONTROL_PANEL_WIDTH + 2*SIDE_CONTROL_PANEL_WIDTH/5) / 2 * this.scalingFactor);
+            b.container.y = Math.floor(Math.pow(-1, i+1) * SIDE_CONTROL_PANEL_HEIGHT * 0.4 * this.scalingFactor); // stupid math hack
+            b.container.x = -Math.floor(SIDE_CONTROL_PANEL_WIDTH/2 * this.scalingFactor);
             b.resize();
         }
 	}
@@ -157,6 +127,7 @@ class SongSelectSideControlPanel {
 }
 
 class SideControlPanelButton {
+	private parent: SongSelectSideControlPanel;
     private label: string;
     public container: PIXI.Container;
     private text: PIXI.Text;
@@ -164,7 +135,8 @@ class SideControlPanelButton {
 	private icon: PIXI.Sprite;
 	private hoverInterpolator: Interpolator;
 
-    constructor(label: string, iconTexture: PIXI.Texture) {
+    constructor(parent: SongSelectSideControlPanel, label: string, iconTexture: PIXI.Texture) {
+		this.parent = parent;
         this.label = label;
         this.container = new PIXI.Container();
 
@@ -191,7 +163,7 @@ class SideControlPanelButton {
 	
 	private initInteraction() {
 		let interaction = Interactivity.registerDisplayObject(this.background);
-		sideControlPanelInteractionGroup.add(interaction);
+		this.parent.interactionGroup.add(interaction);
 
 		interaction.addListener('mouseEnter', () => {
 			this.hoverInterpolator.setReversedState(false, performance.now());
@@ -202,9 +174,9 @@ class SideControlPanelButton {
 	}
 
     resize() {
-		let scalingFactor = getSideControlPanelScalingFactor();
-		
-		this.background.texture = createPanelButtonTexture();
+		let scalingFactor = this.parent.scalingFactor;
+
+		this.background.texture = createPanelButtonTexture(scalingFactor);
 
         this.text.style = {
 			fontFamily: 'Exo2-Regular',
@@ -230,6 +202,7 @@ class SideControlPanelButton {
 
 class SideControlPulsar {
 	public container: PIXI.Container;
+	private parent: SongSelectSideControlPanel;
 	private graphics: PIXI.Graphics;
 	private hoverInterpolator: Interpolator;
 	private hitbox: PIXI.Circle;
@@ -238,7 +211,8 @@ class SideControlPulsar {
     private lastBeatTime: number = -Infinity;
     private analyser: AnalyserNodeWrapper;
 
-	constructor() {
+	constructor(parent: SongSelectSideControlPanel) {
+		this.parent = parent;
 		this.container = new PIXI.Container();
 		this.graphics = new PIXI.Graphics();
 		this.container.addChild(this.graphics);
@@ -285,7 +259,7 @@ class SideControlPulsar {
 
 	private initInteraction() {
 		let interaction = Interactivity.registerDisplayObject(this.container);
-		sideControlPanelInteractionGroup.add(interaction);
+		this.parent.interactionGroup.add(interaction);
 		interaction.enableEmptyListeners();
 		interaction.setZIndex(1);
 
@@ -296,12 +270,12 @@ class SideControlPulsar {
 			this.hoverInterpolator.setReversedState(true, performance.now());
 		});
 		interaction.addListener('mouseDown', () => {
-			triggerSelectedBeatmap();
+			this.parent.songSelect.triggerSelectedBeatmap();
 		});
 	}
 
 	resize() {
-		let scalingFactor = getSideControlPanelScalingFactor();
+		let scalingFactor = this.parent.scalingFactor;
 
 		let g = this.graphics;
         g.clear();
@@ -319,7 +293,7 @@ class SideControlPulsar {
 	}
 
 	update(now: number) {
-		let currentExtendedData = getSelectedExtendedBeatmapData();
+		let currentExtendedData = this.parent.songSelect.selectedExtendedBeatmapData;
 
 		if (currentExtendedData && currentExtendedData.msPerBeatTimings.length > 0) {
             let { msPerBeatTimings } = currentExtendedData;
@@ -362,7 +336,7 @@ class SideControlPulsar {
 		let pulsarScale = 1 + this.hoverInterpolator.getCurrentValue(now) * 0.1 + this.pulseInterpolator.getCurrentValue(now);
 
 		this.container.scale.set(pulsarScale);
-		this.hitbox.radius = pulsarScale * PULSAR_IDLE_RADIUS * getSideControlPanelScalingFactor();
+		this.hitbox.radius = pulsarScale * PULSAR_IDLE_RADIUS * this.parent.scalingFactor;
 	}
 
 	resetLastBeatTime() {

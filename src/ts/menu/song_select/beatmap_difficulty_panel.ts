@@ -2,10 +2,9 @@ import { VirtualFile } from "../../file_system/virtual_file";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { getBeatmapDifficultyPanelMask, TEXTURE_MARGIN, getBeatmapDifficultyPanelGlowTexture, getDifficultyColorBar } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, carouselInteractionGroup, BEATMAP_DIFFICULTY_PANEL_WIDTH, snapToReferencePanel, getSelectedSubpanel, setSelectedSubpanel, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET, getCarouselScalingFactor } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET } from "./beatmap_carousel";
 import { Interactivity, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
-import { selectBeatmapDifficulty, triggerSelectedBeatmap } from "./song_select";
 import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
 import { Interpolator } from "../../util/interpolation";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
@@ -23,7 +22,7 @@ export class BeatmapDifficultyPanel {
 	private starRatingTicks: PIXI.Graphics;
 	private currentNormalizedY: number = 0;
 	private enabled = true;
-	private interaction: InteractionRegistration;
+	private registration: InteractionRegistration;
 	private hoverInterpolator: Interpolator;
 	private expandInterpolator: Interpolator;
 	private glowSprite: PIXI.Sprite;
@@ -95,10 +94,10 @@ export class BeatmapDifficultyPanel {
 	}
 
 	private initInteractions() {
-		this.interaction = Interactivity.registerDisplayObject(this.container);
-		carouselInteractionGroup.add(this.interaction);
+		this.registration = Interactivity.registerDisplayObject(this.container);
+		this.parentPanel.interactionGroup.add(this.registration);
 
-		this.interaction.addButtonHandlers(
+		this.registration.addButtonHandlers(
 			() => this.select(),
 			() => this.hoverInterpolator.setReversedState(false, performance.now()),
 			() => this.hoverInterpolator.setReversedState(true, performance.now()),
@@ -119,7 +118,7 @@ export class BeatmapDifficultyPanel {
 	
 		let difficultyAttributes = this.extendedBeatmapData.difficultyAttributes;
 		let g = this.starRatingTicks;
-		let scalingFactor = getCarouselScalingFactor();
+		let scalingFactor = this.parentPanel.carousel.scalingFactor;
 		
 		g.clear();
 		g.beginFill(0xffffff);
@@ -149,7 +148,7 @@ export class BeatmapDifficultyPanel {
 	}
 
 	resize() {
-		let scalingFactor = getCarouselScalingFactor();
+		let scalingFactor = this.parentPanel.carousel.scalingFactor;
 
 		this.container.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_DIFFICULTY_PANEL_WIDTH * scalingFactor, BEATMAP_DIFFICULTY_PANEL_HEIGHT * scalingFactor);
 
@@ -187,7 +186,7 @@ export class BeatmapDifficultyPanel {
 	}
 
 	update(now: number, newY: number) {
-		let scalingFactor = getCarouselScalingFactor();
+		let scalingFactor = this.parentPanel.carousel.scalingFactor;
 
 		this.currentNormalizedY = newY;
 		this.container.y = this.currentNormalizedY * scalingFactor;
@@ -222,11 +221,11 @@ export class BeatmapDifficultyPanel {
 		if (!this.enabled) return;
 
 		this.enabled = false;
-		this.interaction.destroy();
+		this.registration.destroy();
 	}
 
 	isSelected() {
-		return getSelectedSubpanel() === this;
+		return this.parentPanel.carousel.selectedSubpanel === this;
 	}
 
 	async select(doSnap = true) {
@@ -235,11 +234,11 @@ export class BeatmapDifficultyPanel {
 			return;
 		}
 
-		let currentlySelected = getSelectedSubpanel();
+		let currentlySelected = this.parentPanel.carousel.selectedSubpanel;
 		if (currentlySelected) {
 			currentlySelected.deselect();
 		}
-		setSelectedSubpanel(this);
+		this.parentPanel.carousel.selectedSubpanel = this;
 
 		let now = performance.now();
 		this.expandInterpolator.setReversedState(false, now);
@@ -247,14 +246,14 @@ export class BeatmapDifficultyPanel {
 		if (doSnap) {
 			let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
 			let diff = BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET - totalNormalizedY;
-			snapToReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
+			this.parentPanel.carousel.snapToReferencePanel(this.parentPanel.currentNormalizedY, this.parentPanel.currentNormalizedY + diff);
 		}
 
-		selectBeatmapDifficulty(this.beatmapFile, this.parentPanel.beatmapSet, this.extendedBeatmapData);
+		this.parentPanel.carousel.songSelect.selectBeatmapDifficulty(this.beatmapFile, this.parentPanel.beatmapSet, this.extendedBeatmapData);
 	}
 
 	private trigger() {
-		triggerSelectedBeatmap();
+		this.parentPanel.carousel.songSelect.triggerSelectedBeatmap();
 	}
 
 	deselect() {

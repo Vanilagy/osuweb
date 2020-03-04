@@ -158,6 +158,10 @@ export class MediaPlayer {
 		this.start(this.pausedTime);
 	}
 
+	stop() {
+		this.resetAudioElement();
+	}
+
 	getCurrentTime() {
 		if (this.startTime === null) return 0;
 		if (this.pausedTime !== null) return this.pausedTime;

@@ -1,22 +1,20 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
-import { Beatmap } from "../../datamodel/beatmap";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
+import { currentWindowDimensions } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
-import { setReferencePanel, getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, getSelectedPanel, setSelectedPanel, carouselInteractionGroup, getSelectedSubpanel, setSelectedSubpanel, getCarouselScalingFactor } from "./beatmap_carousel";
-import { InteractionRegistration, Interactivity } from "../../input/interactivity";
+import { getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BeatmapCarouselSortingType, BeatmapCarousel } from "./beatmap_carousel";
+import { InteractionRegistration, Interactivity, InteractionGroup } from "../../input/interactivity";
 import { mainMusicMediaPlayer } from "../../audio/media_player";
-import { beatmapInfoPanel } from "./beatmap_info_panel";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { JobUtil } from "../../multithreading/job_util";
 import { Interpolator } from "../../util/interpolation";
-import { resetLastBeatTime } from "./side_control_panel";
 
 export class BeatmapSetPanel {
+	public carousel: BeatmapCarousel;
 	public beatmapSet: BeatmapSet;
 	private beatmapFiles: VirtualFile[];
 	public container: PIXI.Container;
@@ -34,17 +32,20 @@ export class BeatmapSetPanel {
 	private imageLoadingStarted = false;
 	private imageFadeIn: Interpolator;
 	public currentNormalizedY: number = 0;
-	private interaction: InteractionRegistration;
+	public interactionGroup: InteractionGroup;
 	private hoverInterpolator: Interpolator;
 	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
 	private glowSprite: PIXI.Sprite;
 	public needsResize = true;
 	private mouseDownBrightnessInterpolator: Interpolator;
 
-	constructor(beatmapSet: BeatmapSet) {
+	constructor(carousel: BeatmapCarousel, beatmapSet: BeatmapSet) {
+		this.carousel = carousel;
 		this.beatmapSet = beatmapSet;
 		this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
+		this.interactionGroup = Interactivity.createGroup();
+		this.carousel.interactionGroup.add(this.interactionGroup);
 
 		this.difficultyContainer = new PIXI.Container();
 		this.difficultyContainer.sortableChildren = true;
@@ -110,10 +111,10 @@ export class BeatmapSetPanel {
 	}
 
 	private initInteractions() {
-		this.interaction = Interactivity.registerDisplayObject(this.panelContainer, true);
-		carouselInteractionGroup.add(this.interaction);
+		let registration = Interactivity.registerDisplayObject(this.panelContainer);
+		this.interactionGroup.add(registration);
 
-		this.interaction.addButtonHandlers(
+		registration.addButtonHandlers(
 			() => this.expand(),
 			() => this.hoverInterpolator.setReversedState(false, performance.now()),
 			() => this.hoverInterpolator.setReversedState(true, performance.now()),
@@ -123,7 +124,7 @@ export class BeatmapSetPanel {
 	}
 
 	private async loadImage() {
-		let scalingFactor = getCarouselScalingFactor();
+		let scalingFactor = this.carousel.scalingFactor;
 
 		let imageFile = await this.beatmapSet.representingBeatmap.getBackgroundImageFile();
 		if (imageFile) this.backgroundImageBitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
@@ -147,7 +148,7 @@ export class BeatmapSetPanel {
 	private resize() {
 		this.needsResize = false;
 
-		let scalingFactor = getCarouselScalingFactor();
+		let scalingFactor = this.carousel.scalingFactor;
 
 		this.panelContainer.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor);
 
@@ -192,7 +193,7 @@ export class BeatmapSetPanel {
 
 	update(now: number, newY: number, lastCalculatedHeight: number) {
 		this.currentNormalizedY = newY;
-		let scalingFactor = getCarouselScalingFactor();
+		let scalingFactor = this.carousel.scalingFactor;
 
 		if (!this.imageLoadingStarted) {
 			// If the top of the panel is at most a full screen height away
@@ -208,11 +209,11 @@ export class BeatmapSetPanel {
 			// Culling!
 
 			this.container.visible = false;
-			this.interaction.disable();
+			this.interactionGroup.disable();
 			return;
 		} else {
 			this.container.visible = true;
-			this.interaction.enable();
+			this.interactionGroup.enable();
 		}
 
 		if (this.needsResize) this.resize();
@@ -281,18 +282,18 @@ export class BeatmapSetPanel {
 		this.beatmapDifficultyPanels.length = 0;
 		this.difficultyContainer.removeChildren();
 
-		let selectedPanel = getSelectedPanel();
+		let selectedPanel = this.carousel.selectedPanel;
 		if (selectedPanel) {
 			selectedPanel.collapse();
 		}
 
-		setSelectedPanel(this);
-		setReferencePanel(this, this.currentNormalizedY);
+		this.carousel.selectedPanel = this;
+		this.carousel.setReferencePanel(this, this.currentNormalizedY);
 
 		this.expandInterpolator.setReversedState(false, performance.now());
 
 		let representingBeatmap = this.beatmapSet.representingBeatmap;
-		beatmapInfoPanel.loadBeatmapSet(representingBeatmap);
+		this.carousel.songSelect.infoPanel.loadBeatmapSet(representingBeatmap);
 
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			let difficultyPanel = new BeatmapDifficultyPanel(this);
@@ -314,7 +315,7 @@ export class BeatmapSetPanel {
 			let startTime = representingBeatmap.getAudioPreviewTimeInSeconds();
 			mainMusicMediaPlayer.start(startTime)
 			mainMusicMediaPlayer.setLoopBehavior(true, startTime);
-			resetLastBeatTime();
+			this.carousel.songSelect.sideControlPanel.resetLastBeatTime();
 		});
 
 		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
@@ -343,10 +344,10 @@ export class BeatmapSetPanel {
 	private collapse() {
 		if (!this.isExpanded) return;
 
-		let currentlySelectedSubpanel = getSelectedSubpanel();
+		let currentlySelectedSubpanel = this.carousel.selectedSubpanel;
 		if (currentlySelectedSubpanel) {
 			currentlySelectedSubpanel.deselect();
-			setSelectedSubpanel(null);
+			this.carousel.selectedSubpanel = null;
 		}
 
 		this.expandInterpolator.setReversedState(true, performance.now());

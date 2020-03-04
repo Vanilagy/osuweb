@@ -1,4 +1,4 @@
-import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab, getBeatmapInfoPanelScalingFactor } from "./beatmap_info_panel";
+import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab } from "./beatmap_info_panel";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { padNumberWithZeroes } from "../../util/misc_util";import { InterpolatedValueChanger } from "../../util/interpolation";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
@@ -10,7 +10,7 @@ const APPROACH_RATE_CAP = 10;
 const STAR_RATING_CAP = 10;
 
 export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
-	private parent: BeatmapInfoPanel;
+	public parent: BeatmapInfoPanel;
 	public container: PIXI.Container;
 
 	private allNumericalAttributes: NamedNumericalAttribute[];
@@ -37,15 +37,15 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 		this.parent = parent;
 		this.container = new PIXI.Container();
 
-		this.lengthAttribute = new NamedNumericalAttribute('Length', (val: number) => {
+		this.lengthAttribute = new NamedNumericalAttribute(this, 'Length', (val: number) => {
 			let seconds = Math.floor(val / 1000);
 			return Math.floor(seconds / 60) + ':' + padNumberWithZeroes((seconds % 60), 2);
 		});
-		this.bpmAttribute = new NamedNumericalAttribute('BPM');
-		this.objectCountAttribute = new NamedNumericalAttribute('Objects');
-		this.circleCountAttribute = new NamedNumericalAttribute('Circles');
-		this.sliderCountAttribute = new NamedNumericalAttribute('Sliders');
-		this.spinnerCountAttribute = new NamedNumericalAttribute('Spinners');
+		this.bpmAttribute = new NamedNumericalAttribute(this, 'BPM');
+		this.objectCountAttribute = new NamedNumericalAttribute(this, 'Objects');
+		this.circleCountAttribute = new NamedNumericalAttribute(this, 'Circles');
+		this.sliderCountAttribute = new NamedNumericalAttribute(this, 'Sliders');
+		this.spinnerCountAttribute = new NamedNumericalAttribute(this, 'Spinners');
 
 		this.allNumericalAttributes = [this.lengthAttribute, this.bpmAttribute, this.objectCountAttribute, this.circleCountAttribute, this.sliderCountAttribute, this.spinnerCountAttribute];
 		for (let a of this.allNumericalAttributes) this.container.addChild(a.container);
@@ -53,11 +53,11 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 		this.divider = new PIXI.Graphics();
 		this.container.addChild(this.divider);
 
-		this.circleSizeAttribute = new RangedAttribute('Circle Size', CIRCLE_CIZE_CAP, 1, 0xffffff);
-		this.hpDrainAttribute = new RangedAttribute('HP Drain', HP_DRAIN_CAP, 1, 0xffffff);
-		this.overallDifficultyAttribute = new RangedAttribute('Accuracy', OVERALL_DIFFICULTY_CAP, 1, 0xffffff);
-		this.approachRateAttribute = new RangedAttribute('Approach Rate', APPROACH_RATE_CAP, 1, 0xffffff);
-		this.starRatingAttribute = new RangedAttribute('Star Rating', STAR_RATING_CAP, 2, 0xffdd55);
+		this.circleSizeAttribute = new RangedAttribute(this, 'Circle Size', CIRCLE_CIZE_CAP, 1, 0xffffff);
+		this.hpDrainAttribute = new RangedAttribute(this, 'HP Drain', HP_DRAIN_CAP, 1, 0xffffff);
+		this.overallDifficultyAttribute = new RangedAttribute(this, 'Accuracy', OVERALL_DIFFICULTY_CAP, 1, 0xffffff);
+		this.approachRateAttribute = new RangedAttribute(this, 'Approach Rate', APPROACH_RATE_CAP, 1, 0xffffff);
+		this.starRatingAttribute = new RangedAttribute(this, 'Star Rating', STAR_RATING_CAP, 2, 0xffdd55);
 
 		this.allRangedAttributes = [this.circleSizeAttribute, this.hpDrainAttribute, this.overallDifficultyAttribute, this.approachRateAttribute, this.starRatingAttribute];
 		for (let a of this.allRangedAttributes) this.container.addChild(a.container);
@@ -65,8 +65,6 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 		this.tagsHeader = new PIXI.Text('Tags');
 		this.tagsContents = new PIXI.Text('N/A');
 		this.container.addChild(this.tagsHeader, this.tagsContents);
-
-		this.resize();
 	}
 
 	loadBeatmapData(extendedData: ExtendedBeatmapData) {
@@ -90,7 +88,7 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 	}
 
 	resize() {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		let scalingFactor = this.parent.scalingFactor;
 
 		this.allNumericalAttributes.forEach((attribute, i) => {
 			attribute.container.x = Math.floor(((i % 2 === 0)? 20 : 147) * scalingFactor);
@@ -137,7 +135,7 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 	}
 
 	private getProperBackgroundHeight() {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		let scalingFactor = this.parent.scalingFactor;
 		return (this.tagsContents.y + this.tagsContents.height + 15 * scalingFactor) / scalingFactor;
 	}
 
@@ -157,16 +155,18 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 
 class NamedNumericalAttribute {
 	public container: PIXI.Container;
+	private parent: BeatmapDetailsTab;
 	private attributeName: string;
 	private nameText: PIXI.Text;
 	private valueText: PIXI.Text;
 	private interpolator: InterpolatedValueChanger;
 	private formatter: (val: number) => string;
 
-	constructor(attributeName: string, formatter: (val: number) => string = (val: number) => String(Math.round(val))) {
+	constructor(parent: BeatmapDetailsTab, attributeName: string, formatter: (val: number) => string = (val: number) => String(Math.round(val))) {
 		this.attributeName = attributeName;
 		this.formatter = formatter;
 		this.container = new PIXI.Container();
+		this.parent = parent;
 
 		this.nameText = new PIXI.Text(this.attributeName + ':');
 		this.nameText.anchor.set(0.0, 1.0);
@@ -184,7 +184,7 @@ class NamedNumericalAttribute {
 	}
 
 	resize() {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		let scalingFactor = this.parent.parent.scalingFactor;
 
 		this.nameText.style = {
 			fontFamily: 'Exo2-Light',
@@ -215,6 +215,7 @@ class NamedNumericalAttribute {
 
 class RangedAttribute {
 	public container: PIXI.Container;
+	private parent: BeatmapDetailsTab;
 	private name: string;
 	private nameText: PIXI.Text;
 	private barBackground: PIXI.Sprite;
@@ -225,11 +226,12 @@ class RangedAttribute {
 	private cap: number;
 	private decimals: number;
 
-	constructor(name: string, cap: number, decimals: number, color: number) {
+	constructor(parent: BeatmapDetailsTab, name: string, cap: number, decimals: number, color: number) {
 		this.name = name;
 		this.cap = cap;
 		this.decimals = decimals;
 		this.container = new PIXI.Container();
+		this.parent = parent;
 
 		this.nameText = new PIXI.Text(this.name);
 		this.container.addChild(this.nameText);
@@ -260,7 +262,7 @@ class RangedAttribute {
 	}
 
 	resize() {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		let scalingFactor = this.parent.parent.scalingFactor;
 
 		this.nameText.style = {
 			fontFamily: 'Exo2-Light',
@@ -288,7 +290,7 @@ class RangedAttribute {
 	}
 	
 	private centerText() {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		let scalingFactor = this.parent.parent.scalingFactor;
 
 		this.valueText.x = Math.floor(232 * scalingFactor) - Math.floor(this.valueText.width / 2);
 	}
@@ -299,7 +301,7 @@ class RangedAttribute {
 	}
 
 	update(now: number) {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		let scalingFactor = this.parent.parent.scalingFactor;
 		let barValue = this.barInterpolator.getCurrentValue(now);
 		let percent = MathUtil.clamp(barValue / this.cap, 0, 1);
 

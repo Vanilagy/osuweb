@@ -51,7 +51,7 @@ const zIndexComparator = (a: InteractionUnit, b: InteractionUnit) => b.getZIndex
 
 type Interaction = 'mouseDown' | 'mouseUp' | 'mouseClick' | 'mouseEnter' | 'mouseLeave' | 'mouseMove' | 'wheel';
 let interactionArray: Interaction[] = ['mouseDown', 'mouseUp', 'mouseClick', 'mouseEnter', 'mouseLeave', 'mouseMove', 'wheel'];
-let masterGroup: InteractionGroup;
+export let rootInteractionGroup: InteractionGroup;
 let currentDragActions: DragAction[] = [];
 
 abstract class InteractionUnit {
@@ -77,7 +77,7 @@ abstract class InteractionUnit {
 	}
 
 	detach() {
-		if (this.parent !== masterGroup) masterGroup.add(this);
+		if (this.parent) this.parent.remove(this);
 	}
 
 	getZIndex() {
@@ -271,38 +271,37 @@ export class InteractionGroup extends InteractionUnit {
 
 		for (let i = 0; i < newChildren.length; i++) {
 			let newChild = newChildren[i];
-
-			if (newChild.parent !== this) {
-				let doReenable = false;
-
-				if (newChild.enabled) {
-					doReenable = true;
-					newChild.disable();
-				}
-
-				if (newChild.parent !== null) {
-					removeItem(newChild.parent.children, newChild);
-				}
-
-				this.children.push(newChild);
-				newChild.parent = this;
-
-				if (doReenable) newChild.enable();
+			if (newChild.parent === this) continue;
+			
+			if (newChild.parent !== null) {
+				newChild.parent.remove(newChild);
 			}
+
+			let doReenable = false;
+			if (newChild.enabled) {
+				doReenable = true;
+				newChild.disable();
+			}
+
+			this.children.push(newChild);
+			newChild.parent = this;
+			
+			if (doReenable) newChild.enable();
 		}
 	}
 
 	remove(...children: InteractionUnit[]) {
 		for (let i = 0; i < children.length; i++) {
-			let index = this.children.indexOf(children[i]);
-			if (index === -1) continue;
+			let child = children[i];
+			if (!this.children.includes(child)) continue;
 
-			masterGroup.add(children[i]); // Not fast but meh
+			removeItem(this.children, child);
+			child.parent = null;
 		}
 	}
 
 	removeAll() {
-		masterGroup.add(...this.children);
+		this.remove(...this.children);
 	}
 
 	destroyChildren() {
@@ -391,40 +390,36 @@ export class InteractionGroup extends InteractionUnit {
 		return collided;
 	}
 }
-masterGroup = new InteractionGroup();
+rootInteractionGroup = new InteractionGroup();
 
 export abstract class Interactivity {
 	static registerDisplayObject(obj: PIXI.DisplayObject, disableByDefault = false) {
 		let registration = new InteractionRegistration(obj, !disableByDefault);
-		masterGroup.add(registration);
-
 		return registration;
 	}
 
 	static createGroup() {
 		let group = new InteractionGroup();
-		masterGroup.add(group);
-
 		return group;
 	}
 }
 
-inputEventEmitter.addListener('mouseDown', (e) => masterGroup.handleInteraction('mouseDown', e, (pos, reg) => {
+inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleInteraction('mouseDown', e, (pos, reg) => {
 	return reg.overlaps(pos.x, pos.y);
 }));
 
-inputEventEmitter.addListener('mouseDown', (e) => masterGroup.handleInteraction('mouseClick', e, (pos, reg) => {
+inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleInteraction('mouseClick', e, (pos, reg) => {
 	let overlaps = reg.overlaps(pos.x, pos.y);
 	if (overlaps) reg.pressedDown = true;
 
 	return false; // Never trigger mouseClick, just set the flag.
 }));
 
-inputEventEmitter.addListener('mouseUp', (e) => masterGroup.handleInteraction('mouseUp', e, (pos, reg) => {
+inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleInteraction('mouseUp', e, (pos, reg) => {
 	return reg.overlaps(pos.x, pos.y);
 }));
 
-inputEventEmitter.addListener('mouseUp', (e) => masterGroup.handleInteraction('mouseClick', e, (pos, reg) => {
+inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleInteraction('mouseClick', e, (pos, reg) => {
 	let success = false;
 	let overlaps = reg.overlaps(pos.x, pos.y);
 	if (overlaps && reg.pressedDown) success = true;
@@ -434,7 +429,7 @@ inputEventEmitter.addListener('mouseUp', (e) => masterGroup.handleInteraction('m
 	return success;
 }));
 
-inputEventEmitter.addListener('mouseMove', (e) => masterGroup.handleInteraction('mouseMove', e, (pos, reg) => {
+inputEventEmitter.addListener('mouseMove', (e) => rootInteractionGroup.handleInteraction('mouseMove', e, (pos, reg) => {
 	return reg.overlaps(pos.x, pos.y);
 }));
 
@@ -443,7 +438,7 @@ function onMouseMove(e: MouseEvent) {
 	lastMouseMoveHandleTime = performance.now();
 
 	let acc = new Map<InteractionRegistration, Interaction>();
-	masterGroup.handleMouseEnterAndLeave(acc, getCurrentMousePosition(), false);
+	rootInteractionGroup.handleMouseEnterAndLeave(acc, getCurrentMousePosition(), false);
 
 	acc.forEach((interaction, reg) => {
 		reg.trigger(interaction, e);
@@ -455,7 +450,7 @@ addRenderingTask((now) => {
 	if (now - lastMouseMoveHandleTime >= 1000/30) onMouseMove(null); // Call it, even though the mouse didn't move, so that we catch objects having moved out of or into the cursor.
 });
 
-inputEventEmitter.addListener('wheel', (e) => masterGroup.handleInteraction('wheel', e, (pos, reg) => {
+inputEventEmitter.addListener('wheel', (e) => rootInteractionGroup.handleInteraction('wheel', e, (pos, reg) => {
 	return reg.overlaps(pos.x, pos.y);
 }));
 

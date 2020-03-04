@@ -1,4 +1,4 @@
-import { BeatmapInfoPanel, INFO_PANEL_WIDTH, BeatmapInfoPanelTab, getBeatmapInfoPanelScalingFactor } from "./beatmap_info_panel";
+import { BeatmapInfoPanel, INFO_PANEL_WIDTH, BeatmapInfoPanelTab } from "./beatmap_info_panel";
 
 export class BeatmapRankingTab implements BeatmapInfoPanelTab  {
 	private parent: BeatmapInfoPanel;
@@ -14,7 +14,7 @@ export class BeatmapRankingTab implements BeatmapInfoPanelTab  {
 	}
 
 	resize() {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		let scalingFactor = this.parent.scalingFactor;
 
 		this.text.style = {
 			fontFamily: 'Exo2-Regular',

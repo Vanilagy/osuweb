@@ -1,5 +1,5 @@
 import { stage } from "../visuals/rendering";
-import { Interactivity } from "../input/interactivity";
+import { Interactivity, rootInteractionGroup } from "../input/interactivity";
 
 let playgroundContainer = new PIXI.Container();
 stage.addChild(playgroundContainer);
@@ -24,6 +24,8 @@ let group = Interactivity.createGroup();
 let reg2 = Interactivity.registerDisplayObject(obj2);
 group.add(reg2);
 //group.passThrough = true;
+
+rootInteractionGroup.add(reg1, reg2);
 
 reg1.addListener('mouseEnter', () => {
 	obj1.alpha = 0.5;

@@ -1,6 +1,5 @@
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { Beatmap } from "../../datamodel/beatmap";
-import { songSelectContainer, songSelectInteractionGroup } from "./song_select";
 import { BeatmapDetailsTab } from "./beatmap_details_tab";
 import { addRenderingTask } from "../../visuals/rendering";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
@@ -11,32 +10,15 @@ import { TabSelector } from "../components/tab_selector";
 import { BeatmapRankingTab } from "./beatmap_ranking_tab";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
-import { Interactivity } from "../../input/interactivity";
+import { Interactivity, InteractionGroup } from "../../input/interactivity";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
+import { SongSelect } from "./song_select";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEIGHT = 260;
 const IMAGE_FADE_IN_TIME = 333;
-const beatmapInfoPanelInteractionGroup = Interactivity.createGroup();
-beatmapInfoPanelInteractionGroup.setZIndex(2);
 
-export let beatmapInfoPanel: BeatmapInfoPanel = null;
-
-export function initBeatmapInfoPanel() {
-	songSelectInteractionGroup.add(beatmapInfoPanelInteractionGroup);
-	beatmapInfoPanel = new BeatmapInfoPanel();
-	songSelectContainer.addChild(beatmapInfoPanel.container);
-
-	updateBeatmapInfoPanelSizing();
-}
-
-let beatmapInfoPanelScalingFactor = 1.0;
-export function getBeatmapInfoPanelScalingFactor() {
-	return beatmapInfoPanelScalingFactor;
-}
-
-function createInfoPanelMaskTexture() {
-	let scalingFactor = getBeatmapInfoPanelScalingFactor();
+function createInfoPanelMaskTexture(scalingFactor: number) {
 	let slantWidth = INFO_PANEL_HEIGHT/5;
 
 	return createPolygonTexture(INFO_PANEL_WIDTH + slantWidth, INFO_PANEL_HEIGHT,
@@ -44,30 +26,11 @@ function createInfoPanelMaskTexture() {
     scalingFactor);
 }
 
-function createInfoPanelGradientTexture() {
-	let scalingFactor = getBeatmapInfoPanelScalingFactor();
+function createInfoPanelGradientTexture(scalingFactor: number) {
 	let slantWidth = INFO_PANEL_HEIGHT/5;
 
 	return createLinearGradientTexture(INFO_PANEL_WIDTH + slantWidth, INFO_PANEL_HEIGHT, new PIXI.Point(0, INFO_PANEL_HEIGHT+1), new PIXI.Point(0, 0), [[0, 'rgba(0,0,0,0.55)'], [0.38, 'rgba(0,0,0,0)']], scalingFactor);
 }
-
-export function updateBeatmapInfoPanelSizing() {
-	if (!beatmapInfoPanel) return;
-
-	beatmapInfoPanelScalingFactor = calculateRatioBasedScalingFactor(currentWindowDimensions.width, currentWindowDimensions.height, 16/9, REFERENCE_SCREEN_HEIGHT);
-
-	let scalingFactor = getBeatmapInfoPanelScalingFactor();
-
-	beatmapInfoPanel.container.x = Math.floor(40 * scalingFactor);
-	beatmapInfoPanel.container.y = Math.floor(currentWindowDimensions.height/2 - 240 * scalingFactor);
-
-	beatmapInfoPanel.resize();
-}
-
-addRenderingTask((now) => {
-	if (!beatmapInfoPanel) return;
-	beatmapInfoPanel.update(now);
-});
 
 export interface BeatmapInfoPanelTab {
 	resize: Function;
@@ -80,7 +43,10 @@ export interface BeatmapInfoPanelTab {
 export class BeatmapInfoPanel {
 	private currentBeatmapSet: BeatmapSet = null;
 
+	public songSelect: SongSelect;
 	public container: PIXI.Container;
+	public interactionGroup: InteractionGroup;
+	public scalingFactor: number = 1.0;
 	private upperPanelContainer: PIXI.Container;
 	private mask: PIXI.Sprite;
 	private backgroundImageContainer: PIXI.Container;
@@ -100,8 +66,11 @@ export class BeatmapInfoPanel {
 	private currentTabIndex: number = null;
 	private tabFadeInterpolators = new WeakMap<BeatmapInfoPanelTab, Interpolator>();
 
-	constructor() {
+	constructor(songSelect: SongSelect) {
+		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
+		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup.setZIndex(2);
 
 		this.upperPanelContainer = new PIXI.Container();
 		this.container.addChild(this.upperPanelContainer);
@@ -167,17 +136,16 @@ export class BeatmapInfoPanel {
 
 		this.selectTab(0);
 		this.initInteraction();
-		this.resize();
 	}
 
 	private initInteraction() {
 		let reg = Interactivity.registerDisplayObject(this.container);
 		reg.enableEmptyListeners(['wheel']);
 		reg.setZIndex(-1);
-		beatmapInfoPanelInteractionGroup.add(reg);
+		this.interactionGroup.add(reg);
 
 		this.tabSelector.addListener('selection', (index: number) => this.selectTab(index));
-		beatmapInfoPanelInteractionGroup.add(this.tabSelector.interactionGroup);
+		this.interactionGroup.add(this.tabSelector.interactionGroup);
 	}
 	
 	private selectTab(index: number) {
@@ -264,10 +232,13 @@ export class BeatmapInfoPanel {
 	}
 
 	resize() {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
+		this.scalingFactor = calculateRatioBasedScalingFactor(currentWindowDimensions.width, currentWindowDimensions.height, 16/9, REFERENCE_SCREEN_HEIGHT);
 
-		this.mask.texture = createInfoPanelMaskTexture();
-		this.darkening.texture = createInfoPanelGradientTexture();
+		this.container.x = Math.floor(40 * this.scalingFactor);
+		this.container.y = Math.floor(currentWindowDimensions.height/2 - 240 * this.scalingFactor);
+
+		this.mask.texture = createInfoPanelMaskTexture(this.scalingFactor);
+		this.darkening.texture = createInfoPanelGradientTexture(this.scalingFactor);
 
 		for (let obj of this.backgroundImageContainer.children) {
 			let container = obj as PIXI.Container;
@@ -282,12 +253,12 @@ export class BeatmapInfoPanel {
 			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontSize: Math.floor(22 * scalingFactor),
+			fontSize: Math.floor(22 * this.scalingFactor),
 			dropShadow: true,
 			dropShadowDistance: 1,
 			dropShadowBlur: 0
 		};
-		this.titleText.position.set((INFO_PANEL_HEIGHT/5 + 12) * scalingFactor, (INFO_PANEL_HEIGHT - 80) * scalingFactor);
+		this.titleText.position.set((INFO_PANEL_HEIGHT/5 + 12) * this.scalingFactor, (INFO_PANEL_HEIGHT - 80) * this.scalingFactor);
 		this.titleText.x = Math.floor(this.titleText.x);
 		this.titleText.y = Math.floor(this.titleText.y);
 
@@ -295,12 +266,12 @@ export class BeatmapInfoPanel {
 			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontSize: Math.floor(14 * scalingFactor),
+			fontSize: Math.floor(14 * this.scalingFactor),
 			dropShadow: true,
 			dropShadowDistance: 1,
 			dropShadowBlur: 0
 		};
-		this.artistText.position.set((INFO_PANEL_HEIGHT/5 + 12) * scalingFactor, (INFO_PANEL_HEIGHT - 57) * scalingFactor);
+		this.artistText.position.set((INFO_PANEL_HEIGHT/5 + 12) * this.scalingFactor, (INFO_PANEL_HEIGHT - 57) * this.scalingFactor);
 		this.artistText.x = Math.floor(this.artistText.x);
 		this.artistText.y = Math.floor(this.artistText.y);
 
@@ -308,12 +279,12 @@ export class BeatmapInfoPanel {
 			fontFamily: 'Exo2-Light',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontSize: Math.floor(12 * scalingFactor),
+			fontSize: Math.floor(12 * this.scalingFactor),
 			dropShadow: true,
 			dropShadowDistance: 1,
 			dropShadowBlur: 0
 		};
-		this.mapperTextPrefix.position.set((INFO_PANEL_HEIGHT/5 + 12) * scalingFactor, (INFO_PANEL_HEIGHT - 27) * scalingFactor);
+		this.mapperTextPrefix.position.set((INFO_PANEL_HEIGHT/5 + 12) * this.scalingFactor, (INFO_PANEL_HEIGHT - 27) * this.scalingFactor);
 		this.mapperTextPrefix.x = Math.floor(this.mapperTextPrefix.x);
 		this.mapperTextPrefix.y = Math.floor(this.mapperTextPrefix.y);
 
@@ -321,12 +292,12 @@ export class BeatmapInfoPanel {
 			fontFamily: 'Exo2-Bold',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontSize: Math.floor(12 * scalingFactor),
+			fontSize: Math.floor(12 * this.scalingFactor),
 			dropShadow: true,
 			dropShadowDistance: 1,
 			dropShadowBlur: 0
 		};
-		this.mapperText.position.set((INFO_PANEL_HEIGHT/5 + 12) * scalingFactor, (INFO_PANEL_HEIGHT - 27) * scalingFactor);
+		this.mapperText.position.set((INFO_PANEL_HEIGHT/5 + 12) * this.scalingFactor, (INFO_PANEL_HEIGHT - 27) * this.scalingFactor);
 		this.mapperText.x = Math.floor(this.mapperText.x);
 		this.mapperText.y = Math.floor(this.mapperText.y);
 
@@ -336,41 +307,40 @@ export class BeatmapInfoPanel {
 			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
 			fontStyle: 'italic',
-			fontSize: Math.floor(12 * scalingFactor),
+			fontSize: Math.floor(12 * this.scalingFactor),
 			dropShadow: true,
 			dropShadowDistance: 1,
 			dropShadowBlur: 0
 		};
-		this.difficultyText.position.set((INFO_PANEL_WIDTH + INFO_PANEL_HEIGHT/5 - 20) * scalingFactor, (INFO_PANEL_HEIGHT - 27) * scalingFactor);
+		this.difficultyText.position.set((INFO_PANEL_WIDTH + INFO_PANEL_HEIGHT/5 - 20) * this.scalingFactor, (INFO_PANEL_HEIGHT - 27) * this.scalingFactor);
 		this.difficultyText.x = Math.floor(this.difficultyText.x);
 		this.difficultyText.y = Math.floor(this.difficultyText.y);
 
-		this.tabSelector.resize(scalingFactor);
-		this.tabSelector.container.y = Math.floor((INFO_PANEL_HEIGHT + 25) * scalingFactor);
-		this.tabSelector.container.x = Math.floor((INFO_PANEL_HEIGHT/5 + 10) * scalingFactor);
+		this.tabSelector.resize(this.scalingFactor);
+		this.tabSelector.container.y = Math.floor((INFO_PANEL_HEIGHT + 25) * this.scalingFactor);
+		this.tabSelector.container.x = Math.floor((INFO_PANEL_HEIGHT/5 + 10) * this.scalingFactor);
 
-		let tabX = Math.floor((INFO_PANEL_HEIGHT/5) * scalingFactor);
-		let tabY = Math.floor((INFO_PANEL_HEIGHT + 25) * scalingFactor);
+		let tabX = Math.floor((INFO_PANEL_HEIGHT/5) * this.scalingFactor);
+		let tabY = Math.floor((INFO_PANEL_HEIGHT + 25) * this.scalingFactor);
 
 		for (let t of this.tabs) {
 			t.resize();
 			t.container.position.set(tabX, tabY);
 		}
 
-		this.tabBackground.width = Math.floor(INFO_PANEL_WIDTH * scalingFactor);
+		this.tabBackground.width = Math.floor(INFO_PANEL_WIDTH * this.scalingFactor);
 		this.tabBackground.position.set(tabX, tabY);
 
 		let shadowFilter = this.upperPanelContainer.filters[0] as PIXI.filters.DropShadowFilter;
-		shadowFilter.distance = 4 * scalingFactor;
+		shadowFilter.distance = 4 * this.scalingFactor;
 	}
 
 	update(now: number) {
-		let scalingFactor = getBeatmapInfoPanelScalingFactor();
 		let fadeInValue = this.detailsFadeIn.getCurrentValue(now);
 
 		this.difficultyText.alpha = fadeInValue;
 
-		this.titleText.pivot.x = -(1 - fadeInValue) * 10 * scalingFactor;
+		this.titleText.pivot.x = -(1 - fadeInValue) * 10 * this.scalingFactor;
 		this.artistText.pivot.x = this.titleText.pivot.x * 0.666;
 		this.mapperText.pivot.x = this.mapperTextPrefix.pivot.x = this.titleText.pivot.x * 0.333;
 
@@ -394,7 +364,7 @@ export class BeatmapInfoPanel {
 			t.container.visible = value !== 0;
 		}
 
-		this.tabBackground.height = Math.floor(this.tabBackgroundHeightInterpolator.getCurrentValue(now) * scalingFactor);
+		this.tabBackground.height = Math.floor(this.tabBackgroundHeightInterpolator.getCurrentValue(now) * this.scalingFactor);
 	}
 
 	setTabBackgroundNormalizedHeight(executer: BeatmapInfoPanelTab, height: number) {
