@@ -19,6 +19,9 @@ export class SectionStateDisplayer {
 		this.container.addChild(this.sprite);
 
 		this.sprite.anchor.set(0.5, 0.5);
+	}
+
+	resize() {
 		this.container.position.set(currentWindowDimensions.width/2, currentWindowDimensions.height/2);
 	}
 

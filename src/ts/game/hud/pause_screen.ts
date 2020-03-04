@@ -64,9 +64,6 @@ export class PauseScreen {
 			beginReversed: true,
 			defaultToFinished: true
 		});
-
-		uiEventEmitter.addListener('resize', () => this.resize()); // TODO make sure to destroy and remove dis somehow then when its due
-		this.resize();
 	}
 
     show() {

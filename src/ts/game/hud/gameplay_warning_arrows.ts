@@ -11,12 +11,13 @@ export class GameplayWarningArrows {
 	private sprites: PIXI.Sprite[]; // Do we really need this array?
 
 	constructor() {
+		this.container = new PIXI.Container();
+		this.container.visible = false;
+	}
+
+	init() {
 		let { screenPixelRatio } = gameState.currentPlay;
 
-		this.container = new PIXI.Container();
-		this.container.position.set(currentWindowDimensions.width/2, currentWindowDimensions.height/2);
-		this.container.visible = false;
-		
 		let arrowTexture = gameState.currentGameplaySkin.textures["arrowWarning"];
 		let doTint = false;
 
@@ -25,7 +26,9 @@ export class GameplayWarningArrows {
 			if (gameState.currentGameplaySkin.getVersionNumber() >= 2.0) doTint = true;
 		}
 
+		this.container.removeChildren();
 		this.sprites = [];
+
 		// Create a sprite for each corner
 		for (let i = 0; i < 4; i++) {
 			let sprite = new PIXI.Sprite();
@@ -44,6 +47,10 @@ export class GameplayWarningArrows {
 			this.container.addChild(sprite);
 			this.sprites.push(sprite);
 		}
+	}
+
+	resize() {
+		this.container.position.set(currentWindowDimensions.width/2, currentWindowDimensions.height/2);
 	}
 
 	update(currentTime: number, flickerStartTime: number) {

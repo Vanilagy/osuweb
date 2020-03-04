@@ -19,19 +19,6 @@ export class Scorebar {
 
 	constructor() {
 		this.container = new PIXI.Container();
-		
-		let markerTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
-		this.hasPureMarker = !markerTexture.isEmpty();
-
-		this.initBackgroundLayer();
-		this.initColorLayer();
-		this.initMask();
-		this.initMarker();
-
-		this.container.addChild(this.backgroundLayer);
-		this.container.addChild(this.colorLayer);
-		this.container.addChild(this.colorLayerMask);
-		this.container.addChild(this.marker);
 
 		this.progressInterpolator = new InterpolatedValueChanger({
 			initial: 1.0,
@@ -46,6 +33,23 @@ export class Scorebar {
 			duration: 200,
 			defaultToFinished: true
 		});
+	}
+
+	init() {
+		this.container.removeChildren();
+
+		let markerTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
+		this.hasPureMarker = !markerTexture.isEmpty();
+
+		this.initBackgroundLayer();
+		this.initColorLayer();
+		this.initMask();
+		this.initMarker();
+
+		this.container.addChild(this.backgroundLayer);
+		this.container.addChild(this.colorLayer);
+		this.container.addChild(this.colorLayerMask);
+		this.container.addChild(this.marker);
 	}
 
 	private initBackgroundLayer() {

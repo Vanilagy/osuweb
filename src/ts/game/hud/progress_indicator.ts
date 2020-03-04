@@ -1,15 +1,20 @@
-import { TAU } from "../../util/math_util";
+import { TAU, MathUtil } from "../../util/math_util";
 
 export class ProgressIndicator {
 	public container: PIXI.Container;
 	private ctx: CanvasRenderingContext2D;
 	private diameter: number;
+	private lastCompletion = 0;
+	private lastIsPrelude = false;
 
 	constructor(diameter: number) {
-		diameter = Math.floor(diameter / 2) * 2;
+		this.changeDiameter(diameter);
+	}
+
+	changeDiameter(diameter: number) {
+		this.diameter = MathUtil.floorToMultiple(diameter, 2);
 
 		let sprite = new PIXI.Sprite();
-		this.diameter = diameter;
 
 		let canvas = document.createElement('canvas');
 		canvas.setAttribute('width', String(Math.ceil(diameter)));
@@ -26,7 +31,7 @@ export class ProgressIndicator {
 
 		this.container = sprite;
 
-		this.draw(0, false);
+		this.draw(this.lastCompletion, this.lastIsPrelude);
 	}
 
 	draw(completion: number, isPrelude: boolean) {
@@ -66,5 +71,8 @@ export class ProgressIndicator {
 
 		let sprite = this.container as PIXI.Sprite;
 		sprite.texture.update();
+
+		this.lastCompletion = completion;
+		this.lastIsPrelude = isPrelude;
 	}
 }

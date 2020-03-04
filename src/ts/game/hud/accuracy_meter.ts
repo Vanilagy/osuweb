@@ -7,9 +7,13 @@ const ACCURACY_LINE_LIFETIME = 10000; // In ms
 const ACCURACY_METER_FADE_OUT_DELAY = 4000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 
-// TODO: Make this thing fade out automatically if there hasn't been input for a while
 export class AccuracyMeter {
 	public container: PIXI.Container;
+
+	private time50: number; // If you don't know what it means, just look where it's assigned.
+	private time100: number;
+	private time300: number;
+
 	private base: PIXI.Graphics;
 	private overlay: PIXI.Container;
 	private width: number;
@@ -17,8 +21,7 @@ export class AccuracyMeter {
 	private height: number;
 	private accuracyLines: PIXI.Graphics[];
 	private accuracyLineSpawnTimes: WeakMap<PIXI.Graphics, number>;
-	private fadeOutStart: number;
-	private time50: number; // If you don't know what it means, just look where it's assigned.
+	private fadeOutStart: number = -Infinity;
 	private alphaFilter: PIXI.filters.AlphaFilter; // We need to use an alpha filter here, because fading out without one looks weird due to the additive blend mode of the accuracy lines. Using the filter, everything fades out as if it were one.
 
 	constructor() {
@@ -38,12 +41,17 @@ export class AccuracyMeter {
 	init() {
 		let { processedBeatmap } = gameState.currentPlay;
 
-		this.fadeOutStart = -Infinity;
 		this.time50 = processedBeatmap.difficulty.getHitDeltaForJudgement(50);
+		this.time100 = processedBeatmap.difficulty.getHitDeltaForJudgement(100);
+		this.time300 = processedBeatmap.difficulty.getHitDeltaForJudgement(300);
 
+		this.resize();
+	}
+
+	resize() {
 		this.height = Math.max(15, Math.round(currentWindowDimensions.height * ACCURACY_METER_HEIGHT_FACTOR / 5) * 5);
 		let widthScale = this.height * 0.04;
-		this.width = Math.round(processedBeatmap.difficulty.getHitDeltaForJudgement(50)*2 * widthScale / 2) * 2;
+		this.width = Math.round(this.time50*2 * widthScale / 2) * 2;
 
 		//this.lineWidth = Math.floor(this.height/5 / 2) * 2;
 		this.lineWidth = 2;
@@ -61,13 +69,13 @@ export class AccuracyMeter {
 		this.base.endFill();
 
 		// Green strip
-		let greenStripWidth = Math.ceil(processedBeatmap.difficulty.getHitDeltaForJudgement(100)*2 * widthScale);
+		let greenStripWidth = Math.ceil(this.time100*2 * widthScale);
 		this.base.beginFill(0x57e11a, 1);
 		this.base.drawRect(Math.floor(this.width/2 - greenStripWidth/2), this.height*2/5, greenStripWidth, this.height/5);
 		this.base.endFill();
 
 		// Blue strip
-		let blueStripWidth = Math.ceil(processedBeatmap.difficulty.getHitDeltaForJudgement(300)*2 * widthScale);
+		let blueStripWidth = Math.ceil(this.time300*2 * widthScale);
 		this.base.beginFill(0x38b8e8, 1);
 		this.base.drawRect(Math.floor(this.width/2 - blueStripWidth/2), this.height*2/5, blueStripWidth, this.height/5);
 		this.base.endFill();
@@ -80,8 +88,6 @@ export class AccuracyMeter {
 
 		this.container.width = this.width;
 		this.container.height = this.height;
-		this.container.pivot.x = this.width/2;
-		this.container.pivot.y = this.height; // No /2 ON PURPOSE.
 	}
 	
 	update(currentTime: number) {

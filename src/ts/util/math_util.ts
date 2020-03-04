@@ -412,6 +412,11 @@ export abstract class MathUtil {
 		let index = Math.ceil(percentile / 100 * (arr.length - 1));
 		return arr[index];
 	}
+
+	// Example: floorToMultiple(7, 2) = 6
+	static floorToMultiple(num: number, factor: number) {
+		return Math.floor(num / factor) * factor;
+	}
 }
 
 let valueNoiseRng = MathUtil.createSeededRng(1337);

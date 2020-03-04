@@ -1,4 +1,3 @@
-import { hudContainer } from "../../visuals/rendering";
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../../visuals/sprite_number";
 import { baseSkin } from "../skin/skin";
 import { ProgressIndicator } from "./progress_indicator";
@@ -9,100 +8,121 @@ import { GameplayWarningArrows } from "./gameplay_warning_arrows";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { PauseScreen } from "./pause_screen";
 
-export let scoreDisplay: SpriteNumber;
-export let phantomComboDisplay: SpriteNumber;
-export let comboDisplay: SpriteNumber;
-export let accuracyDisplay: SpriteNumber;
-export let progressIndicator: ProgressIndicator;
-export let accuracyMeter: AccuracyMeter;
-export let scorebar: Scorebar;
-export let sectionStateDisplayer: SectionStateDisplayer;
-export let gameplayWarningArrows: GameplayWarningArrows;
-export let pauseScreen: PauseScreen;
+export class Hud {
+	public container: PIXI.Container;
 
-export function initHud() {
-	let scoreHeight = currentWindowDimensions.height * 0.0575,
-		accuracyHeight = currentWindowDimensions.height * 0.0345,
-		comboHeight = currentWindowDimensions.height * 0.0730;
+	public scoreDisplay: SpriteNumber;
+	public phantomComboDisplay: SpriteNumber;
+	public comboDisplay: SpriteNumber;
+	public accuracyDisplay: SpriteNumber;
+	public progressIndicator: ProgressIndicator;
+	public accuracyMeter: AccuracyMeter;
+	public scorebar: Scorebar;
+	public sectionStateDisplayer: SectionStateDisplayer;
+	public gameplayWarningArrows: GameplayWarningArrows;
+	public pauseScreen: PauseScreen; // NO this is NOT hud! temp
 
-	scoreDisplay = new SpriteNumber({
-		scaleFactor: scoreHeight / USUAL_SCORE_DIGIT_HEIGHT,
-		equalWidthDigits: true,
-		verticalAlign: "top",
-		horizontalAlign: "right",
-		overlap: baseSkin.config.fonts.scoreOverlap,
-		overlapAtEnd: true,
-		textures: baseSkin.scoreNumberTextures,
-		leftPad: 8
-	});
-	scoreDisplay.container.x = Math.floor(currentWindowDimensions.width - scoreHeight * 0.2);
-	scoreDisplay.container.y = 0;
-	scoreDisplay.setValue(0);
+	constructor() {
+		this.container = new PIXI.Container();
 
-	accuracyDisplay = new SpriteNumber({
-		scaleFactor: accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT,
-		equalWidthDigits: true,
-		verticalAlign: "top",
-		horizontalAlign: "right",
-		overlap: baseSkin.config.fonts.scoreOverlap,
-		overlapAtEnd: true,
-		textures: baseSkin.scoreNumberTextures,
-		fixedDecimals: 2,
-		hasPercent: true
-	});
-	accuracyDisplay.setValue(100);
-	accuracyDisplay.container.x = Math.floor(currentWindowDimensions.width - accuracyHeight * 0.37);
-	accuracyDisplay.container.y = Math.floor(scoreDisplay.container.height + currentWindowDimensions.height * 0.0075);
+		this.scoreDisplay = new SpriteNumber({
+			scaleFactor: 1,
+			equalWidthDigits: true,
+			verticalAlign: "top",
+			horizontalAlign: "right",
+			overlap: baseSkin.config.fonts.scoreOverlap,
+			overlapAtEnd: true,
+			textures: baseSkin.scoreNumberTextures,
+			leftPad: 8
+		});
+		this.scoreDisplay.setValue(0);
+		
+		this.accuracyDisplay = new SpriteNumber({
+			scaleFactor: 1,
+			equalWidthDigits: true,
+			verticalAlign: "top",
+			horizontalAlign: "right",
+			overlap: baseSkin.config.fonts.scoreOverlap,
+			overlapAtEnd: true,
+			textures: baseSkin.scoreNumberTextures,
+			fixedDecimals: 2,
+			hasPercent: true
+		});
+		this.accuracyDisplay.setValue(100);
+	
+		this.progressIndicator = new ProgressIndicator(0);
+	
+		this.phantomComboDisplay = new SpriteNumber({
+			scaleFactor: 1,
+			verticalAlign: "bottom",
+			horizontalAlign: "left",
+			overlap: baseSkin.config.fonts.comboOverlap,
+			textures: baseSkin.scoreNumberTextures,
+			hasX: true
+		});
+		this.phantomComboDisplay.container.alpha = 0.333;
+		this.phantomComboDisplay.setValue(0);
+	
+		this.comboDisplay = new SpriteNumber({
+			scaleFactor: 1,
+			verticalAlign: "bottom",
+			horizontalAlign: "left",
+			overlap: baseSkin.config.fonts.comboOverlap,
+			textures: baseSkin.scoreNumberTextures,
+			hasX: true
+		});
+		
+		this.comboDisplay.setValue(0);
+	
+		this.accuracyMeter = new AccuracyMeter();
+		this.scorebar = new Scorebar();
+		this.sectionStateDisplayer = new SectionStateDisplayer();
+		this.gameplayWarningArrows = new GameplayWarningArrows();
+		this.pauseScreen = new PauseScreen();
+	
+		this.container.addChild(this.sectionStateDisplayer.container);
+		this.container.addChild(this.scorebar.container);
+		this.container.addChild(this.gameplayWarningArrows.container);
+		this.container.addChild(this.accuracyMeter.container);
+		this.container.addChild(this.scoreDisplay.container);
+		this.container.addChild(this.phantomComboDisplay.container);
+		this.container.addChild(this.comboDisplay.container);
+		this.container.addChild(this.accuracyDisplay.container);
+		this.container.addChild(this.progressIndicator.container);
+		this.container.addChild(this.pauseScreen.container);
+	}
 
-	progressIndicator = new ProgressIndicator(currentWindowDimensions.height * 0.043);
-	progressIndicator.container.x = Math.floor(accuracyDisplay.container.x - accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
-	progressIndicator.container.y = Math.floor(accuracyDisplay.container.y + Math.min(accuracyHeight/2, accuracyDisplay.lastComputedHeight/2));
+	resize() {
+		let scoreHeight = currentWindowDimensions.height * 0.0575,
+		    accuracyHeight = currentWindowDimensions.height * 0.0345,
+			comboHeight = currentWindowDimensions.height * 0.0730;		
+		
+		this.scoreDisplay.setScaleFactor(scoreHeight / USUAL_SCORE_DIGIT_HEIGHT);
+		this.scoreDisplay.container.x = Math.floor(currentWindowDimensions.width - scoreHeight * 0.2);
+		this.scoreDisplay.container.y = 0;
 
-	phantomComboDisplay = new SpriteNumber({
-		scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
-		verticalAlign: "bottom",
-		horizontalAlign: "left",
-		overlap: baseSkin.config.fonts.comboOverlap,
-		textures: baseSkin.scoreNumberTextures,
-		hasX: true
-	});
-	phantomComboDisplay.container.x = Math.floor(currentWindowDimensions.height * 0.005);
-	phantomComboDisplay.container.y = Math.floor(currentWindowDimensions.height);
-	phantomComboDisplay.container.alpha = 0.333;
-	phantomComboDisplay.setValue(0);
+		this.accuracyDisplay.setScaleFactor(accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT);
+		this.accuracyDisplay.container.x = Math.floor(currentWindowDimensions.width - accuracyHeight * 0.37);
+		this.accuracyDisplay.container.y = Math.floor(this.scoreDisplay.container.height + currentWindowDimensions.height * 0.0075);
 
-	comboDisplay = new SpriteNumber({
-		scaleFactor: comboHeight / USUAL_SCORE_DIGIT_HEIGHT,
-		verticalAlign: "bottom",
-		horizontalAlign: "left",
-		overlap: baseSkin.config.fonts.comboOverlap,
-		textures: baseSkin.scoreNumberTextures,
-		hasX: true
-	});
-	comboDisplay.container.x = phantomComboDisplay.container.x;
-	comboDisplay.container.y = phantomComboDisplay.container.y;
-	comboDisplay.setValue(0);
+		this.progressIndicator.changeDiameter(currentWindowDimensions.height * 0.043);
+		this.progressIndicator.container.x = Math.floor(this.accuracyDisplay.container.x - this.accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
+		this.progressIndicator.container.y = Math.floor(this.accuracyDisplay.container.y + Math.min(accuracyHeight/2, this.accuracyDisplay.lastComputedHeight/2));
 
-	accuracyMeter = new AccuracyMeter();
-	accuracyMeter.container.x = currentWindowDimensions.width / 2;
-	accuracyMeter.container.y = currentWindowDimensions.height;
+		this.phantomComboDisplay.setScaleFactor(comboHeight / USUAL_SCORE_DIGIT_HEIGHT);
+		this.phantomComboDisplay.container.x = Math.floor(currentWindowDimensions.height * 0.005);
+		this.phantomComboDisplay.container.y = Math.floor(currentWindowDimensions.height);
 
-	scorebar = new Scorebar();
+		this.comboDisplay.setScaleFactor(comboHeight / USUAL_SCORE_DIGIT_HEIGHT);
+		this.comboDisplay.container.x = this.phantomComboDisplay.container.x;
+		this.comboDisplay.container.y = this.phantomComboDisplay.container.y;
 
-	sectionStateDisplayer = new SectionStateDisplayer();
+		this.accuracyMeter.resize();
+		this.accuracyMeter.container.x = currentWindowDimensions.width / 2;
+		this.accuracyMeter.container.y = currentWindowDimensions.height;
 
-	gameplayWarningArrows = new GameplayWarningArrows();
-
-	pauseScreen = new PauseScreen();
-
-	hudContainer.addChild(sectionStateDisplayer.container);
-	hudContainer.addChild(scorebar.container);
-	hudContainer.addChild(gameplayWarningArrows.container);
-	hudContainer.addChild(accuracyMeter.container);
-	hudContainer.addChild(scoreDisplay.container);
-	hudContainer.addChild(phantomComboDisplay.container);
-	hudContainer.addChild(comboDisplay.container);
-	hudContainer.addChild(accuracyDisplay.container);
-	hudContainer.addChild(progressIndicator.container);
-	hudContainer.addChild(pauseScreen.container);
+		this.sectionStateDisplayer.resize();
+		this.gameplayWarningArrows.resize();
+		this.pauseScreen.resize();
+	}
 }

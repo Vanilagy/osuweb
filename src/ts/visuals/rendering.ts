@@ -107,22 +107,9 @@ let softwareCursorContainer = new PIXI.Container();
 softwareCursorContainer.addChild(softwareCursor);
 
 export let backgroundContainer = new PIXI.Container();
-export let mainHitObjectContainer = new PIXI.Container();
-mainHitObjectContainer.sortableChildren = true;
-export let approachCircleContainer = new PIXI.Container();
-export let followPointContainer = new PIXI.Container();
-export let lowerScorePopupContainer = new PIXI.Container(); // The parts of score popups shown BELOW hit objects
-export let upperScorePopupContainer = new PIXI.Container(); // The parts of score popups shown ABOVE hit objects
-export let hudContainer = new PIXI.Container();
 export let cursorRippleGraphics = new PIXI.Graphics();
 
 // The order of these is important, 'cause z-index 'n' stuff.
 stage.addChild(backgroundContainer);
-stage.addChild(lowerScorePopupContainer);
-stage.addChild(followPointContainer);
-stage.addChild(mainHitObjectContainer);
-stage.addChild(approachCircleContainer);
-stage.addChild(upperScorePopupContainer);
 stage.addChild(cursorRippleGraphics);
 stage.addChild(softwareCursorContainer); // TODO! For an actual software cursor, this has to be ABOVE the HUD. Just for when its an AUTO cursor, put it somewhere el-- idk. man. should probably just hide the auto cursor when paused and shit? idk man
-stage.addChild(hudContainer);
