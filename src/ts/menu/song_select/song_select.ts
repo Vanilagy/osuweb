@@ -9,6 +9,8 @@ import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { SearchBar } from "./search_bar";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { globalState } from "../../global_state";
+import { Interpolator } from "../../util/interpolation";
+import { EaseType } from "../../util/math_util";
 
 export class SongSelect {
 	public container: PIXI.Container;
@@ -24,6 +26,8 @@ export class SongSelect {
 	public sideControlPanel: SongSelectSideControlPanel;
 	public searchBar: SearchBar;
 
+	private fadeInterpolator: Interpolator;
+
 	constructor() {
 		this.container = new PIXI.Container();
 		this.interactionGroup = Interactivity.createGroup();
@@ -36,12 +40,24 @@ export class SongSelect {
 		this.container.addChild(this.carousel.container, this.infoPanel.container, this.sideControlPanel.container, this.searchBar.container);
 		this.interactionGroup.add(this.carousel.interactionGroup, this.infoPanel.interactionGroup, this.sideControlPanel.interactionGroup, this.searchBar.interactionGroup);
 
+		this.fadeInterpolator = new Interpolator({
+			duration: 300,
+			ease: EaseType.EaseOutQuad,
+			reverseEase: EaseType.EaseInQuad,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+
 		this.resize();
 		this.hide();
 	}
 
 	update(now: number, dt: number) {
-		// TODO DON'T LIKE RUN THIS IF SONG SELECT NOT VISIBLE :()
+		let fadeValue = this.fadeInterpolator.getCurrentValue(now);
+		this.container.alpha = fadeValue;
+		this.container.visible = fadeValue !== 0;
+
+		if (fadeValue === 0) return;
 
 		this.carousel.update(now, dt);
 		this.infoPanel.update(now);
@@ -82,12 +98,12 @@ export class SongSelect {
 	}
 
 	show() {
-		this.container.visible = true;
+		this.fadeInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.enable();
 	}
 
 	hide() {
-		this.container.visible = false;
+		this.fadeInterpolator.setReversedState(true, performance.now());
 		this.interactionGroup.disable();
 	}
 }

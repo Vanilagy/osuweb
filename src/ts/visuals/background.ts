@@ -1,5 +1,5 @@
 import { EaseType, MathUtil } from "../util/math_util";
-import { addRenderingTask, backgroundContainer } from "./rendering";
+import { addRenderingTask } from "./rendering";
 import { VirtualFile } from "../file_system/virtual_file";
 import { getBitmapFromImageFile, BitmapQuality } from "../util/image_util";
 import { fitSpriteIntoContainer } from "../util/pixi_util";
@@ -15,29 +15,30 @@ export enum BackgroundState {
 	Gameplay
 }
 
-export abstract class BackgroundManager {
-	private static state: BackgroundState = BackgroundState.None;
-	private static imageContainer = new PIXI.Container();
-	private static videoElement = document.createElement('video');
-	private static videoSprite: PIXI.Sprite;
-	private static currentImageFile: VirtualFile = null;
-	private static currentVideoFile: VirtualFile = null;
-	private static markedForDeletionSprites: WeakSet<PIXI.Sprite> = new WeakSet();
-	private static fadeInterpolators: WeakMap<PIXI.Sprite, Interpolator> = new WeakMap();
-	private static currentGameplayBrightness: number = 1.0;
-	private static blurFilter = new PIXI.filters.KawaseBlurFilter(0);
-	private static colorMatrixFilter = new PIXI.filters.ColorMatrixFilter();
-	private static gameplayInterpolator: Interpolator = new Interpolator({
+export class BackgroundManager {
+	public container: PIXI.Container = new PIXI.Container();
+	private state: BackgroundState = BackgroundState.None;
+	private imageContainer = new PIXI.Container();
+	private videoElement = document.createElement('video');
+	private videoSprite: PIXI.Sprite;
+	private currentImageFile: VirtualFile = null;
+	private currentVideoFile: VirtualFile = null;
+	private markedForDeletionSprites: WeakSet<PIXI.Sprite> = new WeakSet();
+	private fadeInterpolators: WeakMap<PIXI.Sprite, Interpolator> = new WeakMap();
+	private currentGameplayBrightness: number = 1.0;
+	private blurFilter = new PIXI.filters.KawaseBlurFilter(0);
+	private colorMatrixFilter = new PIXI.filters.ColorMatrixFilter();
+	private gameplayInterpolator: Interpolator = new Interpolator({
 		ease: EaseType.EaseInOutQuad,
 		duration: 1000
 	});
-	private static blurInterpolator: Interpolator = new Interpolator({
+	private blurInterpolator: Interpolator = new Interpolator({
 		from: 1,
 		to: 0,
 		ease: EaseType.EaseInOutSine,
 		duration: 500
 	});
-	private static scaleInterpolator: Interpolator = new Interpolator({
+	private scaleInterpolator: Interpolator = new Interpolator({
 		from: 1.08,
 		to: 1.0,
 		duration: 700,
@@ -45,7 +46,7 @@ export abstract class BackgroundManager {
 		reverseEase: EaseType.EaseInCubic
 	});
 
-	static initialize() {
+	constructor() {
 		this.videoElement.setAttribute('muted', '');
 		this.videoElement.setAttribute('preload', 'auto');
 		this.videoElement.setAttribute('webkit-playsinline', '');
@@ -58,13 +59,13 @@ export abstract class BackgroundManager {
 		this.setState(BackgroundState.SongSelect);
 		this.resize();
 
-		backgroundContainer.addChild(this.imageContainer, this.videoSprite);
+		this.container.addChild(this.imageContainer, this.videoSprite);
 
 		this.blurFilter.quality = 5;
-		backgroundContainer.filters = [this.blurFilter, this.colorMatrixFilter];
+		this.container.filters = [this.blurFilter, this.colorMatrixFilter];
 	}
 
-	static async setState(newState: BackgroundState) {
+	async setState(newState: BackgroundState) {
 		if (newState === this.state) return;
 
 		let now = performance.now();
@@ -88,7 +89,7 @@ export abstract class BackgroundManager {
 		this.state = newState;
 	}
 
-	static async setImage(file: VirtualFile) {
+	async setImage(file: VirtualFile) {
 		if (this.currentImageFile === file) return;
 		this.currentImageFile = file;
 
@@ -119,7 +120,7 @@ export abstract class BackgroundManager {
 	}
 
 	/** Returns a Promise that resolves once the video is ready for playback. */
-	static async setVideo(file: VirtualFile): Promise<void> {
+	async setVideo(file: VirtualFile): Promise<void> {
 		if (this.currentVideoFile === file) return Promise.resolve();
 		this.currentVideoFile = file;
 
@@ -134,44 +135,44 @@ export abstract class BackgroundManager {
 		});
 	}
 
-	static removeVideo() {
+	removeVideo() {
 		this.videoElement.pause();
 		this.videoElement.src = '';
 	}
 
-	static setVideoOpacity(opacity: number) {
+	setVideoOpacity(opacity: number) {
 		this.videoElement.style.opacity = opacity.toString();
 	}
 
-	static playVideo() {
+	playVideo() {
 		this.videoElement.play();
 	}
 
-	static pauseVideo() {
+	pauseVideo() {
 		this.videoElement.pause();
 	}
 
-	static videoIsPaused() {
+	videoIsPaused() {
 		return this.videoElement.paused;
 	}
 
-	static getVideoCurrentTime() {
+	getVideoCurrentTime() {
 		return this.videoElement.currentTime;
 	}
 
-	static setVideoCurrentTime(time: number) {
+	setVideoCurrentTime(time: number) {
 		this.videoElement.currentTime = time;
 	}
 
-	static setVideoPlaybackRate(time: number) {
+	setVideoPlaybackRate(time: number) {
 		this.videoElement.playbackRate = time;
 	}
 
-	static setGameplayBrightness(newBrightness: number) {
+	setGameplayBrightness(newBrightness: number) {
 		this.currentGameplayBrightness = newBrightness;
 	}
 
-	static update(now: number) {
+	update(now: number) {
 		let t = this.gameplayInterpolator.getCurrentValue(now);
 		let brightness = MathUtil.lerp(0.7, this.currentGameplayBrightness, t);
 
@@ -185,15 +186,15 @@ export abstract class BackgroundManager {
 			sprite.alpha = interpolator.getCurrentValue(now);
 		}
 
-		backgroundContainer.scale.set(this.scaleInterpolator.getCurrentValue(now));
+		this.container.scale.set(this.scaleInterpolator.getCurrentValue(now));
 		this.blurFilter.blur = 5 * getGlobalScalingFactor() * this.blurInterpolator.getCurrentValue(now);
 		this.blurFilter.enabled = this.blurFilter.blur !== 0;
 	}
 
-	static resize() {
-		backgroundContainer.pivot.x = currentWindowDimensions.width / 2;
-		backgroundContainer.pivot.y = currentWindowDimensions.height / 2;
-		backgroundContainer.position.copyFrom(backgroundContainer.pivot);
+	resize() {
+		this.container.pivot.x = currentWindowDimensions.width / 2;
+		this.container.pivot.y = currentWindowDimensions.height / 2;
+		this.container.position.copyFrom(this.container.pivot);
 
 		for (let obj of this.imageContainer.children) {
 			let sprite = obj as PIXI.Sprite;
@@ -203,8 +204,3 @@ export abstract class BackgroundManager {
 		fitSpriteIntoContainer(this.videoSprite, currentWindowDimensions.width, currentWindowDimensions.height);
 	}
 }
-BackgroundManager.initialize();
-
-addRenderingTask((now: number) => BackgroundManager.update(now));
-
-uiEventEmitter.addListener('resize', () => BackgroundManager.resize());

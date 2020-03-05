@@ -97,19 +97,3 @@ export function removeRenderingTask(task: RenderingTask) {
 export function uploadTexture(tex: PIXI.Texture) {
 	renderer.texture.bind(tex, 15); // Use slot 15 for all texture uploaded in this way. While that means that only the last uploaded texture will still be bound, all uploaded textures still remain in video memory.
 }
-
-export let softwareCursor = new PIXI.Sprite(PIXI.Texture.from("./assets/img/cursor.png"));
-softwareCursor.anchor.set(0.5, 0.5);
-softwareCursor.scale.set(1.0, 1.0);
-softwareCursor.visible = false;
-
-let softwareCursorContainer = new PIXI.Container();
-softwareCursorContainer.addChild(softwareCursor);
-
-export let backgroundContainer = new PIXI.Container();
-export let cursorRippleGraphics = new PIXI.Graphics();
-
-// The order of these is important, 'cause z-index 'n' stuff.
-stage.addChild(backgroundContainer);
-stage.addChild(cursorRippleGraphics);
-stage.addChild(softwareCursorContainer); // TODO! For an actual software cursor, this has to be ABOVE the HUD. Just for when its an AUTO cursor, put it somewhere el-- idk. man. should probably just hide the auto cursor when paused and shit? idk man

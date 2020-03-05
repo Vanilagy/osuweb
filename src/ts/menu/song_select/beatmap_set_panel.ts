@@ -309,7 +309,7 @@ export class BeatmapSetPanel {
 		}
 
 		representingBeatmap.getBackgroundImageFile().then((backgroundImage) => {
-			if (backgroundImage) BackgroundManager.setImage(backgroundImage);
+			if (backgroundImage) globalState.backgroundManager.setImage(backgroundImage);
 		});
 
 		representingBeatmap.getAudioFile().then(async (audioFile) => {

@@ -2,6 +2,7 @@ import { Mp3Util, AudioUtil } from "../util/audio_util";
 import { audioContext, mediaAudioNode } from "./audio";
 import { addTickingTask, removeTickingTask } from "../util/ticker";
 import { VirtualFile } from "../file_system/virtual_file";
+import { MathUtil } from "../util/math_util";
 
 const SECTION_LENGTH = 5.0; // In seconds
 const NEXT_SECTION_MARGIN = 2.0; // How many seconds before the end of the current section the next section should start being prepared
@@ -29,6 +30,7 @@ export class HighAccuracyMediaPlayer {
 	private lastAudioNode: AudioBufferSourceNode = null;
 	private cachedAudioBuffers: AudioBufferInfo[] = []; // Keep as many sections as possible, so that repeated playing doesn't require re-decoding audio data
 
+	private isMp3: boolean;
 	private starting = false;
 	private playing = false;
 	private startTime: number;
@@ -38,6 +40,9 @@ export class HighAccuracyMediaPlayer {
 	private suppressTick = false;
 	private endOfDataReached = false;
 	private offset: number;
+
+	// Non-MP3 stuff:
+	private entireAudioBuffer: AudioBuffer | Promise<void> = null;
 
 	private lastSampledContextTime: number = null;
 	private lastContextTimeSamplingTime: number = null;
@@ -55,12 +60,16 @@ export class HighAccuracyMediaPlayer {
 		this.data = data;
 		this.dataView = new DataView(this.data);
 
-		// TODO: Handle more files
-		if (!Mp3Util.isId3Tag(this.dataView, 0)) throw new Error("Non-MP3 files are not handled yet!");
+		if (Mp3Util.isId3Tag(this.dataView, 0)) {
+			this.isMp3 = true;
 
-		// Get the file header. This will be appended to the start of every audio buffer slice.
-		let fileHeaderByteLength = Mp3Util.getFileHeaderByteLength(this.dataView, 0);
-		this.fileHeader = this.data.slice(0, fileHeaderByteLength);
+			// Get the file header. This will be appended to the start of every audio buffer slice.
+			let fileHeaderByteLength = Mp3Util.getFileHeaderByteLength(this.dataView, 0);
+			this.fileHeader = this.data.slice(0, fileHeaderByteLength);
+		} else {
+			this.isMp3 = false;
+			this.fileHeader = null;
+		}
 
 		this.clearBufferCache();
 	}
@@ -87,6 +96,7 @@ export class HighAccuracyMediaPlayer {
 	}
 
 	async start(offset = 0) {
+		if (!this.data) throw new Error("Can't start without a file loaded!");
 		await this.internalStart(offset, true);
 	}
 
@@ -98,23 +108,29 @@ export class HighAccuracyMediaPlayer {
 
 		if (this.playing) this.stopAudio();
 
-		// Seek for the right frame to begin playback from
-		let frameHeaderIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, this.fileHeader.byteLength, Math.max(offset, 0));
-
 		// Init master node
 		this.currentMasterNode = audioContext.createGain();
 		this.currentMasterNode.connect(this.destination);
 		this.currentMasterNodeId++;
 		this.lastAudioNode = null;
-
-		// Reset some attributes
-		this.endOfDataReached = false;
-		this.lastBufferOffset = frameHeaderIndex.offset;
-		this.currentBufferEndTime = frameHeaderIndex.exactTime;
-		this.offset = offset;
 		this.lastSampledContextTime = null;
+		this.offset = offset;
 
-		await this.readyNextBufferSource();
+		let fn = Mp3Util.getFrameHeaderIndexAtTime;
+		let frameHeaderIndex: ReturnType<typeof fn>;
+		if (this.isMp3) {
+			// Seek for the right frame to begin playback from
+			frameHeaderIndex = Mp3Util.getFrameHeaderIndexAtTime(this.dataView, this.fileHeader.byteLength, Math.max(offset, 0));
+
+			// Reset some attributes
+			this.endOfDataReached = false;
+			this.lastBufferOffset = frameHeaderIndex.offset;
+			this.currentBufferEndTime = frameHeaderIndex.exactTime;
+
+			await this.readyNextBufferSource();
+		} else {
+			await this.internalStartNonMp3();
+		}
 		
 		if (resetLastCurrentTimeValue) this.lastCurrentTimeValue = -Infinity; // Reset it after the await because someone may get the currentTime while decoding is happening
 		this.pausedTime = null;
@@ -123,9 +139,100 @@ export class HighAccuracyMediaPlayer {
 		addTickingTask(this.tickingTask);
 
 		// Can happen if 'offset' is outside of the song's length
-		if (frameHeaderIndex.eofReached) {
+		if (this.isMp3 && frameHeaderIndex.eofReached) {
 			this.startTime = audioContext.currentTime; // Gotta set it here because it wasn't set in readyNextBufferSource
 			this.pause();
+		}
+	}
+
+	// Incase a non-MP3 file is loaded, playback works a little differently: If it can, it fetches a small bit from the beginning of that song and plays that as soon as it can. Then, once the entire song has been decoded, it "swaps out" the buffers, so that the song can play 'til the end.
+	private async internalStartNonMp3() {
+		let masterNodeId = this.currentMasterNodeId;
+
+		let playBuffer = (buffer: AudioBuffer) => {
+			if (this.currentMasterNodeId !== masterNodeId) return;
+
+			// If tempo === pitch, then we can naively speed up the playbackRate of a source node to yield the desired effect. This also avoids unnecessary processing.
+			let useNativePlaybackRate = this.tempo === this.pitch;
+			// If the buffer speed has been changed using playbackRate, then we don't need to divide. If it hasn't and we instead loaded a custom, sped-up buffer, then we do need to divide.
+			let startDurationDivisor = useNativePlaybackRate? 1 : this.tempo;
+			// The tempo and pitch change has an observed delay of 8192 samples, so we need to shift the playback by that much. And a bit more.
+			let startDurationAdditionalOffset = useNativePlaybackRate? 0 : 8192 / audioContext.sampleRate + 0.008;
+
+			let bufferSource = audioContext.createBufferSource();
+			bufferSource.buffer = buffer;
+			bufferSource.playbackRate.value = useNativePlaybackRate? this.tempo : 1;
+			bufferSource.connect(this.currentMasterNode);
+
+			if (this.lastAudioNode === null) {
+				let currentContextTime = audioContext.currentTime;
+
+				let when = currentContextTime - Math.min(this.offset, 0) / this.tempo;
+				let offset = Math.max(this.offset, 0) / startDurationDivisor + startDurationAdditionalOffset;
+	
+				bufferSource.start(when, offset);
+				this.startTime = currentContextTime;
+			} else {
+				let currentContextTime = audioContext.currentTime;
+
+				let when = Math.max(currentContextTime, this.startTime - Math.min(this.offset, 0) / this.tempo);
+				let offset = Math.max(this.offset + (currentContextTime - this.startTime) * this.tempo, 0) / startDurationDivisor + startDurationAdditionalOffset;
+
+				// Swap out
+				bufferSource.start(when, offset);
+				this.lastAudioNode.disconnect();
+			}
+			
+			this.lastAudioNode = bufferSource;
+		};
+
+		let startBeginningSlice = async () => {
+			let useNativePlaybackRate = this.tempo === this.pitch;
+
+			let endIndex = Math.min(this.data.byteLength, Math.max(75000, Math.floor(this.data.byteLength * 0.04 * (useNativePlaybackRate? 1 : 1.5))));
+			let slice = this.data.slice(0, endIndex);
+			let rawAudioBuffer = await audioContext.decodeAudioData(slice);
+			let finalAudioBuffer: AudioBuffer;
+
+			if (useNativePlaybackRate) {
+				finalAudioBuffer = rawAudioBuffer;
+			} else {
+				let processedBuffer = await AudioUtil.changeTempoAndPitch(rawAudioBuffer, audioContext, this.tempo, this.pitch);
+				finalAudioBuffer = processedBuffer;
+
+			}
+
+			playBuffer(finalAudioBuffer);
+		};
+
+		if (this.entireAudioBuffer === null) {
+			let useNativePlaybackRate = this.tempo === this.pitch;
+
+			let promise = new Promise<void>(async (resolve) => {
+				let rawAudioBuffer = await audioContext.decodeAudioData(this.data.slice(0));
+				let finalAudioBuffer: AudioBuffer;
+
+				if (useNativePlaybackRate) {
+					finalAudioBuffer = rawAudioBuffer;
+				} else {
+					let processedBuffer = await AudioUtil.changeTempoAndPitch(rawAudioBuffer, audioContext, this.tempo, this.pitch);
+					finalAudioBuffer = processedBuffer;
+				}
+
+				this.entireAudioBuffer = finalAudioBuffer;
+
+				resolve();
+			});
+			this.entireAudioBuffer = promise;
+		}
+		
+		if (this.entireAudioBuffer instanceof Promise) {
+			this.entireAudioBuffer.then(() => playBuffer(this.entireAudioBuffer as AudioBuffer));
+
+			if (this.offset <= 0) await startBeginningSlice();
+			else await this.entireAudioBuffer;
+		} else {
+			playBuffer(this.entireAudioBuffer as AudioBuffer);
 		}
 	}
 
@@ -235,6 +342,8 @@ export class HighAccuracyMediaPlayer {
 	}
 
 	private async tick() {
+		if (!this.isMp3 && this.entireAudioBuffer instanceof AudioBuffer && this.getContextCurrentTime() === this.entireAudioBuffer.duration) this.pause();
+		if (!this.isMp3) return;
 		if (!this.playing || this.isPaused()) return;
 		if (this.endOfDataReached && this.getContextCurrentTime() === this.currentBufferEndTime) this.pause();
 		if (this.suppressTick || this.endOfDataReached) return;
@@ -290,6 +399,7 @@ export class HighAccuracyMediaPlayer {
 
 	private clearBufferCache() {
 		this.cachedAudioBuffers.length = 0;
+		this.entireAudioBuffer = null;
 	}
 
 	isPaused() {
@@ -304,7 +414,15 @@ export class HighAccuracyMediaPlayer {
 		if (this.isPaused()) return this.pausedTime;
 		if (!this.playing) return 0;
 
-		return Math.min(this.offset + (audioContext.currentTime - this.startTime) * this.tempo, this.currentBufferEndTime);
+		let cap: number;
+		if (this.isMp3) {
+			cap = this.currentBufferEndTime;
+		} else {
+			cap = Infinity;
+			if (this.entireAudioBuffer instanceof AudioBuffer) cap = this.entireAudioBuffer.duration;
+		}
+
+		return Math.min(this.offset + (audioContext.currentTime - this.startTime) * this.tempo, cap);
 	}
 
 	getCurrentTime() {

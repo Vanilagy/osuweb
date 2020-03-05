@@ -3,7 +3,7 @@ import { mediaAudioNode, audioContext } from "../audio/audio";
 import { AudioUtil } from "../util/audio_util";
 
 async function tester() {
-	let request = await fetch('./assets/test_maps/NowOnStage/audio.mp3');
+	let request = await fetch('./assets/test_maps/KillerBeast/audio.mp3');
 	let arrayBuffer = await request.arrayBuffer();
 
 	let player = new HighAccuracyMediaPlayer(mediaAudioNode);
@@ -11,6 +11,12 @@ async function tester() {
 	player.setTempo(1.0);
 	player.setPitch(1.0);
 	await player.start(0);
+
+	setInterval(() => {
+		console.log(player.getCurrentTime());
+	}, 50);
+
+	return;
 
 	setTimeout(() => {
 		player.pause();

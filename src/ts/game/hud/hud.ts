@@ -94,6 +94,11 @@ export class Hud {
 
 	// Should be called every time there's a new Play.
 	init() {
+		this.scoreDisplay.setValue(0);
+		this.accuracyDisplay.setValue(100);
+		this.phantomComboDisplay.setValue(0);
+		this.comboDisplay.setValue(0);
+
 		this.accuracyMeter.init();
 		this.scorebar.init();
 		this.gameplayWarningArrows.init();

@@ -56,7 +56,7 @@ export class PauseScreen {
 			this.controller.restart();
 		});
 		quitPanel.setupInteraction(this.interactionGroup, () => {
-			// showSongSelect();
+			this.controller.endPlay();
 		});
 
 		this.fadeInterpolator = new Interpolator({
@@ -76,6 +76,11 @@ export class PauseScreen {
     hide() {
 		this.fadeInterpolator.setReversedState(true, performance.now());
 		this.interactionGroup.disable();
+	}
+
+	reset() {
+		this.hide();
+		this.fadeInterpolator.end();
 	}
 	
 	resize() {

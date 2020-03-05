@@ -1,5 +1,4 @@
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
-import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { DrawableSpinner } from "./drawables/drawable_spinner";
@@ -46,6 +45,7 @@ export class Play {
 	private hasVideo: boolean = false;
 	public paused: boolean = false;
 	private playing: boolean = false;
+	private initted: boolean = false;
 
 	private currentHitObjectIndex: number;
 	private onscreenHitObjects: DrawableHitObject[];
@@ -92,6 +92,8 @@ export class Play {
 	}
 	
 	async init() {
+		if (this.initted) return;
+
 		let screenHeight = currentWindowDimensions.height * 1; // The factor was determined through experimentation. Makes sense it's 1.
 		this.hitObjectPixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
 		this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
@@ -153,7 +155,7 @@ export class Play {
 		if (this.activeMods.has(Mod.Auto)) {
 			this.playthroughInstructions = ModHelper.generateAutoPlaythroughInstructions(this);
 			this.autohit = true;
-			softwareCursor.visible = true;
+			this.controller.autoCursor.visible = true;
 		}
 
 		// Compute break end warning times
@@ -167,7 +169,8 @@ export class Play {
 
 		this.reset();
 
-		let mediaPlayer = globalState.gameplayMediaPlayer;
+		let mediaPlayer = globalState.gameplayMediaPlayer,
+		    backgroundManager = globalState.backgroundManager;
 
 		console.time("Audio load");
 		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
@@ -176,19 +179,17 @@ export class Play {
 		console.timeEnd("Audio load");
 
 		let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
-		if (backgroundImageFile) BackgroundManager.setImage(backgroundImageFile);
+		if (backgroundImageFile) backgroundManager.setImage(backgroundImageFile);
 		
 		let backgroundVideoFile = await this.processedBeatmap.beatmap.getBackgroundVideoFile();
 		if (backgroundVideoFile && !DISABLE_VIDEO) {
 			try {
-				await BackgroundManager.setVideo(backgroundVideoFile);
+				await backgroundManager.setVideo(backgroundVideoFile);
 				this.hasVideo = true;
 			} catch (e) {
 				console.error("Video load error", e);
 			}
 		}
-
-		BackgroundManager.setState(BackgroundState.Gameplay); // TEMP ?
 
 		// TODO: Add nightcore percussion
 
@@ -202,11 +203,6 @@ export class Play {
 		if (this.activeMods.has(Mod.Daycore)) mediaPlayer.setPitch(HALF_TIME_PLAYBACK_RATE);
 
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
-
-		addRenderingTask(() => this.render());
-		addTickingTask(() => this.tick());
-		this.tick();
-		enableRenderTimeInfoLog();
 
 		inputEventEmitter.addListener('mouseMove', () => {
 			this.handleMouseMove();
@@ -222,6 +218,8 @@ export class Play {
 				}; break;
 			}
 		});
+
+		this.initted = true;
 	}
 
 	async start() {
@@ -230,11 +228,15 @@ export class Play {
 		await globalState.gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
 
 		this.playing = true;
+		this.tick();
 	}
 
 	render() {
+		if (!this.initted) return;
+
 		let currentTime = this.getCurrentSongTime();
 		const hud = this.controller.hud;
+		const backgroundManager = globalState.backgroundManager;
 
 		// Run a game tick right before rendering
 		this.tick(currentTime);
@@ -327,22 +329,20 @@ export class Play {
 			// Take care of the video fading in in the first second of the audio
 			let videoFadeInCompletion = currentTime / VIDEO_FADE_IN_DURATION;
 			videoFadeInCompletion = MathUtil.clamp(videoFadeInCompletion, 0, 1);
-			BackgroundManager.setVideoOpacity(videoFadeInCompletion);
+			backgroundManager.setVideoOpacity(videoFadeInCompletion);
 
 			// Sync the video to the audio
-			let offsetDifference = Math.abs((BackgroundManager.getVideoCurrentTime() * 1000) - currentTime);
+			let offsetDifference = Math.abs((backgroundManager.getVideoCurrentTime() * 1000) - currentTime);
 			if (offsetDifference >= 30 && currentTime >= 0) {
-				BackgroundManager.setVideoCurrentTime(currentTime / 1000);
+				backgroundManager.setVideoCurrentTime(currentTime / 1000);
 			}
 
 			// Start the video when it's due
-			if (currentTime >= 0 && BackgroundManager.videoIsPaused()) {
-				BackgroundManager.setVideoPlaybackRate(this.playbackRate);
-				BackgroundManager.playVideo();
+			if (currentTime >= 0 && backgroundManager.videoIsPaused()) {
+				backgroundManager.setVideoPlaybackRate(this.playbackRate);
+				backgroundManager.playVideo();
 			}
 		}
-
-		this.controller.pauseScreen.update(performance.now());
 
 		if (!this.playing) return;
 		// Don't run the following code if not playing
@@ -403,7 +403,7 @@ export class Play {
 
 			// Go from 1.0 brightness to (1 - background dim) brightness
 			let brightness = x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY);
-			BackgroundManager.setGameplayBrightness(brightness);
+			backgroundManager.setGameplayBrightness(brightness);
 
 			break;
 		}
@@ -413,7 +413,8 @@ export class Play {
 	}
 
 	tick(currentTimeOverride?: number) {
-		if (!this.playing) return;
+		if (!this.playing || !this.initted) return;
+
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
 		const hud = this.controller.hud;
 
@@ -639,7 +640,7 @@ export class Play {
 			}
 		}
 
-		if (this.hasVideo) BackgroundManager.pauseVideo();
+		if (this.hasVideo) globalState.backgroundManager.pauseVideo();
 	}
 
 	unpause() {
@@ -881,6 +882,6 @@ export class Play {
 		}
 
 		let screenCoordinates = this.toScreenCoordinates(cursorPlayfieldPos, false);
-		softwareCursor.position.set(screenCoordinates.x, screenCoordinates.y);
+		this.controller.autoCursor.position.set(screenCoordinates.x, screenCoordinates.y);
 	}
 }
