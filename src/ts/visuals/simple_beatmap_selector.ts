@@ -1,8 +1,8 @@
 import { Beatmap } from "../datamodel/beatmap";
-import { startPlayFromBeatmap } from "../game/play";
 import { BeatmapSet } from "../datamodel/beatmap_set";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
+import { globalState } from "../global_state";
 
 const beatmapFileSelect = document.querySelector('#beatmap-select') as HTMLInputElement;
 beatmapFileSelect.style.display = 'none';
@@ -36,7 +36,7 @@ beatmapFileSelect.addEventListener('change', async (e) => {
 		beatmapSet: beatmapSet,
 		metadataOnly: false
 	});
-	await startPlayFromBeatmap(beatmap);
+	await globalState.gameplayController.startPlayFromBeatmap(beatmap);
 });
 
 export function showChooseFile() {

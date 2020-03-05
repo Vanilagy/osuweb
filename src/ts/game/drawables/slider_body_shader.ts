@@ -1,4 +1,3 @@
-import { gameState } from "../game_state";
 import { PLAYFIELD_DIMENSIONS, SLIDER_BODY_INSIDE_TO_TOTAL_RATIO, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../../util/constants";
 import { Color } from "../../util/graphics_util";
 import { DrawableSlider } from "./drawable_slider";
@@ -59,15 +58,16 @@ void main() {
 let sliderBodyProgram = new PIXI.Program(vertexShaderSource, fragmentShaderSource, "sliderBodyProgram");
 
 export function createSliderBodyShader(slider: DrawableSlider) {
-	let beatmap = gameState.currentPlay.processedBeatmap.beatmap;
+	let beatmap = slider.drawableBeatmap.processedBeatmap.beatmap;
+	let { skin } = slider.drawableBeatmap.play;
 
 	let borderColor: Color = null;
 	if (!IGNORE_BEATMAP_SKIN) borderColor = beatmap.colors.sliderBorder;
-	if (borderColor === null) borderColor = gameState.currentGameplaySkin.config.colors.sliderBorder;
+	if (borderColor === null) borderColor = skin.config.colors.sliderBorder;
 
 	let sliderBodyColor: Color = null;
 	if (!IGNORE_BEATMAP_SKIN) sliderBodyColor = beatmap.colors.sliderTrackOverride;
-	if (sliderBodyColor === null) sliderBodyColor = gameState.currentGameplaySkin.config.colors.sliderTrackOverride;
+	if (sliderBodyColor === null) sliderBodyColor = skin.config.colors.sliderTrackOverride;
 	if (sliderBodyColor === null) sliderBodyColor = slider.color;
 
 	let targetRed = Math.min(255, sliderBodyColor.r * 1.125 + 75),
@@ -86,7 +86,7 @@ export function createSliderBodyShader(slider: DrawableSlider) {
 }
 
 export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sliderBounds: SliderBounds) { // The reason the bounds is given as a separate argument here is that bounds can change dynamically for very large, snaking sliders.
-	let { hitObjectPixelRatio, circleRadius, circleRadiusOsuPx } = gameState.currentPlay;
+	let { hitObjectPixelRatio, circleRadius, circleRadiusOsuPx } = slider.drawableBeatmap.play;
 
 	let matrix = new Float32Array(9);
 	glMatrix.mat3.identity(matrix);
@@ -134,9 +134,9 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 		let isDistortedSlider = shrinkFactorX < 1.0 || shrinkFactorY < 1.0;
 
 		if (isDistortedSlider) {
-			intersectsLeftEdge = gameState.currentPlay.toScreenCoordinatesX(sliderBounds.min.x + adjustedCircleRadius, false) <= 0;
-			intersectsTopEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.min.y + adjustedCircleRadius, false) <= 0;
-			intersectsBottomEdge = gameState.currentPlay.toScreenCoordinatesY(sliderBounds.max.y + adjustedCircleRadius, false) >= currentWindowDimensions.height;
+			intersectsLeftEdge = slider.drawableBeatmap.play.toScreenCoordinatesX(sliderBounds.min.x + adjustedCircleRadius, false) <= 0;
+			intersectsTopEdge = slider.drawableBeatmap.play.toScreenCoordinatesY(sliderBounds.min.y + adjustedCircleRadius, false) <= 0;
+			intersectsBottomEdge = slider.drawableBeatmap.play.toScreenCoordinatesY(sliderBounds.max.y + adjustedCircleRadius, false) >= currentWindowDimensions.height;
 
 			// Do left-edge scaling
 			if (intersectsLeftEdge) glMatrix.mat3.scale(matrix, matrix, new Float32Array([shrinkFactorX, 1.0]));

@@ -1,12 +1,8 @@
 import { MathUtil, EaseType } from "../util/math_util";
-import { scoreDisplay, phantomComboDisplay, accuracyDisplay, comboDisplay } from "./hud/hud";
 import { assert } from "../util/misc_util";
-import { gameState } from "./game_state";
 import { Point } from "../util/point";
-import { lowerScorePopupContainer, upperScorePopupContainer } from "../visuals/rendering";
 import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { ModHelper } from "./mods/mod_helper";
-import { ScoringValue } from "./scoring_value";
 import { transferBasicProperties, transferBasicSpriteProperties } from "../util/pixi_util";
 import { OsuSoundType } from "./skin/sound";
 import { AnimatedOsuSprite } from "./skin/animated_sprite";
@@ -14,12 +10,25 @@ import { OsuTexture } from "./skin/texture";
 import { ParticleEmitter, DistanceDistribution } from "../visuals/particle_emitter";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { InterpolatedValueChanger, Interpolator } from "../util/interpolation";
+import { Play } from "./play";
 
 const SCORE_POPUP_APPEARANCE_TIME = 150; // Both in ms
 const SCORE_POPUP_FADE_OUT_TIME = 1000;
 const SCORE_POPUP_SECOND_CONTAINER_FADE_OUT_TIME = 250; // In ms
 const MISS_POPUP_DROPDOWN_ACCERELATION = 0.00009; // in osu!pixels per ms^2
 const SCORE_POPUP_GRADUAL_SCALE_UP_AMOUNT = 0.12;
+
+export enum ScoringValue {
+	NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
+	Hit300 = 300,
+	Hit100 = 100,
+	Hit50 = 50,
+	Miss = 0,
+	SliderHead = 30,
+	SliderTick = 10,
+	SliderRepeat = 30,
+	SliderEnd = 30
+}
 
 export class Score {
 	public points: number;
@@ -52,6 +61,7 @@ interface DelayedVisualComboIncrease {
 }
 
 export class ScoreCounter {
+	public play: Play;
 	public processedBeatmap: ProcessedBeatmap;
 	public delayedVisualComboIncreases: DelayedVisualComboIncrease[]; // For the combo display, which actually shows the change in combo a bit later. Just look at it and you'll know what I'm talking about.
 	public score: Score;
@@ -65,7 +75,8 @@ export class ScoreCounter {
 	private difficultyMultiplier: number;
 	private modMultiplier: number;
 
-	constructor(processedBeatmap: ProcessedBeatmap) {
+	constructor(play: Play, processedBeatmap: ProcessedBeatmap) {
+		this.play = play;
 		this.processedBeatmap = processedBeatmap;
 	}
 
@@ -73,7 +84,7 @@ export class ScoreCounter {
 		this.score = new Score();		
 
 		this.difficultyMultiplier = this.processedBeatmap.beatmap.difficulty.calculateDifficultyMultiplier(); // Get the difficulty from the beatmap, not the processed beatmap, because: "Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier. It will only account for original values only."
-		this.modMultiplier = ModHelper.calculateModMultiplier(gameState.currentPlay.activeMods);
+		this.modMultiplier = ModHelper.calculateModMultiplier(this.play.activeMods);
 	}
 
 	/**
@@ -110,7 +121,7 @@ export class ScoreCounter {
 		this.score.accuracy = this.calculateAccuracy();
 		accuracyInterpolator.setGoal(this.score.accuracy, time);
 
-		gameState.currentPlay.gainHealth(rawAmount/300 * 0.2, time);
+		this.play.gainHealth(rawAmount/300 * 0.2, time);
 
 		if (!raw) {
 			if (rawAmount === ScoringValue.Hit300) this.score.hits300++;
@@ -148,8 +159,8 @@ export class ScoreCounter {
 			
 			assert(scorePopupType !== undefined);
 			
-			let popup = new ScorePopup(scorePopupType, hitObject.parent.endPoint, time);
-			gameState.currentPlay.addScorePopup(popup);
+			let popup = new ScorePopup(this, scorePopupType, hitObject.parent.endPoint, time);
+			this.play.addScorePopup(popup);
 		}
 	}
 
@@ -157,7 +168,7 @@ export class ScoreCounter {
 		if (this.currentCombo === 0) return;
 
 		if (this.currentCombo >= 50) {
-			gameState.currentGameplaySkin.sounds[OsuSoundType.ComboBreak].play(100);
+			this.play.skin.sounds[OsuSoundType.ComboBreak].play(100);
 		}
 
 		this.currentCombo = 0;
@@ -176,31 +187,35 @@ export class ScoreCounter {
 	}
 
 	updateDisplay(currentTime: number) {
-		scoreDisplay.setValue(Math.floor(scoreInterpolator.getCurrentValue(currentTime)));
+		const hud = this.play.controller.hud;
 
-		phantomComboDisplay.setValue(this.currentCombo);
+		hud.scoreDisplay.setValue(Math.floor(scoreInterpolator.getCurrentValue(currentTime)));
+
+		hud.phantomComboDisplay.setValue(this.currentCombo);
 		let phantomComboAnimCompletion = phantomComboAnimationInterpolator.getCurrentValue(currentTime);
 		let phantomComboScale = MathUtil.lerp(1.5, 1, MathUtil.ease(EaseType.EaseOutCubic, phantomComboAnimCompletion));
-		phantomComboDisplay.container.scale.set(phantomComboScale);
-		phantomComboDisplay.container.alpha = 0.666 * (1 - phantomComboAnimCompletion);
+		hud.phantomComboDisplay.container.scale.set(phantomComboScale);
+		hud.phantomComboDisplay.container.alpha = 0.666 * (1 - phantomComboAnimCompletion);
 
 		let comboAnimCompletion = comboAnimationInterpolator.getCurrentValue(currentTime);
 		let parabola = -4 * comboAnimCompletion**2 + 4 * comboAnimCompletion;
-		comboDisplay.container.scale.set(1 + parabola * 0.08);
+		hud.comboDisplay.container.scale.set(1 + parabola * 0.08);
 
 		let nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
 		while (nextDelayedComboIncrease && currentTime >= nextDelayedComboIncrease.time + 150) {
 			comboAnimationInterpolator.start(nextDelayedComboIncrease.time);
-			comboDisplay.setValue(nextDelayedComboIncrease.value);
+			hud.comboDisplay.setValue(nextDelayedComboIncrease.value);
 
 			this.delayedVisualComboIncreases.shift();
 			nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
 		}
 
-		accuracyDisplay.setValue(accuracyInterpolator.getCurrentValue(currentTime) * 100);
+		hud.accuracyDisplay.setValue(accuracyInterpolator.getCurrentValue(currentTime) * 100);
 	}
 
 	reset() {
+		const hud = this.play.controller.hud;
+
 		this.delayedVisualComboIncreases = [];
 
 		this.currentCombo = 0;
@@ -212,10 +227,10 @@ export class ScoreCounter {
 
 		this.resetGekiAndKatu();
 
-		scoreDisplay.setValue(0);
-		accuracyDisplay.setValue(100);
-		phantomComboDisplay.setValue(0);
-		comboDisplay.setValue(0);
+		hud.scoreDisplay.setValue(0);
+		hud.accuracyDisplay.setValue(100);
+		hud.phantomComboDisplay.setValue(0);
+		hud.comboDisplay.setValue(0);
 
 		scoreInterpolator.reset(0);
 		accuracyInterpolator.reset(1);
@@ -298,6 +313,7 @@ scorePopupTypeToJudgementValue.set(ScorePopupType.Katu300, 300);
 scorePopupTypeToJudgementValue.set(ScorePopupType.Katu100, 100);
 
 export class ScorePopup {
+	public scoreCounter: ScoreCounter;
 	public container: PIXI.Container;
 	public secondContainer: PIXI.Container; // Is shown ontop of all hit objects for a fraction of the total score popup time. That's just how it is!
 	private secondSprite: PIXI.Sprite;
@@ -310,13 +326,13 @@ export class ScorePopup {
 	private particleTexture: OsuTexture = null;
 	private particleEmitter: ParticleEmitter;
 
-	constructor(type: ScorePopupType, osuPosition: Point, startTime: number) {
+	constructor(scoreCounter: ScoreCounter, type: ScorePopupType, osuPosition: Point, startTime: number) {
+		this.scoreCounter = scoreCounter;
 		this.type = type;
 		this.osuPosition = osuPosition;
 		this.startTime = startTime;
 
-		let currentPlay = gameState.currentPlay;
-		let { headedHitObjectTextureFactor } = currentPlay;
+		let { headedHitObjectTextureFactor, skin } = this.scoreCounter.play;
 
 		let textureName: string;
 		switch (type) {
@@ -328,13 +344,13 @@ export class ScorePopup {
 			case ScorePopupType.Katu300: textureName = "hit300k"; break;
 			case ScorePopupType.Geki: textureName = "hit300g"; break;
 		}
-		let osuTexture = gameState.currentGameplaySkin.textures[textureName];
+		let osuTexture = skin.textures[textureName];
 
 		let judgementValue = scorePopupTypeToJudgementValue.get(type);
 		// Set the correct particle texture
-		if (judgementValue === 50) this.particleTexture = gameState.currentGameplaySkin.textures["particle50"];
-		else if (judgementValue === 100) this.particleTexture = gameState.currentGameplaySkin.textures["particle100"];
-		else if (judgementValue === 300) this.particleTexture = gameState.currentGameplaySkin.textures["particle300"];
+		if (judgementValue === 50) this.particleTexture = skin.textures["particle50"];
+		else if (judgementValue === 100) this.particleTexture = skin.textures["particle100"];
+		else if (judgementValue === 300) this.particleTexture = skin.textures["particle300"];
 
 		let animatedSprite = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
 		animatedSprite.loop = false;
@@ -355,7 +371,7 @@ export class ScorePopup {
 		this.secondContainer = secondWrapper;
 		this.secondSprite = secondSprite;
 		
-		let screenCoordinates = currentPlay.toScreenCoordinates(osuPosition);
+		let screenCoordinates = this.scoreCounter.play.toScreenCoordinates(osuPosition);
 		this.container.position.set(screenCoordinates.x, screenCoordinates.y);
 
 		if (type === ScorePopupType.Miss) {
@@ -422,7 +438,7 @@ export class ScorePopup {
 		if (this.type === ScorePopupType.Miss) {
 			let droppedDistance = 0.5 * MISS_POPUP_DROPDOWN_ACCERELATION * elapsedTime**2; // s(t) = 0.5*a*t^2
 			let osuY = this.osuPosition.y + droppedDistance;
-			this.container.y = gameState.currentPlay.toScreenCoordinatesY(osuY, false);
+			this.container.y = this.scoreCounter.play.toScreenCoordinatesY(osuY, false);
 		}
 
 		transferBasicProperties(this.container, this.secondContainer);
@@ -436,22 +452,26 @@ export class ScorePopup {
 	}
 
 	show() {
+		const controller = this.scoreCounter.play.controller;
+
 		if (this.hasParticles()) {
-			lowerScorePopupContainer.addChild(this.particleEmitter.container);
-			lowerScorePopupContainer.addChild(this.container);
-			upperScorePopupContainer.addChild(this.secondContainer);
+			controller.lowerScorePopupContainer.addChild(this.particleEmitter.container);
+			controller.lowerScorePopupContainer.addChild(this.container);
+			controller.upperScorePopupContainer.addChild(this.secondContainer);
 		} else {
-			upperScorePopupContainer.addChild(this.container);
+			controller.upperScorePopupContainer.addChild(this.container);
 		}
 	}
 
 	remove() {
+		const controller = this.scoreCounter.play.controller;
+
 		if (this.hasParticles()) {
-			lowerScorePopupContainer.removeChild(this.particleEmitter.container);
-			lowerScorePopupContainer.removeChild(this.container);
-			upperScorePopupContainer.removeChild(this.secondContainer);
+			controller.lowerScorePopupContainer.removeChild(this.particleEmitter.container);
+			controller.lowerScorePopupContainer.removeChild(this.container);
+			controller.upperScorePopupContainer.removeChild(this.secondContainer);
 		} else {
-			upperScorePopupContainer.removeChild(this.container);
+			controller.upperScorePopupContainer.removeChild(this.container);
 		}
 	}
 }

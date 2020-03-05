@@ -1,11 +1,11 @@
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT, uiEventEmitter } from "../../visuals/ui";
 import { Interactivity, InteractionGroup } from "../../input/interactivity";
-import { gameState } from "../game_state";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { THEME_COLORS } from "../../util/constants";
+import { GameplayController } from "../../game/gameplay_controller";
 
 const ACTION_PANEL_WIDTH = 336;
 const ACTION_PANEL_HEIGHT = 52;
@@ -15,15 +15,18 @@ export function getPauseScreenScalingFactor() {
 }
 
 export class PauseScreen {
+	public controller: GameplayController;
 	public container: PIXI.Container;
+	public interactionGroup: InteractionGroup;
+
 	private background: PIXI.Sprite;
 	private centerContainer: PIXI.Container;
 	private heading: PIXI.Text;
 	private actionPanels: PauseScreenActionPanel[];
-	private interactionGroup: InteractionGroup;
 	private fadeInterpolator: Interpolator;
 
-    constructor() {
+    constructor(controller: GameplayController) {
+		this.controller = controller;
 		this.container = new PIXI.Container();
 		this.container.alpha = 0; // kinda temp? hack? cheap hack?
 		
@@ -47,11 +50,10 @@ export class PauseScreen {
 		this.interactionGroup = Interactivity.createGroup();
 		this.interactionGroup.disable();
 		resumePanel.setupInteraction(this.interactionGroup, () => {
-			gameState.currentPlay.unpause();
+			this.controller.unpause();
 		});
 		restartPanel.setupInteraction(this.interactionGroup, () => {
-			gameState.currentPlay.restart();
-			this.hide();
+			this.controller.restart();
 		});
 		quitPanel.setupInteraction(this.interactionGroup, () => {
 			// showSongSelect();

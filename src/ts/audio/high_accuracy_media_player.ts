@@ -335,5 +335,3 @@ export class HighAccuracyMediaPlayer {
 		}
 	}
 }
-
-export let gameplayMediaPlayer = new HighAccuracyMediaPlayer(mediaAudioNode);

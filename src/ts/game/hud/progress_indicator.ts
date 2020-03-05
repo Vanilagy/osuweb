@@ -8,6 +8,7 @@ export class ProgressIndicator {
 	private lastIsPrelude = false;
 
 	constructor(diameter: number) {
+		this.container = new PIXI.Container();
 		this.changeDiameter(diameter);
 	}
 
@@ -17,19 +18,20 @@ export class ProgressIndicator {
 		let sprite = new PIXI.Sprite();
 
 		let canvas = document.createElement('canvas');
-		canvas.setAttribute('width', String(Math.ceil(diameter)));
-		canvas.setAttribute('height', String(Math.ceil(diameter)));
+		canvas.setAttribute('width', String(Math.ceil(this.diameter)));
+		canvas.setAttribute('height', String(Math.ceil(this.diameter)));
 		let ctx = canvas.getContext('2d');
 		this.ctx = ctx;
 
 		let texture = PIXI.Texture.from(canvas);
 		sprite.texture = texture;
 
-		sprite.width = diameter;
-		sprite.height = diameter;
+		sprite.width = this.diameter;
+		sprite.height = this.diameter;
 		sprite.anchor.set(0.5, 0.5);
 
-		this.container = sprite;
+		this.container.removeChildren();
+		this.container.addChild(sprite);
 
 		this.draw(this.lastCompletion, this.lastIsPrelude);
 	}
@@ -61,7 +63,7 @@ export class ProgressIndicator {
 		ctx.strokeStyle = '#ffffff';
 		ctx.lineWidth = lineWidth;
 		ctx.beginPath();
-		ctx.arc(radius, radius, radius - lineWidth/2, 0, TAU);
+		ctx.arc(radius, radius, Math.max(radius - lineWidth/2, 0), 0, TAU);
 		ctx.stroke();
 
 		ctx.fillStyle = '#ffffff';
@@ -69,7 +71,7 @@ export class ProgressIndicator {
 		ctx.arc(radius, radius, radius / 10, 0, TAU);
 		ctx.fill();
 
-		let sprite = this.container as PIXI.Sprite;
+		let sprite = this.container.children[0] as PIXI.Sprite;
 		sprite.texture.update();
 
 		this.lastCompletion = completion;

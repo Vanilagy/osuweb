@@ -1,8 +1,7 @@
 import { Point, pointDistance, pointAngle } from "../../util/point";
-import { gameState } from "../game_state";
 import { MathUtil, EaseType } from "../../util/math_util";
-import { followPointContainer } from "../../visuals/rendering";
 import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
+import { DrawableBeatmap } from "../drawable_beatmap";
 
 export const POINT_DISTANCE = 32; // Taken from ppy, this **probably** means how many osu!pixels follow point images are apart.
 export const FOLLOW_POINT_DISTANCE_THRESHOLD = POINT_DISTANCE * 3; // The minimum distance, in osu!pixels, that two objects need to be away from each other in order to create a follow point between them. In regular osu! terms, three follow point images.
@@ -15,6 +14,7 @@ const FOLLOW_POINT_FADE_OUT_TIME = 400;
 
 export class FollowPoint {
 	public container: PIXI.Container;
+	private drawableBeatmap: DrawableBeatmap;
 	private hitObjectA: ProcessedHitObject;
 	private hitObjectB: ProcessedHitObject;
 	private startTime: number;
@@ -26,9 +26,10 @@ export class FollowPoint {
 	public renderStartTime: number;
 	public renderFinished: boolean = false;
 
-	constructor(hitObjectA: ProcessedHitObject, hitObjectB: ProcessedHitObject) {
-		let { headedHitObjectTextureFactor } = gameState.currentPlay;
+	constructor(drawableBeatmap: DrawableBeatmap, hitObjectA: ProcessedHitObject, hitObjectB: ProcessedHitObject) {
+		let { headedHitObjectTextureFactor, skin } = drawableBeatmap.play;
 
+		this.drawableBeatmap = drawableBeatmap;
 		this.hitObjectA = hitObjectA;
 		this.hitObjectB = hitObjectB;
 
@@ -47,7 +48,7 @@ export class FollowPoint {
 		this.container.rotation = angle;
 
 		let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
-		let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
+		let osuTexture = skin.textures["followPoint"];
 
 		let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor));
 		let texture = osuTexture.getForResolution(resolution);
@@ -70,18 +71,20 @@ export class FollowPoint {
 	}
 
 	show() {
-		followPointContainer.addChild(this.container);
-		
+		const controller = this.drawableBeatmap.play.controller;
+
+		controller.followPointContainer.addChild(this.container);
 		this.position();
 	}
 
 	position() {
-		let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.startPoint);
+		let screenCoordinates = this.drawableBeatmap.play.toScreenCoordinates(this.startPoint);
 		this.container.position.set(screenCoordinates.x, screenCoordinates.y);
 	}
 
 	remove() {
-		followPointContainer.removeChild(this.container);
+		const controller = this.drawableBeatmap.play.controller;
+		controller.followPointContainer.removeChild(this.container);
 	}
 
 	update(currentTime: number) {
@@ -90,9 +93,9 @@ export class FollowPoint {
 			return;
 		}
 
-		let { headedHitObjectTextureFactor, hitObjectPixelRatio } = gameState.currentPlay;
+		let { headedHitObjectTextureFactor, hitObjectPixelRatio, skin } = this.drawableBeatmap.play;
 
-		let osuTexture = gameState.currentGameplaySkin.textures["followPoint"];
+		let osuTexture = skin.textures["followPoint"];
 		let frameCount = osuTexture.getAnimationFrameCount();
 		const partFadeInTime = (frameCount === 0)? FOLLOW_POINT_FADE_IN_TIME : FOLLOW_POINT_FADE_IN_TIME_ANIMTED;
 

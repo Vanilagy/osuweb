@@ -9,14 +9,17 @@ import { ProcessedHitObject } from "../datamodel/processed/processed_hit_object"
 import { ProcessedCircle } from "../datamodel/processed/processed_circle";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { ProcessedSpinner } from "../datamodel/processed/processed_spinner";
+import { Play } from "./play";
 
 export class DrawableBeatmap {
+	public play: Play;
 	public processedBeatmap: ProcessedBeatmap;
 	public drawableHitObjects: DrawableHitObject[] = [];
 	public followPoints: FollowPoint[] = [];
 	public processedToDrawable: Map<ProcessedHitObject, DrawableHitObject> = new Map();
 
-	constructor(processedBeatmap: ProcessedBeatmap) {
+	constructor(play: Play, processedBeatmap: ProcessedBeatmap) {
+		this.play = play;
 		this.processedBeatmap = processedBeatmap;
 	}
 
@@ -26,11 +29,11 @@ export class DrawableBeatmap {
 			let drawable: DrawableHitObject = null;
 
 			if (processedObj instanceof ProcessedCircle) {
-				drawable = new DrawableCircle(processedObj);
+				drawable = new DrawableCircle(this, processedObj);
 			} else if (processedObj instanceof ProcessedSlider) {
-				drawable = new DrawableSlider(processedObj);
+				drawable = new DrawableSlider(this, processedObj);
 			} else if (processedObj instanceof ProcessedSpinner) {
-				drawable = new DrawableSpinner(processedObj);
+				drawable = new DrawableSpinner(this, processedObj);
 			}
 
 			this.processedToDrawable.set(processedObj, drawable);
@@ -57,7 +60,7 @@ export class DrawableBeatmap {
 				let distSquared = pointDistanceSquared(objA.endPoint, objB.startPoint);
 
 				if (distSquared < FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED) continue;
-				this.followPoints.push(new FollowPoint(objA, objB));
+				this.followPoints.push(new FollowPoint(this, objA, objB));
 			}
 		}
 	}

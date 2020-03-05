@@ -1,14 +1,13 @@
 import { Circle } from "../../datamodel/circle";
-import { gameState } from "../game_state";
 import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../../util/constants";
-import { accuracyMeter } from "../hud/hud";
 import { DrawableHeadedHitObject, CircleScoring, getDefaultCircleScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { ScoringValue } from "../scoring_value";
 import { Mod } from "../mods/mods";
 import { HitSoundInfo, generateHitSoundInfo } from "../skin/sound";
 import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
+import { DrawableBeatmap } from "../drawable_beatmap";
+import { ScoringValue } from "../score";
 
 export class DrawableCircle extends DrawableHeadedHitObject {
 	public parent: ProcessedCircle;
@@ -16,8 +15,8 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 	public scoring: CircleScoring;
 	private hitSound: HitSoundInfo;
 
-	constructor(processedCircle: ProcessedCircle) {
-		super(processedCircle);
+	constructor(drawableBeatmap: DrawableBeatmap, processedCircle: ProcessedCircle) {
+		super(drawableBeatmap, processedCircle);
 
 		this.reset();
 		this.initSounds(processedCircle.hitObject, processedCircle.timingInfo);
@@ -30,9 +29,9 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 	}
 
 	draw() {
-		let { approachTime, activeMods } = gameState.currentPlay;
+		let { approachTime, activeMods } = this.drawableBeatmap.play;
 
-		this.renderStartTime = this.parent.startTime - gameState.currentPlay.approachTime;
+		this.renderStartTime = this.parent.startTime - approachTime;
 	
 		this.head = new HitCirclePrimitive({
 			fadeInStart: this.parent.startTime - approachTime,
@@ -54,7 +53,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 	}
 
 	score(time: number, judgement: number) {
-		let scoreCounter = gameState.currentPlay.scoreCounter;
+		let scoreCounter = this.drawableBeatmap.play.scoreCounter;
 
 		this.scoring.head.time = time;
 		this.scoring.head.hit = judgement;
@@ -71,7 +70,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 	hitHead(time: number, judgementOverride?: number) {
 		if (this.scoring.head.hit !== ScoringValue.NotHit) return;
 
-		let { processedBeatmap } = gameState.currentPlay;
+		let { processedBeatmap, skin } = this.drawableBeatmap.play;
 
 		let timeInaccuracy = time - this.parent.startTime;
 		let judgement: number;
@@ -85,8 +84,10 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 
 		this.score(time, judgement);
 		if (judgement !== 0) {
-			gameState.currentGameplaySkin.playHitSound(this.hitSound);
-			accuracyMeter.addAccuracyLine(timeInaccuracy, time);
+			const hud = this.drawableBeatmap.play.controller.hud;
+
+			skin.playHitSound(this.hitSound);
+			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
 		}
 	}
 }

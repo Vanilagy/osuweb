@@ -7,11 +7,11 @@ import { BackgroundManager } from "../../visuals/background";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
 import { getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BeatmapCarouselSortingType, BeatmapCarousel } from "./beatmap_carousel";
 import { InteractionRegistration, Interactivity, InteractionGroup } from "../../input/interactivity";
-import { mainMusicMediaPlayer } from "../../audio/media_player";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { JobUtil } from "../../multithreading/job_util";
 import { Interpolator } from "../../util/interpolation";
+import { globalState } from "../../global_state";
 
 export class BeatmapSetPanel {
 	public carousel: BeatmapCarousel;
@@ -314,12 +314,13 @@ export class BeatmapSetPanel {
 
 		representingBeatmap.getAudioFile().then(async (audioFile) => {
 			if (!audioFile) return;
+			let mediaPlayer = globalState.basicMediaPlayer;
 
-			await mainMusicMediaPlayer.loadFromVirtualFile(audioFile);
+			await mediaPlayer.loadFromVirtualFile(audioFile);
 
 			let startTime = representingBeatmap.getAudioPreviewTimeInSeconds();
-			mainMusicMediaPlayer.start(startTime)
-			mainMusicMediaPlayer.setLoopBehavior(true, startTime);
+			mediaPlayer.start(startTime)
+			mediaPlayer.setLoopBehavior(true, startTime);
 			this.carousel.songSelect.sideControlPanel.resetLastBeatTime();
 		});
 

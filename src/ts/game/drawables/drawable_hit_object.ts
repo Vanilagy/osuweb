@@ -3,9 +3,10 @@ import { Point } from "../../util/point";
 import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { Color } from "../../util/graphics_util";
-import { gameState } from "../game_state";
+import { DrawableBeatmap } from "../drawable_beatmap";
 
 export abstract class DrawableHitObject {
+	public drawableBeatmap: DrawableBeatmap;
 	public parent: ProcessedHitObject;
 	public color: Color; // The combo color of this object
 	public colorIndex: number; // The index of the combo color of this object
@@ -15,10 +16,11 @@ export abstract class DrawableHitObject {
 	/** When true, the hit object has ended its short life as a graphical element and need not be rendered anymore. */
 	public renderFinished: boolean;
 	
-	constructor(processedHitObject: ProcessedHitObject) {
+	constructor(drawableBeatmap: DrawableBeatmap, processedHitObject: ProcessedHitObject) {
+		this.drawableBeatmap = drawableBeatmap;
 		this.parent = processedHitObject;
 
-		let { colorArray } = gameState.currentPlay;
+		let { colorArray } = this.drawableBeatmap.play;
 
 		this.colorIndex = this.parent.comboInfo.comboNum % colorArray.length;
 		this.color = colorArray[this.colorIndex];

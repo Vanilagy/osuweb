@@ -6,9 +6,9 @@ import { addRenderingTask } from "../../visuals/rendering";
 import { Interactivity, InteractionGroup } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { mainMusicMediaPlayer } from "../../audio/media_player";
 import { AnalyserNodeWrapper } from "../../audio/analyser_node_wrapper";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
+import { globalState } from "../../global_state";
 
 const PULSAR_IDLE_RADIUS = 60;
 const SIDE_CONTROL_PANEL_WIDTH = 42;
@@ -256,7 +256,7 @@ class SideControlPulsar {
 			to: 0.0
         });
         
-        this.analyser = mainMusicMediaPlayer.createAnalyser(2**15);
+        this.analyser = globalState.basicMediaPlayer.createAnalyser(2**15);
 
 		this.initInteraction();
 	}
@@ -302,7 +302,7 @@ class SideControlPulsar {
 		if (currentExtendedData && currentExtendedData.msPerBeatTimings.length > 0) {
             let { msPerBeatTimings } = currentExtendedData;
 
-			let currentTime = mainMusicMediaPlayer.getCurrentTime() * 1000;
+			let currentTime = globalState.basicMediaPlayer.getCurrentTime() * 1000;
 			let latest = msPerBeatTimings[0];
 
 			for (let i = 0; i < msPerBeatTimings.length; i++) {
@@ -344,6 +344,6 @@ class SideControlPulsar {
 	}
 
 	resetLastBeatTime() {
-		this.lastBeatTime = mainMusicMediaPlayer.getCurrentTime() * 1000;
+		this.lastBeatTime = globalState.basicMediaPlayer.getCurrentTime() * 1000;
 	}
 }

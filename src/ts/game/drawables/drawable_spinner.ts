@@ -1,7 +1,5 @@
 import { DrawableHitObject } from "./drawable_hit_object";
 import { Spinner } from "../../datamodel/spinner";
-import { mainHitObjectContainer } from "../../visuals/rendering";
-import { gameState } from "../game_state";
 import { MathUtil, EaseType, TAU } from "../../util/math_util";
 import { Point } from "../../util/point";
 import { anyGameButtonIsPressed } from "../../input/input";
@@ -10,12 +8,12 @@ import { colorToHexNumber, lerpColors, Color, Colors } from "../../util/graphics
 import { SpriteNumber } from "../../visuals/sprite_number";
 import { SoundEmitter } from "../../audio/sound_emitter";
 import { Mod } from "../mods/mods";
-import { accuracyMeter } from "../hud/hud";
 import { HitSoundInfo, generateHitSoundInfo, OsuSoundType } from "../skin/sound";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator } from "../../util/interpolation";
+import { DrawableBeatmap } from "../drawable_beatmap";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -78,8 +76,8 @@ export class DrawableSpinner extends DrawableHitObject {
 	// TODO: Clean this up. Ergh. Disgusting.
 	private bonusSoundVolume: number;
 	
-	constructor(processedSpinner: ProcessedSpinner) {
-		super(processedSpinner);
+	constructor(drawableBeatmap: DrawableBeatmap, processedSpinner: ProcessedSpinner) {
+		super(drawableBeatmap, processedSpinner);
 
 		this.reset();
 		this.initSounds(processedSpinner.hitObject, processedSpinner.timingInfo);
@@ -93,7 +91,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		let volume = spinner.extras.sampleVolume || currentTimingPoint.volume,
 			index = spinner.extras.customIndex || currentTimingPoint.sampleIndex || 1;
 
-		let emitter = gameState.currentGameplaySkin.sounds[OsuSoundType.SpinnerSpin].getEmitter(volume, index);
+		let emitter = this.drawableBeatmap.play.skin.sounds[OsuSoundType.SpinnerSpin].getEmitter(volume, index);
 		if (emitter && !emitter.isReallyShort()) {
 			emitter.setLoopState(true);
 			this.spinSoundEmitter = emitter;
@@ -123,7 +121,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	draw() {
-		let { screenPixelRatio, activeMods } = gameState.currentPlay;
+		let { screenPixelRatio, activeMods, skin } = this.drawableBeatmap.play;
 
 		this.renderStartTime = this.parent.startTime - SPINNER_FADE_IN_TIME;
 
@@ -147,13 +145,13 @@ export class DrawableSpinner extends DrawableHitObject {
 			defaultToFinished: true
 		});
 
-		let backgroundTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];
+		let backgroundTexture = skin.textures["spinnerBackground"];
 		this.isNewStyle = backgroundTexture.isEmpty();
 
 		if (this.isNewStyle) {
 			// Add spinner glow
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerGlow"];
+				let osuTexture = skin.textures["spinnerGlow"];
 				let sprite = new PIXI.Sprite();
 
 				osuTexture.applyToSprite(sprite, screenPixelRatio); 
@@ -167,7 +165,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	
 			// Add spinner bottom
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerBottom"];
+				let osuTexture = skin.textures["spinnerBottom"];
 				let sprite = new PIXI.Sprite();
 
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -179,7 +177,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	
 			// Add spinner top
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerTop"];
+				let osuTexture = skin.textures["spinnerTop"];
 				let sprite = new PIXI.Sprite();
 
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -191,7 +189,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	
 			// Add spinner middle2
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle2"];
+				let osuTexture = skin.textures["spinnerMiddle2"];
 				let sprite = new PIXI.Sprite();
 
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -203,7 +201,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	
 			// Add spinner middle
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerMiddle"];
+				let osuTexture = skin.textures["spinnerMiddle"];
 				let sprite = new PIXI.Sprite();
 
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -215,7 +213,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		} else {
 			// Add spinner approach circle
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerApproachCircle"];
+				let osuTexture = skin.textures["spinnerApproachCircle"];
 				let sprite = new PIXI.Sprite();
 
 				osuTexture.applyToSprite(sprite, screenPixelRatio, undefined, 2.0); // Since the approach circle starts out at ~2.0x the scale, use that as the reference for texture quality.
@@ -231,14 +229,14 @@ export class DrawableSpinner extends DrawableHitObject {
 
 			// Add spinner background
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerBackground"];
+				let osuTexture = skin.textures["spinnerBackground"];
 				let sprite = new PIXI.Sprite();
 				
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
 
 				sprite.anchor.set(0.5, 0.5);
 				sprite.y = 5 * screenPixelRatio; // TODO: Where does this come from?
-				sprite.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.spinnerBackground);
+				sprite.tint = colorToHexNumber(skin.config.colors.spinnerBackground);
 	
 				this.spinnerBackground = sprite;
 			}
@@ -246,7 +244,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			// Add spinner meter
 			this.spinnerMeterMask = new PIXI.Graphics();
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerMeter"];
+				let osuTexture = skin.textures["spinnerMeter"];
 				let sprite = new PIXI.Sprite();
 				
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -260,7 +258,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	
 			// Add spinner circle
 			{
-				let osuTexture = gameState.currentGameplaySkin.textures["spinnerCircle"];
+				let osuTexture = skin.textures["spinnerCircle"];
 				let sprite = new PIXI.Sprite();
 				
 				osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -273,7 +271,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		// Add spinner RPM display
 		{
-			let osuTexture = gameState.currentGameplaySkin.textures["spinnerRpm"];
+			let osuTexture = skin.textures["spinnerRpm"];
 			let sprite = new PIXI.Sprite();
 				
 			osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -286,11 +284,11 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		// Add RPM number
 		let spinnerRpmNumber = new SpriteNumber({
-			textures: gameState.currentGameplaySkin.scoreNumberTextures,
+			textures: skin.scoreNumberTextures,
 			scaleFactor: screenPixelRatio * 0.85,
 			horizontalAlign: "right",
 			verticalAlign: "top",
-			overlap: gameState.currentGameplaySkin.config.fonts.scoreOverlap,
+			overlap: skin.config.fonts.scoreOverlap,
 			overlapAtEnd: false
 		});
 		spinnerRpmNumber.container.position.set(currentWindowDimensions.width/2 + 122 * screenPixelRatio, currentWindowDimensions.height - 50 * screenPixelRatio);
@@ -300,7 +298,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		// Add "spin" text
 		{
-			let osuTexture = gameState.currentGameplaySkin.textures["spinnerSpin"];
+			let osuTexture = skin.textures["spinnerSpin"];
 			let sprite = new PIXI.Sprite();
 				
 			osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -313,7 +311,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		// Add "clear" text
 		{
-			let osuTexture = gameState.currentGameplaySkin.textures["spinnerClear"];
+			let osuTexture = skin.textures["spinnerClear"];
 			let sprite = new PIXI.Sprite();
 				
 			osuTexture.applyToSprite(sprite, screenPixelRatio);
@@ -329,11 +327,11 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		// Add spinner bonus popup
 		let spinnerBonus = new SpriteNumber({
-			textures: gameState.currentGameplaySkin.scoreNumberTextures,
+			textures: skin.scoreNumberTextures,
 			scaleFactor: screenPixelRatio * 2,
 			horizontalAlign: "center",
 			verticalAlign: "middle",
-			overlap: gameState.currentGameplaySkin.config.fonts.scoreOverlap
+			overlap: skin.config.fonts.scoreOverlap
 		});
 		spinnerBonus.container.y = 128 * screenPixelRatio;
 		this.spinnerBonus = spinnerBonus;
@@ -369,13 +367,15 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	show() {
-		mainHitObjectContainer.addChild(this.container);
+		let controller = this.drawableBeatmap.play.controller;
+
+		controller.hitObjectContainer.addChild(this.container);
 
 		this.position();
 	}
 
 	position() {
-		let screenCoordinates = gameState.currentPlay.toScreenCoordinates(this.parent.startPoint);
+		let screenCoordinates = this.drawableBeatmap.play.toScreenCoordinates(this.parent.startPoint);
 
 		// Position it in the center
 		this.componentContainer.position.set(screenCoordinates.x, screenCoordinates.y);
@@ -383,7 +383,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	update(currentTime: number) {
-		let { screenPixelRatio } = gameState.currentPlay;
+		let { screenPixelRatio, skin } = this.drawableBeatmap.play;
 
 		if (currentTime >= this.parent.endTime + SPINNER_FADE_OUT_TIME) {
 			this.renderFinished = true;
@@ -463,7 +463,7 @@ export class DrawableSpinner extends DrawableHitObject {
 				mask.endFill();
 
 				// Using the noise, create the 'flicker' effect.
-				if (completedSteps > 0 && ((completedSteps === SPINNER_METER_STEPS && gameState.currentGameplaySkin.config.general.spinnerNoBlink) || MathUtil.valueNoise1D(currentTime / 50) < 0.6)) {
+				if (completedSteps > 0 && ((completedSteps === SPINNER_METER_STEPS && skin.config.general.spinnerNoBlink) || MathUtil.valueNoise1D(currentTime / 50) < 0.6)) {
 					// Draw the top step:
 					mask.beginFill(0xFF0000);
 					mask.drawRect(0, (49 + (1-completion)*SPINNER_METER_STEP_HEIGHT*SPINNER_METER_STEPS) * screenPixelRatio, currentWindowDimensions.width, SPINNER_METER_STEP_HEIGHT * screenPixelRatio);
@@ -483,7 +483,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	score() {
-		let currentPlay = gameState.currentPlay;
+		let play = this.drawableBeatmap.play;
 
 		let spinsSpun = this.getSpinsSpun();
 		let progress = spinsSpun / this.parent.requiredSpins;
@@ -498,9 +498,9 @@ export class DrawableSpinner extends DrawableHitObject {
 			return 0;
 		})();
 
-		currentPlay.scoreCounter.add(judgement, false, true, true, this, this.parent.endTime);
+		play.scoreCounter.add(judgement, false, true, true, this, this.parent.endTime);
 		if (judgement !== 0) {
-			gameState.currentGameplaySkin.playHitSound(this.hitSound);
+			play.skin.playHitSound(this.hitSound);
 		}
 
 		this.stopSpinningSound();
@@ -548,7 +548,8 @@ export class DrawableSpinner extends DrawableHitObject {
 		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
 		if (!dt) return;
 
-		accuracyMeter.fadeOutNow(currentTime);
+		const hud = this.drawableBeatmap.play.controller.hud;
+		hud.accuracyMeter.fadeOutNow(currentTime);
 
 		let radiansAbs = Math.abs(radians);
 		let velocityAbs = Math.abs(this.angularVelocity);
@@ -582,7 +583,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	tick(currentTime: number, dt: number) {
 		if (!dt) return;
 
-		let { scoreCounter } = gameState.currentPlay;
+		let { scoreCounter, skin } = this.drawableBeatmap.play;
 
 		this.tryDecelerate(currentTime, dt, 0);
 
@@ -615,7 +616,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.bonusSpinsInterpolator.start(currentTime);
 			this.glowInterpolator.start(currentTime);
 
-			gameState.currentGameplaySkin.sounds[OsuSoundType.SpinnerBonus].play(this.bonusSoundVolume);
+			skin.sounds[OsuSoundType.SpinnerBonus].play(this.bonusSoundVolume);
 		}
 
 		let spinCompletion = spinsSpunNow / this.parent.requiredSpins;
@@ -627,7 +628,7 @@ export class DrawableSpinner extends DrawableHitObject {
 			if (!this.spinSoundEmitter.isPlaying() && this.angularVelocity !== 0) this.spinSoundEmitter.start();
 			if (this.angularVelocity === 0) this.stopSpinningSound();
 
-			if (gameState.currentGameplaySkin.config.general.spinnerFrequencyModulate) this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
+			if (skin.config.general.spinnerFrequencyModulate) this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
 		}
 	}
 
@@ -636,7 +637,8 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	remove() {
-		mainHitObjectContainer.removeChild(this.container);
+		const controller = this.drawableBeatmap.play.controller;
+		controller.hitObjectContainer.removeChild(this.container);
 	}
 
 	handleButtonDown() {

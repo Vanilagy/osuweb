@@ -1,21 +1,17 @@
-import { Beatmap } from "../datamodel/beatmap";
 import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
 import { softwareCursor, addRenderingTask, enableRenderTimeInfoLog } from "../visuals/rendering";
-import { gameState } from "./game_state";
 import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { Point, pointDistance, lerpPoints } from "../util/point";
 import { FollowPoint } from "./drawables/follow_point";
-import { ScoreCounter, ScorePopup } from "./score";
+import { ScoreCounter, ScorePopup, ScoringValue } from "./score";
 import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter, KeyCode } from "../input/input";
-import { progressIndicator, accuracyMeter, initHud, scorebar, sectionStateDisplayer, gameplayWarningArrows, pauseScreen } from "./hud/hud";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
-import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS } from "./skin/skin";
+import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
 import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
-import { ScoringValue } from "./scoring_value";
 import { Mod } from "./mods/mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
 import { calculatePanFromOsuCoordinates } from "./skin/sound";
@@ -27,7 +23,8 @@ import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { addTickingTask } from "../util/ticker";
-import { gameplayMediaPlayer } from "../audio/high_accuracy_media_player";
+import { GameplayController } from "./gameplay_controller";
+import { globalState } from "../global_state";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
@@ -41,12 +38,13 @@ const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relati
 const GAMEPLAY_WARNING_ARROWS_FLICKER_END = 400;
 
 export class Play {
+	public controller: GameplayController;
 	public processedBeatmap: ProcessedBeatmap;
 	public drawableBeatmap: DrawableBeatmap;
 	public preludeTime: number;
 	private playbackRate: number = 1.0;
 	private hasVideo: boolean = false;
-	private paused: boolean = false;
+	public paused: boolean = false;
 	private playing: boolean = false;
 
 	private currentHitObjectIndex: number;
@@ -70,6 +68,7 @@ export class Play {
 	private breakEndWarningTimes: number[] = [];
 	
 	// Draw stuffz:
+	public skin: Skin;
 	public hitObjectPixelRatio: number;
 	public screenPixelRatio: number;
 	public circleDiameterOsuPx: number;
@@ -84,10 +83,11 @@ export class Play {
 	private currentPlaythroughInstruction: number;
 	private autohit: boolean;
 
-	constructor(processedBeatmap: ProcessedBeatmap) {
+	constructor(controller: GameplayController, processedBeatmap: ProcessedBeatmap) {
+		this.controller = controller;
 		this.processedBeatmap = processedBeatmap;
-		this.drawableBeatmap = new DrawableBeatmap(this.processedBeatmap);
-		this.scoreCounter = new ScoreCounter(this.processedBeatmap);
+		this.drawableBeatmap = new DrawableBeatmap(this, this.processedBeatmap);
+		this.scoreCounter = new ScoreCounter(this, this.processedBeatmap);
 		this.activeMods = new Set();
 	}
 	
@@ -97,10 +97,10 @@ export class Play {
 		this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
 
 		if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
-			gameState.currentGameplaySkin = baseSkin;
+			this.skin = baseSkin;
 		} else {
 			let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-			gameState.currentGameplaySkin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
+			this.skin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
 		}
 
 		this.activeMods = ModHelper.getModsFromModCode(MODCODE_OVERRIDE || prompt("Enter mod code:"));
@@ -127,11 +127,11 @@ export class Play {
 
 		let colorArray: Color[];
 		if (IGNORE_BEATMAP_SKIN) {
-			colorArray = gameState.currentGameplaySkin.colors;
+			colorArray = this.skin.colors;
 			if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
 		} else {
 			colorArray = this.processedBeatmap.beatmap.colors.comboColors;
-			if (colorArray.length === 0) colorArray = gameState.currentGameplaySkin.colors;
+			if (colorArray.length === 0) colorArray = this.skin.colors;
 			if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
 		}
 		this.colorArray = colorArray;
@@ -145,12 +145,9 @@ export class Play {
 		this.playEvents = this.processedBeatmap.getAllPlayEvents();
 		console.timeEnd("Play event generation");
 
-		initHud();
 		this.scoreCounter.init();
 
 		this.drawableBeatmap.generateFollowPoints();
-
-		accuracyMeter.init();
 
 		this.autohit = AUTOHIT_OVERRIDE;
 		if (this.activeMods.has(Mod.Auto)) {
@@ -170,9 +167,11 @@ export class Play {
 
 		this.reset();
 
+		let mediaPlayer = globalState.gameplayMediaPlayer;
+
 		console.time("Audio load");
 		let songFile = await this.processedBeatmap.beatmap.getAudioFile();
-		await gameplayMediaPlayer.loadFromVirtualFile(songFile);
+		await mediaPlayer.loadFromVirtualFile(songFile);
 
 		console.timeEnd("Audio load");
 
@@ -196,11 +195,11 @@ export class Play {
 		if (this.activeMods.has(Mod.HalfTime) || this.activeMods.has(Mod.Daycore)) this.playbackRate = HALF_TIME_PLAYBACK_RATE;
 		if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) this.playbackRate = DOUBLE_TIME_PLAYBACK_RATE;
 
-		gameplayMediaPlayer.setTempo(this.playbackRate);
-		gameplayMediaPlayer.setPitch(1.0);
+		mediaPlayer.setTempo(this.playbackRate);
+		mediaPlayer.setPitch(1.0);
 
-		if (this.activeMods.has(Mod.Nightcore)) gameplayMediaPlayer.setPitch(DOUBLE_TIME_PLAYBACK_RATE);
-		if (this.activeMods.has(Mod.Daycore)) gameplayMediaPlayer.setPitch(HALF_TIME_PLAYBACK_RATE);
+		if (this.activeMods.has(Mod.Nightcore)) mediaPlayer.setPitch(DOUBLE_TIME_PLAYBACK_RATE);
+		if (this.activeMods.has(Mod.Daycore)) mediaPlayer.setPitch(HALF_TIME_PLAYBACK_RATE);
 
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
 
@@ -218,8 +217,8 @@ export class Play {
 		inputEventEmitter.addListener('keyDown', (e) => {
 			switch (e.keyCode) {
 				case KeyCode.Escape: {
-					if (this.paused) this.unpause();
-					else this.pause();
+					if (this.paused) this.controller.unpause();
+					else this.controller.pause();
 				}; break;
 			}
 		});
@@ -228,13 +227,14 @@ export class Play {
 	async start() {
 		if (this.paused || this.playing) throw new Error("Can't start when paused or playing.");
 
-		await gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
+		await globalState.gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
 
 		this.playing = true;
 	}
 
 	render() {
 		let currentTime = this.getCurrentSongTime();
+		const hud = this.controller.hud;
 
 		// Run a game tick right before rendering
 		this.tick(currentTime);
@@ -265,10 +265,10 @@ export class Play {
 		this.scoreCounter.updateDisplay(currentTime);
 
 		// Update scorebar
-		scorebar.update(currentTime);
+		hud.scorebar.update(currentTime);
 
 		// Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL, OMG)
-		sectionStateDisplayer.update(currentTime);
+		hud.sectionStateDisplayer.update(currentTime);
 
 		// Update the progress indicator
 		let firstHitObject = this.processedBeatmap.hitObjects[0],
@@ -282,17 +282,17 @@ export class Play {
 				let completion = (currentTime + this.preludeTime) / (start + this.preludeTime);
 				completion = MathUtil.clamp(completion, 0, 1);
 
-				progressIndicator.draw(completion, true);
+				hud.progressIndicator.draw(completion, true);
 			} else {
 				let completion = (currentTime - start) / (end - start);
 				completion = MathUtil.clamp(completion, 0, 1);
 
-				progressIndicator.draw(completion, false); 
+				hud.progressIndicator.draw(completion, false); 
 			}
 		}
 
 		// Update the accuracy meter
-		accuracyMeter.update(currentTime);
+		hud.accuracyMeter.update(currentTime);
 
 		// Update score popups
 		for (let i = 0; i < this.scorePopups.length; i++) {
@@ -321,7 +321,7 @@ export class Play {
 				break;
 			}
 		}
-		gameplayWarningArrows.update(currentTime, currentGameplayWarningArrowsStartTime);
+		hud.gameplayWarningArrows.update(currentTime, currentGameplayWarningArrowsStartTime);
 
 		if (this.hasVideo) {
 			// Take care of the video fading in in the first second of the audio
@@ -342,7 +342,7 @@ export class Play {
 			}
 		}
 
-		pauseScreen.update(performance.now());
+		this.controller.pauseScreen.update(performance.now());
 
 		if (!this.playing) return;
 		// Don't run the following code if not playing
@@ -415,6 +415,7 @@ export class Play {
 	tick(currentTimeOverride?: number) {
 		if (!this.playing) return;
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
+		const hud = this.controller.hud;
 
 		if (this.lastTickTime === null) {
 			this.lastTickTime = currentTime;
@@ -436,9 +437,9 @@ export class Play {
 			let midpoint = getBreakMidpoint(currentBreak);
 			let length = getBreakLength(currentBreak);
 
-			if (isFinite(midpoint) && length >= 3000 && currentTime >= midpoint && sectionStateDisplayer.getLastPopUpTime() < midpoint) {
+			if (isFinite(midpoint) && length >= 3000 && currentTime >= midpoint && hud.sectionStateDisplayer.getLastPopUpTime() < midpoint) {
 				let isPass = this.currentHealth >= 0.5;
-				sectionStateDisplayer.popUp(isPass, midpoint);
+				hud.sectionStateDisplayer.popUp(isPass, midpoint);
 			}
 		}
 
@@ -544,7 +545,7 @@ export class Play {
 						slider.pulseFollowCircle(playEvent.time);
 						
 						let hitSound = slider.hitSounds[playEvent.index + 1];
-						gameState.currentGameplaySkin.playHitSound(hitSound);
+						this.skin.playHitSound(hitSound);
 					} else {
 						this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
 						slider.releaseFollowCircle(playEvent.time);
@@ -571,7 +572,7 @@ export class Play {
 						slider.pulseFollowCircle(playEvent.time);
 
 						let hitSound = slider.tickSounds[playEvent.index];
-						gameState.currentGameplaySkin.playHitSound(hitSound);
+						this.skin.playHitSound(hitSound);
 					} else {
 						this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
 						slider.releaseFollowCircle(playEvent.time);
@@ -628,7 +629,7 @@ export class Play {
 		this.paused = true;
 		this.playing = false;
 
-		gameplayMediaPlayer.pause();
+		globalState.gameplayMediaPlayer.pause();
 		
 		for (let hitObject of this.onscreenHitObjects) {
 			if (hitObject instanceof DrawableSlider) {
@@ -637,8 +638,6 @@ export class Play {
 				hitObject.stopSpinningSound();
 			}
 		}
-
-		pauseScreen.show();
 
 		if (this.hasVideo) BackgroundManager.pauseVideo();
 	}
@@ -657,8 +656,7 @@ export class Play {
 			}
 		}
 
-		gameplayMediaPlayer.unpause();
-		pauseScreen.hide();
+		globalState.gameplayMediaPlayer.unpause();
 	}
 
 	reset() {
@@ -744,7 +742,7 @@ export class Play {
 	}
 
 	getCurrentSongTime() {
-		return gameplayMediaPlayer.getCurrentTime() * 1000;
+		return globalState.gameplayMediaPlayer.getCurrentTime() * 1000;
 	}
 
 	toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
@@ -803,7 +801,7 @@ export class Play {
 
 	setHealth(to: number, currentTime: number) {
 		this.currentHealth = MathUtil.clamp(to, 0, 1);
-		scorebar.setAmount(this.currentHealth, currentTime);
+		this.controller.hud.scorebar.setAmount(this.currentHealth, currentTime);
 	}
 
 	/** Headed hit objects can only be hit when the previous one has already been assigned a judgement. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
@@ -885,14 +883,4 @@ export class Play {
 		let screenCoordinates = this.toScreenCoordinates(cursorPlayfieldPos, false);
 		softwareCursor.position.set(screenCoordinates.x, screenCoordinates.y);
 	}
-}
-
-export async function startPlayFromBeatmap(beatmap: Beatmap) {
-	let processedBeatmap = new ProcessedBeatmap(beatmap, !IGNORE_BEATMAP_SKIN);
-
-	let newPlay = new Play(processedBeatmap);
-	gameState.currentPlay = newPlay;
-
-	await newPlay.init();
-	await newPlay.start();
 }

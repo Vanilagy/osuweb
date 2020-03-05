@@ -1,29 +1,31 @@
-import { gameState } from "../game_state";
 import { TAU } from "../../util/math_util";
 import { colorToHexNumber, Colors } from "../../util/graphics_util";
 import { currentWindowDimensions } from "../../visuals/ui";
+import { Hud } from "./hud";
 
 const GAMEPLAY_WARNING_ARROWS_FLICKER_FREQUENCY = 5; // In Hertz
 
 // The arrows that appear at the end of breaks
 export class GameplayWarningArrows {
+	public hud: Hud;
 	public container: PIXI.Container;
 	private sprites: PIXI.Sprite[]; // Do we really need this array?
 
-	constructor() {
+	constructor(hud: Hud) {
+		this.hud = hud;
 		this.container = new PIXI.Container();
 		this.container.visible = false;
 	}
 
 	init() {
-		let { screenPixelRatio } = gameState.currentPlay;
+		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
 
-		let arrowTexture = gameState.currentGameplaySkin.textures["arrowWarning"];
+		let arrowTexture = skin.textures["arrowWarning"];
 		let doTint = false;
 
 		if (arrowTexture.isEmpty()) {
-			arrowTexture = gameState.currentGameplaySkin.textures["playWarningArrow"];
-			if (gameState.currentGameplaySkin.getVersionNumber() >= 2.0) doTint = true;
+			arrowTexture = skin.textures["playWarningArrow"];
+			if (skin.getVersionNumber() >= 2.0) doTint = true;
 		}
 
 		this.container.removeChildren();

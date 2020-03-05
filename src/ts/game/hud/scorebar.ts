@@ -1,13 +1,14 @@
-import { gameState } from "../game_state";
 import { EaseType } from "../../util/math_util";
 import { OsuTexture } from "../skin/texture";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
+import { Hud } from "./hud";
 
 const SCOREBAR_KI_DANGER_THRESHOLD = 0.5;
 const SCOREBAR_KI_DANGER2_THRESHOLD = 0.25;
 
 export class Scorebar {
+	public hud: Hud;
 	public container: PIXI.Container;
 	private backgroundLayer: PIXI.Sprite;
 	private colorLayer: PIXI.Sprite; // The part that actually changes with health
@@ -17,7 +18,8 @@ export class Scorebar {
 	private hasPureMarker: boolean = false; // Marks if the scorebar uses the scorebar-marker texture for its marker
 	private markerInterpolator: Interpolator;
 
-	constructor() {
+	constructor(hud: Hud) {
+		this.hud = hud;
 		this.container = new PIXI.Container();
 
 		this.progressInterpolator = new InterpolatedValueChanger({
@@ -38,7 +40,9 @@ export class Scorebar {
 	init() {
 		this.container.removeChildren();
 
-		let markerTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
+		let { skin } = this.hud.controller.currentPlay;
+
+		let markerTexture = skin.textures["scorebarMarker"];
 		this.hasPureMarker = !markerTexture.isEmpty();
 
 		this.initBackgroundLayer();
@@ -53,20 +57,22 @@ export class Scorebar {
 	}
 
 	private initBackgroundLayer() {
-		let osuTexture = gameState.currentGameplaySkin.textures["scorebarBackground"];
-		let sprite = new PIXI.Sprite();
+		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
 
-		let factor = gameState.currentPlay.screenPixelRatio;
-		osuTexture.applyToSprite(sprite, factor);
+		let osuTexture = skin.textures["scorebarBackground"];
+		let sprite = new PIXI.Sprite();
+		osuTexture.applyToSprite(sprite, screenPixelRatio);
 
 		this.backgroundLayer = sprite;
 	}
 
 	private initColorLayer() {
-		let osuTexture = gameState.currentGameplaySkin.textures["scorebarColor"];
+		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
+
+		let osuTexture = skin.textures["scorebarColor"];
 		let sprite = new PIXI.Sprite();
 
-		let factor = gameState.currentPlay.screenPixelRatio;
+		let factor = screenPixelRatio;
 		osuTexture.applyToSprite(sprite, factor);
 
 		let x: number, y: number;
@@ -96,16 +102,18 @@ export class Scorebar {
 	}
 
 	private initMarker() {
+		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
+
 		let osuTexture: OsuTexture;
 		if (this.hasPureMarker) {
-			osuTexture = gameState.currentGameplaySkin.textures["scorebarMarker"];
+			osuTexture = skin.textures["scorebarMarker"];
 		} else {
-			osuTexture = gameState.currentGameplaySkin.textures["scorebarKi"];
+			osuTexture = skin.textures["scorebarKi"];
 		}
 
 		let sprite = new PIXI.Sprite();
 
-		let factor = gameState.currentPlay.screenPixelRatio;
+		let factor = screenPixelRatio;
 		osuTexture.applyToSprite(sprite, factor);
 
 		sprite.anchor.set(0.5, 0.5);
@@ -119,12 +127,13 @@ export class Scorebar {
 	}
 
 	update(currentTime: number) {
+		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
+
 		let currentPercentage = this.progressInterpolator.getCurrentValue(currentTime);
-		let factor = gameState.currentPlay.screenPixelRatio;
 
 		this.colorLayerMask.pivot.x = Math.floor((1-currentPercentage) * this.colorLayer.width);
 
-		this.marker.x = 12 * factor + Math.floor(currentPercentage * this.colorLayer.width);
+		this.marker.x = 12 * screenPixelRatio + Math.floor(currentPercentage * this.colorLayer.width);
 		this.marker.scale.set(this.markerInterpolator.getCurrentValue(currentTime));
 
 		// Update the texture of the marker based on current percentage
@@ -135,9 +144,8 @@ export class Scorebar {
 			if (currentPercentage < SCOREBAR_KI_DANGER2_THRESHOLD) textureName = "scorebarKiDanger2";
 			else if (currentPercentage < SCOREBAR_KI_DANGER_THRESHOLD) textureName = "scorebarKiDanger";
 
-			let osuTexture = gameState.currentGameplaySkin.textures[textureName];
-			let factor = gameState.currentPlay.screenPixelRatio;
-			osuTexture.applyToSprite(markerSprite, factor);
+			let osuTexture = skin.textures[textureName];
+			osuTexture.applyToSprite(markerSprite, screenPixelRatio);
 		}
 	}
 

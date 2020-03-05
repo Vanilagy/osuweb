@@ -6,9 +6,11 @@ import { Scorebar } from "./scorebar";
 import { SectionStateDisplayer } from "./section_state_displayer";
 import { GameplayWarningArrows } from "./gameplay_warning_arrows";
 import { currentWindowDimensions } from "../../visuals/ui";
-import { PauseScreen } from "./pause_screen";
+import { PauseScreen } from "../../menu/gameplay/pause_screen";
+import { GameplayController } from "../gameplay_controller";
 
 export class Hud {
+	public controller: GameplayController;
 	public container: PIXI.Container;
 
 	public scoreDisplay: SpriteNumber;
@@ -20,9 +22,9 @@ export class Hud {
 	public scorebar: Scorebar;
 	public sectionStateDisplayer: SectionStateDisplayer;
 	public gameplayWarningArrows: GameplayWarningArrows;
-	public pauseScreen: PauseScreen; // NO this is NOT hud! temp
 
-	constructor() {
+	constructor(controller: GameplayController) {
+		this.controller = controller;
 		this.container = new PIXI.Container();
 
 		this.scoreDisplay = new SpriteNumber({
@@ -74,11 +76,10 @@ export class Hud {
 		
 		this.comboDisplay.setValue(0);
 	
-		this.accuracyMeter = new AccuracyMeter();
-		this.scorebar = new Scorebar();
-		this.sectionStateDisplayer = new SectionStateDisplayer();
-		this.gameplayWarningArrows = new GameplayWarningArrows();
-		this.pauseScreen = new PauseScreen();
+		this.accuracyMeter = new AccuracyMeter(this);
+		this.scorebar = new Scorebar(this);
+		this.sectionStateDisplayer = new SectionStateDisplayer(this);
+		this.gameplayWarningArrows = new GameplayWarningArrows(this);
 	
 		this.container.addChild(this.sectionStateDisplayer.container);
 		this.container.addChild(this.scorebar.container);
@@ -89,7 +90,13 @@ export class Hud {
 		this.container.addChild(this.comboDisplay.container);
 		this.container.addChild(this.accuracyDisplay.container);
 		this.container.addChild(this.progressIndicator.container);
-		this.container.addChild(this.pauseScreen.container);
+	}
+
+	// Should be called every time there's a new Play.
+	init() {
+		this.accuracyMeter.init();
+		this.scorebar.init();
+		this.gameplayWarningArrows.init();
 	}
 
 	resize() {
@@ -123,6 +130,5 @@ export class Hud {
 
 		this.sectionStateDisplayer.resize();
 		this.gameplayWarningArrows.resize();
-		this.pauseScreen.resize();
 	}
 }

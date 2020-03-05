@@ -7,6 +7,7 @@ import { AnalyserNodeWrapper } from "./analyser_node_wrapper";
 const MEDIA_NUDGE_INTERVAL = 333; // In ms
 const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
 
+/** A basic, fast media player, that is however not fully precise. */
 export class MediaPlayer {
 	private audioElement: HTMLAudioElement = null;
 	private audioNode: MediaElementAudioSourceNode = null;
@@ -237,5 +238,3 @@ export class MediaPlayer {
 		return analyserWrapper;
 	}
 }
-
-export let mainMusicMediaPlayer = new MediaPlayer(mediaAudioNode);

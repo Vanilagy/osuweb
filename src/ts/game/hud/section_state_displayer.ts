@@ -1,19 +1,21 @@
-import { gameState } from "../game_state";
 import { OsuTexture } from "../skin/texture";
 import { OsuSound, OsuSoundType } from "../skin/sound";
 import { TAU, MathUtil } from "../../util/math_util";
 import { currentWindowDimensions } from "../../visuals/ui";
+import { Hud } from "./hud";
 
 const SECTION_STATE_DISPLAY_FLICKER_DURATION = 250; // In ms
 const SECTION_STATE_DISPLAY_FLICKER_AMOUNT = 2;
 
 // Displays the section pass and section fail thing you see in breaks.
 export class SectionStateDisplayer {
+	public hud: Hud;
 	public container: PIXI.Container;
 	private sprite: PIXI.Sprite;
 	private lastPopUpTime: number = -Infinity;
 
-	constructor() {
+	constructor(hud: Hud) {
+		this.hud = hud;
 		this.container = new PIXI.Container();
 		this.sprite = new PIXI.Sprite();
 		this.container.addChild(this.sprite);
@@ -32,15 +34,15 @@ export class SectionStateDisplayer {
 	popUp(pass: boolean, currentTime: number) {
 		this.lastPopUpTime = currentTime;
 
-		let { screenPixelRatio } = gameState.currentPlay;
+		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
 		let osuTexture: OsuTexture, osuSound: OsuSound;
 
 		if (pass) {
-			osuTexture = gameState.currentGameplaySkin.textures["sectionPass"];
-			osuSound = gameState.currentGameplaySkin.sounds[OsuSoundType.SectionPass];
+			osuTexture = skin.textures["sectionPass"];
+			osuSound = skin.sounds[OsuSoundType.SectionPass];
 		} else {
-			osuTexture = gameState.currentGameplaySkin.textures["sectionFail"];
-			osuSound = gameState.currentGameplaySkin.sounds[OsuSoundType.SectionFail];
+			osuTexture = skin.textures["sectionFail"];
+			osuSound = skin.sounds[OsuSoundType.SectionFail];
 		}
 
 		osuTexture.applyToSprite(this.sprite, screenPixelRatio);

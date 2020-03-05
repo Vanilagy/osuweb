@@ -1,4 +1,3 @@
-import { gameState } from "../game_state";
 import { DEFAULT_HIT_OBJECT_FADE_IN_TIME, HIT_OBJECT_FADE_OUT_TIME } from "../../util/constants";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { SpriteNumber } from "../../visuals/sprite_number";
@@ -75,7 +74,9 @@ export class HitCirclePrimitive {
 		let container = new PIXI.Container();
 		container.addChild(this.base);
 
-		if (gameState.currentGameplaySkin.config.general.hitCircleOverlayAboveNumber) {
+		let skin = this.options.hitObject.drawableBeatmap.play.skin;
+
+		if (skin.config.general.hitCircleOverlayAboveNumber) {
 			if (this.number) container.addChild(this.number);
 			container.addChild(this.overlay);
 		} else {
@@ -88,14 +89,14 @@ export class HitCirclePrimitive {
 	}
 
 	private initBase() {
-		let { headedHitObjectTextureFactor } = gameState.currentPlay;
-		let osuTexture = gameState.currentGameplaySkin.textures["hitCircle"];
+		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
+		let osuTexture = skin.textures["hitCircle"];
 
 		if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-			let startTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
+			let startTex = skin.textures["sliderStartCircle"];
 			if (!startTex.isEmpty()) osuTexture = startTex;
 		} else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-			let endTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
+			let endTex = skin.textures["sliderEndCircle"];
 			if (!endTex.isEmpty()) osuTexture = endTex;
 		}
 
@@ -112,28 +113,28 @@ export class HitCirclePrimitive {
 	}
 
 	private initOverlay() {
-		let { headedHitObjectTextureFactor } = gameState.currentPlay;
+		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
 		let osuTexture: OsuTexture = null;
 
 		if (this.options.type === HitCirclePrimitiveType.HitCircle) {
-			osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"];
+			osuTexture = skin.textures["hitCircleOverlay"];
 		} else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
-			let baseTex = gameState.currentGameplaySkin.textures["sliderStartCircle"];
+			let baseTex = skin.textures["sliderStartCircle"];
 
 			if (!baseTex.isEmpty()) {
-				let overlayTex = gameState.currentGameplaySkin.textures["sliderStartCircleOverlay"];
+				let overlayTex = skin.textures["sliderStartCircleOverlay"];
 				if (!overlayTex.isEmpty()) osuTexture = overlayTex;
 			} else {
-				osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+				osuTexture = skin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
 			}
 		} else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
-			let baseTex = gameState.currentGameplaySkin.textures["sliderEndCircle"];
+			let baseTex = skin.textures["sliderEndCircle"];
 
 			if (!baseTex.isEmpty()) {
-				let overlayTex = gameState.currentGameplaySkin.textures["sliderEndCircleOverlay"];
+				let overlayTex = skin.textures["sliderEndCircleOverlay"];
 				if (!overlayTex.isEmpty()) osuTexture = overlayTex;
 			} else {
-				osuTexture = gameState.currentGameplaySkin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+				osuTexture = skin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
 			}
 		}
 
@@ -157,13 +158,13 @@ export class HitCirclePrimitive {
 	}
 
 	private initNumber() {
-		let { headedHitObjectTextureFactor } = gameState.currentPlay;
+		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
 
 		let text = new SpriteNumber({
-			textures: gameState.currentGameplaySkin.hitCircleNumberTextures,
+			textures: skin.hitCircleNumberTextures,
 			horizontalAlign: "center",
 			verticalAlign: "middle",
-			overlap: gameState.currentGameplaySkin.config.fonts.hitCircleOverlap,
+			overlap: skin.config.fonts.hitCircleOverlap,
 			scaleFactor: headedHitObjectTextureFactor * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
 		});
 		text.setValue(this.options.hitObject.parent.comboInfo.n);
@@ -172,8 +173,9 @@ export class HitCirclePrimitive {
 	}
 
 	private initReverseArrow() {
-		let { headedHitObjectTextureFactor } = gameState.currentPlay;
-		let osuTexture = gameState.currentGameplaySkin.textures["reverseArrow"];
+		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
+
+		let osuTexture = skin.textures["reverseArrow"];
 		let sprite = new PIXI.Sprite();
 		osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
@@ -187,8 +189,9 @@ export class HitCirclePrimitive {
 	}
 
 	private initApproachCircle() {
-		let { headedHitObjectTextureFactor } = gameState.currentPlay;
-		let osuTexture = gameState.currentGameplaySkin.textures["approachCircle"];
+		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
+
+		let osuTexture = skin.textures["approachCircle"];
 		let sprite = new PIXI.Sprite();
 		osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
 
@@ -210,7 +213,7 @@ export class HitCirclePrimitive {
 	update(currentTime: number) {
 		if (this.renderFinished) return;
 
-		let { approachTime, circleDiameter, activeMods } = gameState.currentPlay;
+		let { approachTime, circleDiameter, activeMods } = this.options.hitObject.drawableBeatmap.play;
 
 		let hasHidden = activeMods.has(Mod.Hidden);
 
@@ -318,7 +321,7 @@ export class HitCirclePrimitive {
 	}
 
 	getHiddenFadeOutCompletion(time: number) {
-		let { approachTime } = gameState.currentPlay;
+		let { approachTime } = this.options.hitObject.drawableBeatmap.play;
 
 		let approachTimeThird = approachTime / 3;
 
@@ -329,7 +332,7 @@ export class HitCirclePrimitive {
 	}
 
 	getFadeInCompletion(time: number, hasHidden: boolean) {
-		let { approachTime } = gameState.currentPlay;
+		let { approachTime } = this.options.hitObject.drawableBeatmap.play;
 
 		if (hasHidden) {
 			let approachTimeThird = approachTime / 3;

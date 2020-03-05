@@ -1,16 +1,13 @@
 import { Slider } from "../../datamodel/slider";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { pointDistance } from "../../util/point";
-import { gameState } from "../game_state";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../../util/constants";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { assert, last } from "../../util/misc_util";
-import { accuracyMeter } from "../hud/hud";
 import { DrawableHeadedHitObject, SliderScoring, getDefaultSliderScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { SoundEmitter } from "../../audio/sound_emitter";
-import { renderer, mainHitObjectContainer } from "../../visuals/rendering";
-import { ScoringValue } from "../scoring_value";
+import { renderer } from "../../visuals/rendering";
 import { Mod } from "../mods/mods";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
@@ -19,6 +16,8 @@ import { ProcessedSlider, SpecialSliderBehavior } from "../../datamodel/processe
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
 import { currentWindowDimensions } from "../../visuals/ui";
+import { DrawableBeatmap } from "../drawable_beatmap";
+import { ScoringValue } from "../score";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -57,10 +56,10 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	public tickSounds: HitSoundInfo[];
 	public slideEmitters: SoundEmitter[];
 
-	constructor(processedSlider: ProcessedSlider) {
-		super(processedSlider);
+	constructor(drawableBeatmap: DrawableBeatmap, processedSlider: ProcessedSlider) {
+		super(drawableBeatmap, processedSlider);
 
-		this.drawablePath = DrawableSliderPath.fromSliderPath(processedSlider.path);
+		this.drawablePath = DrawableSliderPath.fromSliderPath(processedSlider.path, this);
 		let bounds = this.drawablePath.calculateBounds();
 		this.bounds = bounds;
 
@@ -116,7 +115,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let sliderSlideStartPan = calculatePanFromOsuCoordinates(this.parent.startPoint);
 		for (let i = 0; i < sliderSlideTypes.length; i++) {
 			let type = sliderSlideTypes[i];
-			let emitter = gameState.currentGameplaySkin.sounds[type].getEmitter(volume, index, sliderSlideStartPan);
+			let emitter = this.drawableBeatmap.play.skin.sounds[type].getEmitter(volume, index, sliderSlideStartPan);
 			if (!emitter || emitter.isReallyShort()) continue;
 
 			emitter.setLoopState(true);
@@ -147,11 +146,11 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	draw() {
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-		let { approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods } = gameState.currentPlay;
+		let { approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods, skin } = this.drawableBeatmap.play;
 
 		let hasHidden = activeMods.has(Mod.Hidden);
 
-		this.renderStartTime = this.parent.startTime - gameState.currentPlay.approachTime;
+		this.renderStartTime = this.parent.startTime - approachTime;
 	
 		this.head = new HitCirclePrimitive({
 			fadeInStart: this.parent.startTime - approachTime,
@@ -162,8 +161,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		});
 		this.head.container.zIndex = -this.parent.startTime;
 
-		let screenStartPos = gameState.currentPlay.toScreenCoordinates(this.parent.startPoint);
-		let screenTailPos = gameState.currentPlay.toScreenCoordinates(this.parent.tailPoint);
+		let screenStartPos = this.drawableBeatmap.play.toScreenCoordinates(this.parent.startPoint);
+		let screenTailPos = this.drawableBeatmap.play.toScreenCoordinates(this.parent.tailPoint);
 
 		this.reverseArrowContainer = new PIXI.Container();
 
@@ -245,9 +244,9 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		this.sliderBall = new SliderBall(this);
 
-		let followCircleOsuTexture = gameState.currentGameplaySkin.textures["followCircle"];
+		let followCircleOsuTexture = skin.textures["followCircle"];
 		let followCircleAnimator = new AnimatedOsuSprite(followCircleOsuTexture, headedHitObjectTextureFactor);
-		followCircleAnimator.setFps(gameState.currentGameplaySkin.config.general.animationFramerate);
+		followCircleAnimator.setFps(skin.config.general.animationFramerate);
 		followCircleAnimator.play(this.parent.startTime);
 
 		let followCircleWrapper = new PIXI.Container();
@@ -273,7 +272,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				continue;
 			}
 
-			let tickOsuTexture = gameState.currentGameplaySkin.textures["sliderTick"];
+			let tickOsuTexture = skin.textures["sliderTick"];
 			let tickSprite = new PIXI.Sprite();
 			tickSprite.anchor.set(0.5, 0.5);
 
@@ -282,7 +281,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			let tickWrapper = new PIXI.Container();
 			tickWrapper.addChild(tickSprite);
 
-			let screenPos = gameState.currentPlay.toScreenCoordinates(sliderTickPos);
+			let screenPos = this.drawableBeatmap.play.toScreenCoordinates(sliderTickPos);
 			tickWrapper.position.set(screenPos.x, screenPos.y);
 
 			this.tickContainer.addChild(tickWrapper);
@@ -303,11 +302,12 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	
 	show() {
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
+		let controller = this.drawableBeatmap.play.controller;
 
-		mainHitObjectContainer.addChild(this.baseSprite);
-		mainHitObjectContainer.addChild(this.container);
+		controller.hitObjectContainer.addChild(this.baseSprite);
+		controller.hitObjectContainer.addChild(this.container);
 		for (let i = 0; i < this.sliderEnds.length; i++) {
-			mainHitObjectContainer.addChild(this.sliderEnds[i].container);
+			controller.hitObjectContainer.addChild(this.sliderEnds[i].container);
 		}
 
 		super.show();
@@ -318,17 +318,17 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		super.position(); // Haha, superposition. Yes. This joke is funny and not funny at the same time. Until observed, of course.
 
-		let { circleRadiusOsuPx } = gameState.currentPlay;
+		let { circleRadiusOsuPx } = this.drawableBeatmap.play;
 
-		let screenX = gameState.currentPlay.toScreenCoordinatesX(this.bounds.min.x - circleRadiusOsuPx);
-		let screenY = gameState.currentPlay.toScreenCoordinatesY(this.bounds.min.y - circleRadiusOsuPx);
+		let screenX = this.drawableBeatmap.play.toScreenCoordinatesX(this.bounds.min.x - circleRadiusOsuPx);
+		let screenY = this.drawableBeatmap.play.toScreenCoordinatesY(this.bounds.min.y - circleRadiusOsuPx);
 
 		if (this.hasFullscreenBaseSprite) this.baseSprite.position.set(0, 0);
 		else this.baseSprite.position.set(screenX, screenY);
 	}
 
 	update(currentTime: number) {
-		let { approachTime, activeMods } = gameState.currentPlay;
+		let { approachTime, activeMods } = this.drawableBeatmap.play;
 
 		if (currentTime > this.parent.endTime + HIT_OBJECT_FADE_OUT_TIME) {
 			this.renderFinished = true;
@@ -365,13 +365,14 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 	remove() {
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
+		let controller = this.drawableBeatmap.play.controller;
 
 		super.remove();
 
-		mainHitObjectContainer.removeChild(this.baseSprite);
-		mainHitObjectContainer.removeChild(this.container);
+		controller.hitObjectContainer.removeChild(this.baseSprite);
+		controller.hitObjectContainer.removeChild(this.container);
 		for (let i = 0; i < this.sliderEnds.length; i++) {
-			mainHitObjectContainer.removeChild(this.sliderEnds[i].container);
+			controller.hitObjectContainer.removeChild(this.sliderEnds[i].container);
 		}
 
 		// TODO: Clean all this stuff when exiting a play
@@ -451,15 +452,15 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			})();
 		}
 
-		if (this.scoring.end || resultingRawScore === 300) gameState.currentGameplaySkin.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
+		if (this.scoring.end || resultingRawScore === 300) this.drawableBeatmap.play.skin.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
 
-		gameState.currentPlay.scoreCounter.add(resultingRawScore, false, false, true, this, time);
+		this.drawableBeatmap.play.scoreCounter.add(resultingRawScore, false, false, true, this, time);
 	}
 
 	hitHead(time: number, judgementOverride?: number) {
 		if (this.scoring.head.hit !== ScoringValue.NotHit) return;
 		
-		let { scoreCounter } = gameState.currentPlay;
+		let { scoreCounter, skin } = this.drawableBeatmap.play;
 
 		let timeInaccuracy = time - this.parent.startTime;
 		let judgement: number;
@@ -478,8 +479,10 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		scoreCounter.add(score, true, true, false, this, time);
 		if (judgement !== 0) {
-			gameState.currentGameplaySkin.playHitSound(this.hitSounds[0]);
-			accuracyMeter.addAccuracyLine(timeInaccuracy, time);
+			const hud = this.drawableBeatmap.play.controller.hud;
+
+			skin.playHitSound(this.hitSounds[0]);
+			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
 			this.holdFollowCircle(time);
 		}
 		// The if here is because not all sliders have heads, like edge-case invisible sliders.
@@ -496,7 +499,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	private updateSliderBody(currentTime: number) {
-		let { approachTime } = gameState.currentPlay;
+		let { approachTime } = this.drawableBeatmap.play;
 
 		let snakeCompletion: number;
 		if (SLIDER_SETTINGS.snaking) {
@@ -559,16 +562,17 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	private updateSliderBall(completion: number, currentTime: number) {
-		let sliderBallPos = gameState.currentPlay.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
+		let sliderBallPos = this.drawableBeatmap.play.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
 
 		if (currentTime < this.parent.endTime) {
 			let baseElement = this.sliderBall.base.sprite;
+			let skin = this.drawableBeatmap.play.skin;
 
 			this.sliderBall.container.visible = currentTime >= this.parent.startTime;
 			this.sliderBall.container.position.set(sliderBallPos.x, sliderBallPos.y);
 			baseElement.rotation = this.drawablePath.getAngleFromPercentage(MathUtil.mirror(completion));
 
-			let osuTex = gameState.currentGameplaySkin.textures["sliderBall"];
+			let osuTex = skin.textures["sliderBall"];
 			let frameCount = osuTex.getAnimationFrameCount();
 			if (frameCount > 1) {
 				let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.parent.velocity);
@@ -579,7 +583,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				this.sliderBall.base.setFrame(currentFrame);
 			}
 
-			if (gameState.currentGameplaySkin.config.general.sliderBallFlip) {
+			if (skin.config.general.sliderBallFlip) {
 				// Flip the scale when necessary
 				if      (completion % 2 <= 1 && baseElement.scale.x < 0) baseElement.scale.x *= -1;
 				else if (completion % 2 > 1  && baseElement.scale.x > 0) baseElement.scale.x *= -1;
@@ -635,7 +639,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	private updateSliderTicks(completion: number, currentSliderTime: number) {
-		let { approachTime, activeMods } = gameState.currentPlay;
+		let { approachTime, activeMods } = this.drawableBeatmap.play;
 
 		let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
 		let currentCycle = Math.floor(completion);
@@ -706,22 +710,22 @@ class SliderBall {
 	public spec: PIXI.Container;
 
 	constructor(slider: DrawableSlider) {
-		let { headedHitObjectTextureFactor } = gameState.currentPlay;
+		let { headedHitObjectTextureFactor, skin } = slider.drawableBeatmap.play;
 
 		this.container = new PIXI.Container();
 		let baseElement: PIXI.Container;
 
-		let osuTexture = gameState.currentGameplaySkin.textures["sliderBall"];
+		let osuTexture = skin.textures["sliderBall"];
 
 		this.base = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
 		let baseSprite = this.base.sprite;
 		baseElement = baseSprite;
 
-		if (gameState.currentGameplaySkin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.color);
-		else baseSprite.tint = colorToHexNumber(gameState.currentGameplaySkin.config.colors.sliderBall);
+		if (skin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.color);
+		else baseSprite.tint = colorToHexNumber(skin.config.colors.sliderBall);
 
 		if (!osuTexture.hasActualBase()) {
-			let bgTexture = gameState.currentGameplaySkin.textures["sliderBallBg"];
+			let bgTexture = skin.textures["sliderBallBg"];
 
 			if (!bgTexture.isEmpty()) {
 				let sprite = new PIXI.Sprite();
@@ -734,7 +738,7 @@ class SliderBall {
 			}
 		}
 
-		let specTexture = gameState.currentGameplaySkin.textures["sliderBallSpec"];
+		let specTexture = skin.textures["sliderBallSpec"];
 		if (!specTexture.isEmpty()) {
 			let sprite = new PIXI.Sprite();
 			sprite.anchor.set(0.5, 0.5);

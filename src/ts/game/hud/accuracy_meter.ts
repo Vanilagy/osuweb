@@ -1,6 +1,6 @@
-import { gameState } from "../game_state";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { currentWindowDimensions } from "../../visuals/ui";
+import { Hud } from "./hud";
 
 const ACCURACY_METER_HEIGHT_FACTOR = 0.02;
 const ACCURACY_LINE_LIFETIME = 10000; // In ms
@@ -8,6 +8,7 @@ const ACCURACY_METER_FADE_OUT_DELAY = 4000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
 
 export class AccuracyMeter {
+	public hud: Hud;
 	public container: PIXI.Container;
 
 	private time50: number; // If you don't know what it means, just look where it's assigned.
@@ -24,7 +25,8 @@ export class AccuracyMeter {
 	private fadeOutStart: number = -Infinity;
 	private alphaFilter: PIXI.filters.AlphaFilter; // We need to use an alpha filter here, because fading out without one looks weird due to the additive blend mode of the accuracy lines. Using the filter, everything fades out as if it were one.
 
-	constructor() {
+	constructor(hud: Hud) {
+		this.hud = hud;
 		this.container = new PIXI.Container();
 		this.base = new PIXI.Graphics();
 		this.overlay = new PIXI.Container();
@@ -39,7 +41,7 @@ export class AccuracyMeter {
 	}
 
 	init() {
-		let { processedBeatmap } = gameState.currentPlay;
+		let { processedBeatmap } = this.hud.controller.currentPlay;
 
 		this.time50 = processedBeatmap.difficulty.getHitDeltaForJudgement(50);
 		this.time100 = processedBeatmap.difficulty.getHitDeltaForJudgement(100);
@@ -117,7 +119,7 @@ export class AccuracyMeter {
 	}
 
 	addAccuracyLine(inaccuracy: number, currentTime: number) {
-		let { processedBeatmap } = gameState.currentPlay;
+		let { processedBeatmap } = this.hud.controller.currentPlay;
 
 		let judgement = processedBeatmap.difficulty.getJudgementForHitDelta(Math.abs(inaccuracy));
 		if (judgement === 0) return;

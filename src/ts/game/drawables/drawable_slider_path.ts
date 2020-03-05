@@ -1,8 +1,8 @@
 import { SliderPath, SLIDER_CAPCIRCLE_SEGMENTS } from "../../datamodel/slider_path";
 import { Point, pointsAreEqual, pointDistance, pointNormal, clonePoint, Vector2 } from "../../util/point";
 import { TAU, MathUtil } from "../../util/math_util";
-import { gameState } from "../game_state";
 import { binarySearchLessOrEqual } from "../../util/misc_util";
+import { DrawableSlider } from "./drawable_slider";
 
 const SLIDER_BODY_SIZE_REDUCTION_FACTOR = 0.92; // Dis correct?
 const SLIDER_CAP_CIRCLE_SEGMENT_ARC_LENGTH = TAU / SLIDER_CAPCIRCLE_SEGMENTS;
@@ -32,22 +32,24 @@ export interface SliderBounds {
 }
 
 export class DrawableSliderPath extends SliderPath {
+	public drawableSlider: DrawableSlider;
 	public baseVertexBuffer: Float32Array; // The precomputed vertices of the slider body, excluding the beginning and end caps
 	public vertexBuffer: Float32Array; // The CURRENT vertex buffer of the slider body (contains ends), is fixed-length
 	public currentVertexCount: number = 0; // How many vertices to draw using the current vertex buffer
 	public lineSegmentVBOIndices: number[] = []; // Basically, to which index (exclusive) in the VBO one needs to draw in order to draw the first _n_ line segments.
 	private lineRadius: number;
 
-	public constructor(points: Point[], completions: number[]) {
+	public constructor(points: Point[], completions: number[], drawableSlider: DrawableSlider) {
 		super(points, completions);
+		this.drawableSlider = drawableSlider;
 	}
 	
-	static fromSliderPath(sliderPath: SliderPath) {
-		return new DrawableSliderPath(sliderPath.points, sliderPath.completions);
+	static fromSliderPath(sliderPath: SliderPath, drawableSlider: DrawableSlider) {
+		return new DrawableSliderPath(sliderPath.points, sliderPath.completions, drawableSlider);
 	}
 
 	generateBaseVertexBuffer() {
-		let { circleRadiusOsuPx } = gameState.currentPlay;
+		let { circleRadiusOsuPx } = this.drawableSlider.drawableBeatmap.play;
 
 		this.lineRadius = circleRadiusOsuPx * SLIDER_BODY_SIZE_REDUCTION_FACTOR;
 
@@ -134,7 +136,7 @@ export class DrawableSliderPath extends SliderPath {
 
 		this.currentVertexCount = data.currentIndex / 3; // The amount of vertices that need to be drawn
 
-		return includedPoints && DrawableSliderPath.calculateBounds(includedPoints);
+		return includedPoints && DrawableSliderPath.calculateBounds(includedPoints, this.drawableSlider);
 	}
 
 	generateGeometry(completion: number) {
@@ -162,11 +164,11 @@ export class DrawableSliderPath extends SliderPath {
 	}
 	
 	calculateBounds() {
-		return DrawableSliderPath.calculateBounds(this.points);
+		return DrawableSliderPath.calculateBounds(this.points, this.drawableSlider);
 	}
 
-	static calculateBounds(points: Point[]) {
-		let { hitObjectPixelRatio, circleDiameterOsuPx } = gameState.currentPlay;
+	static calculateBounds(points: Point[], drawableSlider: DrawableSlider) {
+		let { hitObjectPixelRatio, circleDiameterOsuPx } = drawableSlider.drawableBeatmap.play;
 
 		let firstPoint = points[0];
 
