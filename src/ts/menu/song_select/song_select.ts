@@ -27,6 +27,7 @@ export class SongSelect {
 	public searchBar: SearchBar;
 
 	private fadeInterpolator: Interpolator;
+	public visible = false;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -100,10 +101,14 @@ export class SongSelect {
 	show() {
 		this.fadeInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.enable();
+		this.searchBar.enable();
+		this.visible = true;
 	}
 
 	hide() {
 		this.fadeInterpolator.setReversedState(true, performance.now());
 		this.interactionGroup.disable();
+		this.searchBar.disable();
+		this.visible = false;
 	}
 }

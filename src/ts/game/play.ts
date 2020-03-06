@@ -210,14 +210,6 @@ export class Play {
 		inputEventEmitter.addListener('gameButtonDown', () => {
 			this.handleButtonDown();
 		});
-		inputEventEmitter.addListener('keyDown', (e) => {
-			switch (e.keyCode) {
-				case KeyCode.Escape: {
-					if (this.paused) this.controller.unpause();
-					else this.controller.pause();
-				}; break;
-			}
-		});
 
 		this.initted = true;
 	}

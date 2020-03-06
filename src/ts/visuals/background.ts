@@ -30,18 +30,22 @@ export class BackgroundManager {
 	private colorMatrixFilter = new PIXI.filters.ColorMatrixFilter();
 	private gameplayInterpolator: Interpolator = new Interpolator({
 		ease: EaseType.EaseInOutQuad,
-		duration: 1000
+		duration: 1000,
+		reverseDuration: 400,
+		reverseEase: EaseType.EaseInCubic
 	});
 	private blurInterpolator: Interpolator = new Interpolator({
 		from: 1,
 		to: 0,
 		ease: EaseType.EaseInOutSine,
-		duration: 500
+		duration: 500,
+		reverseDuration: 300
 	});
 	private scaleInterpolator: Interpolator = new Interpolator({
 		from: 1.08,
 		to: 1.0,
 		duration: 700,
+		reverseDuration: 400,
 		ease: EaseType.EaseOutCubic,
 		reverseEase: EaseType.EaseInCubic
 	});

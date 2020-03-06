@@ -10,6 +10,7 @@ import { enableRenderTimeInfoLog } from "../visuals/rendering";
 import { globalState } from "../global_state";
 import { Interpolator } from "../util/interpolation";
 import { EaseType } from "../util/math_util";
+import { inputEventEmitter, KeyCode } from "../input/input";
 
 export class GameplayController {
 	public container: PIXI.Container;
@@ -65,6 +66,17 @@ export class GameplayController {
 			beginReversed: true,
 			defaultToFinished: true
 		});
+
+		inputEventEmitter.addListener('keyDown', (e) => {
+			switch (e.keyCode) {
+				case KeyCode.Escape: {
+					if (!this.currentPlay) break;
+
+					if (this.currentPlay.paused) this.unpause();
+					else this.pause();
+				}; break;
+			}
+		});
 		
 		this.resize();
 		this.hide();
@@ -101,6 +113,7 @@ export class GameplayController {
 		this.hide();
 
 		globalState.songSelect.show();
+		globalState.backgroundManager.setState(BackgroundState.SongSelect);
 	}
 
 	render(now: number) {

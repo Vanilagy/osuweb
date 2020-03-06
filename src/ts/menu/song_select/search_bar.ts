@@ -106,6 +106,14 @@ export class SearchBar {
 	update(now: number) {
 		this.sortSelector.update(now);
 	}
+
+	enable() {
+		this.textStorage.enable();
+	}
+	
+	disable() {
+		this.textStorage.disable();
+	}
 	
 	private onInput() {
 		if (!this.textStorage.stored) {

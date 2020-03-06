@@ -111,7 +111,7 @@ export class BeatmapCarousel {
 	}
 
 	private onWheel(data: NormalizedWheelEvent) {
-		if (this.beatmapSetPanels.length === 0) return;
+		if (this.beatmapSetPanels.length === 0 || !this.songSelect.visible) return;
 
 		let wheelEvent = data as NormalizedWheelEvent;
 		let effectiveness = 1.0; // How much the scroll "counts"	
