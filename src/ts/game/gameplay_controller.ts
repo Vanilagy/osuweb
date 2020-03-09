@@ -77,6 +77,15 @@ export class GameplayController {
 				}; break;
 			}
 		});
+
+		inputEventEmitter.addListener('mouseMove', () => {
+			if (!this.currentPlay) return;
+			this.currentPlay.handleMouseMove();
+		});
+		inputEventEmitter.addListener('gameButtonDown', () => {
+			if (!this.currentPlay) return;
+			this.currentPlay.handleButtonDown();
+		});
 		
 		this.resize();
 		this.hide();
@@ -109,6 +118,7 @@ export class GameplayController {
 	endPlay() {
 		if (!this.currentPlay) return;
 
+		this.currentPlay.stop();
 		this.currentPlay = null;
 		this.hide();
 

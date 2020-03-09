@@ -204,13 +204,6 @@ export class Play {
 
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
 
-		inputEventEmitter.addListener('mouseMove', () => {
-			this.handleMouseMove();
-		});
-		inputEventEmitter.addListener('gameButtonDown', () => {
-			this.handleButtonDown();
-		});
-
 		this.initted = true;
 	}
 
@@ -623,7 +616,11 @@ export class Play {
 		this.playing = false;
 
 		globalState.gameplayMediaPlayer.pause();
-		
+		this.stopHitObjectSounds();
+		if (this.hasVideo) globalState.backgroundManager.pauseVideo();
+	}
+
+	private stopHitObjectSounds() {
 		for (let hitObject of this.onscreenHitObjects) {
 			if (hitObject instanceof DrawableSlider) {
 				hitObject.stopSliderSlideSound();
@@ -631,8 +628,6 @@ export class Play {
 				hitObject.stopSpinningSound();
 			}
 		}
-
-		if (this.hasVideo) globalState.backgroundManager.pauseVideo();
 	}
 
 	unpause() {
@@ -700,6 +695,15 @@ export class Play {
 		await this.start();
 	}
 
+	// Instance should be discarded after this is called.
+	stop() {
+		this.playing = false;
+
+		globalState.gameplayMediaPlayer.stop();
+		this.stopHitObjectSounds();
+		if (this.hasVideo) globalState.backgroundManager.removeVideo();
+	}
+
 	handleButtonDown() {
 		if (!this.shouldHandleInputRightNow()) return;
 
@@ -731,7 +735,7 @@ export class Play {
 	}
 
 	private shouldHandleInputRightNow() {
-		return !this.paused && !this.activeMods.has(Mod.Auto);
+		return this.initted && !this.paused && !this.activeMods.has(Mod.Auto);
 	}
 
 	getCurrentSongTime() {
