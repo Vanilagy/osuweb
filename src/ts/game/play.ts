@@ -9,7 +9,7 @@ import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter, Key
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
-import { baseSkin, joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
+import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
 import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
 import { Mod } from "./mods/mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
@@ -99,10 +99,10 @@ export class Play {
 		this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
 
 		if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
-			this.skin = baseSkin;
+			this.skin = globalState.baseSkin;
 		} else {
 			let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-			this.skin = joinSkins([baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
+			this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
 		}
 
 		this.activeMods = ModHelper.getModsFromModCode(MODCODE_OVERRIDE || prompt("Enter mod code:"));

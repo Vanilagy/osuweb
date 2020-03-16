@@ -1,5 +1,4 @@
 import { SpriteNumber, USUAL_SCORE_DIGIT_HEIGHT } from "../../visuals/sprite_number";
-import { baseSkin } from "../skin/skin";
 import { ProgressIndicator } from "./progress_indicator";
 import { AccuracyMeter } from "./accuracy_meter";
 import { Scorebar } from "./scorebar";
@@ -8,6 +7,7 @@ import { GameplayWarningArrows } from "./gameplay_warning_arrows";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { PauseScreen } from "../../menu/gameplay/pause_screen";
 import { GameplayController } from "../gameplay_controller";
+import { globalState } from "../../global_state";
 
 export class Hud {
 	public controller: GameplayController;
@@ -26,6 +26,8 @@ export class Hud {
 	constructor(controller: GameplayController) {
 		this.controller = controller;
 		this.container = new PIXI.Container();
+
+		let baseSkin = globalState.baseSkin;
 
 		this.scoreDisplay = new SpriteNumber({
 			scaleFactor: 1,
@@ -118,7 +120,7 @@ export class Hud {
 		this.accuracyDisplay.container.y = Math.floor(this.scoreDisplay.container.height + currentWindowDimensions.height * 0.0075);
 
 		this.progressIndicator.changeDiameter(currentWindowDimensions.height * 0.043);
-		this.progressIndicator.container.x = Math.floor(this.accuracyDisplay.container.x - this.accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
+		this.progressIndicator.container.x = Math.floor(this.accuracyDisplay.container.x - this.accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (globalState.baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
 		this.progressIndicator.container.y = Math.floor(this.accuracyDisplay.container.y + Math.min(accuracyHeight/2, this.accuracyDisplay.lastComputedHeight/2));
 
 		this.phantomComboDisplay.setScaleFactor(comboHeight / USUAL_SCORE_DIGIT_HEIGHT);

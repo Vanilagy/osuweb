@@ -6,11 +6,6 @@ import { assert, jsonClone, shallowObjectClone } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
 import { OsuSoundType, OsuSound, osuSoundFileNames, calculatePanFromOsuCoordinates, HitSoundInfo } from "./sound";
 
-// This is all temp:
-let baseSkinPath = "./assets/skins/Seoul";
-let baseSkinDirectory = new VirtualDirectory("root");
-baseSkinDirectory.networkFallbackUrl = baseSkinPath;
-
 export const IGNORE_BEATMAP_SKIN = false;
 export const IGNORE_BEATMAP_HIT_SOUNDS = true;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -213,8 +208,6 @@ export class Skin {
         return this.config.general.version;
     }
 }
-
-export let baseSkin = new Skin(baseSkinDirectory);
 
 export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = true) {
     assert(skins.length > 0);

@@ -2,7 +2,7 @@ import './visuals/ui';
 import './visuals/simple_beatmap_selector';
 import './menu/song_select/simple_songs_selector';
 import './menu/song_select/song_select';
-import { baseSkin } from './game/skin/skin';
+import { Skin } from './game/skin/skin';
 import { showChooseFile } from './visuals/simple_beatmap_selector';
 import { SongSelect } from './menu/song_select/song_select';
 import { stage, addRenderingTask } from './visuals/rendering';
@@ -15,6 +15,7 @@ import { HighAccuracyMediaPlayer } from './audio/high_accuracy_media_player';
 import { GameplayController } from './game/gameplay_controller';
 import { addTickingTask } from './util/ticker';
 import { BackgroundManager } from './visuals/background';
+import { VirtualDirectory } from './file_system/virtual_directory';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_media_player_tester';
 
@@ -22,8 +23,7 @@ const osu: string | null = 'ORERU!';
 
 window.addEventListener('load', init);
 async function init() {
-	await baseSkin.init();
-
+	await initBaseSkin();
 	initAudio();
 	initBackground();
 	initSongSelect();
@@ -31,6 +31,17 @@ async function init() {
 	showChooseFile();
 
 	console.log(osu!); // Love the syntax <3
+}
+
+async function initBaseSkin() {
+	let baseSkinPath = "./assets/skins/Seoul";
+	let baseSkinDirectory = new VirtualDirectory("root");
+	baseSkinDirectory.networkFallbackUrl = baseSkinPath;
+
+	let baseSkin = new Skin(baseSkinDirectory);
+	await baseSkin.init();
+
+	globalState.baseSkin = baseSkin;
 }
 
 function initSongSelect() {
