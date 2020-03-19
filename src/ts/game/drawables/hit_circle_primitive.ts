@@ -60,8 +60,8 @@ export class HitCirclePrimitive {
 		this.approachCircle = null;
 		this.reverseArrow = null;
 
-		this.reset();
 		this.init();
+		this.reset();
 	}
 
 	private init() {
@@ -84,7 +84,6 @@ export class HitCirclePrimitive {
 			if (this.number) container.addChild(this.number);
 		}
 
-		if (this.options.baseElementsHidden) container.visible = false;
 		this.container = container;
 	}
 
@@ -208,6 +207,10 @@ export class HitCirclePrimitive {
 		this.fadeOut = null;
 		this.renderFinished = false;
 		this.shakeStartTime = -Infinity;
+
+		this.container.visible = this.options.baseElementsHidden !== true;
+		if (this.approachCircle) this.approachCircle.visible = true;
+		if (this.reverseArrow) this.reverseArrow.visible = true;
 	}
 
 	update(currentTime: number) {
