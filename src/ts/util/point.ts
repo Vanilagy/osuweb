@@ -134,7 +134,7 @@ export function fitPolylineToLength(points: Point[], arcLength: number) {
 			let remainingDistance = arcLength - traveledDistance;
 
 			// The additional point to add
-			let p4 = {
+			let p4: Point = {
 				x: p1.x + dx / distance * remainingDistance,
 				y: p1.y + dy / distance * remainingDistance
 			};

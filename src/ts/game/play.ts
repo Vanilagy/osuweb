@@ -4,7 +4,7 @@ import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_
 import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { Point, pointDistance, lerpPoints } from "../util/point";
 import { FollowPoint } from "./drawables/follow_point";
-import { ScoreCounter, ScorePopup, ScoringValue } from "./score";
+import { ScoreCounter } from "./score/score_counter";
 import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter, KeyCode } from "../input/input";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
@@ -24,6 +24,8 @@ import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui"
 import { addTickingTask } from "../util/ticker";
 import { GameplayController } from "./gameplay_controller";
 import { globalState } from "../global_state";
+import { ScorePopup } from "./score/score_popup";
+import { ScoringValue } from "../datamodel/score";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
@@ -46,6 +48,7 @@ export class Play {
 	public paused: boolean = false;
 	private playing: boolean = false;
 	private initted: boolean = false;
+	private completed: boolean = false;
 
 	private currentHitObjectIndex: number;
 	private onscreenHitObjects: DrawableHitObject[];
@@ -210,7 +213,7 @@ export class Play {
 	async start() {
 		if (this.paused || this.playing) throw new Error("Can't start when paused or playing.");
 
-		await globalState.gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
+		await globalState.gameplayMediaPlayer.start(108 || -this.preludeTime / 1000);
 
 		this.playing = true;
 		this.tick();
@@ -398,7 +401,7 @@ export class Play {
 	}
 
 	tick(currentTimeOverride?: number) {
-		if (!this.playing || !this.initted) return;
+		if (!this.playing || !this.initted || this.completed) return;
 
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
 		const hud = this.controller.hud;
@@ -607,6 +610,16 @@ export class Play {
 				}; break;
 			}
 		}
+
+		// Check if the map has been completed
+		if (this.currentPlayEvent >= this.playEvents.length) {
+			this.controller.completePlay();
+		}
+	}
+
+	complete() {
+		if (this.completed) return;
+		this.completed = true;
 	}
 
 	pause() {
@@ -682,6 +695,7 @@ export class Play {
 		this.currentBreakIndex = 0;
 		this.paused = false;
 		this.playing = false;
+		this.completed = false;
 
 		if (this.activeMods.has(Mod.Auto)) {
 			this.currentPlaythroughInstruction = 0;
@@ -735,7 +749,7 @@ export class Play {
 	}
 
 	private shouldHandleInputRightNow() {
-		return this.initted && !this.paused && !this.activeMods.has(Mod.Auto);
+		return this.initted && !this.paused && !this.completed && !this.activeMods.has(Mod.Auto);
 	}
 
 	getCurrentSongTime() {

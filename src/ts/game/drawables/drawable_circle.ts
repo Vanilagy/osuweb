@@ -7,7 +7,7 @@ import { HitSoundInfo, generateHitSoundInfo } from "../skin/sound";
 import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { DrawableBeatmap } from "../drawable_beatmap";
-import { ScoringValue } from "../score";
+import { ScoringValue } from "../../datamodel/score";
 
 export class DrawableCircle extends DrawableHeadedHitObject {
 	public parent: ProcessedCircle;

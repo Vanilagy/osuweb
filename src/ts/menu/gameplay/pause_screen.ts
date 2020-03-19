@@ -1,28 +1,25 @@
-import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT, uiEventEmitter } from "../../visuals/ui";
+import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { Interactivity, InteractionGroup } from "../../input/interactivity";
-import { createPolygonTexture } from "../../util/pixi_util";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { THEME_COLORS } from "../../util/constants";
 import { GameplayController } from "../../game/gameplay_controller";
+import { Button, ButtonPivot } from "../components/button";
 
-const ACTION_PANEL_WIDTH = 336;
-const ACTION_PANEL_HEIGHT = 52;
-
-export function getPauseScreenScalingFactor() {
-	return currentWindowDimensions.height / REFERENCE_SCREEN_HEIGHT;
-}
+const BUTTON_WIDTH = 336;
+const BUTTON_HEIGHT = 52;
 
 export class PauseScreen {
 	public controller: GameplayController;
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
+	public scalingFactor: number;
 
 	private background: PIXI.Sprite;
 	private centerContainer: PIXI.Container;
 	private heading: PIXI.Text;
-	private actionPanels: PauseScreenActionPanel[];
+	private buttons: Button[];
 	private fadeInterpolator: Interpolator;
 
     constructor(controller: GameplayController) {
@@ -41,18 +38,18 @@ export class PauseScreen {
 		this.heading = new PIXI.Text("paused");
 		this.centerContainer.addChild(this.heading);
 
-		let resumePanel = new PauseScreenActionPanel("resume", colorToHexNumber(THEME_COLORS.PrimaryBlue));
-		let restartPanel = new PauseScreenActionPanel("restart", colorToHexNumber(THEME_COLORS.PrimaryYellow));
-		let quitPanel = new PauseScreenActionPanel("quit", colorToHexNumber(THEME_COLORS.PrimaryPink));
-		this.actionPanels = [resumePanel, restartPanel, quitPanel];
-		for (let panel of this.actionPanels) this.centerContainer.addChild(panel.container);
+		let continuePanel = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "continue", colorToHexNumber(THEME_COLORS.PrimaryBlue));
+		let retryPanel = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "retry", colorToHexNumber(THEME_COLORS.PrimaryYellow));
+		let quitPanel = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "quit", colorToHexNumber(THEME_COLORS.PrimaryPink));
+		this.buttons = [continuePanel, retryPanel, quitPanel];
+		for (let panel of this.buttons) this.centerContainer.addChild(panel.container);
 
 		this.interactionGroup = Interactivity.createGroup();
 		this.interactionGroup.disable();
-		resumePanel.setupInteraction(this.interactionGroup, () => {
+		continuePanel.setupInteraction(this.interactionGroup, () => {
 			this.controller.unpause();
 		});
-		restartPanel.setupInteraction(this.interactionGroup, () => {
+		retryPanel.setupInteraction(this.interactionGroup, () => {
 			this.controller.restart();
 		});
 		quitPanel.setupInteraction(this.interactionGroup, () => {
@@ -84,7 +81,7 @@ export class PauseScreen {
 	}
 	
 	resize() {
-		let scalingFactor = getPauseScreenScalingFactor();
+		this.scalingFactor = currentWindowDimensions.height / REFERENCE_SCREEN_HEIGHT;
 
 		this.background.width = currentWindowDimensions.width;
 		this.background.height = currentWindowDimensions.height;
@@ -95,139 +92,38 @@ export class PauseScreen {
 		this.heading.style = {
 			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
-			fontSize: Math.floor(36 * scalingFactor),
+			fontSize: Math.floor(36 * this.scalingFactor),
 			dropShadow: true,
 			dropShadowDistance: 1,
 			dropShadowBlur: 0
 		};
-		this.heading.y = Math.floor(-170 * scalingFactor);
+		this.heading.y = Math.floor(-170 * this.scalingFactor);
 		this.heading.pivot.x = Math.floor(this.heading.width / 2);
 
-		for (let i = 0; i < this.actionPanels.length; i++) {
-			let panel = this.actionPanels[i];
-			panel.resize();
+		for (let i = 0; i < this.buttons.length; i++) {
+			let panel = this.buttons[i];
+			panel.resize(this.scalingFactor);
 		}
 	}
 
 	update(now: number) {
-		let scalingFactor = getPauseScreenScalingFactor();
+		let scalingFactor = this.scalingFactor;
 
 		let fadeCompletion = this.fadeInterpolator.getCurrentValue(now);
 		this.container.alpha = fadeCompletion;
+		this.container.visible = this.container.alpha !== 0;
+
+		if (!this.container.visible) return;
+
 		this.heading.x = -7 * (1 - fadeCompletion) * scalingFactor;
 		if (fadeCompletion === 1) this.heading.x = Math.floor(this.heading.x);
 
-		for (let i = 0; i < this.actionPanels.length; i++) {
-			let panel = this.actionPanels[i];
+		for (let i = 0; i < this.buttons.length; i++) {
+			let panel = this.buttons[i];
 
 			panel.update(now);
 			panel.container.y = (-32 + 80 * i - MathUtil.lerp(10 + 15*i, 0, fadeCompletion)) * scalingFactor;
 			if (fadeCompletion === 1) panel.container.y = Math.floor(panel.container.y);
 		}
-	}
-}
-
-class PauseScreenActionPanel {
-	public container: PIXI.Container;
-	private mask: PIXI.Sprite;
-	private background: PIXI.Sprite;
-	private topHighlight: PIXI.Sprite;
-	private text: PIXI.Text;
-	private hoverInterpolator: Interpolator;
-	private pressdownInterpolator: Interpolator;
-
-	constructor(description: string, color: number) {
-		this.container = new PIXI.Container();
-
-		this.mask = new PIXI.Sprite();
-		this.container.addChild(this.mask);
-
-		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.background.alpha = 0.9;
-		this.background.mask = this.mask;
-		this.container.addChild(this.background);
-
-		this.topHighlight = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.topHighlight.tint = color;
-		this.topHighlight.mask = this.mask;
-		this.container.addChild(this.topHighlight);
-
-		this.text = new PIXI.Text(description);
-		this.container.addChild(this.text);
-
-		this.hoverInterpolator = new Interpolator({
-			duration: 150,
-			ease: EaseType.EaseOutCubic,
-			reverseEase: EaseType.EaseInCubic,
-			reverseDuration: 400,
-			beginReversed: true,
-			defaultToFinished: true
-		});
-		this.pressdownInterpolator = new Interpolator({
-			duration: 50,
-			ease: EaseType.EaseOutCubic,
-			reverseEase: EaseType.EaseInCubic,
-			reverseDuration: 400,
-			beginReversed: true,
-			defaultToFinished: true
-		});
-	}
-
-	resize() {
-		let scalingFactor = getPauseScreenScalingFactor();
-		let slantWidth = ACTION_PANEL_HEIGHT/5;
-
-		this.mask.texture = createPolygonTexture(ACTION_PANEL_WIDTH + slantWidth, ACTION_PANEL_HEIGHT, [
-			new PIXI.Point(0, 0), new PIXI.Point(ACTION_PANEL_WIDTH, 0), new PIXI.Point(ACTION_PANEL_WIDTH + slantWidth, ACTION_PANEL_HEIGHT), new PIXI.Point(slantWidth, ACTION_PANEL_HEIGHT)
-		], scalingFactor);
-		this.mask.x = -Math.floor((ACTION_PANEL_WIDTH + slantWidth)/2 * scalingFactor);
-
-		this.background.width = Math.floor((ACTION_PANEL_WIDTH + slantWidth) * scalingFactor);
-		this.background.height = Math.floor(ACTION_PANEL_HEIGHT * scalingFactor);
-		this.background.x = this.mask.x;
-
-		this.topHighlight.width = this.background.width;
-		this.topHighlight.height = Math.floor(2 * scalingFactor);
-		this.topHighlight.x = this.background.x;
-
-		this.text.style = {
-			fontFamily: 'Exo2-Light',
-			fontStyle: 'italic',
-			fill: 0xffffff,
-			fontSize: Math.floor(17 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
-		this.text.pivot.x = Math.floor(this.text.width / 2);
-		this.text.pivot.y = Math.floor(this.text.height / 2);
-		this.text.y = Math.floor(ACTION_PANEL_HEIGHT/2 * scalingFactor);
-	}
-
-	update(now: number) {
-		let scalingFactor = getPauseScreenScalingFactor();
-		let hoverCompletion = this.hoverInterpolator.getCurrentValue(now);
-
-		this.text.alpha = MathUtil.lerp(0.75, 1.0, hoverCompletion);
-
-		this.container.pivot.x = 2 * scalingFactor * hoverCompletion;
-		if (hoverCompletion === 1) this.container.pivot.x = Math.ceil(this.container.pivot.x);
-		this.container.pivot.y = this.container.pivot.x;
-
-		let pressdownCompletion = this.pressdownInterpolator.getCurrentValue(now);
-		this.background.tint = Math.floor(MathUtil.lerp(15, 6, pressdownCompletion)) * 0x10101;
-	}
-
-	setupInteraction(group: InteractionGroup, onclick: () => any) {
-		let registration = Interactivity.registerDisplayObject(this.container);
-		group.add(registration);
-
-		registration.addButtonHandlers(
-			onclick,
-			() => this.hoverInterpolator.setReversedState(false, performance.now()),
-			() => this.hoverInterpolator.setReversedState(true, performance.now()),
-			() => this.pressdownInterpolator.setReversedState(false, performance.now()),
-			() => this.pressdownInterpolator.setReversedState(true, performance.now())
-		);
 	}
 }

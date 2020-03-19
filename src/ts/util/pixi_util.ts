@@ -128,7 +128,7 @@ export function createLinearGradientTexture(width: number, height: number, start
 	canvas.setAttribute('height', String(Math.ceil(height * scalingFactor)));
 
 	let gradient = ctx.createLinearGradient(start.x * scalingFactor, start.y * scalingFactor, end.x * scalingFactor, end.y * scalingFactor);
-	for (let cs of colorStops) gradient.addColorStop(cs[0], cs[1]);
+	for (let cs of colorStops) gradient.addColorStop(MathUtil.clamp(cs[0], 0, 1), cs[1]);
 
 	ctx.fillStyle = gradient;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);

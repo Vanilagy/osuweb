@@ -126,6 +126,21 @@ export class GameplayController {
 		globalState.backgroundManager.setState(BackgroundState.SongSelect);
 	}
 
+	async completePlay() {
+		if (!this.currentPlay) return;
+
+		this.currentPlay.complete();
+
+		this.hide();
+		globalState.backgroundManager.setState(BackgroundState.SongSelect);
+
+		let beatmap = this.currentPlay.processedBeatmap.beatmap;
+		let imageFile = await beatmap.getBackgroundImageFile();
+
+		globalState.scoreScreen.load(this.currentPlay.scoreCounter.score, beatmap, imageFile);
+		globalState.scoreScreen.show();
+	}
+
 	render(now: number) {
 		let fadeValue = this.fadeInterpolator.getCurrentValue(now);
 		this.container.alpha = fadeValue;
@@ -163,6 +178,8 @@ export class GameplayController {
 	restart() {
 		if (!this.currentPlay) return;
 
+		this.show();
+		globalState.backgroundManager.setState(BackgroundState.Gameplay);
 		this.pauseScreen.hide();
 		this.currentPlay.restart();
 	}

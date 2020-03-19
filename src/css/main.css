@@ -3,12 +3,32 @@
 	src: url("../assets/fonts/Exo_2/Exo2-Regular.ttf");
 }
 @font-face {
+	font-family: "Exo2-RegularItalic";
+	src: url("../assets/fonts/Exo_2/Exo2-Italic.ttf");
+}
+@font-face {
 	font-family: "Exo2-Bold";
 	src: url("../assets/fonts/Exo_2/Exo2-Bold.ttf");
 }
 @font-face {
+	font-family: "Exo2-SemiBold";
+	src: url("../assets/fonts/Exo_2/Exo2-SemiBold.ttf");
+}
+@font-face {
+	font-family: "Exo2-SemiBoldItalic";
+	src: url("../assets/fonts/Exo_2/Exo2-SemiBoldItalic.ttf");
+}
+@font-face {
 	font-family: "Exo2-Light";
 	src: url("../assets/fonts/Exo_2/Exo2-Light.ttf");
+}
+@font-face {
+	font-family: "Exo2-LightItalic";
+	src: url("../assets/fonts/Exo_2/Exo2-LightItalic.ttf");
+}
+@font-face {
+	font-family: "FredokaOne-Regular";
+	src: url("../assets/fonts/Fredoka_One/FredokaOne-Regular.ttf");
 }
 
 * {

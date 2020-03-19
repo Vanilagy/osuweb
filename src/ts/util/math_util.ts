@@ -417,6 +417,11 @@ export abstract class MathUtil {
 	static floorToMultiple(num: number, factor: number) {
 		return Math.floor(num / factor) * factor;
 	}
+
+	// Works correctly for negative numbers
+	static adjustedMod(a: number, n: number) {
+		return ((a % n) + n) % n;
+	}
 }
 
 let valueNoiseRng = MathUtil.createSeededRng(1337);

@@ -32,5 +32,12 @@ export const SLIDER_SETTINGS = {
 export const THEME_COLORS = {
 	PrimaryBlue: hexNumberToColor(0x6FC2FF),
 	PrimaryYellow: hexNumberToColor(0xFFD84B),
-	PrimaryPink: hexNumberToColor(0xFA557D)
+	PrimaryPink: hexNumberToColor(0xFA557D),
+
+	AccentGold: hexNumberToColor(0xFFC700),
+
+	Judgement300: hexNumberToColor(0x5AB1E1),
+	Judgement100: hexNumberToColor(0x63C56D),
+	Judgement50: hexNumberToColor(0xF49149),
+	JudgementMiss: hexNumberToColor(0xFD5B5B),
 } as const;

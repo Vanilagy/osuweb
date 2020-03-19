@@ -4,6 +4,7 @@ import { MediaPlayer } from "./audio/media_player";
 import { HighAccuracyMediaPlayer } from "./audio/high_accuracy_media_player";
 import { BackgroundManager } from "./visuals/background";
 import { Skin } from "./game/skin/skin";
+import { ScoreScreen } from "./menu/score/score_screen";
 
 export const globalState = {
 	songSelect: null as SongSelect,
@@ -11,5 +12,6 @@ export const globalState = {
 	basicMediaPlayer: null as MediaPlayer,
 	gameplayMediaPlayer: null as HighAccuracyMediaPlayer,
 	backgroundManager: null as BackgroundManager,
-	baseSkin: null as Skin
+	baseSkin: null as Skin,
+	scoreScreen: null as ScoreScreen
 };

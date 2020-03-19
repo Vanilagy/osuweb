@@ -17,7 +17,7 @@ import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beat
 import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { DrawableBeatmap } from "../drawable_beatmap";
-import { ScoringValue } from "../score";
+import { ScoringValue } from "../../datamodel/score";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;

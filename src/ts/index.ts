@@ -16,8 +16,11 @@ import { GameplayController } from './game/gameplay_controller';
 import { addTickingTask } from './util/ticker';
 import { BackgroundManager } from './visuals/background';
 import { VirtualDirectory } from './file_system/virtual_directory';
+import { ScoreScreen } from './menu/score/score_screen';
+import { initScoreGrades } from './menu/components/score_grade_icon';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_media_player_tester';
+//import './tests/polygon_tests';
 
 const osu: string | null = 'ORERU!';
 
@@ -28,6 +31,8 @@ async function init() {
 	initBackground();
 	initSongSelect();
 	initGameplay();
+	initScoreGrades();
+	initScoreScreen();
 	showChooseFile();
 
 	console.log(osu!); // Love the syntax <3
@@ -80,4 +85,15 @@ function initGameplay() {
 	addTickingTask(() => controller.tick());
 
 	globalState.gameplayController = controller;
+}
+
+function initScoreScreen() {
+	let scoreScreen = new ScoreScreen();
+	stage.addChild(scoreScreen.container);
+	rootInteractionGroup.add(scoreScreen.interactionGroup);
+
+	uiEventEmitter.addListener('resize', () => scoreScreen.resize());
+	addRenderingTask((now) => scoreScreen.update(now));
+
+	globalState.scoreScreen = scoreScreen;
 }

@@ -2,7 +2,7 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { Point, pointDistance } from "../../util/point";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
 import { ProcessedHeadedHitObject } from "../../datamodel/processed/processed_headed_hit_object";
-import { ScoringValue } from "../score";
+import { ScoringValue } from "../../datamodel/score";
 
 // This many millisecond before the perfect hit time will the object start to even
 // become clickable. Before that, it should do the little shaky-shake, implying it

@@ -2,6 +2,8 @@ import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab } from "./beatm
 import { EaseType, MathUtil } from "../../util/math_util";
 import { padNumberWithZeroes } from "../../util/misc_util";import { InterpolatedValueChanger } from "../../util/interpolation";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
+import { THEME_COLORS } from "../../util/constants";
+import { colorToHexNumber } from "../../util/graphics_util";
 
 const CIRCLE_CIZE_CAP = 7;
 const HP_DRAIN_CAP = 10;
@@ -57,7 +59,7 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 		this.hpDrainAttribute = new RangedAttribute(this, 'HP Drain', HP_DRAIN_CAP, 1, 0xffffff);
 		this.overallDifficultyAttribute = new RangedAttribute(this, 'Accuracy', OVERALL_DIFFICULTY_CAP, 1, 0xffffff);
 		this.approachRateAttribute = new RangedAttribute(this, 'Approach Rate', APPROACH_RATE_CAP, 1, 0xffffff);
-		this.starRatingAttribute = new RangedAttribute(this, 'Star Rating', STAR_RATING_CAP, 2, 0xffdd55);
+		this.starRatingAttribute = new RangedAttribute(this, 'Star Rating', STAR_RATING_CAP, 2, colorToHexNumber(THEME_COLORS.AccentGold));
 
 		this.allRangedAttributes = [this.circleSizeAttribute, this.hpDrainAttribute, this.overallDifficultyAttribute, this.approachRateAttribute, this.starRatingAttribute];
 		for (let a of this.allRangedAttributes) this.container.addChild(a.container);
@@ -195,7 +197,7 @@ class NamedNumericalAttribute {
 
 		this.valueText.style = {
 			fontFamily: 'Exo2-Bold',
-			fill: 0xffdd55,
+			fill: colorToHexNumber(THEME_COLORS.AccentGold),
 			textBaseline: 'alphabetic',
 			fontSize: Math.floor(16 * scalingFactor)
 		};
