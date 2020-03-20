@@ -131,6 +131,7 @@ export class AccuracyMeter {
 	reset() {
 		this.overlay.removeChildren();
 		this.accuracyLines.length = 0;
+		this.fadeOutStart = -Infinity;
 	}
 
 	addAccuracyLine(inaccuracy: number, currentTime: number) {

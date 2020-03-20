@@ -162,8 +162,9 @@ export class Interpolator {
 
 	getCurrentEasedCompletion(now: number) {
 		let completion = this.getCurrentCompletion(now);
+		if (completion % 1 === 0) return completion;
+
 		let easedCompletion = MathUtil.ease(this.getEase(), completion, this.getEaseP());
-		
 		return easedCompletion;
 	}
 

@@ -60,15 +60,15 @@ export class SongSelect {
 
 	update(now: number, dt: number) {
 		let fadeValue = this.fadeInterpolator.getCurrentValue(now);
-
-		this.container.scale.set(MathUtil.lerp(1.1, 1.0, fadeValue));
+		
 		this.container.alpha = fadeValue;
 		this.container.visible = fadeValue !== 0;
 
+		if (fadeValue === 0) return;
+
+		this.container.scale.set(MathUtil.lerp(1.1, 1.0, fadeValue));
 		this.infoPanel.container.pivot.x = MathUtil.lerp(60 * getGlobalScalingFactor(), 0, fadeValue);
 		this.carousel.container.pivot.x = MathUtil.lerp(-60 * getGlobalScalingFactor(), 0, fadeValue);
-
-		if (fadeValue === 0) return;
 
 		this.carousel.update(now, dt);
 		this.infoPanel.update(now);
