@@ -89,6 +89,8 @@ export class MediaPlayer {
 	}
 
 	loadUrl(url: string) {
+		if (this.audioElement && this.audioElement.src === url) return;
+
 		return new Promise<void>((resolve) => {
 			this.resetAudioElement();
 			this.audioElement.src = url;

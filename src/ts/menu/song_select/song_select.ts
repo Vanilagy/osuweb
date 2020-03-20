@@ -21,6 +21,7 @@ export class SongSelect {
 	public selectedBeatmapFile: VirtualFile = null;
 	public selectedBeatmapSet: BeatmapSet = null;
 	public selectedExtendedBeatmapData: ExtendedBeatmapData = null;
+	public currentAudioBeatmap: Beatmap = null;
 
 	public carousel: BeatmapCarousel;
 	public infoPanel: BeatmapInfoPanel;
@@ -108,11 +109,28 @@ export class SongSelect {
 		});
 	}
 
+	async startAudio(audioBeatmap: Beatmap) {
+		let audioFile = await audioBeatmap.getAudioFile();
+		if (!audioFile) return;
+
+		this.currentAudioBeatmap = audioBeatmap;
+		let mediaPlayer = globalState.basicMediaPlayer;
+
+		await mediaPlayer.loadFromVirtualFile(audioFile);
+
+		let startTime = audioBeatmap.getAudioPreviewTimeInSeconds();
+		mediaPlayer.start(startTime)
+		mediaPlayer.setLoopBehavior(true, startTime);
+		this.sideControlPanel.resetLastBeatTime();
+	}
+
 	show() {
 		this.fadeInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.enable();
 		this.searchBar.enable();
 		this.visible = true;
+
+		if (this.currentAudioBeatmap) this.startAudio(this.currentAudioBeatmap);
 	}
 
 	hide() {

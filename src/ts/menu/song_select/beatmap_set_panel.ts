@@ -312,17 +312,7 @@ export class BeatmapSetPanel {
 			if (backgroundImage) globalState.backgroundManager.setImage(backgroundImage);
 		});
 
-		representingBeatmap.getAudioFile().then(async (audioFile) => {
-			if (!audioFile) return;
-			let mediaPlayer = globalState.basicMediaPlayer;
-
-			await mediaPlayer.loadFromVirtualFile(audioFile);
-
-			let startTime = representingBeatmap.getAudioPreviewTimeInSeconds();
-			mediaPlayer.start(startTime)
-			mediaPlayer.setLoopBehavior(true, startTime);
-			this.carousel.songSelect.sideControlPanel.resetLastBeatTime();
-		});
+		this.carousel.songSelect.startAudio(representingBeatmap);
 
 		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
 		let map: Map<typeof data[0], VirtualFile> = new Map();
