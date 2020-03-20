@@ -102,16 +102,21 @@ export class Hud {
 		this.container.addChild(this.progressIndicator.container);
 	}
 
-	// Should be called every time there's a new Play.
+	// Should be called every time a Play is started
 	init() {
+		this.accuracyMeter.init();
+		this.scorebar.init();
+		this.gameplayWarningArrows.init();
+
+		this.reset();
+	}
+
+	reset() {
 		this.scoreDisplay.setValue(0);
 		this.accuracyDisplay.setValue(100);
 		this.phantomComboDisplay.setValue(0);
 		this.comboDisplay.setValue(0);
-
-		this.accuracyMeter.init();
-		this.scorebar.init();
-		this.gameplayWarningArrows.init();
+		this.accuracyMeter.reset();
 	}
 
 	resize() {

@@ -128,6 +128,11 @@ export class AccuracyMeter {
 		this.alphaFilter.alpha = 1 - fadeOutCompletion;
 	}
 
+	reset() {
+		this.overlay.removeChildren();
+		this.accuracyLines.length = 0;
+	}
+
 	addAccuracyLine(inaccuracy: number, currentTime: number) {
 		let { processedBeatmap } = this.hud.controller.currentPlay;
 

@@ -202,6 +202,7 @@ export class GameplayController {
 		
 		this.pauseScreen.hide();
 		this.currentPlay.restart();
+		this.hud.reset();
 		this.onPlayBegin();
 
 		this.show();
