@@ -27,7 +27,6 @@ import { ScoringValue } from "../datamodel/score";
 import { Mod } from "../datamodel/mods";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
-const MODCODE_OVERRIDE = '';
 const BREAK_FADE_TIME = 1250; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
@@ -85,12 +84,12 @@ export class Play {
 	private currentPlaythroughInstruction: number;
 	private autohit: boolean;
 
-	constructor(controller: GameplayController, processedBeatmap: ProcessedBeatmap) {
+	constructor(controller: GameplayController, processedBeatmap: ProcessedBeatmap, mods: Set<Mod>) {
 		this.controller = controller;
 		this.processedBeatmap = processedBeatmap;
 		this.drawableBeatmap = new DrawableBeatmap(this, this.processedBeatmap);
 		this.scoreCounter = new ScoreCounter(this, this.processedBeatmap);
-		this.activeMods = new Set();
+		this.activeMods = mods;
 	}
 	
 	async init() {
@@ -106,8 +105,6 @@ export class Play {
 			let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
 			this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
 		}
-
-		this.activeMods = ModHelper.getModsFromModCode(MODCODE_OVERRIDE || prompt("Enter mod code:"));
 
 		if (this.activeMods.has(Mod.Easy)) ModHelper.applyEz(this.processedBeatmap);
 		if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrFirstPass(this.processedBeatmap);

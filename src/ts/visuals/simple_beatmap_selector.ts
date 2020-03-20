@@ -3,6 +3,7 @@ import { BeatmapSet } from "../datamodel/beatmap_set";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { globalState } from "../global_state";
+import { ModHelper } from "../game/mods/mod_helper";
 
 const beatmapFileSelect = document.querySelector('#beatmap-select') as HTMLInputElement;
 beatmapFileSelect.style.display = 'none';
@@ -36,7 +37,8 @@ beatmapFileSelect.addEventListener('change', async (e) => {
 		beatmapSet: beatmapSet,
 		metadataOnly: false
 	});
-	await globalState.gameplayController.startPlayFromBeatmap(beatmap);
+	let mods = ModHelper.getModsFromModCode(prompt("Enter mod code:"));
+	await globalState.gameplayController.startPlayFromBeatmap(beatmap, mods);
 });
 
 export function showChooseFile() {

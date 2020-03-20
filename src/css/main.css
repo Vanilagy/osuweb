@@ -11,6 +11,10 @@
 	src: url("../assets/fonts/Exo_2/Exo2-Bold.ttf");
 }
 @font-face {
+	font-family: "Exo2-BoldItalic";
+	src: url("../assets/fonts/Exo_2/Exo2-BoldItalic.ttf");
+}
+@font-face {
 	font-family: "Exo2-SemiBold";
 	src: url("../assets/fonts/Exo_2/Exo2-SemiBold.ttf");
 }

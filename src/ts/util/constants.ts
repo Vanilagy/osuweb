@@ -40,4 +40,6 @@ export const THEME_COLORS = {
 	Judgement100: hexNumberToColor(0x63C56D),
 	Judgement50: hexNumberToColor(0xF49149),
 	JudgementMiss: hexNumberToColor(0xFD5B5B),
+
+	SecondaryActionGray: hexNumberToColor(0x909090)
 } as const;

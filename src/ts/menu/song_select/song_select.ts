@@ -12,6 +12,7 @@ import { globalState } from "../../global_state";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { currentWindowDimensions, getGlobalScalingFactor } from "../../visuals/ui";
+import { ModSelectionPanel } from "./mod_selection_panel";
 
 export class SongSelect {
 	public container: PIXI.Container;
@@ -27,6 +28,7 @@ export class SongSelect {
 	public infoPanel: BeatmapInfoPanel;
 	public sideControlPanel: SongSelectSideControlPanel;
 	public searchBar: SearchBar;
+	public modSelector: ModSelectionPanel;
 
 	private fadeInterpolator: Interpolator;
 	public visible = false;
@@ -39,9 +41,10 @@ export class SongSelect {
 		this.infoPanel = new BeatmapInfoPanel(this);
 		this.sideControlPanel = new SongSelectSideControlPanel(this);
 		this.searchBar = new SearchBar(this);
+		this.modSelector = new ModSelectionPanel(this);
 
-		this.container.addChild(this.carousel.container, this.infoPanel.container, this.sideControlPanel.container, this.searchBar.container);
-		this.interactionGroup.add(this.carousel.interactionGroup, this.infoPanel.interactionGroup, this.sideControlPanel.interactionGroup, this.searchBar.interactionGroup);
+		this.container.addChild(this.carousel.container, this.infoPanel.container, this.sideControlPanel.container, this.searchBar.container, this.modSelector.container);
+		this.interactionGroup.add(this.carousel.interactionGroup, this.infoPanel.interactionGroup, this.sideControlPanel.interactionGroup, this.searchBar.interactionGroup, this.modSelector.interactionGroup);
 
 		this.fadeInterpolator = new Interpolator({
 			duration: 500,
@@ -71,6 +74,7 @@ export class SongSelect {
 		this.infoPanel.update(now);
 		this.sideControlPanel.update(now);
 		this.searchBar.update(now);
+		this.modSelector.update(now);
 	}
 
 	resize() {
@@ -82,6 +86,7 @@ export class SongSelect {
 		this.infoPanel.resize();
 		this.sideControlPanel.resize();
 		this.searchBar.resize();
+		this.modSelector.resize();
 	}
 
 	selectBeatmapDifficulty(beatmapFile: VirtualFile, beatmapSet: BeatmapSet,  extendedBeatmapData: ExtendedBeatmapData) {
@@ -104,8 +109,9 @@ export class SongSelect {
 				beatmapSet: this.selectedBeatmapSet,
 				metadataOnly: false
 			});
+			let mods = this.modSelector.getSelectedMods();
 	
-			globalState.gameplayController.startPlayFromBeatmap(map);
+			globalState.gameplayController.startPlayFromBeatmap(map, mods);
 		});
 	}
 
@@ -129,6 +135,7 @@ export class SongSelect {
 		this.interactionGroup.enable();
 		this.searchBar.enable();
 		this.visible = true;
+		this.carousel.enableScroll();
 
 		if (this.currentAudioBeatmap) this.startAudio(this.currentAudioBeatmap);
 	}
@@ -138,5 +145,6 @@ export class SongSelect {
 		this.interactionGroup.disable();
 		this.searchBar.disable();
 		this.visible = false;
+		this.carousel.disableScroll();
 	}
 }

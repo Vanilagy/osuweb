@@ -72,7 +72,8 @@ export class BeatmapCarousel {
 	});
 
 	private dragTarget: PIXI.Container;
-	private pressDownStopped = true;	
+	private pressDownStopped = true;
+	private scrollEnabled = true;
 
 	constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
@@ -111,7 +112,7 @@ export class BeatmapCarousel {
 	}
 
 	private onWheel(data: NormalizedWheelEvent) {
-		if (this.beatmapSetPanels.length === 0 || !this.songSelect.visible) return;
+		if (this.beatmapSetPanels.length === 0 || !this.scrollEnabled) return;
 
 		let wheelEvent = data as NormalizedWheelEvent;
 		let effectiveness = 1.0; // How much the scroll "counts"	
@@ -131,6 +132,14 @@ export class BeatmapCarousel {
 	
 		this.scrollVelocity += wheelEvent.dy * 4 * effectiveness;
 		this.snapToSelected = false;
+	}
+
+	enableScroll() {
+		this.scrollEnabled = true;
+	}
+	
+	disableScroll() {
+		this.scrollEnabled = false;
 	}
 
 	update(now: number, dt: number) {

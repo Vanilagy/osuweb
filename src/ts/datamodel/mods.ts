@@ -81,3 +81,29 @@ modOrder.set(Mod.Cinema, -10);
 export function modComparator(a: Mod, b: Mod) {
 	return modOrder.get(a) - modOrder.get(b);
 }
+
+export const modLongNames = new Map<Mod, string>();
+modLongNames.set(Mod.Easy, 'Easy');
+modLongNames.set(Mod.NoFail, 'No Fail');
+modLongNames.set(Mod.HalfTime, 'Half Time');
+modLongNames.set(Mod.Daycore, 'Daycore');
+modLongNames.set(Mod.HardRock, 'Hard Rock');
+modLongNames.set(Mod.SuddenDeath, 'Sudden Death');
+modLongNames.set(Mod.Perfect, 'Perfect');
+modLongNames.set(Mod.DoubleTime, 'Double Time');
+modLongNames.set(Mod.Nightcore, 'Nightcore');
+modLongNames.set(Mod.Hidden, 'Hidden');
+modLongNames.set(Mod.Flashlight, 'Flashlight');
+modLongNames.set(Mod.Relax, 'Relax');
+modLongNames.set(Mod.Autopilot, 'Autopilot');
+modLongNames.set(Mod.SpunOut, 'Spun-Out');
+modLongNames.set(Mod.Auto, 'Auto');
+modLongNames.set(Mod.Cinema, 'Cinema');
+
+// For each array, only one mod may be active at a time
+export const modIncompatibilities = [
+	[Mod.Easy, Mod.HardRock],
+	[Mod.HalfTime, Mod.Daycore, Mod.DoubleTime, Mod.Nightcore],
+	[Mod.Relax, Mod.Autopilot, Mod.Auto],
+	[Mod.Autopilot, Mod.SpunOut, Mod.Auto]
+];

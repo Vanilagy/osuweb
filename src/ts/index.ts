@@ -18,6 +18,7 @@ import { BackgroundManager } from './visuals/background';
 import { VirtualDirectory } from './file_system/virtual_directory';
 import { ScoreScreen } from './menu/score/score_screen';
 import { initScoreGrades } from './menu/components/score_grade_icon';
+import { ModSelectionPanel } from './menu/song_select/mod_selection_panel';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_media_player_tester';
 //import './tests/polygon_tests';

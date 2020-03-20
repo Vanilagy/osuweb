@@ -11,6 +11,9 @@ import { globalState } from "../global_state";
 import { Interpolator } from "../util/interpolation";
 import { EaseType } from "../util/math_util";
 import { inputEventEmitter, KeyCode } from "../input/input";
+import { Mod } from "../datamodel/mods";
+import { ModHelper } from "./mods/mod_helper";
+import { assert } from "../util/misc_util";
 
 export class GameplayController {
 	public container: PIXI.Container;
@@ -91,7 +94,9 @@ export class GameplayController {
 		this.hide();
 	}
 	
-	async startPlayFromBeatmap(beatmap: Beatmap) {
+	async startPlayFromBeatmap(beatmap: Beatmap, mods: Set<Mod>) {
+		assert(ModHelper.validateModSelection(mods));
+
 		this.hitObjectContainer.removeChildren();
 		this.approachCircleContainer.removeChildren();
 		this.followPointContainer.removeChildren();
@@ -102,7 +107,7 @@ export class GameplayController {
 
 		let processedBeatmap = new ProcessedBeatmap(beatmap, !IGNORE_BEATMAP_SKIN);
 	
-		let newPlay = new Play(this, processedBeatmap);
+		let newPlay = new Play(this, processedBeatmap, mods);
 		this.currentPlay = newPlay;
 	
 		await newPlay.init();

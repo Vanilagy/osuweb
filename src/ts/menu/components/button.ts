@@ -3,6 +3,10 @@ import { EaseType, MathUtil } from "../../util/math_util";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { InteractionGroup, Interactivity, InteractionRegistration } from "../../input/interactivity";
 
+export const DEFAULT_BUTTON_WIDTH = 140;
+export const DEFAULT_BUTTON_HEIGHT = 35;
+export const DEFAULT_BUTTON_MARGIN = 8;
+
 export enum ButtonPivot {
 	TopLeft,
 	Center,

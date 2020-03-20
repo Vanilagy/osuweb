@@ -8,7 +8,7 @@ import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
 import { ProcessedSlider } from "../../datamodel/processed/processed_slider";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
 import { Color, hexNumberToColor } from "../../util/graphics_util";
-import { Mod, modMultipliers } from "../../datamodel/mods";
+import { Mod, modMultipliers, modIncompatibilities } from "../../datamodel/mods";
 
 const DEFAULT_SPIN_RADIUS = 45;
 const RADIUS_LERP_DURATION = 480;
@@ -68,6 +68,21 @@ export class ModHelper {
 		}
 
 		return set;
+	}
+
+	// Checks if a combination of mods is valid. For example: HDDT is valid, but DTHT is not. HR is valid, but HREZ is not.
+	static validateModSelection(mods: Set<Mod>) {
+		for (let group of modIncompatibilities) {
+			let count = 0;
+
+			mods.forEach((mod) => {
+				if (group.includes(mod)) count++
+			});
+
+			if (count > 1) return false; // More than one mod from this group!
+		}
+
+		return true;
 	}
 
 	// TODO: Apply health respawn thing.

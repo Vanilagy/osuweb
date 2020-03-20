@@ -7,8 +7,10 @@ import { Interactivity, InteractionGroup } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { AnalyserNodeWrapper } from "../../audio/analyser_node_wrapper";
-import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
+import { calculateRatioBasedScalingFactor, lerpColors, Colors, colorToHexNumber } from "../../util/graphics_util";
 import { globalState } from "../../global_state";
+import { EMPTY_FUNCTION } from "../../util/misc_util";
+import { THEME_COLORS } from "../../util/constants";
 
 const PULSAR_IDLE_RADIUS = 60;
 const SIDE_CONTROL_PANEL_WIDTH = 42;
@@ -62,7 +64,10 @@ export class SongSelectSideControlPanel {
 
     private pulsar: SideControlPulsar;
     private background: PIXI.Sprite;
-    private buttons: SideControlPanelButton[] = [];
+	private buttons: SideControlPanelButton[];
+	
+	public randomButton: SideControlPanelButton;
+	public modSelectionButton: SideControlPanelButton;
 
     constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
@@ -80,13 +85,12 @@ export class SongSelectSideControlPanel {
         this.background.alpha = 0.8;
         this.container.addChild(this.background);
 
-        // omg give this a more descriptive name
-        let b1 = new SideControlPanelButton(this, 'random', randomButtonTexture);
-        this.container.addChild(b1.container);
-        this.buttons.push(b1);
-        let b2 = new SideControlPanelButton(this, 'mods', modsButtonTexture);
-        this.container.addChild(b2.container);
-		this.buttons.push(b2);
+        this.randomButton = new SideControlPanelButton(this, 'random', randomButtonTexture, EMPTY_FUNCTION);
+        this.modSelectionButton = new SideControlPanelButton(this, 'mods', modsButtonTexture, () => {
+			this.songSelect.modSelector.show();
+		});
+		this.buttons = [this.randomButton, this.modSelectionButton];
+		for (let b of this.buttons) this.container.addChild(b.container);
 
 		let interaction = Interactivity.registerDisplayObject(this.background);
 		this.interactionGroup.add(interaction);
@@ -136,14 +140,15 @@ class SideControlPanelButton {
 	private background: PIXI.Sprite;
 	private icon: PIXI.Sprite;
 	private hoverInterpolator: Interpolator;
+	private pressdownInterpolator: Interpolator;
+	private highlightInterpolator: Interpolator;
 
-    constructor(parent: SongSelectSideControlPanel, label: string, iconTexture: PIXI.Texture) {
+    constructor(parent: SongSelectSideControlPanel, label: string, iconTexture: PIXI.Texture, onclick: () => any) {
 		this.parent = parent;
         this.label = label;
         this.container = new PIXI.Container();
 
         this.background = new PIXI.Sprite();
-        this.background.alpha = 0.1;
         this.container.addChild(this.background);
 
         this.text = new PIXI.Text(this.label);
@@ -159,20 +164,30 @@ class SideControlPanelButton {
 			beginReversed: true,
 			defaultToFinished: true
 		});
-
-		this.initInteraction();
-	}
-	
-	private initInteraction() {
-		let interaction = Interactivity.registerDisplayObject(this.background);
-		this.parent.interactionGroup.add(interaction);
-
-		interaction.addListener('mouseEnter', () => {
-			this.hoverInterpolator.setReversedState(false, performance.now());
+		this.pressdownInterpolator = new Interpolator({
+			duration: 50,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic,
+			reverseDuration: 400,
+			beginReversed: true,
+			defaultToFinished: true
 		});
-		interaction.addListener('mouseLeave', () => {
-			this.hoverInterpolator.setReversedState(true, performance.now());
+		this.highlightInterpolator = new Interpolator({
+			duration: 150,
+			defaultToFinished: true,
+			beginReversed: true
 		});
+
+		let registration = Interactivity.registerDisplayObject(this.background);
+		this.parent.interactionGroup.add(registration);
+
+		registration.addButtonHandlers(
+			onclick,
+			() => this.hoverInterpolator.setReversedState(false, performance.now()),
+			() => this.hoverInterpolator.setReversedState(true, performance.now()),
+			() => this.pressdownInterpolator.setReversedState(false, performance.now()),
+			() => this.pressdownInterpolator.setReversedState(true, performance.now())
+		);
 	}
 
     resize() {
@@ -198,7 +213,23 @@ class SideControlPanelButton {
 	}
 	
 	update(now: number) {
-		this.background.alpha = this.hoverInterpolator.getCurrentValue(now) * 0.10;
+		let hoverCompletion = this.hoverInterpolator.getCurrentValue(now);
+		let pressdownCompletion = this.pressdownInterpolator.getCurrentValue(now);
+
+		this.background.alpha = hoverCompletion * 0.05 + pressdownCompletion * 0.15;
+
+		let highlightCompletion = this.highlightInterpolator.getCurrentValue(now);
+		let tint = lerpColors(Colors.White, THEME_COLORS.PrimaryBlue, highlightCompletion);
+		this.text.tint = colorToHexNumber(tint);
+		this.icon.tint = this.text.tint;
+	}
+
+	highlight() {
+		this.highlightInterpolator.setReversedState(false, performance.now());
+	}
+
+	unhighlight() {
+		this.highlightInterpolator.setReversedState(true, performance.now());
 	}
 }
 

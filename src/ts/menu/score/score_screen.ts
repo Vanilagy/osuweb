@@ -14,7 +14,7 @@ import { ScoreGrade, Score } from "../../datamodel/score";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { Interpolator } from "../../util/interpolation";
 import { globalState } from "../../global_state";
-import { Button, ButtonPivot } from "../components/button";
+import { Button, ButtonPivot, DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT } from "../components/button";
 import { AnimationParameterList, Animation, AnimationEvent, AnimationPlayer } from "../../util/animation";
 import { modComparator } from "../../datamodel/mods";
 
@@ -23,8 +23,6 @@ const SCORE_SCREEN_HEIGHT = 342;
 const SCORE_SCREEN_HEADER_HEIGHT = 95;
 const SCORE_SCREEN_HEADER_MARGIN = 8;
 const ROW_MARGIN = 152;
-const BUTTON_WIDTH = 140;
-const BUTTON_HEIGHT = 35;
 
 const animationParameterList = new AnimationParameterList({
 	fadeIn: 0,
@@ -166,9 +164,9 @@ export class ScoreScreen {
 		this.buttonContainer = new PIXI.Container();
 		this.centerContainer.addChild(this.buttonContainer);
 
-		let closeButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "go to menu", colorToHexNumber(THEME_COLORS.PrimaryBlue));
-		let retryButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "play again", 0x909090);
-		let watchReplayButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "watch replay", 0x909090);
+		let closeButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "go to menu", colorToHexNumber(THEME_COLORS.PrimaryBlue));
+		let retryButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "play again", colorToHexNumber(THEME_COLORS.SecondaryActionGray));
+		let watchReplayButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "watch replay", colorToHexNumber(THEME_COLORS.SecondaryActionGray));
 		this.buttons = [closeButton, retryButton, watchReplayButton];
 		for (let b of this.buttons) this.buttonContainer.addChild(b.container);
 
@@ -192,6 +190,8 @@ export class ScoreScreen {
 
 		this.hide();
 		this.resize();
+
+		this.fadeOutInterpolator.end();
 	}
 
 	hide() {
@@ -343,7 +343,7 @@ export class ScoreScreen {
 		this.centerContainer.x = Math.floor(currentWindowDimensions.width / 2);
 		this.centerContainer.y = Math.floor(currentWindowDimensions.height / 2);
 
-		let totalHeight = (SCORE_SCREEN_HEADER_HEIGHT + SCORE_SCREEN_HEIGHT + 2*SCORE_SCREEN_HEADER_MARGIN + BUTTON_HEIGHT) * this.scalingFactor;
+		let totalHeight = (SCORE_SCREEN_HEADER_HEIGHT + SCORE_SCREEN_HEIGHT + 2*SCORE_SCREEN_HEADER_MARGIN + DEFAULT_BUTTON_HEIGHT) * this.scalingFactor;
 		let totalWidth = SCORE_SCREEN_WIDTH * this.scalingFactor;
 		this.centerContainer.pivot.x = Math.floor(totalWidth / 2);
 		this.centerContainer.pivot.y = Math.floor(totalHeight / 2);
@@ -356,6 +356,8 @@ export class ScoreScreen {
 			return;
 		}
 		this.container.visible = true;
+
+		if (!this.currentScore) return;
 
 		this.animationPlayer.update(now);
 
@@ -442,7 +444,7 @@ export class ScoreScreen {
 			let completion = MathUtil.clamp((buttonElapsedTime - startTime) / 1500, 0, 1);
 			completion = MathUtil.ease(EaseType.EaseOutQuart, completion);
 
-			button.container.x = (SCORE_SCREEN_WIDTH - i*(BUTTON_WIDTH + BUTTON_HEIGHT/10 + SCORE_SCREEN_HEADER_MARGIN) - 40 * (1-completion)) * this.scalingFactor;
+			button.container.x = (SCORE_SCREEN_WIDTH - i*(DEFAULT_BUTTON_WIDTH + DEFAULT_BUTTON_HEIGHT/10 + SCORE_SCREEN_HEADER_MARGIN) - 40 * (1-completion)) * this.scalingFactor;
 			if (completion === 1) button.container.x = Math.ceil(button.container.x);
 
 			button.container.alpha = completion;
