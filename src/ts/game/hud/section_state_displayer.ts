@@ -12,7 +12,7 @@ export class SectionStateDisplayer {
 	public hud: Hud;
 	public container: PIXI.Container;
 	private sprite: PIXI.Sprite;
-	private lastPopUpTime: number = -Infinity;
+	private lastPopUpTime: number;
 
 	constructor(hud: Hud) {
 		this.hud = hud;
@@ -21,6 +21,7 @@ export class SectionStateDisplayer {
 		this.container.addChild(this.sprite);
 
 		this.sprite.anchor.set(0.5, 0.5);
+		this.reset();
 	}
 
 	resize() {
@@ -52,7 +53,7 @@ export class SectionStateDisplayer {
 	update(currentTime: number) {
 		let elapsedTime = currentTime - this.lastPopUpTime;
 
-		if (elapsedTime < SECTION_STATE_DISPLAY_FLICKER_DURATION) {
+		if (elapsedTime >= 0 && elapsedTime < SECTION_STATE_DISPLAY_FLICKER_DURATION) {
 			let flickerCompletion = elapsedTime / SECTION_STATE_DISPLAY_FLICKER_DURATION;
 			let sine = Math.sin((SECTION_STATE_DISPLAY_FLICKER_AMOUNT * flickerCompletion) * TAU);
 
@@ -65,5 +66,9 @@ export class SectionStateDisplayer {
 			fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
 			this.container.alpha = 1 - fadeOutCompletion;
 		}
+	}
+
+	reset() {
+		this.lastPopUpTime = -Infinity;
 	}
 }

@@ -117,6 +117,7 @@ export class Hud {
 		this.phantomComboDisplay.setValue(0);
 		this.comboDisplay.setValue(0);
 		this.accuracyMeter.reset();
+		this.sectionStateDisplayer.reset();
 	}
 
 	resize() {
