@@ -1,9 +1,9 @@
 import { Aim } from "./aim";
 import { Speed } from "./speed";
 import { ProcessedBeatmap } from "../processed/processed_beatmap";
-import { Mod } from "../../game/mods/mods";
 import { Skill } from "./skill";
 import { DifficultyHitObject } from "./difficulty_hit_object";
+import { Mod } from "../mods";
 
 const DIFFICULTY_MULTIPLIER = 0.0675;
 const SECTION_LENGTH = 400;

@@ -8,7 +8,6 @@ import { DrawableHeadedHitObject, SliderScoring, getDefaultSliderScoring } from 
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { SoundEmitter } from "../../audio/sound_emitter";
 import { renderer } from "../../visuals/rendering";
-import { Mod } from "../mods/mods";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
 import { HitSoundInfo, normSampleSet, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates } from "../skin/sound";
@@ -18,6 +17,7 @@ import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { DrawableBeatmap } from "../drawable_beatmap";
 import { ScoringValue } from "../../datamodel/score";
+import { Mod } from "../../datamodel/mods";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;

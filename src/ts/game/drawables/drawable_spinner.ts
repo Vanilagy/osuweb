@@ -7,13 +7,13 @@ import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../../uti
 import { colorToHexNumber, lerpColors, Color, Colors } from "../../util/graphics_util";
 import { SpriteNumber } from "../../visuals/sprite_number";
 import { SoundEmitter } from "../../audio/sound_emitter";
-import { Mod } from "../mods/mods";
 import { HitSoundInfo, generateHitSoundInfo, OsuSoundType } from "../skin/sound";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator } from "../../util/interpolation";
 import { DrawableBeatmap } from "../drawable_beatmap";
+import { Mod } from "../../datamodel/mods";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -590,6 +590,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		let angle = this.angularVelocity * dt;
 		let spinsPerMinute = Math.abs(this.angularVelocity) * 1000 * 60 / TAU;
 		this.spinnerRpmNumber.setValue(Math.floor(spinsPerMinute));
+		scoreCounter.addSpinRpm(spinsPerMinute);
 
 		let prevSpinsSpun = this.getSpinsSpun();
 

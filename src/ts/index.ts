@@ -34,6 +34,7 @@ async function init() {
 	initGameplay();
 	initScoreGrades();
 	initScoreScreen();
+	setZIndexes();
 	showChooseFile();
 
 	console.log(osu!); // Love the syntax <3
@@ -97,4 +98,11 @@ function initScoreScreen() {
 	addRenderingTask((now) => scoreScreen.update(now));
 
 	globalState.scoreScreen = scoreScreen;
+}
+
+function setZIndexes() {
+	globalState.backgroundManager.container.zIndex = -10;
+	globalState.gameplayController.container.zIndex = 0;
+	globalState.scoreScreen.container.zIndex = 1;
+	globalState.songSelect.container.zIndex = 2;
 }

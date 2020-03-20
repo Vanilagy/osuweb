@@ -1,7 +1,6 @@
-import { Mod } from "../../game/mods/mods";
 import { createPolygonTexture } from "../../util/pixi_util";
-import { modColors } from "../../game/mods/mod_helper";
 import { colorToHexNumber } from "../../util/graphics_util";
+import { Mod, modColors } from "../../datamodel/mods";
 
 const MOD_ICON_REFERENCE_HEIGHT = 100;
 

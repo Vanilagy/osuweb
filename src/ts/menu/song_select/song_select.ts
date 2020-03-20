@@ -10,7 +10,8 @@ import { SearchBar } from "./search_bar";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { globalState } from "../../global_state";
 import { Interpolator } from "../../util/interpolation";
-import { EaseType } from "../../util/math_util";
+import { EaseType, MathUtil } from "../../util/math_util";
+import { currentWindowDimensions, getGlobalScalingFactor } from "../../visuals/ui";
 
 export class SongSelect {
 	public container: PIXI.Container;
@@ -42,9 +43,9 @@ export class SongSelect {
 		this.interactionGroup.add(this.carousel.interactionGroup, this.infoPanel.interactionGroup, this.sideControlPanel.interactionGroup, this.searchBar.interactionGroup);
 
 		this.fadeInterpolator = new Interpolator({
-			duration: 300,
+			duration: 500,
 			ease: EaseType.EaseOutQuad,
-			reverseEase: EaseType.EaseInQuad,
+			reverseEase: EaseType.EaseInCubic,
 			beginReversed: true,
 			defaultToFinished: true
 		});
@@ -55,8 +56,13 @@ export class SongSelect {
 
 	update(now: number, dt: number) {
 		let fadeValue = this.fadeInterpolator.getCurrentValue(now);
+
+		this.container.scale.set(MathUtil.lerp(1.1, 1.0, fadeValue));
 		this.container.alpha = fadeValue;
 		this.container.visible = fadeValue !== 0;
+
+		this.infoPanel.container.pivot.x = MathUtil.lerp(60 * getGlobalScalingFactor(), 0, fadeValue);
+		this.carousel.container.pivot.x = MathUtil.lerp(-60 * getGlobalScalingFactor(), 0, fadeValue);
 
 		if (fadeValue === 0) return;
 
@@ -67,6 +73,10 @@ export class SongSelect {
 	}
 
 	resize() {
+		this.container.pivot.x = currentWindowDimensions.width/2;
+		this.container.pivot.y = currentWindowDimensions.width/2;
+		this.container.position.copyFrom(this.container.pivot);
+
 		this.carousel.resize();
 		this.infoPanel.resize();
 		this.sideControlPanel.resize();

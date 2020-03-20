@@ -46,7 +46,6 @@ export class GameplayWarningArrows {
 	}
 
 	resize() {
-		if (!this.hud.controller.currentPlay) return;
 		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
 
 		let arrowTexture = skin.textures["arrowWarning"];

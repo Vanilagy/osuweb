@@ -17,6 +17,7 @@ export enum EaseType {
 	EaseInQuint,
 	EaseOutQuint,
 	EaseInOutQuint,
+	EaseInElastic,
 	EaseOutElastic,
 	EaseInSine,
 	EaseOutSine,
@@ -195,7 +196,7 @@ export abstract class MathUtil {
 		return val;
 	}
 
-	static ease(type: EaseType, val: number, p = 0.3) {
+	static ease(type: EaseType, val: number, p = 0.3): number {
 		// p = Some shit used for elastic bounce
 
 		switch (type) {
@@ -230,7 +231,9 @@ export abstract class MathUtil {
 				return 1+(--val) * val * val * val * val;
 			case EaseType.EaseInOutQuint: // acceleration until halfway, then deceleration
 				return val < 0.5 ? 16 * val * val * val * val * val : 1 + 16*(--val) * val * val * val * val;
-			case EaseType.EaseOutElastic: // Cartoon-like elastic effect
+			case EaseType.EaseInElastic: // Cartoon-like elastic effect at the beginning
+				return 1 - MathUtil.ease(EaseType.EaseOutElastic, 1 - val, p);
+			case EaseType.EaseOutElastic: // Cartoon-like elastic effect at the end
 				return Math.pow(2,-10*val) * Math.sin((val-p/4)*(2*Math.PI)/p) + 1;
 			case EaseType.EaseInSine: // accelerating from zero velocity, using trig.
 				return -1 * Math.cos(val * (Math.PI / 2)) + 1;

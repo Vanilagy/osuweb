@@ -128,6 +128,10 @@ export class ScoreCounter {
 		this.score.hitInaccuracies.push(timeInaccuracy);
 	}
 
+	addSpinRpm(rpm: number) {
+		this.score.spinRpms.push(rpm);
+	}
+
 	break(time: number) {
 		if (this.currentCombo === 0) return;
 

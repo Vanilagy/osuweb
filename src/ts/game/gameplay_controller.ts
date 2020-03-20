@@ -112,6 +112,7 @@ export class GameplayController {
 		
 		await newPlay.start();
 
+		this.resize();
 		this.show();
 	}
 
@@ -171,6 +172,8 @@ export class GameplayController {
 	}
 
 	resize() {
+		if (!this.currentPlay) return;
+
 		this.hud.resize();
 		this.pauseScreen.resize();
 	}

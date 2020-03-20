@@ -1,5 +1,5 @@
-import { Mod } from "../game/mods/mods";
 import { MathUtil } from "../util/math_util";
+import { Mod } from "./mods";
 
 export enum ScoringValue {
 	NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
@@ -25,7 +25,10 @@ export enum ScoreGrade {
 interface ScoreAccuracyData {
 	lowError: number,
 	highError: number,
-	unstableRate: number
+	unstableRate: number,
+	averageRpm?: number,
+	maxRpm?: number,
+	rpmUnstableRate?: number
 }
 
 export class Score {
@@ -40,6 +43,7 @@ export class Score {
 	public maxCombo: number;
 	public mods: Set<Mod>;
 	public hitInaccuracies: number[];
+	public spinRpms: number[];
 
 	reset() {
 		this.points = 0;
@@ -54,6 +58,7 @@ export class Score {
 		this.maxCombo = 0;
 
 		this.hitInaccuracies = [];
+		this.spinRpms = [];
 	}
 
 	getTotalHits() {
@@ -79,37 +84,51 @@ export class Score {
 		return ScoreGrade.D;
 	}
 
-	calculateAccuracyData(): ScoreAccuracyData {
-		if (this.hitInaccuracies.length === 0) return {
+	calculateAccuracyData() {
+		let returnValue: ScoreAccuracyData = {
 			lowError: 0,
 			highError: 0,
-			unstableRate: 0
+			unstableRate: 0,
+			averageRpm: null,
+			maxRpm: null,
+			rpmUnstableRate: null
 		};
 
-		let total = 0,
-			negativeTotal = 0,
-			negativeCount = 0,
-			positiveTotal = 0,
-			positiveCount = 0;
+		if (this.hitInaccuracies.length > 0) {
+			let total = 0,
+				negativeTotal = 0,
+				negativeCount = 0,
+				positiveTotal = 0,
+				positiveCount = 0;
 
-		for (let inaccuracy of this.hitInaccuracies) {
-			if (inaccuracy < 0) {
-				negativeTotal += inaccuracy;
-				negativeCount++;
-			} else {
-				positiveTotal += inaccuracy;
-				positiveCount++;
+			for (let inaccuracy of this.hitInaccuracies) {
+				if (inaccuracy < 0) {
+					negativeTotal += inaccuracy;
+					negativeCount++;
+				} else {
+					positiveTotal += inaccuracy;
+					positiveCount++;
+				}
+
+				total += inaccuracy;
 			}
 
-			total += inaccuracy;
+			let mean = total / this.hitInaccuracies.length;
+
+			returnValue.lowError = (negativeCount > 0)? negativeTotal/negativeCount : 0;
+			returnValue.highError = (positiveCount > 0)? positiveTotal/positiveCount : 0;
+			returnValue.unstableRate = MathUtil.calculateStandardDeviation(this.hitInaccuracies, mean) * 10;
 		}
 
-		let mean = total / this.hitInaccuracies.length;
+		if (this.spinRpms.length > 0) {
+			let agregateValues = MathUtil.getAggregateValuesFromArray(this.spinRpms);
+			let standardDeviation = MathUtil.calculateStandardDeviation(this.spinRpms, agregateValues.avg);
 
-		return {
-			lowError: (negativeCount > 0)? negativeTotal/negativeCount : 0,
-			highError: (positiveCount > 0)? positiveTotal/positiveCount : 0,
-			unstableRate: MathUtil.calculateStandardDeviation(this.hitInaccuracies, mean) * 10
-		};
+			returnValue.averageRpm = agregateValues.avg;
+			returnValue.maxRpm = agregateValues.max;
+			returnValue.rpmUnstableRate = standardDeviation;
+		}
+
+		return returnValue;
 	}
 }

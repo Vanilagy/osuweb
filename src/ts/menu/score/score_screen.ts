@@ -6,7 +6,6 @@ import { calculateRatioBasedScalingFactor, colorToHexNumber, colorToHexString } 
 import { THEME_COLORS } from "../../util/constants";
 import { scoreGradeTextures } from "../components/score_grade_icon";
 import { ModIcon } from "../components/mod_icon";
-import { Mod } from "../../game/mods/mods";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { BeatmapHeaderPanel } from "../components/beatmap_header_panel";
 import { VirtualFile } from "../../file_system/virtual_file";
@@ -17,6 +16,7 @@ import { Interpolator } from "../../util/interpolation";
 import { globalState } from "../../global_state";
 import { Button, ButtonPivot } from "../components/button";
 import { AnimationParameterList, Animation, AnimationEvent, AnimationPlayer } from "../../util/animation";
+import { modComparator } from "../../datamodel/mods";
 
 const SCORE_SCREEN_WIDTH = 615;
 const SCORE_SCREEN_HEIGHT = 342;
@@ -40,7 +40,8 @@ const animationParameterList = new AnimationParameterList({
 	"100FadeIn": 0,
 	"50FadeIn": 0,
 	"missFadeIn": 0,
-	miscInfoFadeIn: 0,
+	accuracyInfoFadeIn: 0,
+	spinInfoFadeIn: 0,
 	playedByFadeIn: 0,
 	modIconElapsedTime: 0,
 	gradeFadeIn: 0,
@@ -60,7 +61,8 @@ buildUpAnimation.addEvent(new AnimationEvent('300FadeIn', {start: 900, duration:
 buildUpAnimation.addEvent(new AnimationEvent('100FadeIn', {start: 950, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
 buildUpAnimation.addEvent(new AnimationEvent('50FadeIn', {start: 1000, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
 buildUpAnimation.addEvent(new AnimationEvent('missFadeIn', {start: 1050, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
-buildUpAnimation.addEvent(new AnimationEvent('miscInfoFadeIn', {start: 1100, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
+buildUpAnimation.addEvent(new AnimationEvent('accuracyInfoFadeIn', {start: 1100, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
+buildUpAnimation.addEvent(new AnimationEvent('spinInfoFadeIn', {start: 1150, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
 buildUpAnimation.addEvent(new AnimationEvent('playedByFadeIn', {start: 500, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
 buildUpAnimation.addEvent(new AnimationEvent('modIconElapsedTime', {start: 1150, duration: 10000, to: 10000}));
 buildUpAnimation.addEvent(new AnimationEvent('gradeFadeIn', {start: 1550, duration: 1500, to: 1, ease: EaseType.EaseOutQuint}));
@@ -96,13 +98,15 @@ export class ScoreScreen {
 	private judgement50Count: JudgementCount;
 	private judgementMissCount: JudgementCount;
 
-	private miscInfoText: PIXI.Text;
+	private accuracyInfoText: PIXI.Text;
+	private spinInfoText: PIXI.Text;
 	private playedByText: PIXI.Text;
 
 	private buttonContainer: PIXI.Container;
 	private buttons: Button[];
 
 	private animationPlayer: AnimationPlayer;
+	private fadeOutInterpolator: Interpolator;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -144,10 +148,16 @@ export class ScoreScreen {
 		this.judgementCounts = [this.judgement300Count, this.judgement100Count, this.judgement50Count, this.judgementMissCount];
 		for (let c of this.judgementCounts) this.mainContainer.addChild(c.container);
 
-		this.miscInfoText = new PIXI.Text("error: -0.00ms - +0.00ms\nunstable rate: 0.00");
-		this.miscInfoText.anchor.set(1.0, 1.0);
-		this.miscInfoText.alpha = 0.8;
-		this.mainContainer.addChild(this.miscInfoText);
+		this.accuracyInfoText = new PIXI.Text("error: -0.00ms - +0.00ms\nunstable rate: 0.00");
+		this.accuracyInfoText.anchor.set(1.0, 1.0);
+		this.accuracyInfoText.alpha = 0.75;
+		this.mainContainer.addChild(this.accuracyInfoText);
+
+		this.spinInfoText = new PIXI.Text("spin: 0 (max: 0rpm)\nunstable rate: 0.00");
+		this.spinInfoText.visible = false;
+		this.spinInfoText.anchor.set(1.0, 1.0);
+		this.spinInfoText.alpha = 0.75;
+		this.mainContainer.addChild(this.spinInfoText);
 
 		this.playedByText = new PIXI.Text("Played by Vanilagy on 2019/01/01 12:45:56");
 		this.playedByText.alpha = 0.66;
@@ -173,20 +183,27 @@ export class ScoreScreen {
 		watchReplayButton.setupInteraction(this.interactionGroup, EMPTY_FUNCTION);
 
 		this.animationPlayer = new AnimationPlayer(buildUpAnimation);
+		this.fadeOutInterpolator = new Interpolator({
+			beginReversed: true,
+			defaultToFinished: true,
+			duration: 300,
+			ease: EaseType.EaseOutCubic
+		});
 
 		this.hide();
 		this.resize();
 	}
 
 	hide() {
-		this.container.visible = false;
+		this.fadeOutInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.disable();
 	}
 
 	show() {
-		this.container.visible = true;
 		this.interactionGroup.enable();
 
+		this.fadeOutInterpolator.setReversedState(true, performance.now());
+		this.fadeOutInterpolator.end();
 		this.animationPlayer.start(performance.now());
 	}
 
@@ -209,6 +226,7 @@ export class ScoreScreen {
 		this.judgementMissCount.setValue(score.misses + 'x');
 
 		let mods = [...score.mods];
+		mods.sort(modComparator);
 		this.modIconContainer.removeChildren();
 		this.modIcons.length = 0;
 		for (let m of mods) {
@@ -218,7 +236,14 @@ export class ScoreScreen {
 		for (let m of this.modIcons) this.modIconContainer.addChild(m.container);
 
 		let accuracyData = score.calculateAccuracyData();
-		this.miscInfoText.text = `error: ${accuracyData.lowError.toFixed(2)}ms - +${accuracyData.highError.toFixed(2)}ms\nunstable rate: ${accuracyData.unstableRate.toFixed(2)}`;
+		this.accuracyInfoText.text = `error: ${accuracyData.lowError.toFixed(2)}ms - +${accuracyData.highError.toFixed(2)}ms\nunstable rate: ${accuracyData.unstableRate.toFixed(2)}`;
+
+		if (accuracyData.averageRpm !== null) {
+			this.spinInfoText.visible = true;
+			this.spinInfoText.text = `spin: ${Math.floor(accuracyData.averageRpm)} (max: ${Math.floor(accuracyData.maxRpm)}rpm)\nunstable rate: ${accuracyData.rpmUnstableRate.toFixed(2)}`;
+		} else {
+			this.spinInfoText.visible = false;
+		}
 
 		this.resize();
 	}
@@ -238,24 +263,22 @@ export class ScoreScreen {
 		this.modIconContainer.x = this.gradeContainer.x;
 		this.modIconContainer.y = this.gradeContainer.y + 96 * this.scalingFactor;
 
+		const modIconSize = 35;
+		const modIconMarginSize = modIconSize + 7;
 		for (let i = 0; i < this.modIcons.length; i++) {
 			let m = this.modIcons[i];
-			m.resize(35 * this.scalingFactor);
+			m.resize(modIconSize * this.scalingFactor);
 
-			let x: number,
-				y: number;
-
-			if (this.modIcons.length >= 5) {
-				x = i*42;
+			let x = i*modIconMarginSize,
 				y = 0;
 
-				if (i >= 3) {
-					x = 21 + (i-3)*42;
-					y = 42;
-				}
-			} else {
-				x = i*42;
-				y = 0;
+			if (this.modIcons.length >= 5 && i >= 3) {
+				// If there are 5 or more mod icons, split them into two rows.
+
+				let nudge = (modIconMarginSize*3 - modIconMarginSize*(this.modIcons.length - 3)) / 2;
+
+				x = nudge + (i-3)*modIconMarginSize;
+				y = modIconMarginSize;
 			}
 
 			m.container.x = Math.floor(x * this.scalingFactor);
@@ -290,14 +313,18 @@ export class ScoreScreen {
 			c.container.y = Math.floor(c.container.y * this.scalingFactor);
 		}
 
-		this.miscInfoText.style = {
+		this.accuracyInfoText.style = {
 			fontFamily: 'Exo2-Light',
 			fill: 0xffffff,
-			fontSize: Math.floor(12 * this.scalingFactor),
+			fontSize: Math.floor(11 * this.scalingFactor),
 			align: 'right'
 		};
-		this.miscInfoText.x = Math.floor((SCORE_SCREEN_WIDTH - 46) * this.scalingFactor);
-		this.miscInfoText.y = Math.floor((SCORE_SCREEN_HEIGHT - 32) * this.scalingFactor);
+		this.accuracyInfoText.x = Math.floor((SCORE_SCREEN_WIDTH - 46) * this.scalingFactor);
+		this.accuracyInfoText.y = Math.floor((SCORE_SCREEN_HEIGHT - 32) * this.scalingFactor);
+
+		this.spinInfoText.style = this.accuracyInfoText.style;
+		this.spinInfoText.x = Math.floor((SCORE_SCREEN_WIDTH - 190) * this.scalingFactor);
+		this.spinInfoText.y = this.accuracyInfoText.y;
 
 		this.playedByText.style = {
 			fontFamily: 'Exo2-LightItalic',
@@ -323,16 +350,21 @@ export class ScoreScreen {
 	}
 
 	update(now: number) {
-		if (this.container.visible === false) return;
+		let fadeOutCompletion = this.fadeOutInterpolator.getCurrentValue(now);
+		if (fadeOutCompletion === 1) {
+			this.container.visible = false;
+			return;
+		}
+		this.container.visible = true;
 
 		this.animationPlayer.update(now);
 
 		let fadeInCompletion = this.animationPlayer.getParameter('fadeIn');
 		this.centerContainer.y = Math.floor(currentWindowDimensions.height / 2) - 80 * (1 - fadeInCompletion) * this.scalingFactor;
-		this.centerContainer.scale.set(MathUtil.lerp(1.2, 1.0, fadeInCompletion))
+		this.centerContainer.scale.set(MathUtil.lerp(1.2, 1.0, fadeInCompletion) * MathUtil.lerp(1.0, 0.88, fadeOutCompletion));
 
 		let alphaIn = this.animationPlayer.getParameter('alphaIn');
-		this.centerContainer.alpha = alphaIn;
+		this.centerContainer.alpha = alphaIn * (1 - fadeOutCompletion);
 
 		this.background.height = Math.floor(SCORE_SCREEN_HEIGHT * this.scalingFactor) * this.animationPlayer.getParameter('mainBodyCompletion');
 
@@ -373,9 +405,13 @@ export class ScoreScreen {
 		this.judgementMissCount.container.pivot.x = 15 * (1 - judgementMissFadeIn) * this.scalingFactor;
 		this.judgementMissCount.container.alpha = judgementMissFadeIn;
 
-		let miscInfoFadeIn = this.animationPlayer.getParameter('miscInfoFadeIn');
-		this.miscInfoText.pivot.x = 15 * (1 - miscInfoFadeIn) * this.scalingFactor;
-		this.miscInfoText.alpha = miscInfoFadeIn;
+		let accuracyInfoFadeIn = this.animationPlayer.getParameter('accuracyInfoFadeIn');
+		this.accuracyInfoText.pivot.x = 15 * (1 - accuracyInfoFadeIn) * this.scalingFactor;
+		this.accuracyInfoText.alpha = accuracyInfoFadeIn;
+
+		let spinInfoFadeIn = this.animationPlayer.getParameter('spinInfoFadeIn');
+		this.spinInfoText.pivot.x = 15 * (1 - spinInfoFadeIn) * this.scalingFactor;
+		this.spinInfoText.alpha = spinInfoFadeIn;
 
 		let playedByFadeIn = this.animationPlayer.getParameter('playedByFadeIn');
 		this.playedByText.alpha = MathUtil.lerp(0, 0.66, playedByFadeIn);

@@ -11,7 +11,6 @@ import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
 import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
-import { Mod } from "./mods/mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
 import { calculatePanFromOsuCoordinates } from "./skin/sound";
 import { DrawableBeatmap } from "./drawable_beatmap";
@@ -25,6 +24,7 @@ import { GameplayController } from "./gameplay_controller";
 import { globalState } from "../global_state";
 import { ScorePopup } from "./score/score_popup";
 import { ScoringValue } from "../datamodel/score";
+import { Mod } from "../datamodel/mods";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const MODCODE_OVERRIDE = '';
@@ -212,7 +212,7 @@ export class Play {
 	async start() {
 		if (this.paused || this.playing) throw new Error("Can't start when paused or playing.");
 
-		await globalState.gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
+		await globalState.gameplayMediaPlayer.start(105 || -this.preludeTime / 1000);
 
 		this.playing = true;
 		this.tick();
