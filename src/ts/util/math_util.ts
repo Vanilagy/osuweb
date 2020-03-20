@@ -422,6 +422,25 @@ export abstract class MathUtil {
 	static adjustedMod(a: number, n: number) {
 		return ((a % n) + n) % n;
 	}
+
+	static calculateMean(data: number[]) {
+		let total = 0;
+		for (let i = 0; i < data.length; i++) total += data[i];
+		return total / data.length;
+	}
+
+	static calculateVariance(data: number[], precalculatedMean?: number) {
+		let mean = (precalculatedMean === undefined)? MathUtil.calculateMean(data) : precalculatedMean;
+		let sum = 0;
+
+		for (let i = 0; i < data.length; i++) sum += Math.pow(data[i] - mean, 2);
+
+		return sum / data.length;
+	}
+
+	static calculateStandardDeviation(data: number[], precalculatedMean?: number) {
+		return Math.sqrt(MathUtil.calculateVariance(data, precalculatedMean));
+	}
 }
 
 let valueNoiseRng = MathUtil.createSeededRng(1337);

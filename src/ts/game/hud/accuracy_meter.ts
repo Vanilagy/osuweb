@@ -22,6 +22,7 @@ export class AccuracyMeter {
 	private height: number;
 	private accuracyLines: PIXI.Graphics[];
 	private accuracyLineSpawnTimes: WeakMap<PIXI.Graphics, number>;
+	private accuracyLineInaccuracies: WeakMap<PIXI.Graphics, number>;
 	private fadeOutStart: number = -Infinity;
 	private alphaFilter: PIXI.filters.AlphaFilter; // We need to use an alpha filter here, because fading out without one looks weird due to the additive blend mode of the accuracy lines. Using the filter, everything fades out as if it were one.
 
@@ -32,6 +33,7 @@ export class AccuracyMeter {
 		this.overlay = new PIXI.Container();
 		this.accuracyLines = [];
 		this.accuracyLineSpawnTimes = new WeakMap();
+		this.accuracyLineInaccuracies = new WeakMap();
 		this.alphaFilter = new PIXI.filters.AlphaFilter();
 
 		this.container.addChild(this.base);
@@ -55,7 +57,6 @@ export class AccuracyMeter {
 		let widthScale = this.height * 0.04;
 		this.width = Math.round(this.time50*2 * widthScale / 2) * 2;
 
-		//this.lineWidth = Math.floor(this.height/5 / 2) * 2;
 		this.lineWidth = 2;
 
 		this.base.clear();
@@ -90,6 +91,14 @@ export class AccuracyMeter {
 
 		this.container.width = this.width;
 		this.container.height = this.height;
+		this.container.pivot.x = Math.floor(this.width / 2);
+		this.container.pivot.y = this.height;
+
+		// Reposition the lines
+		for (let line of this.accuracyLines) {
+			this.drawLine(line);
+			this.positionLine(line, this.accuracyLineInaccuracies.get(line));
+		}
 	}
 	
 	update(currentTime: number) {
@@ -106,6 +115,7 @@ export class AccuracyMeter {
 
 			// Remove the line once it's invisible
 			if (alpha === 0) {
+				line.destroy();
 				this.overlay.removeChild(line);
 				this.accuracyLines.splice(i, 1);
 				i--;
@@ -131,19 +141,30 @@ export class AccuracyMeter {
 		})();
 
 		let line = new PIXI.Graphics();
-		line.beginFill(color, 0.65);
-		line.drawRect(0, 0, this.lineWidth, this.height);
-		line.endFill();
+		line.tint = color;
 		line.blendMode = PIXI.BLEND_MODES.ADD;
 
-		line.pivot.x = line.width/2;
-		line.x = this.width/2 + (inaccuracy / this.time50) * this.width/2;
+		this.drawLine(line);
+		this.positionLine(line, inaccuracy);
 
 		this.overlay.addChild(line);
 		this.accuracyLines.push(line);
 		this.accuracyLineSpawnTimes.set(line, currentTime);
+		this.accuracyLineInaccuracies.set(line, inaccuracy);
 
 		this.fadeOutStart = currentTime + ACCURACY_METER_FADE_OUT_DELAY;
+	}
+
+	private drawLine(graphics: PIXI.Graphics) {
+		graphics.clear();
+		graphics.beginFill(0xffffff, 0.65);
+		graphics.drawRect(0, 0, this.lineWidth, this.height);
+		graphics.endFill();
+		graphics.pivot.x = graphics.width / 2;
+	}
+
+	private positionLine(line: PIXI.Graphics, inaccuracy: number) {
+		line.x = this.width/2 + (inaccuracy / this.time50) * this.width/2;
 	}
 
 	fadeOutNow(currentTime: number) {

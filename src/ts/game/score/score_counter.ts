@@ -124,6 +124,10 @@ export class ScoreCounter {
 		}
 	}
 
+	addHitInaccuracy(timeInaccuracy: number) {
+		this.score.hitInaccuracies.push(timeInaccuracy);
+	}
+
 	break(time: number) {
 		if (this.currentCombo === 0) return;
 

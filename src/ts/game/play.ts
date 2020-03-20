@@ -212,7 +212,7 @@ export class Play {
 	async start() {
 		if (this.paused || this.playing) throw new Error("Can't start when paused or playing.");
 
-		await globalState.gameplayMediaPlayer.start(105 || -this.preludeTime / 1000);
+		await globalState.gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
 
 		this.playing = true;
 		this.tick();

@@ -1,4 +1,5 @@
 import { Mod } from "../game/mods/mods";
+import { MathUtil } from "../util/math_util";
 
 export enum ScoringValue {
 	NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
@@ -21,6 +22,12 @@ export enum ScoreGrade {
 	D
 }
 
+interface ScoreAccuracyData {
+	lowError: number,
+	highError: number,
+	unstableRate: number
+}
+
 export class Score {
 	public points: number;
 	public accuracy: number;
@@ -32,10 +39,11 @@ export class Score {
 	public katu: number;
 	public maxCombo: number;
 	public mods: Set<Mod>;
+	public hitInaccuracies: number[];
 
 	reset() {
 		this.points = 0;
-		this.accuracy = 1;
+		this.accuracy = 1.0;
 
 		this.hits300 = 0;
 		this.hits100 = 0;
@@ -44,6 +52,8 @@ export class Score {
 		this.geki = 0;
 		this.katu = 0;
 		this.maxCombo = 0;
+
+		this.hitInaccuracies = [];
 	}
 
 	getTotalHits() {
@@ -67,5 +77,39 @@ export class Score {
 		else if (percentage300 >= 0.6) return ScoreGrade.C;
 		// Anything else
 		return ScoreGrade.D;
+	}
+
+	calculateAccuracyData(): ScoreAccuracyData {
+		if (this.hitInaccuracies.length === 0) return {
+			lowError: 0,
+			highError: 0,
+			unstableRate: 0
+		};
+
+		let total = 0,
+			negativeTotal = 0,
+			negativeCount = 0,
+			positiveTotal = 0,
+			positiveCount = 0;
+
+		for (let inaccuracy of this.hitInaccuracies) {
+			if (inaccuracy < 0) {
+				negativeTotal += inaccuracy;
+				negativeCount++;
+			} else {
+				positiveTotal += inaccuracy;
+				positiveCount++;
+			}
+
+			total += inaccuracy;
+		}
+
+		let mean = total / this.hitInaccuracies.length;
+
+		return {
+			lowError: (negativeCount > 0)? negativeTotal/negativeCount : 0,
+			highError: (positiveCount > 0)? positiveTotal/positiveCount : 0,
+			unstableRate: MathUtil.calculateStandardDeviation(this.hitInaccuracies, mean) * 10
+		};
 	}
 }

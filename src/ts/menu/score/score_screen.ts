@@ -144,7 +144,7 @@ export class ScoreScreen {
 		this.judgementCounts = [this.judgement300Count, this.judgement100Count, this.judgement50Count, this.judgementMissCount];
 		for (let c of this.judgementCounts) this.mainContainer.addChild(c.container);
 
-		this.miscInfoText = new PIXI.Text("error: -8.41ms - +3.13ms\nunstable rate: 157.16");
+		this.miscInfoText = new PIXI.Text("error: -0.00ms - +0.00ms\nunstable rate: 0.00");
 		this.miscInfoText.anchor.set(1.0, 1.0);
 		this.miscInfoText.alpha = 0.8;
 		this.mainContainer.addChild(this.miscInfoText);
@@ -216,6 +216,9 @@ export class ScoreScreen {
 			this.modIcons.push(icon);
 		}
 		for (let m of this.modIcons) this.modIconContainer.addChild(m.container);
+
+		let accuracyData = score.calculateAccuracyData();
+		this.miscInfoText.text = `error: ${accuracyData.lowError.toFixed(2)}ms - +${accuracyData.highError.toFixed(2)}ms\nunstable rate: ${accuracyData.unstableRate.toFixed(2)}`;
 
 		this.resize();
 	}

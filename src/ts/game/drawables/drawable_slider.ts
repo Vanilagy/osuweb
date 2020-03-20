@@ -478,11 +478,13 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let score = (judgement === ScoringValue.Miss)? 0 : ScoringValue.SliderHead;
 
 		scoreCounter.add(score, true, true, false, this, time);
+
 		if (judgement !== 0) {
 			const hud = this.drawableBeatmap.play.controller.hud;
 
 			skin.playHitSound(this.hitSounds[0]);
 			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
+			scoreCounter.addHitInaccuracy(timeInaccuracy);
 			this.holdFollowCircle(time);
 		}
 		// The if here is because not all sliders have heads, like edge-case invisible sliders.

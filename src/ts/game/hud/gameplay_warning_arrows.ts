@@ -18,7 +18,7 @@ export class GameplayWarningArrows {
 	}
 
 	init() {
-		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
+		let { skin } = this.hud.controller.currentPlay;
 
 		let arrowTexture = skin.textures["arrowWarning"];
 		let doTint = false;
@@ -35,6 +35,24 @@ export class GameplayWarningArrows {
 		for (let i = 0; i < 4; i++) {
 			let sprite = new PIXI.Sprite();
 			sprite.anchor.set(0.5, 0.5);
+
+			if (doTint) sprite.tint = colorToHexNumber(Colors.Red);
+
+			this.container.addChild(sprite);
+			this.sprites.push(sprite);
+		}
+
+		this.resize();
+	}
+
+	resize() {
+		if (!this.hud.controller.currentPlay) return;
+		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
+
+		let arrowTexture = skin.textures["arrowWarning"];
+
+		for (let i = 0; i < 4; i++) {
+			let sprite = this.sprites[i];
 			sprite.x = 556 * screenPixelRatio;
 			sprite.y = 224 * screenPixelRatio;
 			
@@ -43,15 +61,8 @@ export class GameplayWarningArrows {
 			if (i >= 2) sprite.x *= -1;
 			else sprite.rotation = Math.PI;
 			if (i % 2 === 0) sprite.y *= -1;
-
-			if (doTint) sprite.tint = colorToHexNumber(Colors.Red);
-
-			this.container.addChild(sprite);
-			this.sprites.push(sprite);
 		}
-	}
 
-	resize() {
 		this.container.position.set(currentWindowDimensions.width/2, currentWindowDimensions.height/2);
 	}
 

@@ -140,7 +140,7 @@ export class Hud {
 		this.comboDisplay.container.y = this.phantomComboDisplay.container.y;
 
 		this.accuracyMeter.resize();
-		this.accuracyMeter.container.x = currentWindowDimensions.width / 2;
+		this.accuracyMeter.container.x = Math.floor(currentWindowDimensions.width / 2);
 		this.accuracyMeter.container.y = currentWindowDimensions.height;
 
 		this.sectionStateDisplayer.resize();
