@@ -1,7 +1,7 @@
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { createPolygonTexture } from "../../util/pixi_util";
-import { InteractionGroup, Interactivity } from "../../input/interactivity";
+import { InteractionGroup, Interactivity, InteractionRegistration } from "../../input/interactivity";
 
 export enum ButtonPivot {
 	TopLeft,
@@ -15,6 +15,7 @@ export class Button {
 	private height: number;
 	private fontSize: number;
 	private pivotSetting: ButtonPivot;
+	private registration: InteractionRegistration;
 
 	private mask: PIXI.Sprite;
 	private background: PIXI.Sprite;
@@ -132,15 +133,23 @@ export class Button {
 	}
 
 	setupInteraction(group: InteractionGroup, onclick: () => any) {
-		let registration = Interactivity.registerDisplayObject(this.container);
-		group.add(registration);
+		this.registration = Interactivity.registerDisplayObject(this.container);
+		group.add(this.registration);
 
-		registration.addButtonHandlers(
+		this.registration.addButtonHandlers(
 			onclick,
 			() => this.hoverInterpolator.setReversedState(false, performance.now()),
 			() => this.hoverInterpolator.setReversedState(true, performance.now()),
 			() => this.pressdownInterpolator.setReversedState(false, performance.now()),
 			() => this.pressdownInterpolator.setReversedState(true, performance.now())
 		);
+	}
+
+	enable() {
+		if (this.registration) this.registration.enable();
+	}
+
+	disable() {
+		if (this.registration) this.registration.disable();
 	}
 }

@@ -72,7 +72,7 @@ export enum ReverseMode {
 }
 
 interface InterpolatorOptions {
-	duration: number,
+	duration?: number,
 	from?: number,
 	to?: number,
 	ease?: EaseType,
@@ -86,13 +86,13 @@ interface InterpolatorOptions {
 }
 
 export class Interpolator {
-	private duration: number;
+	private duration: number = 1000;
 	private from: number = 0.0;
 	private to: number = 1.0;
 	private ease: EaseType = EaseType.Linear;
 	private p: number;
 	private reverseDuration: number;
-	private reverseEase: EaseType = EaseType.Linear;
+	private reverseEase: EaseType;
 	private reverseP: number;
 	private reverseMode: ReverseMode = ReverseMode.ByValue;
 	private defaultToFinished: boolean = false;
@@ -100,15 +100,16 @@ export class Interpolator {
 	private startTime: number;
 	private reversed = false;
 
-	constructor(options: InterpolatorOptions) {
-		Object.assign(this, options);
+	constructor(options?: InterpolatorOptions) {
+		if (options) Object.assign(this, options);
 
-		if (options.beginReversed) this.reversed = true;
+		if (options && options.beginReversed) this.reversed = true;
 		this.reset();
 	}
 	
 	private getDuration() {
-		return (this.reversed && this.reverseDuration !== undefined)? this.reverseDuration : this.duration;
+		// Min value to catch cases where the duration is 0 and would cause potential NaNs. Number.MIN_VALUE is practically 0, right?
+		return Math.max(Number.MIN_VALUE, (this.reversed && this.reverseDuration !== undefined)? this.reverseDuration : this.duration);
 	}
 
 	private getEase() {
@@ -139,15 +140,7 @@ export class Interpolator {
 		this.reversed = !this.reversed;
 
 		if (this.reverseMode === ReverseMode.ByValue && this.reverseEase && this.reverseEase !== this.ease) {
-			let ease = this.getEase();
-			let easeP = this.getEaseP();
-			let clampedEasedCompletion = MathUtil.clamp(currentEasedCompletion, 0, 1); // For some ease types, values can reach out of [0, 1], which would mean that no root can be found - that's why we clamp here.
-
-			let root = MathUtil.findRootInInterval((x) => {
-				return MathUtil.ease(ease, x, easeP) - clampedEasedCompletion;
-			}, 0.0, 1.0);
-
-			if (!isNaN(root)) currentCompletion = root;
+			currentCompletion = Interpolator.findEaseIntersection(this.getEase(), this.getEaseP(), currentCompletion, currentEasedCompletion);
 		}
 
 		if (!this.reversed) currentCompletion = 1 - currentCompletion;
@@ -182,8 +175,69 @@ export class Interpolator {
 		return this.reversed;
 	}
 
+	isPlaying() {
+		return isFinite(this.startTime);
+	}
+
 	setValueRange(from: number, to: number) {
 		this.from = from;
 		this.to = to;
+	}
+
+	setDuration(newDuration: number, now: number) {
+		let completionNow = this.getCurrentCompletion(now);
+		if (this.reversed) completionNow = 1 - completionNow;
+		
+		this.duration = newDuration;
+		if (this.isPlaying() && (!this.reversed || this.reverseDuration === undefined)) this.startTime = now - newDuration * completionNow;
+	}
+
+	setReverseDuration(newReverseDuration: number, now: number) {
+		let completionNow = this.getCurrentCompletion(now);
+		if (this.reversed) completionNow = 1 - completionNow;
+		
+		this.reverseDuration = newReverseDuration;
+		if (this.isPlaying() && this.reversed) this.startTime = now - newReverseDuration * completionNow;
+	}
+
+	setEase(newEase: EaseType, now: number, newP?: number) {
+		let currentCompletion = this.getCurrentCompletion(now);
+		let currentEasedCompletion = this.getCurrentEasedCompletion(now);
+
+		this.ease = newEase;
+		this.p = newP;
+
+		if (!this.isPlaying() || (this.reversed && this.reverseEase !== undefined)) return;
+
+		// Find the corresponding completion input for the new ease function so that we avoid a jump in output value
+		let newCompletion = Interpolator.findEaseIntersection(newEase, newP, currentCompletion, currentEasedCompletion);
+		if (this.reversed) newCompletion = 1 - newCompletion;
+
+		this.startTime = now - newCompletion * this.getDuration();
+	}
+
+	setReverseEase(newReverseEase: EaseType, now: number, newReverseP?: number) {
+		let currentCompletion = this.getCurrentCompletion(now);
+		let currentEasedCompletion = this.getCurrentEasedCompletion(now);
+
+		this.reverseEase = newReverseEase;
+		this.reverseP = newReverseP;
+
+		if (!this.isPlaying() || !this.reversed) return;
+
+		let newCompletion = Interpolator.findEaseIntersection(newReverseEase, newReverseP, currentCompletion, currentEasedCompletion);
+		this.startTime = now - (1 - newCompletion) * this.getDuration();
+	}
+
+	/** Finds the completion input at which a certain ease function's output matches some other completion. */
+	private static findEaseIntersection(ease: EaseType, p: number, currentCompletion: number, currentEasedCompletion: number) {
+		let clampedEasedCompletion = MathUtil.clamp(currentEasedCompletion, 0, 1); // For some ease types, values can reach out of [0, 1], which would mean that no root can be found - that's why we clamp here.
+
+		let root = MathUtil.findRootInInterval((x) => {
+			return MathUtil.ease(ease, x, p) - clampedEasedCompletion;
+		}, 0.0, 1.0);
+
+		if (!isNaN(root)) return root;
+		return currentCompletion;
 	}
 }

@@ -1,5 +1,7 @@
 import { Mod } from "../../game/mods/mods";
 import { createPolygonTexture } from "../../util/pixi_util";
+import { modColors } from "../../game/mods/mod_helper";
+import { colorToHexNumber } from "../../util/graphics_util";
 
 const MOD_ICON_REFERENCE_HEIGHT = 100;
 
@@ -13,7 +15,7 @@ export class ModIcon {
 		this.container = new PIXI.Container();
 
 		this.background = new PIXI.Sprite();
-		this.background.tint = 0xff0000;
+		this.background.tint = colorToHexNumber(modColors.get(mod));
 		this.container.addChild(this.background);
 
 		this.text = new PIXI.Text(mod);

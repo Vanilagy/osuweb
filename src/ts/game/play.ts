@@ -14,7 +14,6 @@ import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
 import { Mod } from "./mods/mods";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
 import { calculatePanFromOsuCoordinates } from "./skin/sound";
-import { BackgroundManager, BackgroundState } from "../visuals/background";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
 import { PlayEvent, PlayEventType } from "../datamodel/play_events";
@@ -48,7 +47,7 @@ export class Play {
 	public paused: boolean = false;
 	private playing: boolean = false;
 	private initted: boolean = false;
-	private completed: boolean = false;
+	public completed: boolean = false;
 
 	private currentHitObjectIndex: number;
 	private onscreenHitObjects: DrawableHitObject[];
@@ -213,7 +212,7 @@ export class Play {
 	async start() {
 		if (this.paused || this.playing) throw new Error("Can't start when paused or playing.");
 
-		await globalState.gameplayMediaPlayer.start(108 || -this.preludeTime / 1000);
+		await globalState.gameplayMediaPlayer.start(105 || -this.preludeTime / 1000);
 
 		this.playing = true;
 		this.tick();

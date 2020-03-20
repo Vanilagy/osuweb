@@ -8,6 +8,7 @@ import { ProcessedBeatmap } from "../../datamodel/processed/processed_beatmap";
 import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
 import { ProcessedSlider } from "../../datamodel/processed/processed_slider";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
+import { Color, hexNumberToColor } from "../../util/graphics_util";
 
 const DEFAULT_SPIN_RADIUS = 45;
 const RADIUS_LERP_DURATION = 480;
@@ -15,7 +16,7 @@ const SPINNER_END_REDUCTION = 1; // For edge cases where objects might start imm
 export const HALF_TIME_PLAYBACK_RATE = 2/3;
 export const DOUBLE_TIME_PLAYBACK_RATE = 3/2;
 
-let modMultipliers = new Map<Mod, number>();
+const modMultipliers = new Map<Mod, number>();
 modMultipliers.set(Mod.Easy, 0.5);
 modMultipliers.set(Mod.NoFail, 0.5);
 modMultipliers.set(Mod.HalfTime, 0.3);
@@ -32,6 +33,24 @@ modMultipliers.set(Mod.Autopilot, 0.0);
 modMultipliers.set(Mod.SpunOut, 0.9);
 modMultipliers.set(Mod.Auto, 1.0);
 modMultipliers.set(Mod.Cinema, 1.0);
+
+export const modColors = new Map<Mod, Color>();
+modColors.set(Mod.Easy, hexNumberToColor(0x5BC159));
+modColors.set(Mod.NoFail, hexNumberToColor(0x32308B));
+modColors.set(Mod.HalfTime, hexNumberToColor(0x3E3E3E));
+modColors.set(Mod.Daycore, hexNumberToColor(0x3E3E3E));
+modColors.set(Mod.HardRock, hexNumberToColor(0xAE3636));
+modColors.set(Mod.SuddenDeath, hexNumberToColor(0xB06941));
+modColors.set(Mod.Perfect, hexNumberToColor(0xB06941));
+modColors.set(Mod.DoubleTime, hexNumberToColor(0x894DC6));
+modColors.set(Mod.Nightcore, hexNumberToColor(0x894DC6));
+modColors.set(Mod.Hidden, hexNumberToColor(0xCFB34D));
+modColors.set(Mod.Flashlight, hexNumberToColor(0x1F1F1F));
+modColors.set(Mod.Relax, hexNumberToColor(0x3674AE));
+modColors.set(Mod.Autopilot, hexNumberToColor(0x235B8E));
+modColors.set(Mod.SpunOut, hexNumberToColor(0x892A41));
+modColors.set(Mod.Auto, hexNumberToColor(0x2258A9));
+modColors.set(Mod.Cinema, hexNumberToColor(0x2258A9));
 
 enum WaypointType {
 	HitCircle,

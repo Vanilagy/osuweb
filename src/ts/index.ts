@@ -21,6 +21,7 @@ import { initScoreGrades } from './menu/components/score_grade_icon';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_media_player_tester';
 //import './tests/polygon_tests';
+//import './tests/animation_tests';
 
 const osu: string | null = 'ORERU!';
 

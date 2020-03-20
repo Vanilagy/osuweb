@@ -83,7 +83,7 @@ export class BeatmapHeaderPanel {
 		});
 	}
 
-	async loadImage(imageFile: VirtualFile) {
+	async loadImage(imageFile: VirtualFile, doAnimation = true) {
 		if (!imageFile) return;
 
 		let bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
@@ -102,7 +102,12 @@ export class BeatmapHeaderPanel {
 			if (this.markedForDeletionImages.has(container)) continue;
 
 			this.markedForDeletionImages.add(container);
-			setTimeout(() => this.backgroundImageContainer.removeChild(container), IMAGE_FADE_IN_TIME);
+
+			if (doAnimation) {
+				setTimeout(() => this.backgroundImageContainer.removeChild(container), IMAGE_FADE_IN_TIME);
+			} else {
+				this.backgroundImageContainer.removeChild(container);
+			}
 		}
 
 		this.backgroundImageContainer.addChild(spriteContainer);
@@ -113,6 +118,8 @@ export class BeatmapHeaderPanel {
 		});
 		interpolator.start(performance.now());
 		this.imageInterpolators.set(spriteContainer, interpolator);
+
+		if (!doAnimation) interpolator.end();
 	}
 
 	updateText(beatmap: Beatmap | ExtendedBeatmapData, showDifficulty: boolean, beginAnimation: boolean) {

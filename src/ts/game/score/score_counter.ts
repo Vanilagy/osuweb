@@ -40,7 +40,8 @@ export class ScoreCounter {
 	}
 
 	init() {
-		this.score = new Score();		
+		this.score = new Score();
+		this.score.mods = this.play.activeMods; // dis fine?
 
 		this.difficultyMultiplier = this.processedBeatmap.beatmap.difficulty.calculateDifficultyMultiplier(); // Get the difficulty from the beatmap, not the processed beatmap, because: "Note that game modifiers (like Hard Rock/Easy) will not change the Difficulty multiplier. It will only account for original values only."
 		this.modMultiplier = ModHelper.calculateModMultiplier(this.play.activeMods);

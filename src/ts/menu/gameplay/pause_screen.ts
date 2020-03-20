@@ -38,21 +38,21 @@ export class PauseScreen {
 		this.heading = new PIXI.Text("paused");
 		this.centerContainer.addChild(this.heading);
 
-		let continuePanel = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "continue", colorToHexNumber(THEME_COLORS.PrimaryBlue));
-		let retryPanel = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "retry", colorToHexNumber(THEME_COLORS.PrimaryYellow));
-		let quitPanel = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "quit", colorToHexNumber(THEME_COLORS.PrimaryPink));
-		this.buttons = [continuePanel, retryPanel, quitPanel];
-		for (let panel of this.buttons) this.centerContainer.addChild(panel.container);
+		let continueButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "continue", colorToHexNumber(THEME_COLORS.PrimaryBlue));
+		let retryButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "retry", colorToHexNumber(THEME_COLORS.PrimaryYellow));
+		let quitButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "quit", colorToHexNumber(THEME_COLORS.PrimaryPink));
+		this.buttons = [continueButton, retryButton, quitButton];
+		for (let button of this.buttons) this.centerContainer.addChild(button.container);
 
 		this.interactionGroup = Interactivity.createGroup();
 		this.interactionGroup.disable();
-		continuePanel.setupInteraction(this.interactionGroup, () => {
+		continueButton.setupInteraction(this.interactionGroup, () => {
 			this.controller.unpause();
 		});
-		retryPanel.setupInteraction(this.interactionGroup, () => {
+		retryButton.setupInteraction(this.interactionGroup, () => {
 			this.controller.restart();
 		});
-		quitPanel.setupInteraction(this.interactionGroup, () => {
+		quitButton.setupInteraction(this.interactionGroup, () => {
 			this.controller.endPlay();
 		});
 
@@ -100,10 +100,7 @@ export class PauseScreen {
 		this.heading.y = Math.floor(-170 * this.scalingFactor);
 		this.heading.pivot.x = Math.floor(this.heading.width / 2);
 
-		for (let i = 0; i < this.buttons.length; i++) {
-			let panel = this.buttons[i];
-			panel.resize(this.scalingFactor);
-		}
+		for (let b of this.buttons) b.resize(this.scalingFactor);
 	}
 
 	update(now: number) {
@@ -119,11 +116,11 @@ export class PauseScreen {
 		if (fadeCompletion === 1) this.heading.x = Math.floor(this.heading.x);
 
 		for (let i = 0; i < this.buttons.length; i++) {
-			let panel = this.buttons[i];
+			let button = this.buttons[i];
 
-			panel.update(now);
-			panel.container.y = (-32 + 80 * i - MathUtil.lerp(10 + 15*i, 0, fadeCompletion)) * scalingFactor;
-			if (fadeCompletion === 1) panel.container.y = Math.floor(panel.container.y);
+			button.update(now);
+			button.container.y = (-32 + 80 * i - MathUtil.lerp(10 + 15*i, 0, fadeCompletion)) * scalingFactor;
+			if (fadeCompletion === 1) button.container.y = Math.floor(button.container.y);
 		}
 	}
 }

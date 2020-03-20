@@ -8,6 +8,7 @@ import { currentWindowDimensions } from "../../visuals/ui";
 import { PauseScreen } from "../../menu/gameplay/pause_screen";
 import { GameplayController } from "../gameplay_controller";
 import { globalState } from "../../global_state";
+import { Interpolator } from "../../util/interpolation";
 
 export class Hud {
 	public controller: GameplayController;
@@ -22,6 +23,8 @@ export class Hud {
 	public scorebar: Scorebar;
 	public sectionStateDisplayer: SectionStateDisplayer;
 	public gameplayWarningArrows: GameplayWarningArrows;
+
+	private fadeInterpolator: Interpolator;
 
 	constructor(controller: GameplayController) {
 		this.controller = controller;
@@ -82,6 +85,11 @@ export class Hud {
 		this.scorebar = new Scorebar(this);
 		this.sectionStateDisplayer = new SectionStateDisplayer(this);
 		this.gameplayWarningArrows = new GameplayWarningArrows(this);
+
+		this.fadeInterpolator = new Interpolator({
+			beginReversed: true,
+			defaultToFinished: true
+		});
 	
 		this.container.addChild(this.sectionStateDisplayer.container);
 		this.container.addChild(this.scorebar.container);
@@ -137,5 +145,16 @@ export class Hud {
 
 		this.sectionStateDisplayer.resize();
 		this.gameplayWarningArrows.resize();
+	}
+
+	update(now: number) {
+		this.container.alpha = this.fadeInterpolator.getCurrentValue(now);
+	}
+
+	setFade(visible: boolean, duration: number) {
+		let now = performance.now();
+
+		this.fadeInterpolator.setReversedState(!visible, now);
+		this.fadeInterpolator.setDuration(duration, now);
 	}
 }

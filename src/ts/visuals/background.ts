@@ -9,15 +9,9 @@ import { Interpolator } from "../util/interpolation";
 
 const IMAGE_FADE_IN_DURATION = 333; // In ms
 
-export enum BackgroundState {
-	None,
-	SongSelect,
-	Gameplay
-}
-
 export class BackgroundManager {
 	public container: PIXI.Container = new PIXI.Container();
-	private state: BackgroundState = BackgroundState.None;
+	private isInGameplay: boolean = false;
 	private imageContainer = new PIXI.Container();
 	private videoElement = document.createElement('video');
 	private videoSprite: PIXI.Sprite;
@@ -28,26 +22,14 @@ export class BackgroundManager {
 	private currentGameplayBrightness: number = 1.0;
 	private blurFilter = new PIXI.filters.KawaseBlurFilter(0);
 	private colorMatrixFilter = new PIXI.filters.ColorMatrixFilter();
-	private gameplayInterpolator: Interpolator = new Interpolator({
-		ease: EaseType.EaseInOutQuad,
-		duration: 1000,
-		reverseDuration: 400,
-		reverseEase: EaseType.EaseInCubic
-	});
+
 	private blurInterpolator: Interpolator = new Interpolator({
-		from: 1,
-		to: 0,
-		ease: EaseType.EaseInOutSine,
-		duration: 500,
-		reverseDuration: 300
+		beginReversed: true,
+		defaultToFinished: true
 	});
-	private scaleInterpolator: Interpolator = new Interpolator({
-		from: 1.08,
-		to: 1.0,
-		duration: 700,
-		reverseDuration: 400,
-		ease: EaseType.EaseOutCubic,
-		reverseEase: EaseType.EaseInCubic
+	private gameplayInterpolator: Interpolator = new Interpolator({
+		beginReversed: true,
+		defaultToFinished: true
 	});
 
 	constructor() {
@@ -60,7 +42,8 @@ export class BackgroundManager {
 		this.videoSprite = new PIXI.Sprite(videoTex);
 		(videoTex.baseTexture.resource as any).autoPlay = false;
 
-		this.setState(BackgroundState.SongSelect);
+		this.setBlurState(true, 0, EaseType.Linear);
+		this.setGameplayState(false, 0, EaseType.Linear);
 		this.resize();
 
 		this.container.addChild(this.imageContainer, this.videoSprite);
@@ -69,28 +52,21 @@ export class BackgroundManager {
 		this.container.filters = [this.blurFilter, this.colorMatrixFilter];
 	}
 
-	async setState(newState: BackgroundState) {
-		if (newState === this.state) return;
-
+	setBlurState(on: boolean, duration: number, ease: EaseType) {
 		let now = performance.now();
 
-		if (newState === BackgroundState.SongSelect) {
-			this.gameplayInterpolator.setReversedState(true, now);
-			this.blurInterpolator.setReversedState(true, now);
-			this.scaleInterpolator.setReversedState(true, now);
-		} else if (newState === BackgroundState.Gameplay) {
-			if (this.currentImageFile) {
-				let fullResBitmap = await getBitmapFromImageFile(this.currentImageFile, BitmapQuality.High);
-				let sprite = last(this.imageContainer.children) as PIXI.Sprite;
-				sprite.texture = PIXI.Texture.from(fullResBitmap as any);
-			}
+		this.blurInterpolator.setReversedState(!on, now);
+		this.blurInterpolator.setDuration(duration, now);
+		this.blurInterpolator.setEase(ease, now);
+	}
 
-			this.gameplayInterpolator.setReversedState(false, now);
-			this.blurInterpolator.setReversedState(false, now);
-			this.scaleInterpolator.setReversedState(false, now);
-		}
+	setGameplayState(isInGameplay: boolean, brightnessTransitionDuration: number, ease: EaseType) {
+		let now = performance.now();
+		this.isInGameplay = isInGameplay;
 
-		this.state = newState;
+		this.gameplayInterpolator.setReversedState(!isInGameplay, now);
+		this.gameplayInterpolator.setDuration(brightnessTransitionDuration, now);
+		this.gameplayInterpolator.setEase(ease, now);
 	}
 
 	async setImage(file: VirtualFile) {
@@ -101,7 +77,7 @@ export class BackgroundManager {
 		newSprite.visible = false;
 		this.imageContainer.addChild(newSprite);
 
-		let bitmap = await getBitmapFromImageFile(file, (this.state === BackgroundState.Gameplay)? BitmapQuality.High : BitmapQuality.Medium);
+		let bitmap = await getBitmapFromImageFile(file, this.isInGameplay? BitmapQuality.High : BitmapQuality.Medium);
 		newSprite.texture = PIXI.Texture.from(bitmap as any);
 		newSprite.visible = true;
 		
@@ -190,8 +166,10 @@ export class BackgroundManager {
 			sprite.alpha = interpolator.getCurrentValue(now);
 		}
 
-		this.container.scale.set(this.scaleInterpolator.getCurrentValue(now));
-		this.blurFilter.blur = 5 * getGlobalScalingFactor() * this.blurInterpolator.getCurrentValue(now);
+		let blurValue = this.blurInterpolator.getCurrentValue(now);
+
+		this.container.scale.set(MathUtil.lerp(1.0, 1.08, blurValue));
+		this.blurFilter.blur = 5 * getGlobalScalingFactor() * blurValue;
 		this.blurFilter.enabled = this.blurFilter.blur !== 0;
 	}
 

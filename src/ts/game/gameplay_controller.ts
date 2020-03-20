@@ -5,7 +5,7 @@ import { IGNORE_BEATMAP_SKIN } from "./skin/skin";
 import { Play } from "./play";
 import { PauseScreen } from "../menu/gameplay/pause_screen";
 import { InteractionGroup, Interactivity } from "../input/interactivity";
-import { BackgroundManager, BackgroundState } from "../visuals/background";
+import { BackgroundManager } from "../visuals/background";
 import { enableRenderTimeInfoLog } from "../visuals/rendering";
 import { globalState } from "../global_state";
 import { Interpolator } from "../util/interpolation";
@@ -70,7 +70,7 @@ export class GameplayController {
 		inputEventEmitter.addListener('keyDown', (e) => {
 			switch (e.keyCode) {
 				case KeyCode.Escape: {
-					if (!this.currentPlay) break;
+					if (!this.currentPlay || this.currentPlay.completed) break;
 
 					if (this.currentPlay.paused) this.unpause();
 					else this.pause();
@@ -107,12 +107,19 @@ export class GameplayController {
 	
 		await newPlay.init();
 		this.hud.init();
-
+		this.onPlayBegin();
 		enableRenderTimeInfoLog();
-		globalState.backgroundManager.setState(BackgroundState.Gameplay);
+		
 		await newPlay.start();
 
 		this.show();
+	}
+
+	private onPlayBegin() {
+		globalState.backgroundManager.setGameplayState(true, 1000, EaseType.Linear);
+		globalState.backgroundManager.setBlurState(false, 600, EaseType.EaseInQuart);
+
+		this.hud.setFade(true, 0);
 	}
 
 	endPlay() {
@@ -123,21 +130,26 @@ export class GameplayController {
 		this.hide();
 
 		globalState.songSelect.show();
-		globalState.backgroundManager.setState(BackgroundState.SongSelect);
+		globalState.backgroundManager.setGameplayState(false, 500, EaseType.EaseInQuad);
+		globalState.backgroundManager.setBlurState(true, 400, EaseType.EaseOutQuart);
 	}
 
 	async completePlay() {
 		if (!this.currentPlay) return;
 
 		this.currentPlay.complete();
+		this.hud.setFade(false, 300);
+
+		await new Promise((resolve) => setTimeout(resolve, 600));
 
 		this.hide();
-		globalState.backgroundManager.setState(BackgroundState.SongSelect);
+		globalState.backgroundManager.setGameplayState(false, 1500, EaseType.Linear);
+		globalState.backgroundManager.setBlurState(true, 1500, EaseType.EaseInOutQuad);
 
 		let beatmap = this.currentPlay.processedBeatmap.beatmap;
 		let imageFile = await beatmap.getBackgroundImageFile();
 
-		globalState.scoreScreen.load(this.currentPlay.scoreCounter.score, beatmap, imageFile);
+		await globalState.scoreScreen.load(this.currentPlay.scoreCounter.score, beatmap, imageFile);
 		globalState.scoreScreen.show();
 	}
 
@@ -150,6 +162,8 @@ export class GameplayController {
 			this.currentPlay.render();
 			this.pauseScreen.update(now);
 		}
+
+		this.hud.update(now);
 	}
 
 	tick() {
@@ -177,11 +191,12 @@ export class GameplayController {
 
 	restart() {
 		if (!this.currentPlay) return;
-
-		this.show();
-		globalState.backgroundManager.setState(BackgroundState.Gameplay);
+		
 		this.pauseScreen.hide();
 		this.currentPlay.restart();
+		this.onPlayBegin();
+
+		this.show();
 	}
 	
 	show() {

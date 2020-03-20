@@ -1,3 +1,5 @@
+import { Mod } from "../game/mods/mods";
+
 export enum ScoringValue {
 	NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
 	Hit300 = 300,
@@ -29,6 +31,7 @@ export class Score {
 	public geki: number; // Now, some smartass out there is gonna argue that it should be "gekis" and "katus". I'mma be the bigger smartass here and argue that, since these are Japanese words and Japanese does not have plural, these are correct.
 	public katu: number;
 	public maxCombo: number;
+	public mods: Set<Mod>;
 
 	reset() {
 		this.points = 0;
