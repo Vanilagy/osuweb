@@ -1,21 +1,15 @@
 import { inputEventEmitter, KeyCode } from "./input";
 import { CustomEventEmitter } from "../util/custom_event_emitter";
 
-const textInputElement = document.querySelector('#hidden-text-input') as HTMLInputElement;
-
 export let textInputEventEmitter = new CustomEventEmitter<{
     textInput: string
 }>();
 
-inputEventEmitter.addListener('keyDown', () => {
-    textInputElement.focus();
-});
+inputEventEmitter.addListener('keyDown', (e) => {
+	let str = e.key;
+	if (str.length !== 1) return;
 
-textInputElement.addEventListener('input', () => {
-    let value = textInputElement.value;
-
-    textInputEventEmitter.emit('textInput', value);
-    textInputElement.value = "";
+	textInputEventEmitter.emit('textInput', str);
 });
 
 export class TextInputStorage extends CustomEventEmitter<{change: string}> {
