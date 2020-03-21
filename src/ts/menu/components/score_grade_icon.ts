@@ -56,12 +56,15 @@ export function initScoreGrades() {
 		ctx.lineWidth = SCORE_GRADE_RESOLUTION*SCORE_GRADE_BORDER_THICKNESS;
 		ctx.stroke();
 
+		let textX = SCORE_GRADE_RESOLUTION/2;
+		if (drawingInfo.text === 'C') textX -= SCORE_GRADE_RESOLUTION/27; // C looks non-centered, therefore nudge it
+
 		ctx.beginPath();
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		ctx.font = `${Math.floor(SCORE_GRADE_RESOLUTION * 0.72)}px Exo2-SemiBold`;
 		ctx.fillStyle = colorToHexString(drawingInfo.color);
-		ctx.fillText(drawingInfo.text, SCORE_GRADE_RESOLUTION/2, SCORE_GRADE_RESOLUTION/2);
+		ctx.fillText(drawingInfo.text, textX, SCORE_GRADE_RESOLUTION/2);
 	
 		scoreGradeTextures.set(grade, PIXI.Texture.from(canvas));
 	}
