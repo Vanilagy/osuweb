@@ -14,15 +14,7 @@ async function tester() {
 
 	setInterval(() => {
 		console.log(player.getCurrentTime());
-	}, 50);
-
-	setTimeout(() => {
-		player.pause();
-
-		setTimeout(() => {
-			player.unpause();
-		}, 50);
-	}, 500);
+	}, 0);
 
 	return;
 
@@ -33,6 +25,8 @@ async function tester() {
 			player.unpause();
 		}, 1000);
 	}, 2000);
+
+	return;
 
 	setInterval(() => {
 		//console.log(player.getCurrentTime());

@@ -68,6 +68,7 @@ function initSongSelect() {
 function initAudio() {
 	globalState.basicMediaPlayer = new MediaPlayer(mediaAudioNode);
 	globalState.gameplayMediaPlayer = new HighAccuracyMediaPlayer(mediaAudioNode);
+	globalState.gameplayMediaPlayer.disableTimeCap(); // For beatmap where the last object is RIGHT when the song file ends, this is handy to have, because then, animations can keep playing.
 }
 
 function initBackground() {

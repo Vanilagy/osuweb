@@ -34,6 +34,7 @@ export class HighAccuracyMediaPlayer {
 	private starting = false;
 	private playing = false;
 	private startTime: number;
+	private performanceStartTime: number;
 	private pausedTime: number = null;
 	private currentBufferEndTime: number = 0.0;
 	private lastBufferOffset: number;
@@ -45,8 +46,8 @@ export class HighAccuracyMediaPlayer {
 	private entireAudioBuffer: AudioBuffer | Promise<void> = null;
 	private beginningSliceCache: AudioBuffer | Promise<AudioBuffer> = null;
 
-	private lastSampledContextTime: number = null;
-	private lastContextTimeSamplingTime: number = null;
+	/** Whether or not to stop the current time from advancing when the song is over, or to keep ticking on indefinitely. */
+	private timeCap: boolean = true;
 	private lastCurrentTimeValue: number = -Infinity;
 	
 	private tickingTask = () => { this.tick(); };
@@ -74,6 +75,7 @@ export class HighAccuracyMediaPlayer {
 			this.fileHeader = this.data.slice(0, fileHeaderByteLength);
 
 			if (!Mp3Util.isFrameHeader(this.dataView, fileHeaderByteLength)) {
+				// The file is... weird. Take the safe route.
 				noMp3();
 			}
 		} else {
@@ -102,6 +104,11 @@ export class HighAccuracyMediaPlayer {
 
 		this.pitch = newPitch;
 		this.clearBufferCache();
+	}
+
+	private setStartTime() {
+		this.startTime = audioContext.currentTime;
+		this.performanceStartTime = performance.now();
 	}
 
 	async start(offset = 0) {
@@ -140,7 +147,6 @@ export class HighAccuracyMediaPlayer {
 			await this.internalStartNonMp3();
 		}
 		
-		this.lastSampledContextTime = null;
 		if (resetLastCurrentTimeValue) this.lastCurrentTimeValue = -Infinity; // Reset it after the await because someone may get the currentTime while decoding is happening
 		this.pausedTime = null;
 		this.playing = true;
@@ -149,7 +155,7 @@ export class HighAccuracyMediaPlayer {
 
 		// Can happen if 'offset' is outside of the song's length
 		if (this.isMp3 && frameHeaderIndex.eofReached) {
-			this.startTime = audioContext.currentTime; // Gotta set it here because it wasn't set in readyNextBufferSource
+			this.setStartTime(); // Gotta set it here because it wasn't set in readyNextBufferSource
 			this.pause();
 		}
 	}
@@ -180,7 +186,7 @@ export class HighAccuracyMediaPlayer {
 				let offset = Math.max(this.offset, 0) / startDurationDivisor + startDurationAdditionalOffset;
 	
 				bufferSource.start(when, offset);
-				this.startTime = currentContextTime;
+				this.setStartTime();
 			} else {
 				let currentContextTime = audioContext.currentTime;
 
@@ -339,7 +345,7 @@ export class HighAccuracyMediaPlayer {
 			let offset = Math.max(this.offset - newBufferInfo.startTime, 0) / startDurationDivisor + startDurationAdditionalOffset;
 
 			bufferSource.start(when, offset);
-			this.startTime = currentContextTime;
+			this.setStartTime();
 		} else {
 			const swapDelay = 0.1;
 			const crossfadeDuration = 0.02;
@@ -437,39 +443,36 @@ export class HighAccuracyMediaPlayer {
 		return this.playing;
 	}
 
-	getContextCurrentTime() {
+	private calculateCurrentTimeFromElapsedTime(elapsedTime: number) {
 		if (this.isPaused()) return this.pausedTime;
 		if (!this.playing) return 0;
 
 		let cap: number;
-		if (this.isMp3) {
+		if (!this.timeCap) {
+			cap = Infinity;
+		} else if (this.isMp3) {
 			cap = this.currentBufferEndTime;
 		} else {
 			cap = Infinity;
 			if (this.entireAudioBuffer instanceof AudioBuffer) cap = this.entireAudioBuffer.duration;
 		}
 
-		return Math.min(this.offset + (audioContext.currentTime - this.startTime) * this.tempo, cap);
+		return Math.min(this.offset + elapsedTime * this.tempo, cap);
+	}
+
+	getContextCurrentTime() {
+		return this.calculateCurrentTimeFromElapsedTime(audioContext.currentTime - this.startTime);
 	}
 
 	getCurrentTime() {
-		let currentTime = this.getContextCurrentTime();
-		let output: number;
-
-		if (this.lastSampledContextTime !== currentTime) {
-			this.lastSampledContextTime = currentTime;
-			this.lastContextTimeSamplingTime = performance.now();
-
-			output = currentTime;
-		} else {
-			if (this.pausedTime !== null || !this.playing) {
-				output = this.lastSampledContextTime;
-			} else {
-				output = this.lastSampledContextTime + (performance.now() - this.lastContextTimeSamplingTime)/1000*this.tempo;
-			}
+		let performanceElapsedTime = (performance.now() - this.performanceStartTime) / 1000;
+		let contextElapsedTime = audioContext.currentTime - this.startTime;
+		if (Math.abs(performanceElapsedTime - contextElapsedTime) > 0.05) {
+			// Resynchronize (should happen super rarely)
+			this.performanceStartTime += (performanceElapsedTime - contextElapsedTime);
 		}
 
-		output -= 0.020; // Shift by 5ms. Generally observed to be "feel" and sound more accurate. Will have to be observe more in the future.
+		let output = this.calculateCurrentTimeFromElapsedTime(performanceElapsedTime);
 
 		// This comparison is made so that we can guarantee a monotonically increasing currentTime. In reality, the value might hop back a few milliseconds, but to the outside world this is unexpected behavior and therefore should be avoided.
 		if (output > this.lastCurrentTimeValue) {
@@ -478,5 +481,13 @@ export class HighAccuracyMediaPlayer {
 		} else {
 			return this.lastCurrentTimeValue;
 		}
+	}
+
+	enableTimeCap() {
+		this.timeCap = true;
+	}
+
+	disableTimeCap() {
+		this.timeCap = false;
 	}
 }
