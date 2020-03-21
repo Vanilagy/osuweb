@@ -16,6 +16,14 @@ async function tester() {
 		console.log(player.getCurrentTime());
 	}, 50);
 
+	setTimeout(() => {
+		player.pause();
+
+		setTimeout(() => {
+			player.unpause();
+		}, 50);
+	}, 500);
+
 	return;
 
 	setTimeout(() => {

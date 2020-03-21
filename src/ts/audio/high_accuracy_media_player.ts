@@ -43,6 +43,7 @@ export class HighAccuracyMediaPlayer {
 
 	// Non-MP3 stuff:
 	private entireAudioBuffer: AudioBuffer | Promise<void> = null;
+	private beginningSliceCache: AudioBuffer | Promise<AudioBuffer> = null;
 
 	private lastSampledContextTime: number = null;
 	private lastContextTimeSamplingTime: number = null;
@@ -60,15 +61,23 @@ export class HighAccuracyMediaPlayer {
 		this.data = data;
 		this.dataView = new DataView(this.data);
 
+		const noMp3 = () => {
+			this.isMp3 = false;
+			this.fileHeader = null;
+		};
+
 		if (Mp3Util.isId3Tag(this.dataView, 0)) {
 			this.isMp3 = true;
 
 			// Get the file header. This will be appended to the start of every audio buffer slice.
 			let fileHeaderByteLength = Mp3Util.getFileHeaderByteLength(this.dataView, 0);
 			this.fileHeader = this.data.slice(0, fileHeaderByteLength);
+
+			if (!Mp3Util.isFrameHeader(this.dataView, fileHeaderByteLength)) {
+				noMp3();
+			}
 		} else {
-			this.isMp3 = false;
-			this.fileHeader = null;
+			noMp3();
 		}
 
 		this.clearBufferCache();
@@ -113,7 +122,6 @@ export class HighAccuracyMediaPlayer {
 		this.currentMasterNode.connect(this.destination);
 		this.currentMasterNodeId++;
 		this.lastAudioNode = null;
-		this.lastSampledContextTime = null;
 		this.offset = offset;
 
 		let fn = Mp3Util.getFrameHeaderIndexAtTime;
@@ -132,6 +140,7 @@ export class HighAccuracyMediaPlayer {
 			await this.internalStartNonMp3();
 		}
 		
+		this.lastSampledContextTime = null;
 		if (resetLastCurrentTimeValue) this.lastCurrentTimeValue = -Infinity; // Reset it after the await because someone may get the currentTime while decoding is happening
 		this.pausedTime = null;
 		this.playing = true;
@@ -187,22 +196,36 @@ export class HighAccuracyMediaPlayer {
 		};
 
 		let startBeginningSlice = async () => {
-			let useNativePlaybackRate = this.tempo === this.pitch;
+			let buffer: AudioBuffer;
+			
+			if (this.beginningSliceCache === null) {
+				this.beginningSliceCache = new Promise(async (resolve) => {
+					let useNativePlaybackRate = this.tempo === this.pitch;
 
-			let endIndex = Math.min(this.data.byteLength, Math.max(75000, Math.floor(this.data.byteLength * 0.04 * (useNativePlaybackRate? 1 : 1.5))));
-			let slice = this.data.slice(0, endIndex);
-			let rawAudioBuffer = await audioContext.decodeAudioData(slice);
-			let finalAudioBuffer: AudioBuffer;
+					let endIndex = Math.min(this.data.byteLength, Math.max(75000, Math.floor(this.data.byteLength * 0.04 * (useNativePlaybackRate? 1 : 1.5))));
+					let slice = this.data.slice(0, endIndex);
+					let rawAudioBuffer = await audioContext.decodeAudioData(slice);
+					let finalAudioBuffer: AudioBuffer;
 
-			if (useNativePlaybackRate) {
-				finalAudioBuffer = rawAudioBuffer;
+					if (useNativePlaybackRate) {
+						finalAudioBuffer = rawAudioBuffer;
+					} else {
+						let processedBuffer = await AudioUtil.changeTempoAndPitch(rawAudioBuffer, audioContext, this.tempo, this.pitch);
+						finalAudioBuffer = processedBuffer;
+					}
+
+					resolve(finalAudioBuffer);
+					this.beginningSliceCache = finalAudioBuffer;
+				});
+			}
+			
+			if (this.beginningSliceCache instanceof Promise) {
+				buffer = await this.beginningSliceCache;
 			} else {
-				let processedBuffer = await AudioUtil.changeTempoAndPitch(rawAudioBuffer, audioContext, this.tempo, this.pitch);
-				finalAudioBuffer = processedBuffer;
-
+				buffer = this.beginningSliceCache;
 			}
 
-			playBuffer(finalAudioBuffer);
+			playBuffer(buffer);
 		};
 
 		if (this.entireAudioBuffer === null) {
@@ -229,7 +252,10 @@ export class HighAccuracyMediaPlayer {
 		if (this.entireAudioBuffer instanceof Promise) {
 			this.entireAudioBuffer.then(() => playBuffer(this.entireAudioBuffer as AudioBuffer));
 
-			if (this.offset <= 0) await startBeginningSlice();
+			let permittedOffset = 0;
+			if (this.beginningSliceCache instanceof AudioBuffer) permittedOffset = this.beginningSliceCache.duration / 2;
+
+			if (this.offset <= permittedOffset) await startBeginningSlice();			
 			else await this.entireAudioBuffer;
 		} else {
 			playBuffer(this.entireAudioBuffer as AudioBuffer);
@@ -400,6 +426,7 @@ export class HighAccuracyMediaPlayer {
 	private clearBufferCache() {
 		this.cachedAudioBuffers.length = 0;
 		this.entireAudioBuffer = null;
+		this.beginningSliceCache = null;
 	}
 
 	isPaused() {
@@ -442,7 +469,7 @@ export class HighAccuracyMediaPlayer {
 			}
 		}
 
-		output -= 0.005; // Shift by 5ms. Generally observed to be "feel" and sound more accurate. Will have to be observe more in the future.
+		output -= 0.020; // Shift by 5ms. Generally observed to be "feel" and sound more accurate. Will have to be observe more in the future.
 
 		// This comparison is made so that we can guarantee a monotonically increasing currentTime. In reality, the value might hop back a few milliseconds, but to the outside world this is unexpected behavior and therefore should be avoided.
 		if (output > this.lastCurrentTimeValue) {

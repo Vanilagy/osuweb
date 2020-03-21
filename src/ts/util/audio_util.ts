@@ -181,7 +181,9 @@ export abstract class Mp3Util {
 			byteLength += xingFrameLength;
 		}
 
-		return byteLength;
+		let nextFrameStart = Mp3Util.getFirstFrameHeaderIndex(view, offset + byteLength);
+		if (nextFrameStart === null) return byteLength;
+		else return nextFrameStart - offset;
 	}
 
 	static isId3Tag(view: DataView, offset: number) {
@@ -299,6 +301,14 @@ export abstract class Mp3Util {
 
 	static calulateDuration(view: DataView) {
 		return Mp3Util.getFrameHeaderIndexAtTime(view, Mp3Util.getFileHeaderByteLength(view, 0), Infinity).exactTime;
+	}
+
+	static getFirstFrameHeaderIndex(view: DataView, offset: number) {
+		for (let i = offset; i < view.byteLength; i++) {
+			if (Mp3Util.isFrameHeader(view, i)) return i;
+		}
+
+		return null;
 	}
 }
 
