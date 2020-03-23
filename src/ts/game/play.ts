@@ -216,7 +216,7 @@ export class Play {
 		}
 		globalState.gameplayMediaPlayer.setMinimumBeginningSliceDuration(minimumStartDuration);
 
-		if (when === undefined) when = 240 || -this.preludeTime / 1000;
+		if (when === undefined) when = 0 || -this.preludeTime / 1000;
 		await globalState.gameplayMediaPlayer.start(when);
 
 		this.playing = true;
