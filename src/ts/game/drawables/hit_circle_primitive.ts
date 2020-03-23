@@ -75,8 +75,13 @@ export class HitCirclePrimitive {
 		container.addChild(this.base);
 
 		let skin = this.options.hitObject.drawableBeatmap.play.skin;
+		let beatmap = this.options.hitObject.drawableBeatmap.processedBeatmap.beatmap;
 
-		if (skin.config.general.hitCircleOverlayAboveNumber) {
+		let overlayAboveNumber: boolean;
+		if (beatmap.overlayPosition === 'NoChange') overlayAboveNumber = skin.config.general.hitCircleOverlayAboveNumber;
+		else overlayAboveNumber = beatmap.overlayPosition === 'Above';
+
+		if (overlayAboveNumber) {
 			if (this.number) container.addChild(this.number);
 			container.addChild(this.overlay);
 		} else {

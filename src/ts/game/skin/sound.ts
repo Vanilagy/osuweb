@@ -14,7 +14,7 @@ export interface HitSoundInfo {
     base: OsuSoundType,
     additions?: OsuSoundType[],
     volume: number,
-    index?: number,
+    sampleIndex?: number,
     position?: Point
 }
 
@@ -74,15 +74,23 @@ export function getSliderSlideTypesFromSampleSet(sampleSet: number, bitfield: nu
     return types;
 }
 
-export function normSampleSet(sampleSet: number) {
-    return MathUtil.clamp(sampleSet, 1, 3);
+export function determineSampleSet(sampleSet: number, timingPoint: TimingPoint) {
+    return MathUtil.clamp(sampleSet || timingPoint.sampleSet || timingPoint.beatmap.sampleSet, 1, 3);
 }
 
-export function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, index: number, timingPoint: TimingPoint, position?: Point) {
-    baseSet = normSampleSet(baseSet || timingPoint.sampleSet || 1)
-    additionSet = normSampleSet(additionSet || baseSet); // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
-    volume = volume || timingPoint.volume;
-    index = index || timingPoint.sampleIndex || 1;
+export function determineVolume(volume: number, timingPoint: TimingPoint) {
+    return volume || timingPoint.volume;
+}
+
+export function determineSampleIndex(sampleIndex: number, timingPoint: TimingPoint) {
+    return sampleIndex || timingPoint.sampleIndex || 1;
+}
+
+export function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, sampleIndex: number, timingPoint: TimingPoint, position?: Point) {
+    baseSet = determineSampleSet(baseSet, timingPoint);
+    additionSet = determineSampleSet(additionSet || baseSet, timingPoint); // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
+    volume = determineVolume(volume, timingPoint);
+    sampleIndex = determineSampleIndex(sampleIndex, timingPoint);
 
     let baseType = getHitSoundTypesFromSampleSetAndBitfield(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
     let additionTypes = getHitSoundTypesFromSampleSetAndBitfield(additionSet, hitSound & ~1);
@@ -91,9 +99,9 @@ export function generateHitSoundInfo(hitSound: number, baseSet: number, addition
         base: baseType,
         additions: additionTypes,
         volume: volume,
-        index: index,
+        sampleIndex: sampleIndex,
         position: position
-    };
+	};
     
     return info;
 }
@@ -165,7 +173,7 @@ export class OsuSound {
         }
     }
 
-    getEmitter(volume: number, index = 1, pan: number = 0) {
+    getEmitter(volume: number, index = 1, pan = 0, playbackRate = 1.0) {
         let buffer = this.audioBuffers[index];
         if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
 		if (!buffer) return null;
@@ -176,13 +184,14 @@ export class OsuSound {
         let emitter = new SoundEmitter(soundEffectsNode);
         emitter.setBuffer(buffer);
         emitter.setVolume(volume/100);
-        emitter.setPan(pan);
+		emitter.setPan(pan);
+		emitter.setPlaybackRate(playbackRate);
 
         return emitter;
     }
 
-    play(volume: number, index = 1, pan: number = 0) {
-        let emitter = this.getEmitter(volume, index, pan);
+    play(volume: number, index?: number, pan?: number, playbackRate?: number) {
+        let emitter = this.getEmitter(volume, index, pan, playbackRate);
         if (emitter) emitter.start();
     }
 }

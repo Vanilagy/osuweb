@@ -31,7 +31,8 @@ export interface TimingPoint {
 	sampleIndex: number,
 	volume: number,
 	inheritable: boolean,
-	kiai: boolean
+	kiai: boolean,
+	beatmap: Beatmap
 }
 
 export enum BeatmapEventType {
@@ -69,6 +70,19 @@ interface BeatmapColorInfo {
 	sliderBorder?: Color
 }
 
+enum BeatmapCountdown {
+	None,
+	Normal,
+	Half,
+	Double
+}
+
+function sampleSetStringToNumber(str: 'Normal' | 'Soft' | 'Drum') {
+	if (str === 'Normal') return 1;
+	if (str === 'Soft') return 2;
+	return 3;
+}
+
 export class Beatmap {
 	public metadataOnly: boolean;
 	public events: BeatmapEvent[] = [];
@@ -84,23 +98,61 @@ export class Beatmap {
 	public bpmMin: number = 120;
 	public bpmMax: number = 120; 
 	public ARFound: boolean = false;
-	public version: string = '';
+	
+	// General // 
+
+	/** Location of the audio file relative to the current folder */
 	public audioFilename: string = null;
-	public audioLeadIn: number = null;
-	public previewTime: number = null;
-	public countdown: number = null;
-	public sampleSet: string = null; // Some... weird legacy thing, I think. Not used anywhere :thinking:
-	public mode: number = null;
-	public letterBoxInBreaks: number = null;
-	public widescreenStoryboard: number = null;
+	/** Milliseconds of silence before the audio starts playing */
+	public audioLeadIn: number = 0;
+	/** Time in milliseconds when the audio preview should start */
+	public previewTime: number = -1;
+	/** Speed of the countdown before the first hit object */
+	public countdown: BeatmapCountdown = BeatmapCountdown.Normal;
+	/** Sample set that will be used if timing points do not override it (1 = Normal, 2 = Soft, 3 = Drum) */
+	public sampleSet: number = 1;
+	/** Game mode (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania) */
+	public mode: number = 0;
+	/** Whether or not breaks have a letterboxing effect */
+	public letterBoxInBreaks: boolean = false;
+	/** Whether or not the storyboard can use the user's skin images */
+	public useSkinSprites: boolean = false;
+	/** Draw order of hit circle overlays compared to hit numbers (NoChange = use skin setting, Below = draw overlays under numbers, Above = draw overlays on top of numbers) */
+	public overlayPosition: 'NoChange' | 'Below' | 'Above' = 'NoChange';
+	/** Preferred skin to use during gameplay */
+	public skinPreference: String = null;
+	/** Whether or not a warning about flashing colours should be shown at the beginning of the map */
+	public epilepsyWarning: boolean = false;
+	/** Time in beats that the countdown starts before the first hit object */
+	public countdownOffset: number = 0;
+	/** Whether or not the "N+1" style key layout is used for osu!mania */
+	public specialStyle: boolean = false;
+	/** Whether or not the storyboard allows widescreen viewing */
+	public widescreenStoryboard: boolean = false;
+	/** Whether or not sound samples will change rate when playing with speed-changing mods */
+	public samplesMatchPlaybackRate: boolean = false;
+
+	// Metadata //
+
+	/** Romanised song title */
 	public title: string = null;
+	/** Song title */
 	public titleUnicode: string = null;
+	/** Romanised song artist */
 	public artist: string = null;
+	/** Song artist */
 	public artistUnicode: string = null;
+	/** Beatmap creator */
 	public creator: string = null;
+	/** Difficulty name */
+	public version: string = '';
+	/** Original media the song was produced for */
 	public source: string = null;
+	/** Search terms */
 	public tags: string = null;
+	/** Beatmap ID */
 	public beatmapID: number = null;
+	/** Beatmapset ID */
 	public beatmapSetID: number = null;
 
 	constructor(options: BeatmapCreationOptions) {
@@ -108,11 +160,7 @@ export class Beatmap {
 		this.difficulty = new BeatmapDifficulty();
 		this.metadataOnly = options.metadataOnly;
 
-		//console.time("Beatmap parse");
 		this.parseBeatmap(options.text);
-		//console.timeEnd("Beatmap parse");
-
-		//console.log(this);
 	}
 
 	getAudioFile() {
@@ -183,33 +231,45 @@ export class Beatmap {
 			} else if (section === "hitobjects") {
 				if (!this.metadataOnly) this.parseHitObject(line);
 			} else {
-				if (line.startsWith("AudioFilename")) this.audioFilename = line.split(':')[1].trim();
-				else if (line.startsWith("AudioLeadIn")) this.audioLeadIn = parseInt(line.split(':')[1].trim());
-				else if (line.startsWith("PreviewTime")) this.previewTime = parseInt(line.split(':')[1].trim());
-				else if (line.startsWith("Countdown")) this.countdown = parseInt(line.split(':')[1].trim());
-				else if (line.startsWith("SampleSet")) this.sampleSet = line.split(':')[1].trim();
-				else if (line.startsWith("StackLeniency")) this.difficulty.SL = parseFloat(line.split(':')[1].trim());
-				else if (line.startsWith("Mode")) this.mode = parseInt(line.split(':')[1].trim());
-				else if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = parseInt(line.split(':')[1].trim());
-				else if (line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard = parseInt(line.split(':')[1].trim());
+				let value = line.split(':')[1].trim();
 
-				else if (line.startsWith("Title:")) this.title = line.split(':')[1].trim();
-				else if (line.startsWith("TitleUnicode")) this.titleUnicode = line.split(':')[1].trim();
-				else if (line.startsWith("Artist:")) this.artist = line.split(':')[1].trim();
-				else if (line.startsWith("ArtistUnicode")) this.artistUnicode = line.split(':')[1].trim();
-				else if (line.startsWith("Creator")) this.creator = line.split(':')[1].trim();
-				else if (line.startsWith("Version")) this.version = line.split(':')[1].trim();
-				else if (line.startsWith("Source")) this.source = line.split(':')[1].trim();
-				else if (line.startsWith("Tags")) this.tags = line.split(':')[1].trim();
-				else if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(line.split(':')[1].trim());
-				else if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(line.split(':')[1].trim());
+				// General
+				     if (line.startsWith("AudioFilename")) this.audioFilename = value;
+				else if (line.startsWith("AudioLeadIn")) this.audioLeadIn = parseInt(value);
+				else if (line.startsWith("PreviewTime")) this.previewTime = parseInt(value);
+				else if (line.startsWith("Countdown")) this.countdown = parseInt(value);
+				else if (line.startsWith("SampleSet")) this.sampleSet = ['Normal', 'Soft', 'Drum'].indexOf(value) + 1; // hacky ;)
+				else if (line.startsWith("StackLeniency")) this.difficulty.SL = parseFloat(value);
+				else if (line.startsWith("Mode")) this.mode = parseInt(value);
+				else if (line.startsWith("LetterboxInBreaks")) this.letterBoxInBreaks = value === "1";
+				else if (line.startsWith("UseSkinSprites")) this.useSkinSprites = value === "1";
+				else if (line.startsWith("OverlayPosition")) this.overlayPosition = value as any;
+				else if (line.startsWith("SkinPreference")) this.skinPreference = value;
+				else if (line.startsWith("EpilepsyWarning")) this.epilepsyWarning = value === "1";
+				else if (line.startsWith("CountdownOffset")) this.countdownOffset = parseInt(value);
+				else if (line.startsWith("SpecialStyle")) this.specialStyle = value === "1";
+				else if (line.startsWith("WidescreenStoryboard")) this.widescreenStoryboard = value === "1";
+				else if (line.startsWith("SamplesMatchPlaybackRate")) this.samplesMatchPlaybackRate = value === "1";
 
-				else if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(line.split(':')[1].trim());
-				else if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(line.split(':')[1].trim());
-				else if (line.startsWith("OverallDifficulty")) this.difficulty.OD = parseFloat(line.split(':')[1].trim());
-				else if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(line.split(':')[1].trim()); this.ARFound = true;}
-				else if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(line.split(':')[1].trim());
-				else if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(line.split(':')[1].trim());
+				// Metadata
+				else if (line.startsWith("Title:")) this.title = value;
+				else if (line.startsWith("TitleUnicode")) this.titleUnicode = value;
+				else if (line.startsWith("Artist:")) this.artist = value;
+				else if (line.startsWith("ArtistUnicode")) this.artistUnicode = value;
+				else if (line.startsWith("Creator")) this.creator = value;
+				else if (line.startsWith("Version")) this.version = value;
+				else if (line.startsWith("Source")) this.source = value;
+				else if (line.startsWith("Tags")) this.tags = value;
+				else if (line.startsWith("BeatmapID")) this.beatmapID = parseInt(value);
+				else if (line.startsWith("BeatmapSetID")) this.beatmapSetID = parseInt(value);
+
+				// Difficulty
+				else if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(value);
+				else if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(value);
+				else if (line.startsWith("OverallDifficulty")) this.difficulty.OD = parseFloat(value);
+				else if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(value); this.ARFound = true;}
+				else if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(value);
+				else if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(value);
 			}
 		}
 
@@ -278,7 +338,7 @@ export class Beatmap {
 
 		let msPerBeat = parseFloat(values[1]);
 
-		this.timingPoints.push({
+		let timingPoint: TimingPoint = {
 			index: this.timingPoints.length,
 			offset: offset,
 			msPerBeat: msPerBeat,
@@ -289,7 +349,9 @@ export class Beatmap {
 			volume: values[5]? parseInt(values[5]) : DEFAULT_TIMING_POINT_VOLUME,
 			inheritable: values[6]? values[6] === "1" : DEFAULT_TIMING_POINT_INHERITABLE, // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
 			kiai: values[7]? Boolean(parseInt(values[7])) : DEFAULT_TIMING_POINT_KIAI,
-		});
+			beatmap: this
+		};
+		this.timingPoints.push(timingPoint);
 	}
 
 	private parseHitObject(line: string) {

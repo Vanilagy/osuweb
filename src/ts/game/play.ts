@@ -12,7 +12,7 @@ import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object"
 import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
 import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
-import { calculatePanFromOsuCoordinates } from "./skin/sound";
+import { calculatePanFromOsuCoordinates, HitSoundInfo } from "./skin/sound";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
 import { PlayEvent, PlayEventType } from "../datamodel/play_events";
@@ -216,7 +216,7 @@ export class Play {
 		}
 		globalState.gameplayMediaPlayer.setMinimumBeginningSliceDuration(minimumStartDuration);
 
-		if (when === undefined) when = 0 || -this.preludeTime / 1000;
+		if (when === undefined) when = 240 || -this.preludeTime / 1000;
 		await globalState.gameplayMediaPlayer.start(when);
 
 		this.playing = true;
@@ -550,7 +550,7 @@ export class Play {
 						slider.pulseFollowCircle(playEvent.time);
 						
 						let hitSound = slider.hitSounds[playEvent.index + 1];
-						this.skin.playHitSound(hitSound);
+						this.playHitSound(hitSound);
 					} else {
 						this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
 						slider.releaseFollowCircle(playEvent.time);
@@ -577,7 +577,7 @@ export class Play {
 						slider.pulseFollowCircle(playEvent.time);
 
 						let hitSound = slider.tickSounds[playEvent.index];
-						this.skin.playHitSound(hitSound);
+						this.playHitSound(hitSound);
 					} else {
 						this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
 						slider.releaseFollowCircle(playEvent.time);
@@ -856,7 +856,29 @@ export class Play {
 		return this.processedBeatmap.breaks[this.currentBreakIndex] || null;
 	}
 
-	/** Handles playthrough instructions for AT. */
+	private getHitSoundPlaybackRate() {
+		if (!this.processedBeatmap.beatmap.samplesMatchPlaybackRate) return 1.0;
+		if (this.activeMods.has(Mod.Nightcore) || this.activeMods.has(Mod.Daycore)) return this.playbackRate;
+		return 1.0;
+	}
+
+	playHitSound(info: HitSoundInfo) {
+		let skin = this.skin;
+		let pan = calculatePanFromOsuCoordinates(info.position);
+		let playbackRate = this.getHitSoundPlaybackRate();
+
+		let baseSound = skin.sounds[info.base];
+        baseSound.play(info.volume, info.sampleIndex, pan, playbackRate);
+
+        if (info.additions) {
+            for (let i = 0; i < info.additions.length; i++) {
+                let additionSound = skin.sounds[info.additions[i]];
+                additionSound.play(info.volume, info.sampleIndex, pan, playbackRate);
+            }
+        }
+    }
+
+ 	/** Handles playthrough instructions for AT. */
 	private handlePlaythroughInstructions(currentTime: number) {
 		if (this.currentPlaythroughInstruction >= this.playthroughInstructions.length) return;
 

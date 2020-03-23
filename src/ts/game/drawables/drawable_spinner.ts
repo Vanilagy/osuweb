@@ -499,7 +499,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		play.scoreCounter.add(judgement, false, true, true, this, this.parent.endTime);
 		if (judgement !== 0) {
-			play.skin.playHitSound(this.hitSound);
+			play.playHitSound(this.hitSound);
 		}
 
 		this.stopSpinningSound();

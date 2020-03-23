@@ -4,10 +4,10 @@ import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "
 import { Color } from "../../util/graphics_util";
 import { assert, jsonClone, shallowObjectClone } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
-import { OsuSoundType, OsuSound, osuSoundFileNames, calculatePanFromOsuCoordinates, HitSoundInfo } from "./sound";
+import { OsuSoundType, OsuSound, osuSoundFileNames } from "./sound";
 
 export const IGNORE_BEATMAP_SKIN = false;
-export const IGNORE_BEATMAP_HIT_SOUNDS = true;
+export const IGNORE_BEATMAP_HIT_SOUNDS = false;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
@@ -176,20 +176,6 @@ export class Skin {
 
     async load() {
         await this.directory.loadShallow();
-    }
-
-    playHitSound(info: HitSoundInfo) {
-        let pan = calculatePanFromOsuCoordinates(info.position);
-
-        let baseSound = this.sounds[info.base];
-        baseSound.play(info.volume, info.index, pan);
-
-        if (info.additions) {
-            for (let i = 0; i < info.additions.length; i++) {
-                let additionSound = this.sounds[info.additions[i]];
-                additionSound.play(info.volume, info.index, pan);
-            }
-        }
     }
 
     clone() {

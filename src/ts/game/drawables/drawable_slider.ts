@@ -10,7 +10,7 @@ import { SoundEmitter } from "../../audio/sound_emitter";
 import { renderer } from "../../visuals/rendering";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
-import { HitSoundInfo, normSampleSet, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates } from "../skin/sound";
+import { HitSoundInfo, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates, determineSampleSet, determineVolume, determineSampleIndex } from "../skin/sound";
 import { ProcessedSlider, SpecialSliderBehavior } from "../../datamodel/processed/processed_slider";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
@@ -70,17 +70,12 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 	protected initSounds(slider: Slider, timingInfo: CurrentTimingPointInfo) {
 		let currentTimingPoint = timingInfo.timingPoint;
-	
-		let sampleSet = normSampleSet(slider.extras.sampleSet || currentTimingPoint.sampleSet || 1),
-			volume = slider.extras.sampleVolume || currentTimingPoint.volume,
-			index = slider.extras.customIndex || currentTimingPoint.sampleIndex || 1;
 
 		// Init hit sounds for slider head, repeats and end
 		let hitSounds: HitSoundInfo[] = [];
 		for (let i = 0; i < slider.edgeHitSounds.length; i++) {
-			
-			let time = slider.time + length/this.parent.velocity * i;
-			let timingPoint = this.parent.processedBeatmap.beatmap.getClosestTimingPointTo(time);
+			let time = slider.time + this.parent.length/this.parent.velocity * i;
+			let timingPoint = this.parent.processedBeatmap.beatmap.getClosestTimingPointTo(time, currentTimingPoint.index);
 			let hitSound = slider.edgeHitSounds[i];
 			let sampling = slider.edgeSamplings[i];
 			let position = (i % 2 === 0)? this.parent.startPoint : this.parent.tailPoint;
@@ -95,19 +90,23 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let tickSounds: HitSoundInfo[] = [];
 		for (let i = 0; i < this.parent.tickCompletions.length; i++) {
 			let completion = this.parent.tickCompletions[i];
-			let time = slider.time + length/this.parent.velocity * completion;
-			let timingPoint = this.parent.processedBeatmap.beatmap.getClosestTimingPointTo(time);
+			let time = slider.time + this.parent.length/this.parent.velocity * completion;
+			let timingPoint = this.parent.processedBeatmap.beatmap.getClosestTimingPointTo(time, currentTimingPoint.index);
 			let position = this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion));
 
 			let info: HitSoundInfo = {
-				base: getTickHitSoundTypeFromSampleSet(normSampleSet(slider.extras.sampleSet || timingPoint.sampleSet || 1)),
-				volume: slider.extras.sampleVolume || timingPoint.volume,
-				index: slider.extras.customIndex || timingPoint.index || 1,
+				base: getTickHitSoundTypeFromSampleSet(determineSampleSet(slider.extras.sampleSet, timingPoint)),
+				volume: determineVolume(slider.extras.sampleVolume,timingPoint),
+				sampleIndex: determineSampleIndex(slider.extras.customIndex, timingPoint),
 				position: position
 			};
 			tickSounds.push(info);
 		}
 		this.tickSounds = tickSounds;
+
+		let sampleSet = determineSampleSet(slider.extras.sampleSet, currentTimingPoint),
+			volume = determineVolume(slider.extras.sampleVolume, currentTimingPoint),
+			sampleIndex = determineSampleIndex(slider.extras.customIndex, currentTimingPoint);
 
 		// Slider slide sound
 		let sliderSlideTypes = getSliderSlideTypesFromSampleSet(sampleSet, slider.hitSound);
@@ -115,7 +114,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let sliderSlideStartPan = calculatePanFromOsuCoordinates(this.parent.startPoint);
 		for (let i = 0; i < sliderSlideTypes.length; i++) {
 			let type = sliderSlideTypes[i];
-			let emitter = this.drawableBeatmap.play.skin.sounds[type].getEmitter(volume, index, sliderSlideStartPan);
+			let emitter = this.drawableBeatmap.play.skin.sounds[type].getEmitter(volume, sampleIndex, sliderSlideStartPan);
 			if (!emitter || emitter.isReallyShort()) continue;
 
 			emitter.setLoopState(true);
@@ -452,7 +451,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			})();
 		}
 
-		if (this.scoring.end || resultingRawScore === 300) this.drawableBeatmap.play.skin.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
+		if (this.scoring.end || resultingRawScore === 300) this.drawableBeatmap.play.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
 
 		this.drawableBeatmap.play.scoreCounter.add(resultingRawScore, false, false, true, this, time);
 	}
@@ -460,7 +459,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	hitHead(time: number, judgementOverride?: number) {
 		if (this.scoring.head.hit !== ScoringValue.NotHit) return;
 		
-		let { scoreCounter, skin } = this.drawableBeatmap.play;
+		let { scoreCounter } = this.drawableBeatmap.play;
 
 		let timeInaccuracy = time - this.parent.startTime;
 		let judgement: number;
@@ -482,7 +481,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		if (judgement !== 0) {
 			const hud = this.drawableBeatmap.play.controller.hud;
 
-			skin.playHitSound(this.hitSounds[0]);
+			this.drawableBeatmap.play.playHitSound(this.hitSounds[0]);
 			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
 			scoreCounter.addHitInaccuracy(timeInaccuracy);
 			this.holdFollowCircle(time);

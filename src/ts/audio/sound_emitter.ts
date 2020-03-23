@@ -1,12 +1,5 @@
 import { audioContext } from "./audio";
 
-interface SoundEmitterOptions {
-	destination: AudioNode,
-	buffer?: AudioBuffer,
-	volume?: number,
-	playbackRate?: number
-}
-
 export class SoundEmitter {
 	private sourceNode: AudioBufferSourceNode = null;
 	private gainNode: GainNode;

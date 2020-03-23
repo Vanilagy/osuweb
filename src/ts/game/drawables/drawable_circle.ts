@@ -70,7 +70,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 	hitHead(time: number, judgementOverride?: number) {
 		if (this.scoring.head.hit !== ScoringValue.NotHit) return;
 
-		let { processedBeatmap, skin, scoreCounter } = this.drawableBeatmap.play;
+		let { processedBeatmap, scoreCounter } = this.drawableBeatmap.play;
 
 		let timeInaccuracy = time - this.parent.startTime;
 		let judgement: number;
@@ -87,7 +87,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 		if (judgement !== 0) {
 			const hud = this.drawableBeatmap.play.controller.hud;
 
-			skin.playHitSound(this.hitSound);
+			this.drawableBeatmap.play.playHitSound(this.hitSound);
 			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
 			scoreCounter.addHitInaccuracy(timeInaccuracy);
 		}
