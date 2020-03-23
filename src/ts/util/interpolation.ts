@@ -44,6 +44,7 @@ export class InterpolatedValueChanger {
 
 	setGoal(goal: number, now: number) {
 		let current = this.getCurrentValue(now);
+		if (isNaN(current)) current = goal;
 		
 		this.start = current;
 		this.end = goal;

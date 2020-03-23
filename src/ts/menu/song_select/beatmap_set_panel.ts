@@ -35,7 +35,7 @@ export class BeatmapSetPanel {
 	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
 
 	private difficultyContainer: PIXI.Container;
-	private beatmapDifficultyPanels: BeatmapDifficultyPanel[] = [];
+	private difficultyPanels: BeatmapDifficultyPanel[] = [];
 	
 	public isExpanded: boolean = false;
 	public currentNormalizedY: number = 0;
@@ -120,7 +120,7 @@ export class BeatmapSetPanel {
 		this.interactionGroup.add(registration);
 
 		registration.addButtonHandlers(
-			() => this.expand(),
+			() => this.select(),
 			() => this.hoverInterpolator.setReversedState(false, performance.now()),
 			() => this.hoverInterpolator.setReversedState(true, performance.now()),
 			() => this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now()),
@@ -191,8 +191,8 @@ export class BeatmapSetPanel {
 		this.primaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(10 * scalingFactor));
 		this.secondaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(35 * scalingFactor));
 
-		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
-			this.beatmapDifficultyPanels[i].resize();
+		for (let i = 0; i < this.difficultyPanels.length; i++) {
+			this.difficultyPanels[i].resize();
 		}
 	}
 
@@ -235,13 +235,13 @@ export class BeatmapSetPanel {
 		this.panelContainer.x -= 95 * expansionValue * scalingFactor;
 
 		// Remove beatmap panel elements if there's no need to keep them
-		if (!this.isExpanded && expansionValue === 0 && this.beatmapDifficultyPanels.length > 0) {
-			this.beatmapDifficultyPanels.length = 0;
+		if (!this.isExpanded && expansionValue === 0 && this.difficultyPanels.length > 0) {
+			this.difficultyPanels.length = 0;
 			this.difficultyContainer.removeChildren();
 		}
 
-		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
-			let panel = this.beatmapDifficultyPanels[i];
+		for (let i = 0; i < this.difficultyPanels.length; i++) {
+			let panel = this.difficultyPanels[i];
 
 			let y = BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue;
 			panel.update(now, y);
@@ -280,11 +280,11 @@ export class BeatmapSetPanel {
 		return this.expandInterpolator.getCurrentValue(now) * combinedDifficultyPanelHeight * this.beatmapFiles.length;
 	}
 
-	private async expand() {
+	async select() {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
-		this.beatmapDifficultyPanels.length = 0;
+		this.difficultyPanels.length = 0;
 		this.difficultyContainer.removeChildren();
 
 		let selectedPanel = this.carousel.selectedPanel;
@@ -305,8 +305,9 @@ export class BeatmapSetPanel {
 			difficultyPanel.container.zIndex = -i;
 
 			this.difficultyContainer.addChild(difficultyPanel.container);
-			this.beatmapDifficultyPanels.push(difficultyPanel);
+			this.difficultyPanels.push(difficultyPanel);
 		}
+		this.difficultyPanels[0].select(false);
 
 		representingBeatmap.getBackgroundImageFile().then((backgroundImage) => {
 			if (backgroundImage) globalState.backgroundManager.setImage(backgroundImage);
@@ -315,6 +316,8 @@ export class BeatmapSetPanel {
 		this.carousel.songSelect.startAudio(representingBeatmap);
 
 		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
+		if (!this.isExpanded) return; // Could be that the panel is closed by now
+
 		let map: Map<typeof data[0], VirtualFile> = new Map();
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			map.set(data[i], this.beatmapFiles[i]);
@@ -327,14 +330,12 @@ export class BeatmapSetPanel {
 			return 0;
 		});
 
-		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
+		for (let i = 0; i < this.difficultyPanels.length; i++) {
 			let result = data[i];
 			if (result.status === 'fulfilled') {
-				this.beatmapDifficultyPanels[i].load(map.get(result), result.value);
+				this.difficultyPanels[i].load(map.get(result), result.value);
 			}
 		}
-
-		this.beatmapDifficultyPanels[0].select(false);
 	}
 
 	private collapse() {
@@ -349,8 +350,19 @@ export class BeatmapSetPanel {
 		this.expandInterpolator.setReversedState(true, performance.now());
 		this.isExpanded = false;
 
-		for (let i = 0; i < this.beatmapDifficultyPanels.length; i++) {
-			this.beatmapDifficultyPanels[i].disable();
+		for (let i = 0; i < this.difficultyPanels.length; i++) {
+			this.difficultyPanels[i].disable();
 		}
+	}
+
+	skip(forward = true) {
+		let index = this.difficultyPanels.indexOf(this.carousel.selectedSubpanel);
+		if (index === -1) return;
+
+		let nextIndex = index + (forward? 1 : -1);
+		if (nextIndex < 0 || nextIndex >= this.difficultyPanels.length) return false;
+
+		this.difficultyPanels[nextIndex].select(true);
+		return true;
 	}
 }

@@ -1,7 +1,7 @@
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { defaultBeatmapCarouselSortingType, BeatmapCarousel } from "./beatmap_carousel";
 import { BeatmapInfoPanel } from "./beatmap_info_panel";
-import { InteractionGroup, rootInteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, rootInteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { SongSelectSideControlPanel } from "./side_control_panel";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { Beatmap } from "../../datamodel/beatmap";
@@ -13,10 +13,12 @@ import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { currentWindowDimensions, getGlobalScalingFactor } from "../../visuals/ui";
 import { ModSelectionPanel } from "./mod_selection_panel";
+import { KeyCode } from "../../input/input";
 
 export class SongSelect {
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
+	public keyInteraction: InteractionRegistration;
 	
 	public loadedBeatmapSets: BeatmapSet[] = [];
 	public selectedBeatmapFile: VirtualFile = null;
@@ -35,7 +37,9 @@ export class SongSelect {
 
 	constructor() {
 		this.container = new PIXI.Container();
+		
 		this.interactionGroup = new InteractionGroup();
+		this.initKeyInteraction();
 
 		this.carousel = new BeatmapCarousel(this);
 		this.infoPanel = new BeatmapInfoPanel(this);
@@ -56,6 +60,31 @@ export class SongSelect {
 
 		this.resize();
 		this.hide();
+	}
+	
+	private initKeyInteraction() {
+		this.keyInteraction = new InteractionRegistration();
+		this.interactionGroup.add(this.keyInteraction);
+
+		this.keyInteraction.addListener('keyDown', (e) => {
+			switch (e.keyCode) {
+				case KeyCode.Enter: {
+					this.triggerSelectedBeatmap();
+				}; break;
+				case KeyCode.LeftArrow: {
+					this.carousel.skipSet(false);
+				}; break;
+				case KeyCode.RightArrow: {
+					this.carousel.skipSet(true);
+				}; break;
+				case KeyCode.UpArrow: {
+					this.carousel.skipDifficulty(false);
+				}; break;
+				case KeyCode.DownArrow: {
+					this.carousel.skipDifficulty(true);
+				}; break;
+			}
+		});
 	}
 
 	update(now: number, dt: number) {

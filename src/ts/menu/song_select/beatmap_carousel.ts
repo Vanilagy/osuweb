@@ -22,6 +22,7 @@ export const BEATMAP_DIFFICULTY_PANEL_MARGIN = 10;
 export const BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET = 300;
 const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEIGHT/2; // When either the top or bottom panel of the carousel cross this line, the carousel should snap back.
 const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the scroll velocity will have fallen off by this much.
+const MAX_JUMP_DISTANCE = 2500;
 
 export enum BeatmapCarouselSortingType {
 	None = "",
@@ -131,6 +132,43 @@ export class BeatmapCarousel {
 		this.snapToSelected = false;
 	}
 
+	showBeatmapSets(beatmapSets: BeatmapSet[], sortingType: BeatmapCarouselSortingType) {
+		for (let panel of this.beatmapSetPanels) {
+			this.container.removeChild(panel.container);
+			panel.interactionGroup.disable();
+		}
+		this.beatmapSetPanels.length = 0;
+	
+		beatmapSets = beatmapSets.slice();
+		beatmapSets.sort(beatmapCarouselSortingTypeFunctions.get(sortingType));
+	
+		for (let i = 0; i < beatmapSets.length; i++) {
+			let set = beatmapSets[i];
+			let cachedPanel = this.panelCache.get(set);
+			let panel: BeatmapSetPanel;
+	
+			if (cachedPanel) {
+				panel = cachedPanel;
+				panel.interactionGroup.enable();
+			} else {
+				panel = new BeatmapSetPanel(this, set);
+				this.panelCache.set(set, panel);
+			}
+	
+			this.container.addChild(panel.container);
+			this.beatmapSetPanels.push(panel);
+		}
+	
+		if (!this.beatmapSetPanels.includes(this.referencePanel)) {
+			this.referencePanel = this.beatmapSetPanels[0] || null;
+			this.referencePanelY = 200;
+			this.scrollVelocity = 100; // For sick effect hehe
+		}
+	
+		this.skipSnapbackNextFrame = true;
+		this.snapToSelected = false;
+	}
+
 	update(now: number, dt: number) {
 		if (!this.referencePanel) return;
 
@@ -232,6 +270,11 @@ export class BeatmapCarousel {
 		let projectedY = lastPanel.currentNormalizedY - (from - to);
 		let diff = CAROUSEL_END_THRESHOLD - (projectedY + lastPanel.getAdditionalExpansionHeight(now));
 		if (diff > 0) to += diff;
+
+		if (Math.abs(from - to) > MAX_JUMP_DISTANCE) {
+			let delta = from - to;
+			from = to + MAX_JUMP_DISTANCE * Math.sign(delta); // Cap jump distance here
+		}
 	
 		this.snapToSelectionInterpolator.setValueRange(from, to);
 		this.snapToSelectionInterpolator.start(now);
@@ -239,41 +282,33 @@ export class BeatmapCarousel {
 		this.scrollVelocity = 0;
 	}
 
-	showBeatmapSets(beatmapSets: BeatmapSet[], sortingType: BeatmapCarouselSortingType) {
-		for (let panel of this.beatmapSetPanels) {
-			this.container.removeChild(panel.container);
-			panel.interactionGroup.disable();
+	skipSet(forward: boolean) {
+		if (!this.selectedPanel || this.beatmapSetPanels.length === 0) return;
+
+		let nextIndex: number;
+		let index = this.beatmapSetPanels.indexOf(this.selectedPanel);
+		if (index === -1) {
+			nextIndex = forward? 0 : this.beatmapSetPanels.length-1;
+		} else {
+			nextIndex = MathUtil.adjustedMod(index + (forward? 1 : -1), this.beatmapSetPanels.length);
+			if (index === nextIndex) return;
 		}
-		this.beatmapSetPanels.length = 0;
-	
-		beatmapSets = beatmapSets.slice();
-		beatmapSets.sort(beatmapCarouselSortingTypeFunctions.get(sortingType));
-	
-		for (let i = 0; i < beatmapSets.length; i++) {
-			let set = beatmapSets[i];
-			let cachedPanel = this.panelCache.get(set);
-			let panel: BeatmapSetPanel;
-	
-			if (cachedPanel) {
-				panel = cachedPanel;
-				panel.interactionGroup.enable();
-			} else {
-				panel = new BeatmapSetPanel(this, set);
-				this.panelCache.set(set, panel);
-			}
-	
-			this.container.addChild(panel.container);
-			this.beatmapSetPanels.push(panel);
+
+		this.beatmapSetPanels[nextIndex].select();
+	}
+
+	skipDifficulty(forward: boolean) {
+		if (!this.selectedPanel || this.beatmapSetPanels.length === 0) return;
+
+		if (!this.beatmapSetPanels.includes(this.selectedPanel)) {
+			this.skipSet(forward);
+			return;
 		}
-	
-		if (!this.beatmapSetPanels.includes(this.referencePanel)) {
-			this.referencePanel = this.beatmapSetPanels[0] || null;
-			this.referencePanelY = 200;
-			this.scrollVelocity = 100; // For sick effect hehe
+
+		let success = this.selectedPanel.skip(forward);
+		if (!success) {
+			this.skipSet(forward);
 		}
-	
-		this.skipSnapbackNextFrame = true;
-		this.snapToSelected = false;
 	}
 }
 

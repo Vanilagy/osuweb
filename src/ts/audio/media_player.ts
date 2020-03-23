@@ -3,6 +3,7 @@ import { MathUtil } from "../util/math_util";
 import { VirtualFile } from "../file_system/virtual_file";
 import { TickingTask, addTickingTask, removeTickingTask } from "../util/ticker";
 import { AnalyserNodeWrapper } from "./analyser_node_wrapper";
+import { EMPTY_FUNCTION } from "../util/misc_util";
 
 const MEDIA_NUDGE_INTERVAL = 333; // In ms
 const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
@@ -125,14 +126,14 @@ export class MediaPlayer {
 			this.offset = Math.floor(this.offset * 1000 / 26.122448979591837) * 26.122448979591837 / 1000;
 
 			this.audioElement.currentTime = this.offset;
-			this.audioElement.play();
+			this.audioElement.play().catch(EMPTY_FUNCTION);
 			this.audioElement.playbackRate = this.playbackRate;
 		} else {
 			this.audioElement.currentTime = 0;
 
 			// Any inaccuracies in this timeout (+-2ms) will be ironed out by the nudging algorithm in getCurrentTime
 			this.timeout = setTimeout(() => {
-				this.audioElement.play();
+				this.audioElement.play().catch(EMPTY_FUNCTION);
 				this.audioElement.playbackRate = this.playbackRate;
 			}, this.offset * -1 * 1000 / this.playbackRate);
 		}

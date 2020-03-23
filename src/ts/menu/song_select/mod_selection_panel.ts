@@ -152,7 +152,7 @@ export class ModSelectionPanel {
 
 		// ESC -> close
 		backgroundRegistration.addListener('keyDown', (e) => {
-			if (e.keyCode === KeyCode.Escape) this.hide();
+			if (e.keyCode === KeyCode.Escape || e.keyCode === KeyCode.Enter) this.hide();
 		});
 
 		this.hide();
@@ -327,11 +327,13 @@ export class ModSelectionPanel {
 		this.interactionGroup.disable();
 		this.fadeInInterpolator.setReversedState(true, performance.now());
 		this.songSelect.searchBar.interactionGroup.enable();
+		this.songSelect.keyInteraction.enable();
 	}
 
 	show() {
 		this.interactionGroup.enable();
 		this.fadeInInterpolator.setReversedState(false, performance.now());
 		this.songSelect.searchBar.interactionGroup.disable();
+		this.songSelect.keyInteraction.disable();
 	}
 }
