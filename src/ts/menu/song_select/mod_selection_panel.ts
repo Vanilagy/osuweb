@@ -1,4 +1,4 @@
-import { InteractionGroup, Interactivity } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { calculateRatioBasedScalingFactor, colorToHexNumber } from "../../util/graphics_util";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { createPolygonTexture } from "../../util/pixi_util";
@@ -6,12 +6,11 @@ import { Mod, modIncompatibilities } from "../../datamodel/mods";
 import { ModIcon } from "../components/mod_icon";
 import { Button, ButtonPivot, DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, DEFAULT_BUTTON_MARGIN } from "../components/button";
 import { THEME_COLORS } from "../../util/constants";
-import { EMPTY_FUNCTION } from "../../util/misc_util";
 import { SongSelect } from "./song_select";
 import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
 import { EaseType } from "../../util/math_util";
 import { ModHelper } from "../../game/mods/mod_helper";
-import { inputEventEmitter, KeyCode } from "../../input/input";
+import { KeyCode } from "../../input/input";
 
 const PANEL_WIDTH = 620;
 const PANEL_HEIGHT = 396;
@@ -74,14 +73,14 @@ export class ModSelectionPanel {
 	constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.interactionGroup.setZIndex(10);
 
 		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.background.tint = 0x000000;
 		this.background.alpha = 0.8;
 		this.container.addChild(this.background);
-		let backgroundRegistration = Interactivity.registerDisplayObject(this.background);
+		let backgroundRegistration = new InteractionRegistration(this.background);
 		backgroundRegistration.enableEmptyListeners();
 		this.interactionGroup.add(backgroundRegistration);
 
@@ -152,8 +151,8 @@ export class ModSelectionPanel {
 		});
 
 		// ESC -> close
-		inputEventEmitter.addListener('keyDown', (e) => {
-			if (e.keyCode === KeyCode.Escape && this.interactionGroup.enabled) this.hide();
+		backgroundRegistration.addListener('keyDown', (e) => {
+			if (e.keyCode === KeyCode.Escape) this.hide();
 		});
 
 		this.hide();
@@ -327,12 +326,12 @@ export class ModSelectionPanel {
 	hide() {
 		this.interactionGroup.disable();
 		this.fadeInInterpolator.setReversedState(true, performance.now());
-		this.songSelect.carousel.enableScroll();
+		this.songSelect.searchBar.interactionGroup.enable();
 	}
 
 	show() {
 		this.interactionGroup.enable();
 		this.fadeInInterpolator.setReversedState(false, performance.now());
-		this.songSelect.carousel.disableScroll();
+		this.songSelect.searchBar.interactionGroup.disable();
 	}
 }

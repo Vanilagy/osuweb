@@ -10,7 +10,7 @@ import { GameplayController } from "../gameplay_controller";
 import { globalState } from "../../global_state";
 import { Interpolator } from "../../util/interpolation";
 import { SkipButton } from "./skip_button";
-import { InteractionGroup, Interactivity } from "../../input/interactivity";
+import { InteractionGroup } from "../../input/interactivity";
 
 export class Hud {
 	public controller: GameplayController;
@@ -33,7 +33,7 @@ export class Hud {
 	constructor(controller: GameplayController) {
 		this.controller = controller;
 		this.container = new PIXI.Container();
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 
 		let baseSkin = globalState.baseSkin;
 

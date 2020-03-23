@@ -1,6 +1,6 @@
 import { Hud } from "./hud";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
-import { InteractionRegistration, InteractionGroup, Interactivity } from "../../input/interactivity";
+import { InteractionRegistration } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { currentWindowDimensions } from "../../visuals/ui";
@@ -43,7 +43,7 @@ export class SkipButton {
 			ease: EaseType.EaseOutQuad
 		});
 
-		this.registration = Interactivity.registerDisplayObject(this.spriteContainer);
+		this.registration = new InteractionRegistration(this.spriteContainer);
 		this.hud.interactionGroup.add(this.registration);
 
 		this.registration.addListener('mouseEnter', () => {

@@ -3,7 +3,7 @@ import { colorToHexNumber } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { getBeatmapDifficultyPanelMask, TEXTURE_MARGIN, getBeatmapDifficultyPanelGlowTexture, getDifficultyColorBar } from "./beatmap_panel_components";
 import { getNormalizedOffsetOnCarousel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET } from "./beatmap_carousel";
-import { Interactivity, InteractionRegistration } from "../../input/interactivity";
+import { InteractionRegistration } from "../../input/interactivity";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
 import { Interpolator } from "../../util/interpolation";
@@ -97,7 +97,7 @@ export class BeatmapDifficultyPanel {
 	}
 
 	private initInteractions() {
-		this.registration = Interactivity.registerDisplayObject(this.container);
+		this.registration = new InteractionRegistration(this.container);
 		this.parentPanel.interactionGroup.add(this.registration);
 
 		this.registration.addButtonHandlers(
@@ -224,7 +224,7 @@ export class BeatmapDifficultyPanel {
 		if (!this.enabled) return;
 
 		this.enabled = false;
-		this.registration.destroy();
+		this.registration.detach();
 	}
 
 	isSelected() {

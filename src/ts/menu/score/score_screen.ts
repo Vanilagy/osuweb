@@ -1,7 +1,7 @@
 import { Beatmap } from "../../datamodel/beatmap";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { InteractionGroup, Interactivity } from "../../input/interactivity";
+import { InteractionGroup } from "../../input/interactivity";
 import { calculateRatioBasedScalingFactor, colorToHexNumber, colorToHexString } from "../../util/graphics_util";
 import { THEME_COLORS } from "../../util/constants";
 import { scoreGradeTextures } from "../components/score_grade_icon";
@@ -111,7 +111,7 @@ export class ScoreScreen {
 		this.centerContainer = new PIXI.Container();
 		this.container.addChild(this.centerContainer);
 
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 
 		this.header = new BeatmapHeaderPanel(SCORE_SCREEN_WIDTH, SCORE_SCREEN_HEADER_HEIGHT, false, true);
 		this.centerContainer.addChild(this.header.container);

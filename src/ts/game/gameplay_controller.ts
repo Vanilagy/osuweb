@@ -4,22 +4,27 @@ import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { IGNORE_BEATMAP_SKIN } from "./skin/skin";
 import { Play } from "./play";
 import { PauseScreen } from "../menu/gameplay/pause_screen";
-import { InteractionGroup, Interactivity } from "../input/interactivity";
-import { BackgroundManager } from "../visuals/background";
+import { InteractionGroup, InteractionRegistration } from "../input/interactivity";
 import { enableRenderTimeInfoLog } from "../visuals/rendering";
 import { globalState } from "../global_state";
 import { Interpolator } from "../util/interpolation";
 import { EaseType } from "../util/math_util";
-import { inputEventEmitter, KeyCode } from "../input/input";
+import { KeyCode } from "../input/input";
 import { Mod } from "../datamodel/mods";
 import { ModHelper } from "./mods/mod_helper";
 import { assert } from "../util/misc_util";
+import { currentWindowDimensions } from "../visuals/ui";
+import { GameplayInputController } from "../input/gameplay_input_controller";
 
 export class GameplayController {
 	public container: PIXI.Container;
-	public interactionGroup: InteractionGroup;
 	public hud: Hud;
 	public pauseScreen: PauseScreen;
+
+	public interactionGroup: InteractionGroup;
+	public interactionTarget: PIXI.Container;
+	public interactionRegistration: InteractionRegistration;
+	public inputController: GameplayInputController;
 
     public hitObjectContainer: PIXI.Container;  
     public approachCircleContainer: PIXI.Container;
@@ -34,7 +39,7 @@ export class GameplayController {
 
     constructor() {
 		this.container = new PIXI.Container();
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.hud = new Hud(this);
 		this.pauseScreen = new PauseScreen(this);
 
@@ -71,7 +76,11 @@ export class GameplayController {
 			defaultToFinished: true
 		});
 
-		inputEventEmitter.addListener('keyDown', (e) => {
+		this.interactionTarget = new PIXI.Container();
+
+		this.interactionRegistration = new InteractionRegistration(this.interactionTarget);
+		this.interactionGroup.add(this.interactionRegistration);
+		this.interactionRegistration.addListener('keyDown', (e) => {
 			switch (e.keyCode) {
 				case KeyCode.Escape: {
 					if (!this.currentPlay || this.currentPlay.completed) break;
@@ -87,14 +96,14 @@ export class GameplayController {
 			}
 		});
 
-		inputEventEmitter.addListener('mouseMove', () => {
+		// TODO get rid of these:
+		this.interactionRegistration.addListener('mouseMove', () => {
 			if (!this.currentPlay) return;
 			this.currentPlay.handleMouseMove();
 		});
-		inputEventEmitter.addListener('gameButtonDown', () => {
-			if (!this.currentPlay) return;
-			this.currentPlay.handleButtonDown();
-		});
+
+		this.inputController = new GameplayInputController(this.interactionRegistration);
+		this.inputController.addListener('gameButtonDown', () => this.currentPlay && this.currentPlay.handleButtonDown());
 		
 		this.resize();
 		this.hide();
@@ -188,6 +197,7 @@ export class GameplayController {
 
 		this.hud.resize();
 		this.pauseScreen.resize();
+		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
 	}
 
 	pause() {

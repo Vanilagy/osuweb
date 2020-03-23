@@ -1,18 +1,14 @@
-import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
-import { stage, addRenderingTask } from "../../visuals/rendering";
-import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState } from "../../input/input";
-import { getGlobalScalingFactor, uiEventEmitter, REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
+import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, shallowObjectClone, EMPTY_FUNCTION, charIsDigit, compareStringsLowerCase } from "../../util/misc_util";
+import { NormalizedWheelEvent, last, compareStringsLowerCase } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
-import { InteractionGroup, Interactivity } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
 import { SongSelect } from "./song_select";
 import { Interpolator } from "../../util/interpolation";
-import { Point } from "../../util/point";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
@@ -71,30 +67,27 @@ export class BeatmapCarousel {
 		defaultToFinished: true
 	});
 
-	private dragTarget: PIXI.Container;
+	private interactionTarget: PIXI.Container;
 	private pressDownStopped = true;
-	private scrollEnabled = true;
 
 	constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 
-		this.initDragging();
-
-		inputEventEmitter.addListener('wheel', (data) => this.onWheel(data));
+		this.initInteraction();
 	}
 
-	private initDragging() {
-		this.dragTarget = new PIXI.Container();
-		this.songSelect.container.addChild(this.dragTarget);
+	private initInteraction() {
+		this.interactionTarget = new PIXI.Container();
+		this.songSelect.container.addChild(this.interactionTarget);
 
-		let dragListener = Interactivity.registerDisplayObject(this.dragTarget);
-		dragListener.passThrough = true;
-		dragListener.setZIndex(1);
-		this.interactionGroup.add(dragListener);
+		let registration = new InteractionRegistration(this.interactionTarget);
+		registration.setZIndex(1); // Above the panels
+		registration.passThrough = true;
+		this.interactionGroup.add(registration);
 
-		dragListener.makeDraggable(() => {
+		registration.makeDraggable(() => {
 			this.snapToSelected = false;
 			this.scrollVelocity = 0;
 			this.pressDownStopped = false;
@@ -109,10 +102,14 @@ export class BeatmapCarousel {
 		}, (e) => {
 			this.scrollVelocity -= e.velocity.y / this.scalingFactor;
 		});
+
+		registration.addListener('wheel', (e) => {
+			this.onWheel(e);
+		});
 	}
 
 	private onWheel(data: NormalizedWheelEvent) {
-		if (this.beatmapSetPanels.length === 0 || !this.scrollEnabled) return;
+		if (this.beatmapSetPanels.length === 0) return;
 
 		let wheelEvent = data as NormalizedWheelEvent;
 		let effectiveness = 1.0; // How much the scroll "counts"	
@@ -132,14 +129,6 @@ export class BeatmapCarousel {
 	
 		this.scrollVelocity += wheelEvent.dy * 4 * effectiveness;
 		this.snapToSelected = false;
-	}
-
-	enableScroll() {
-		this.scrollEnabled = true;
-	}
-	
-	disableScroll() {
-		this.scrollEnabled = false;
 	}
 
 	update(now: number, dt: number) {
@@ -220,7 +209,7 @@ export class BeatmapCarousel {
 		updateBeatmapDifficultyPanelMasks(this.scalingFactor);
 		updateDifficultyColorBar(this.scalingFactor);
 		
-		this.dragTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
+		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
 	
 		for (let i = 0; i < this.beatmapSetPanels.length; i++) {
 			let panel = this.beatmapSetPanels[i];

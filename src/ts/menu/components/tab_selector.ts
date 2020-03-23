@@ -1,5 +1,5 @@
 import { EaseType } from "../../util/math_util";
-import { Interactivity, InteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
 import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
 import { THEME_COLORS } from "../../util/constants";
@@ -22,7 +22,7 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 
 		this.container = new PIXI.Container();
 		this.tabStrings = tabStrings;
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.margin = margin;
 
 		for (let i = 0; i < this.tabStrings.length; i++) {
@@ -46,7 +46,7 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 			});
 			this.hoverInterpolators.set(container, hoverInterpolator);
 
-			let interaction = Interactivity.registerDisplayObject(container);
+			let interaction = new InteractionRegistration(container);
 			interaction.addListener('mouseDown', () => {
 				this.setSelection(i);
 				this.emit('selection', i);

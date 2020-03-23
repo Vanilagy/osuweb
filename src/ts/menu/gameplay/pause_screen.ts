@@ -1,5 +1,5 @@
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { Interactivity, InteractionGroup } from "../../input/interactivity";
+import { InteractionGroup } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { colorToHexNumber } from "../../util/graphics_util";
@@ -44,7 +44,7 @@ export class PauseScreen {
 		this.buttons = [continueButton, retryButton, quitButton];
 		for (let button of this.buttons) this.centerContainer.addChild(button.container);
 
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.interactionGroup.disable();
 		continueButton.setupInteraction(this.interactionGroup, () => {
 			this.controller.unpause();

@@ -3,7 +3,7 @@ import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/
 import { scale } from "gl-matrix/src/gl-matrix/vec2";
 import { createPolygonTexture, svgToTexture } from "../../util/pixi_util";
 import { addRenderingTask } from "../../visuals/rendering";
-import { Interactivity, InteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { AnalyserNodeWrapper } from "../../audio/analyser_node_wrapper";
@@ -73,7 +73,7 @@ export class SongSelectSideControlPanel {
 		this.songSelect = songSelect;
         this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.interactionGroup.setZIndex(4);
 
         this.pulsar = new SideControlPulsar(this);
@@ -92,10 +92,10 @@ export class SongSelectSideControlPanel {
 		this.buttons = [this.randomButton, this.modSelectionButton];
 		for (let b of this.buttons) this.container.addChild(b.container);
 
-		let interaction = Interactivity.registerDisplayObject(this.background);
+		let interaction = new InteractionRegistration(this.background);
 		this.interactionGroup.add(interaction);
 		interaction.setZIndex(-1);
-		interaction.enableEmptyListeners();
+		interaction.enableEmptyListeners(['wheel']);
     }
 
     resize() {
@@ -178,7 +178,7 @@ class SideControlPanelButton {
 			beginReversed: true
 		});
 
-		let registration = Interactivity.registerDisplayObject(this.background);
+		let registration = new InteractionRegistration(this.background);
 		this.parent.interactionGroup.add(registration);
 
 		registration.addButtonHandlers(
@@ -293,9 +293,9 @@ class SideControlPulsar {
 	}
 
 	private initInteraction() {
-		let interaction = Interactivity.registerDisplayObject(this.container);
+		let interaction = new InteractionRegistration(this.container);
 		this.parent.interactionGroup.add(interaction);
-		interaction.enableEmptyListeners();
+		interaction.enableEmptyListeners(['wheel']);
 		interaction.setZIndex(1);
 
 		interaction.addListener('mouseEnter', () => {

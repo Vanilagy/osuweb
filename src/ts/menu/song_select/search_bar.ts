@@ -1,13 +1,12 @@
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { inputEventEmitter } from "../../input/input";
-import { textInputEventEmitter, TextInputStorage } from "../../input/text_input";
+import { TextInputStorage } from "../../input/text_input_storage";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { beatmapCarouselSortingTypes, defaultBeatmapCarouselSortingType } from "./beatmap_carousel";
 import { OverridableDelay } from "../../util/misc_util";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { TabSelector } from "../components/tab_selector";
 import { addRenderingTask } from "../../visuals/rendering";
-import { Interactivity, InteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { SongSelect } from "./song_select";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 
@@ -34,11 +33,12 @@ export class SearchBar {
     constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.interactionGroup.setZIndex(3);
 
-		this.textStorage = new TextInputStorage();
-		this.textStorage.enable();
+		let textRegistration = new InteractionRegistration();
+		this.interactionGroup.add(textRegistration);
+		this.textStorage = new TextInputStorage(textRegistration);
 
 		this.background = new PIXI.Sprite();
 		this.background.tint = 0x000000;
@@ -61,8 +61,8 @@ export class SearchBar {
 		this.textStorage.addListener('change', () => this.onInput());
 		this.onInput();
 
-		let registration = Interactivity.registerDisplayObject(this.container);
-		registration.enableEmptyListeners();
+		let registration = new InteractionRegistration(this.container);
+		registration.enableEmptyListeners(['wheel']);
 		registration.setZIndex(-1);
 		this.interactionGroup.add(registration);
 	}
@@ -105,14 +105,6 @@ export class SearchBar {
 
 	update(now: number) {
 		this.sortSelector.update(now);
-	}
-
-	enable() {
-		this.textStorage.enable();
-	}
-	
-	disable() {
-		this.textStorage.disable();
 	}
 	
 	private onInput() {

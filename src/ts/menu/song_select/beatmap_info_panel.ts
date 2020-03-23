@@ -10,7 +10,7 @@ import { TabSelector } from "../components/tab_selector";
 import { BeatmapRankingTab } from "./beatmap_ranking_tab";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
-import { Interactivity, InteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { SongSelect } from "./song_select";
 import { BeatmapHeaderPanel } from "../components/beatmap_header_panel";
@@ -46,7 +46,7 @@ export class BeatmapInfoPanel {
 	constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.interactionGroup.setZIndex(2);
 
 		this.header = new BeatmapHeaderPanel(INFO_PANEL_WIDTH, INFO_PANEL_HEADER_HEIGHT, true, true);
@@ -79,7 +79,7 @@ export class BeatmapInfoPanel {
 	}
 
 	private initInteraction() {
-		let reg = Interactivity.registerDisplayObject(this.container);
+		let reg = new InteractionRegistration(this.container);
 		reg.enableEmptyListeners(['wheel']);
 		reg.setZIndex(-1);
 		this.interactionGroup.add(reg);

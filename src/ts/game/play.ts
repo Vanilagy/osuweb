@@ -5,7 +5,7 @@ import { DrawableSpinner } from "./drawables/drawable_spinner";
 import { Point, pointDistance, lerpPoints } from "../util/point";
 import { FollowPoint } from "./drawables/follow_point";
 import { ScoreCounter } from "./score/score_counter";
-import { getCurrentMousePosition, anyGameButtonIsPressed, inputEventEmitter, KeyCode } from "../input/input";
+import { getCurrentMousePosition } from "../input/input";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
@@ -431,7 +431,7 @@ export class Play {
 		this.lastTickTime = currentTime;
 
 		let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
-		let buttonPressed = anyGameButtonIsPressed();
+		let buttonPressed = this.controller.inputController.isAnyButtonPressed();
 
 		// Update health
 		if (!this.processedBeatmap.isInBreak(currentTime)) this.gainHealth(-this.passiveHealthDrain * dt, currentTime); // "Gain" negative health

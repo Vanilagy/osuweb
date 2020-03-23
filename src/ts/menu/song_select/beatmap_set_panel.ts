@@ -6,7 +6,7 @@ import { currentWindowDimensions } from "../../visuals/ui";
 import { BackgroundManager } from "../../visuals/background";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
 import { getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BeatmapCarouselSortingType, BeatmapCarousel } from "./beatmap_carousel";
-import { InteractionRegistration, Interactivity, InteractionGroup } from "../../input/interactivity";
+import { InteractionRegistration, InteractionGroup } from "../../input/interactivity";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { JobUtil } from "../../multithreading/job_util";
@@ -49,7 +49,7 @@ export class BeatmapSetPanel {
 		this.beatmapSet = beatmapSet;
 		this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 		this.carousel.interactionGroup.add(this.interactionGroup);
 
 		this.difficultyContainer = new PIXI.Container();
@@ -116,7 +116,7 @@ export class BeatmapSetPanel {
 	}
 
 	private initInteractions() {
-		let registration = Interactivity.registerDisplayObject(this.panelContainer);
+		let registration = new InteractionRegistration(this.panelContainer);
 		this.interactionGroup.add(registration);
 
 		registration.addButtonHandlers(

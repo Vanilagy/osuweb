@@ -1,7 +1,7 @@
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { defaultBeatmapCarouselSortingType, BeatmapCarousel } from "./beatmap_carousel";
 import { BeatmapInfoPanel } from "./beatmap_info_panel";
-import { Interactivity, InteractionGroup, rootInteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, rootInteractionGroup } from "../../input/interactivity";
 import { SongSelectSideControlPanel } from "./side_control_panel";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { Beatmap } from "../../datamodel/beatmap";
@@ -35,7 +35,7 @@ export class SongSelect {
 
 	constructor() {
 		this.container = new PIXI.Container();
-		this.interactionGroup = Interactivity.createGroup();
+		this.interactionGroup = new InteractionGroup();
 
 		this.carousel = new BeatmapCarousel(this);
 		this.infoPanel = new BeatmapInfoPanel(this);
@@ -133,9 +133,7 @@ export class SongSelect {
 	show() {
 		this.fadeInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.enable();
-		this.searchBar.enable();
 		this.visible = true;
-		this.carousel.enableScroll();
 
 		if (this.currentAudioBeatmap) this.startAudio(this.currentAudioBeatmap);
 	}
@@ -143,8 +141,6 @@ export class SongSelect {
 	hide() {
 		this.fadeInterpolator.setReversedState(true, performance.now());
 		this.interactionGroup.disable();
-		this.searchBar.disable();
 		this.visible = false;
-		this.carousel.disableScroll();
 	}
 }

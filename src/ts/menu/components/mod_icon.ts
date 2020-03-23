@@ -1,7 +1,7 @@
 import { createPolygonTexture } from "../../util/pixi_util";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { Mod, modColors, modLongNames } from "../../datamodel/mods";
-import { InteractionGroup, Interactivity } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
@@ -137,7 +137,7 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 		this.selectionCycle = selectionCycle;
 		if (selectionCycle.length > 0) this.setMod(selectionCycle[0]);
 
-		let registration = Interactivity.registerDisplayObject(this.background);
+		let registration = new InteractionRegistration(this.background);
 		group.add(registration);
 
 		registration.addListener('mouseEnter', () => {

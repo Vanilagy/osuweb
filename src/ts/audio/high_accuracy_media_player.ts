@@ -486,6 +486,7 @@ export class HighAccuracyMediaPlayer {
 		}
 
 		let output = this.calculateCurrentTimeFromElapsedTime(performanceElapsedTime);
+		output -= 0.005; // TODO is this okay?
 
 		// This comparison is made so that we can guarantee a monotonically increasing currentTime. In reality, the value might hop back a few milliseconds, but to the outside world this is unexpected behavior and therefore should be avoided.
 		if (output > this.lastCurrentTimeValue) {

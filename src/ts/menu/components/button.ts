@@ -1,7 +1,7 @@
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { createPolygonTexture } from "../../util/pixi_util";
-import { InteractionGroup, Interactivity, InteractionRegistration } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 
 export const DEFAULT_BUTTON_WIDTH = 140;
 export const DEFAULT_BUTTON_HEIGHT = 35;
@@ -137,7 +137,7 @@ export class Button {
 	}
 
 	setupInteraction(group: InteractionGroup, onclick: () => any) {
-		this.registration = Interactivity.registerDisplayObject(this.container);
+		this.registration = new InteractionRegistration(this.container);
 		group.add(this.registration);
 
 		this.registration.addButtonHandlers(

@@ -2,7 +2,6 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { Spinner } from "../../datamodel/spinner";
 import { MathUtil, EaseType, TAU } from "../../util/math_util";
 import { Point } from "../../util/point";
-import { anyGameButtonIsPressed } from "../../input/input";
 import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../../util/constants";
 import { colorToHexNumber, lerpColors, Color, Colors } from "../../util/graphics_util";
 import { SpriteNumber } from "../../visuals/sprite_number";
@@ -513,7 +512,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	handleMouseMove(osuMouseCoordinates: Point, currentTime: number) {
 		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
 
-		let pressed = anyGameButtonIsPressed();
+		let pressed = this.drawableBeatmap.play.controller.inputController.isAnyButtonPressed();
 
 		if (!pressed) {
 			if (this.lastSpinPosition !== null) {
