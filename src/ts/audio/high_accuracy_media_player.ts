@@ -45,6 +45,8 @@ export class HighAccuracyMediaPlayer {
 	// Non-MP3 stuff:
 	private entireAudioBuffer: AudioBuffer | Promise<void> = null;
 	private beginningSliceCache: AudioBuffer | Promise<AudioBuffer> = null;
+	/** The minimum duration the beginning slice should be long. */
+	private minimumBeginningSliceDuration: number = 0;
 
 	/** Whether or not to stop the current time from advancing when the song is over, or to keep ticking on indefinitely. */
 	private timeCap: boolean = true;
@@ -122,7 +124,7 @@ export class HighAccuracyMediaPlayer {
 		if (this.starting) return;
 		this.starting = true;
 
-		if (this.playing) this.stopAudio();
+		if (this.playing) this.pause();
 
 		// Init master node
 		this.currentMasterNode = audioContext.createGain();
@@ -208,7 +210,12 @@ export class HighAccuracyMediaPlayer {
 				this.beginningSliceCache = new Promise(async (resolve) => {
 					let useNativePlaybackRate = this.tempo === this.pitch;
 
-					let endIndex = Math.min(this.data.byteLength, Math.max(75000, Math.floor(this.data.byteLength * 0.04 * (useNativePlaybackRate? 1 : 1.5))));
+					// Decode a super small part of audio so that we can get approximate bitrate info.
+					let superSmallSlice = await audioContext.decodeAudioData(this.data.slice(0, 32768));
+					// The amount of bytes of audio we think we'll need to encode in order to reach the required minimum duration
+					let projectedBytes = this.minimumBeginningSliceDuration / superSmallSlice.duration * 32768;
+
+					let endIndex = Math.min(this.data.byteLength, Math.floor(projectedBytes) + this.calculateBeginningSliceSafetyMargin());
 					let slice = this.data.slice(0, endIndex);
 					let rawAudioBuffer = await audioContext.decodeAudioData(slice);
 					let finalAudioBuffer: AudioBuffer;
@@ -258,14 +265,20 @@ export class HighAccuracyMediaPlayer {
 		if (this.entireAudioBuffer instanceof Promise) {
 			this.entireAudioBuffer.then(() => playBuffer(this.entireAudioBuffer as AudioBuffer));
 
-			let permittedOffset = 0;
-			if (this.beginningSliceCache instanceof AudioBuffer) permittedOffset = this.beginningSliceCache.duration / 2;
+			let permittedOffset = this.minimumBeginningSliceDuration;
+			if (this.beginningSliceCache instanceof AudioBuffer) permittedOffset += (this.beginningSliceCache.duration - this.minimumBeginningSliceDuration) / 2;
 
 			if (this.offset <= permittedOffset) await startBeginningSlice();			
 			else await this.entireAudioBuffer;
 		} else {
 			playBuffer(this.entireAudioBuffer as AudioBuffer);
 		}
+	}
+
+	/** Returns the amount of bytes the beginning slice should be extended by to ensure that it is long enough, so that when it is completed, the full buffer will be done decoding. */
+	private calculateBeginningSliceSafetyMargin() {
+		let useNativePlaybackRate = this.tempo === this.pitch;
+		return Math.max(75000, Math.floor(this.data.byteLength * 0.04 * (useNativePlaybackRate? 1 : 1.5)));
 	}
 
 	private async readyNextBufferSource() {
@@ -489,5 +502,9 @@ export class HighAccuracyMediaPlayer {
 
 	disableTimeCap() {
 		this.timeCap = false;
+	}
+
+	setMinimumBeginningSliceDuration(duration: number) {
+		this.minimumBeginningSliceDuration = duration;
 	}
 }

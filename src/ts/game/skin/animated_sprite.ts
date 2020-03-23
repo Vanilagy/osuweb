@@ -59,7 +59,7 @@ export class AnimatedOsuSprite {
         frame = Math.max(0, frame);
 
         if (this.loop) {
-            frame = frame % frameCount;
+			frame = MathUtil.adjustedMod(frame, frameCount);
         } else {
             frame = MathUtil.clamp(frame, 0, frameCount-1);
         }

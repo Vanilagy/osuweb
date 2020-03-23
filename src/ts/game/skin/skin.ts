@@ -114,7 +114,10 @@ export class Skin {
 
         // Warning arrows
         this.textures["playWarningArrow"] = await OsuTexture.fromFiles(this.directory, "play-warningarrow", "png", true);
-        this.textures["arrowWarning"] = await OsuTexture.fromFiles(this.directory, "arrow-warning", "png", true);
+		this.textures["arrowWarning"] = await OsuTexture.fromFiles(this.directory, "arrow-warning", "png", true);
+		
+		// Skip button
+		this.textures["playSkip"] = await OsuTexture.fromFiles(this.directory, "play-skip", "png", true, "play-skip-{n}");
         
         // Hit circle numbers
         this.hitCircleNumberTextures = {} as SpriteNumberTextures;
@@ -134,7 +137,7 @@ export class Skin {
             this.comboNumberTextures[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
         }
         
-        // Sounds
+        /* Sounds */
         
         console.time("Hit sounds load");
 

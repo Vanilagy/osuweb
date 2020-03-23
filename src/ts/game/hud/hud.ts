@@ -9,10 +9,13 @@ import { PauseScreen } from "../../menu/gameplay/pause_screen";
 import { GameplayController } from "../gameplay_controller";
 import { globalState } from "../../global_state";
 import { Interpolator } from "../../util/interpolation";
+import { SkipButton } from "./skip_button";
+import { InteractionGroup, Interactivity } from "../../input/interactivity";
 
 export class Hud {
 	public controller: GameplayController;
 	public container: PIXI.Container;
+	public interactionGroup: InteractionGroup;
 
 	public scoreDisplay: SpriteNumber;
 	public phantomComboDisplay: SpriteNumber;
@@ -23,12 +26,14 @@ export class Hud {
 	public scorebar: Scorebar;
 	public sectionStateDisplayer: SectionStateDisplayer;
 	public gameplayWarningArrows: GameplayWarningArrows;
+	public skipButton: SkipButton;
 
 	private fadeInterpolator: Interpolator;
 
 	constructor(controller: GameplayController) {
 		this.controller = controller;
 		this.container = new PIXI.Container();
+		this.interactionGroup = Interactivity.createGroup();
 
 		let baseSkin = globalState.baseSkin;
 
@@ -85,6 +90,7 @@ export class Hud {
 		this.scorebar = new Scorebar(this);
 		this.sectionStateDisplayer = new SectionStateDisplayer(this);
 		this.gameplayWarningArrows = new GameplayWarningArrows(this);
+		this.skipButton = new SkipButton(this);
 
 		this.fadeInterpolator = new Interpolator({
 			beginReversed: true,
@@ -100,6 +106,7 @@ export class Hud {
 		this.container.addChild(this.comboDisplay.container);
 		this.container.addChild(this.accuracyDisplay.container);
 		this.container.addChild(this.progressIndicator.container);
+		this.container.addChild(this.skipButton.container);
 	}
 
 	// Should be called every time a Play is started
@@ -118,6 +125,7 @@ export class Hud {
 		this.comboDisplay.setValue(0);
 		this.accuracyMeter.reset();
 		this.sectionStateDisplayer.reset();
+		this.skipButton.init();
 	}
 
 	resize() {
@@ -133,9 +141,14 @@ export class Hud {
 		this.accuracyDisplay.container.x = Math.floor(currentWindowDimensions.width - accuracyHeight * 0.37);
 		this.accuracyDisplay.container.y = Math.floor(this.scoreDisplay.container.height + currentWindowDimensions.height * 0.0075);
 
+		let lastAccuracyDisplayValue = this.accuracyDisplay.getLastValue();
+		this.accuracyDisplay.setValue(100); // Temporarily, so that we can do correct positioning
+
 		this.progressIndicator.changeDiameter(currentWindowDimensions.height * 0.043);
 		this.progressIndicator.container.x = Math.floor(this.accuracyDisplay.container.x - this.accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (globalState.baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
 		this.progressIndicator.container.y = Math.floor(this.accuracyDisplay.container.y + Math.min(accuracyHeight/2, this.accuracyDisplay.lastComputedHeight/2));
+
+		this.accuracyDisplay.setValue(lastAccuracyDisplayValue); // Set it back
 
 		this.phantomComboDisplay.setScaleFactor(comboHeight / USUAL_SCORE_DIGIT_HEIGHT);
 		this.phantomComboDisplay.container.x = Math.floor(currentWindowDimensions.height * 0.005);
@@ -151,6 +164,8 @@ export class Hud {
 
 		this.sectionStateDisplayer.resize();
 		this.gameplayWarningArrows.resize();
+
+		this.skipButton.resize();
 	}
 
 	update(now: number) {

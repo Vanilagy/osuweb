@@ -25,6 +25,7 @@ import { globalState } from "../global_state";
 import { ScorePopup } from "./score/score_popup";
 import { ScoringValue } from "../datamodel/score";
 import { Mod } from "../datamodel/mods";
+import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1250; // In ms
@@ -206,10 +207,17 @@ export class Play {
 		this.initted = true;
 	}
 
-	async start() {
+	async start(when?: number) {
 		if (this.paused || this.playing) throw new Error("Can't start when paused or playing.");
 
-		await globalState.gameplayMediaPlayer.start(0 || -this.preludeTime / 1000);
+		let minimumStartDuration = 0;
+		if (this.processedBeatmap.hitObjects.length > 0) {
+			minimumStartDuration = this.processedBeatmap.hitObjects[0].startTime / 1000; // When the first hit object starts. This way, we can be sure that we can skip the intro of the song without further audio decoding delay.
+		}
+		globalState.gameplayMediaPlayer.setMinimumBeginningSliceDuration(minimumStartDuration);
+
+		if (when === undefined) when = 0 || -this.preludeTime / 1000;
+		await globalState.gameplayMediaPlayer.start(when);
 
 		this.playing = true;
 		this.tick();
@@ -353,6 +361,9 @@ export class Play {
 			}
 		}
 
+		// Skip button
+		hud.skipButton.update(currentTime);
+
 		// Handle breaks
 		while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
 			// Can't call this variable "break" because reserved keyword, retarded.
@@ -388,6 +399,15 @@ export class Play {
 			// Go from 1.0 brightness to (1 - background dim) brightness
 			let brightness = x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY);
 			backgroundManager.setGameplayBrightness(brightness);
+
+			if (isFinite(breakEvent.endTime) && getBreakLength(breakEvent) >= SKIP_BUTTON_MIN_BREAK_LENGTH) {
+				let fadeIn = MathUtil.clamp((currentTime - breakEvent.startTime) / SKIP_BUTTON_FADE_TIME, 0, 1);
+				let fadeOut = 1 - MathUtil.clamp((currentTime - (breakEvent.endTime - SKIP_BUTTON_END_TIME - SKIP_BUTTON_FADE_TIME)) / SKIP_BUTTON_FADE_TIME, 0, 1);
+
+				hud.skipButton.setVisibility(fadeIn * fadeOut);
+			} else {
+				hud.skipButton.setVisibility(0);
+			}
 
 			break;
 		}
@@ -746,6 +766,19 @@ export class Play {
 
 	private shouldHandleInputRightNow() {
 		return this.initted && !this.paused && !this.completed && !this.activeMods.has(Mod.Auto);
+	}
+
+	async skipBreak() {
+		let currentTime = this.getCurrentSongTime();
+		let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];
+
+		if (isFinite(currentBreak.endTime) && currentTime >= currentBreak.startTime) {
+			let skipToTime = currentBreak.endTime - SKIP_BUTTON_END_TIME;
+
+			if (currentTime < skipToTime) {
+				await globalState.gameplayMediaPlayer.start(skipToTime / 1000);
+			}
+		}
 	}
 
 	getCurrentSongTime() {

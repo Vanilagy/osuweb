@@ -60,6 +60,7 @@ export class GameplayController {
 		this.container.addChild(this.hud.container);
 		this.container.addChild(this.pauseScreen.container);
 
+		this.interactionGroup.add(this.hud.interactionGroup);
 		this.interactionGroup.add(this.pauseScreen.interactionGroup);
 
 		this.fadeInterpolator = new Interpolator({
@@ -77,6 +78,11 @@ export class GameplayController {
 
 					if (this.currentPlay.paused) this.unpause();
 					else this.pause();
+				}; break;
+				case KeyCode.Space: {
+					if (!this.currentPlay) break;
+
+					this.hud.skipButton.trigger();
 				}; break;
 			}
 		});
@@ -126,6 +132,7 @@ export class GameplayController {
 		globalState.backgroundManager.setBlurState(false, 600, EaseType.EaseInQuart);
 
 		this.hud.setFade(true, 0);
+		this.hud.interactionGroup.enable();
 	}
 
 	endPlay() {
@@ -188,6 +195,7 @@ export class GameplayController {
 
 		this.pauseScreen.show();
 		this.currentPlay.pause();
+		this.hud.interactionGroup.disable();
 	}
 
 	unpause() {
@@ -195,6 +203,7 @@ export class GameplayController {
 
 		this.pauseScreen.hide();
 		this.currentPlay.unpause();
+		this.hud.interactionGroup.enable();
 	}
 
 	restart() {

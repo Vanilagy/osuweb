@@ -205,4 +205,8 @@ export class SpriteNumber {
 		this.lastComputedHeight = totalHeight;
 		this.lastValue = num;
 	}
+
+	getLastValue() {
+		return this.lastValue;
+	}
 }

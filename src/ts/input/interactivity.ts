@@ -256,6 +256,10 @@ export class InteractionRegistration extends InteractionUnit {
 		this.addListener('mouseDown', onpressdown);
 		this.addListener('mouseUp', onrelease);
 	}
+
+	setDisplayObject(obj: PIXI.DisplayObject) {
+		this.obj = obj;
+	}
 }
 
 export class InteractionGroup extends InteractionUnit {

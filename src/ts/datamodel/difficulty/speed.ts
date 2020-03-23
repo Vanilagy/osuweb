@@ -28,7 +28,7 @@ export class Speed extends Skill {
 		if (deltaTime < MIN_SPEED_BONUS) speedBonus = 1 + Math.pow((MIN_SPEED_BONUS - deltaTime) / SPEED_BALANCING_FACTOR, 2);
 
 		let angleBonus = 1.0;
-		if (current.angle != null && current.angle < ANGLE_BONUS_BEGIN) {
+		if (current.angle !== null && current.angle < ANGLE_BONUS_BEGIN) {
 			angleBonus = 1 + Math.pow(Math.sin(1.5 * (ANGLE_BONUS_BEGIN - current.angle)), 2) / 3.57;
 
 			if (current.angle < PI_OVER_2) {
