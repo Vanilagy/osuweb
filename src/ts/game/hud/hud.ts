@@ -4,13 +4,13 @@ import { AccuracyMeter } from "./accuracy_meter";
 import { Scorebar } from "./scorebar";
 import { SectionStateDisplayer } from "./section_state_displayer";
 import { GameplayWarningArrows } from "./gameplay_warning_arrows";
-import { currentWindowDimensions } from "../../visuals/ui";
-import { PauseScreen } from "../../menu/gameplay/pause_screen";
+import { currentWindowDimensions, getGlobalScalingFactor } from "../../visuals/ui";
 import { GameplayController } from "../gameplay_controller";
 import { globalState } from "../../global_state";
 import { Interpolator } from "../../util/interpolation";
 import { SkipButton } from "./skip_button";
 import { InteractionGroup } from "../../input/interactivity";
+import { MathUtil, EaseType } from "../../util/math_util";
 
 export class Hud {
 	public controller: GameplayController;
@@ -29,6 +29,7 @@ export class Hud {
 	public skipButton: SkipButton;
 
 	private fadeInterpolator: Interpolator;
+	private currentBreakiness = 1.0;
 
 	constructor(controller: GameplayController) {
 		this.controller = controller;
@@ -126,6 +127,8 @@ export class Hud {
 		this.accuracyMeter.reset();
 		this.sectionStateDisplayer.reset();
 		this.skipButton.init();
+		
+		this.currentBreakiness = 1.0;
 	}
 
 	resize() {
@@ -170,6 +173,16 @@ export class Hud {
 
 	update(now: number) {
 		this.container.alpha = this.fadeInterpolator.getCurrentValue(now);
+
+		let breakiness = MathUtil.ease(EaseType.EaseInQuad, this.currentBreakiness);
+
+		this.comboDisplay.container.pivot.x = 50 * getGlobalScalingFactor() * breakiness;
+		this.comboDisplay.container.alpha = 1 - breakiness;
+		this.phantomComboDisplay.container.pivot.x = this.comboDisplay.container.pivot.x;
+		this.phantomComboDisplay.container.alpha = this.comboDisplay.container.alpha;
+
+		this.scorebar.container.pivot.y = 50 * getGlobalScalingFactor() * breakiness;
+		this.scorebar.container.alpha = 1 - breakiness;
 	}
 
 	setFade(visible: boolean, duration: number) {
@@ -177,5 +190,9 @@ export class Hud {
 
 		this.fadeInterpolator.setReversedState(!visible, now);
 		this.fadeInterpolator.setDuration(duration, now);
+	}
+
+	setBreakiness(breakiness: number) {
+		this.currentBreakiness = breakiness;
 	}
 }

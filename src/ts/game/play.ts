@@ -28,7 +28,7 @@ import { Mod } from "../datamodel/mods";
 import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
-const BREAK_FADE_TIME = 1250; // In ms
+const BREAK_FADE_TIME = 1750; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
@@ -374,7 +374,7 @@ export class Play {
 			}
 
 			/** How much "break-iness" we have. Idk how to name this. 0 means not in the break, 1 means completely in the break, and anything between means *technically in the break*, but we're currently fading shit in. Or out. */
-			let x = 0;
+			let breakiness = 0;
 
 			// Comment this.
 			// Nah so basically, this takes care of the edge case that a break is shorter than BREAK_FADE_TIME*2. Since we don't want the animation to "jump", we tell it to start the fade in the very middle of the break, rather than at endTime - BREAK_FADE_TIME. This might cause x to go, like, 0.0 -> 0.6 -> 0.0, instead of the usual 0.0 -> 1.0 -> 0.0.
@@ -386,19 +386,19 @@ export class Play {
 				if (currentTime >= breakFadeOutStart) {
 					let completion = (currentTime - (breakEvent.endTime - BREAK_FADE_TIME)) / BREAK_FADE_TIME;
 					completion = MathUtil.clamp(completion, 0, 1);
-					x = 1 - completion;
+					breakiness = 1 - completion;
 				} else if (currentTime >= breakEvent.startTime) {
 					let completion = (currentTime - breakEvent.startTime) / BREAK_FADE_TIME;
 					completion = MathUtil.clamp(completion, 0, 1);
-					x = completion;
+					breakiness = completion;
 				}
 			}
 
-			x = MathUtil.ease(EaseType.EaseInOutQuad, x);
-
 			// Go from 1.0 brightness to (1 - background dim) brightness
-			let brightness = x * DEFAULT_BACKGROUND_OPACITY + (1 - x)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY);
+			let brightness = MathUtil.ease(EaseType.EaseInOutQuad, breakiness) * DEFAULT_BACKGROUND_OPACITY + (1 - breakiness)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY);
 			backgroundManager.setGameplayBrightness(brightness);
+
+			hud.setBreakiness(breakiness);
 
 			if (isFinite(breakEvent.endTime) && getBreakLength(breakEvent) >= SKIP_BUTTON_MIN_BREAK_LENGTH) {
 				let fadeIn = MathUtil.clamp((currentTime - breakEvent.startTime) / SKIP_BUTTON_FADE_TIME, 0, 1);

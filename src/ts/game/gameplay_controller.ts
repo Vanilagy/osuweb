@@ -79,6 +79,7 @@ export class GameplayController {
 		this.interactionTarget = new PIXI.Container();
 
 		this.interactionRegistration = new InteractionRegistration(this.interactionTarget);
+		this.interactionRegistration.passThrough = true;
 		this.interactionGroup.add(this.interactionRegistration);
 		this.interactionRegistration.addListener('keyDown', (e) => {
 			switch (e.keyCode) {
