@@ -310,6 +310,24 @@ export class BeatmapCarousel {
 			this.skipSet(forward);
 		}
 	}
+
+	selectRandom() {
+		if (this.beatmapSetPanels.length === 0) return;
+
+		if (this.beatmapSetPanels.length === 1) {
+			// If there's only one beatmap, and that one isn't select it, just select that one.
+			if (!this.beatmapSetPanels.includes(this.selectedPanel)) this.beatmapSetPanels[0].select();
+		} else {
+			let selectedIndex = this.beatmapSetPanels.indexOf(this.selectedPanel);
+			let randomIndex: number;
+
+			do {
+				randomIndex = Math.floor(Math.random() * this.beatmapSetPanels.length);
+			} while (randomIndex === selectedIndex);
+
+			this.beatmapSetPanels[randomIndex].select();
+		}
+	}
 }
 
 export function getNormalizedOffsetOnCarousel(yPosition: number) {

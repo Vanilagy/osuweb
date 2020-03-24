@@ -85,7 +85,9 @@ export class SongSelectSideControlPanel {
         this.background.alpha = 0.8;
         this.container.addChild(this.background);
 
-        this.randomButton = new SideControlPanelButton(this, 'random', randomButtonTexture, EMPTY_FUNCTION);
+        this.randomButton = new SideControlPanelButton(this, 'random', randomButtonTexture, () => {
+			this.songSelect.carousel.selectRandom();
+		});
         this.modSelectionButton = new SideControlPanelButton(this, 'mods', modsButtonTexture, () => {
 			this.songSelect.modSelector.show();
 		});
@@ -216,7 +218,7 @@ class SideControlPanelButton {
 		let hoverCompletion = this.hoverInterpolator.getCurrentValue(now);
 		let pressdownCompletion = this.pressdownInterpolator.getCurrentValue(now);
 
-		this.background.alpha = hoverCompletion * 0.05 + pressdownCompletion * 0.15;
+		this.background.alpha = hoverCompletion * 0.08 + pressdownCompletion * 0.12;
 
 		let highlightCompletion = this.highlightInterpolator.getCurrentValue(now);
 		let tint = lerpColors(Colors.White, THEME_COLORS.PrimaryBlue, highlightCompletion);

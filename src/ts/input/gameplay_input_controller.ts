@@ -57,4 +57,9 @@ export class GameplayInputController extends CustomEventEmitter<{gameButtonDown:
 	isAnyButtonPressed() {
 		return this.keyButtonState.includes(true) || this.mouseButtonState.includes(true);
 	}
+
+	reset() {
+		this.keyButtonState = [false, false];
+		this.mouseButtonState = [false, false];
+	}
 }

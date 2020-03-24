@@ -231,7 +231,9 @@ export class Beatmap {
 			} else if (section === "hitobjects") {
 				if (!this.metadataOnly) this.parseHitObject(line);
 			} else {
-				let value = line.split(':')[1].trim();
+				let split = line.split(':');
+				if (split[1] === undefined) continue;
+				let value = split[1].trim();
 
 				// General
 				     if (line.startsWith("AudioFilename")) this.audioFilename = value;

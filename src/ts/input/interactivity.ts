@@ -206,7 +206,7 @@ export class InteractionRegistration extends InteractionUnit {
 	}
 
 	releaseAllPresses() {
-		if (this.pressedDown) {
+		if (this.pressedDown[0] || this.pressedDown[1] || this.pressedDown[2]) {
 			for (let key in this.pressedDown) this.pressedDown[key] = false;
 
 			let mousePosition = getCurrentMousePosition();
@@ -224,7 +224,7 @@ export class InteractionRegistration extends InteractionUnit {
 		});
 		this.addListener('mouseEnter', (e) => {
 			onmousenter();
-			if (this.pressedDown) onpressdown();
+			if (this.pressedDown[button] === true) onpressdown();
 		});
 		this.addListener('mouseLeave', (e) => {
 			onmouseleave();

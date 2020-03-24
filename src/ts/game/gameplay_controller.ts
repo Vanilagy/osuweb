@@ -143,6 +143,8 @@ export class GameplayController {
 
 		this.hud.setFade(true, 0);
 		this.hud.interactionGroup.enable();
+
+		this.inputController.reset(); // eh for safety?
 	}
 
 	endPlay() {
