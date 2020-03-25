@@ -2,10 +2,11 @@ import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { globalState } from "../../global_state";
 import { defaultBeatmapCarouselSortingType } from "./beatmap_carousel";
+import { removeHTMLElement } from "../../util/misc_util";
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 songFolderSelect.addEventListener('change', async () => {
-	(document.querySelector('#temp-controls') as HTMLElement).style.display = 'none';
+	removeHTMLElement(document.querySelector('#temp-controls') as HTMLElement);
 
 	let songSelect = globalState.songSelect;
 	let directory = VirtualDirectory.fromFileList(songFolderSelect.files);

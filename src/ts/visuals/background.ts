@@ -15,7 +15,6 @@ export class BackgroundManager {
 	private videoElement: HTMLVideoElement;
 	private videoOpacity = 0.0;
 	private currentImageFile: VirtualFile = null;
-	private currentVideoFile: VirtualFile = null;
 	private markedForDeletionSprites: WeakSet<PIXI.Sprite> = new WeakSet();
 	private fadeInterpolators: WeakMap<PIXI.Sprite, Interpolator> = new WeakMap();
 	private currentGameplayBrightness: number = 1.0;
@@ -97,10 +96,10 @@ export class BackgroundManager {
 
 	/** Returns a Promise that resolves once the video is ready for playback. */
 	async setVideo(file: VirtualFile): Promise<void> {
-		if (this.currentVideoFile === file) return Promise.resolve();
-		this.currentVideoFile = file;
+		let url = await file.readAsResourceUrl();
+		if (this.videoElement.src === url) return;
 
-		this.videoElement.src = await file.readAsResourceUrl();
+		this.videoElement.src = url;
 
 		return new Promise((resolve, reject) => {
 			this.videoElement.addEventListener('error', reject);
@@ -113,6 +112,7 @@ export class BackgroundManager {
 	removeVideo() {
 		this.videoElement.pause();
 		this.videoElement.src = '';
+		this.videoOpacity = 0.0;
 	}
 
 	setVideoOpacity(opacity: number) {

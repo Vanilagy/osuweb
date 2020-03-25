@@ -220,3 +220,7 @@ export function bytesToString(bytes: Uint8Array) {
 
 	return str;
 }
+
+export function removeHTMLElement(element: HTMLElement) {
+	element.parentElement.removeChild(element);
+}

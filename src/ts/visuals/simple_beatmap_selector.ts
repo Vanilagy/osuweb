@@ -4,6 +4,7 @@ import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { globalState } from "../global_state";
 import { ModHelper } from "../game/mods/mod_helper";
+import { removeHTMLElement } from "../util/misc_util";
 
 const beatmapFileSelect = document.querySelector('#beatmap-select') as HTMLInputElement;
 beatmapFileSelect.style.display = 'none';
@@ -29,8 +30,7 @@ beatmapFileSelect.addEventListener('change', async (e) => {
 
 	if (!selectedOsuFile) return;
 
-	(document.querySelector('#temp-controls') as HTMLElement).style.display = 'none';
-	beatmapFileSelect.style.display = 'none';
+	removeHTMLElement(document.querySelector('#temp-controls') as HTMLElement);
 
 	let beatmap = new Beatmap({
 		text: await selectedOsuFile.readAsText(),

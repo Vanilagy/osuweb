@@ -482,11 +482,12 @@ export class HighAccuracyMediaPlayer {
 		let contextElapsedTime = audioContext.currentTime - this.startTime;
 		if (Math.abs(performanceElapsedTime - contextElapsedTime) > 0.05) {
 			// Resynchronize (should happen super rarely)
+			alert("resync'd");
 			this.performanceStartTime += (performanceElapsedTime - contextElapsedTime);
 		}
 
 		let output = this.calculateCurrentTimeFromElapsedTime(performanceElapsedTime);
-		output -= 0.005; // TODO is this okay?
+		output -= 0.01; // TODO is this okay?
 
 		// This comparison is made so that we can guarantee a monotonically increasing currentTime. In reality, the value might hop back a few milliseconds, but to the outside world this is unexpected behavior and therefore should be avoided.
 		if (output > this.lastCurrentTimeValue) {
