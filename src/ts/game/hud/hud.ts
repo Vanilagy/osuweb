@@ -99,9 +99,9 @@ export class Hud {
 		});
 	
 		this.container.addChild(this.sectionStateDisplayer.container);
+		this.container.addChild(this.accuracyMeter.container);
 		this.container.addChild(this.scorebar.container);
 		this.container.addChild(this.gameplayWarningArrows.container);
-		this.container.addChild(this.accuracyMeter.container);
 		this.container.addChild(this.scoreDisplay.container);
 		this.container.addChild(this.phantomComboDisplay.container);
 		this.container.addChild(this.comboDisplay.container);

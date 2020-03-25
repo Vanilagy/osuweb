@@ -1,8 +1,11 @@
 import { MathUtil, EaseType } from "../../util/math_util";
-import { currentWindowDimensions } from "../../visuals/ui";
 import { Hud } from "./hud";
+import { createPolygonTexture } from "../../util/pixi_util";
+import { InterpolatedValueChanger } from "../../util/interpolation";
 
-const ACCURACY_METER_HEIGHT_FACTOR = 0.02;
+const BLUE_STRIP_COLOR = 0x38b8e8;
+const GREEN_STRIP_COLOR = 0x57e11a;
+const ORANGE_STRIP_COLOR = 0xd6ac52;
 const ACCURACY_LINE_LIFETIME = 10000; // In ms
 const ACCURACY_METER_FADE_OUT_DELAY = 4000; // In ms
 const ACCURACY_METER_FADE_OUT_TIME = 1000; // In ms
@@ -17,6 +20,8 @@ export class AccuracyMeter {
 
 	private base: PIXI.Graphics;
 	private overlay: PIXI.Container;
+	private averagePointer: PIXI.Sprite;
+	private averagePointerInterpolator: InterpolatedValueChanger;
 	private width: number;
 	private lineWidth: number;
 	private height: number;
@@ -31,6 +36,7 @@ export class AccuracyMeter {
 		this.container = new PIXI.Container();
 		this.base = new PIXI.Graphics();
 		this.overlay = new PIXI.Container();
+		this.averagePointer = new PIXI.Sprite();
 		this.accuracyLines = [];
 		this.accuracyLineSpawnTimes = new WeakMap();
 		this.accuracyLineInaccuracies = new WeakMap();
@@ -38,8 +44,15 @@ export class AccuracyMeter {
 
 		this.container.addChild(this.base);
 		this.container.addChild(this.overlay);
+		this.container.addChild(this.averagePointer);
 
 		this.container.filters = [this.alphaFilter];
+
+		this.averagePointerInterpolator = new InterpolatedValueChanger({
+			initial: 0,
+			duration: 700,
+			ease: EaseType.EaseOutQuad
+		});
 	}
 
 	init() {
@@ -53,11 +66,12 @@ export class AccuracyMeter {
 	}
 
 	resize() {
-		this.height = Math.max(15, Math.round(currentWindowDimensions.height * ACCURACY_METER_HEIGHT_FACTOR / 5) * 5);
-		let widthScale = this.height * 0.04;
-		this.width = Math.round(this.time50*2 * widthScale / 2) * 2;
+		let { screenPixelRatio } = this.hud.controller.currentPlay;
 
-		this.lineWidth = 2;
+		this.height = Math.round(20 * screenPixelRatio);
+		this.width = MathUtil.floorToMultiple(this.time50 * screenPixelRatio * 1.6, 2);
+
+		this.lineWidth = Math.floor(2.5 * screenPixelRatio);
 
 		this.base.clear();
 
@@ -66,27 +80,30 @@ export class AccuracyMeter {
 		this.base.drawRect(0, 0, this.width, this.height);
 		this.base.endFill();
 
+		let stripY = Math.floor(this.height*2/5);
+		let stripHeight = Math.ceil(this.height/5);
+
 		// Orange strip
-		this.base.beginFill(0xd6ac52, 1);
-		this.base.drawRect(0, this.height*2/5, this.width, this.height/5);
+		this.base.beginFill(ORANGE_STRIP_COLOR, 1);
+		this.base.drawRect(0, stripY, this.width, stripHeight);
 		this.base.endFill();
 
 		// Green strip
-		let greenStripWidth = Math.ceil(this.time100*2 * widthScale);
-		this.base.beginFill(0x57e11a, 1);
-		this.base.drawRect(Math.floor(this.width/2 - greenStripWidth/2), this.height*2/5, greenStripWidth, this.height/5);
+		let greenStripWidth = Math.ceil(this.time100/this.time50 * this.width);
+		this.base.beginFill(GREEN_STRIP_COLOR, 1);
+		this.base.drawRect(Math.floor(this.width/2 - greenStripWidth/2), stripY, greenStripWidth, stripHeight);
 		this.base.endFill();
 
 		// Blue strip
-		let blueStripWidth = Math.ceil(this.time300*2 * widthScale);
-		this.base.beginFill(0x38b8e8, 1);
-		this.base.drawRect(Math.floor(this.width/2 - blueStripWidth/2), this.height*2/5, blueStripWidth, this.height/5);
+		let blueStripWidth = Math.ceil(this.time300/this.time50 * this.width);
+		this.base.beginFill(BLUE_STRIP_COLOR, 1);
+		this.base.drawRect(Math.floor(this.width/2 - blueStripWidth/2), stripY, blueStripWidth, stripHeight);
 		this.base.endFill();
 
 		// White middle line
 		let lineWidth = this.lineWidth;
-		this.base.beginFill(0xFFFFFF);
-		this.base.drawRect(this.width/2 - lineWidth/2, 0, lineWidth, this.height);
+		this.base.beginFill(0xffffff);
+		this.base.drawRect(Math.ceil(this.width/2 - lineWidth/2), 0, lineWidth, this.height);
 		this.base.endFill();
 
 		this.container.width = this.width;
@@ -99,6 +116,13 @@ export class AccuracyMeter {
 			this.drawLine(line);
 			this.positionLine(line, this.accuracyLineInaccuracies.get(line));
 		}
+
+		let averagePointerWidth = 10;
+		let averagePointerHeight = averagePointerWidth * 0.5;
+		this.averagePointer.texture = createPolygonTexture(averagePointerWidth, averagePointerHeight, [
+			new PIXI.Point(0, 0), new PIXI.Point(averagePointerWidth, 0), new PIXI.Point(averagePointerWidth/2, averagePointerHeight)
+		], screenPixelRatio);
+		this.averagePointer.pivot.x = Math.floor(averagePointerWidth * screenPixelRatio - 1) / 2;
 	}
 	
 	update(currentTime: number) {
@@ -126,12 +150,16 @@ export class AccuracyMeter {
 		let fadeOutCompletion = (currentTime - this.fadeOutStart) / ACCURACY_METER_FADE_OUT_TIME;
 		fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
 		this.alphaFilter.alpha = 1 - fadeOutCompletion;
+
+		let averagePointerPos = this.averagePointerInterpolator.getCurrentValue(currentTime);
+		this.averagePointer.x = Math.floor((1 + averagePointerPos / this.time50) * this.width/2);
 	}
 
 	reset() {
 		this.overlay.removeChildren();
 		this.accuracyLines.length = 0;
 		this.fadeOutStart = -Infinity;
+		this.averagePointerInterpolator.reset(0);
 	}
 
 	addAccuracyLine(inaccuracy: number, currentTime: number) {
@@ -141,9 +169,9 @@ export class AccuracyMeter {
 		if (judgement === 0) return;
 
 		let color = (() => {
-			if (judgement === 300) return 0x38b8e8;
-			else if (judgement === 100) return 0x57e11a;
-			return 0xd6ac52;
+			if (judgement === 300) return BLUE_STRIP_COLOR;
+			else if (judgement === 100) return GREEN_STRIP_COLOR;
+			return ORANGE_STRIP_COLOR;
 		})();
 
 		let line = new PIXI.Graphics();
@@ -159,6 +187,13 @@ export class AccuracyMeter {
 		this.accuracyLineInaccuracies.set(line, inaccuracy);
 
 		this.fadeOutStart = currentTime + ACCURACY_METER_FADE_OUT_DELAY;
+
+		let total = 0;
+		for (let i = 0; i < this.accuracyLines.length; i++) {
+			total += this.accuracyLineInaccuracies.get(this.accuracyLines[i]);
+		}
+		let averageInaccuracy = total / this.accuracyLines.length;
+		this.averagePointerInterpolator.setGoal(averageInaccuracy, currentTime);
 	}
 
 	private drawLine(graphics: PIXI.Graphics) {
@@ -166,11 +201,11 @@ export class AccuracyMeter {
 		graphics.beginFill(0xffffff, 0.65);
 		graphics.drawRect(0, 0, this.lineWidth, this.height);
 		graphics.endFill();
-		graphics.pivot.x = graphics.width / 2;
+		graphics.pivot.x = Math.floor(graphics.width / 2);
 	}
 
 	private positionLine(line: PIXI.Graphics, inaccuracy: number) {
-		line.x = this.width/2 + (inaccuracy / this.time50) * this.width/2;
+		line.x = Math.floor((1 + inaccuracy / this.time50) * this.width/2);
 	}
 
 	fadeOutNow(currentTime: number) {
