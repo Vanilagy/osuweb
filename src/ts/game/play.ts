@@ -19,7 +19,6 @@ import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
-import { addTickingTask } from "../util/ticker";
 import { GameplayController } from "./gameplay_controller";
 import { globalState } from "../global_state";
 import { ScorePopup } from "./score/score_popup";
@@ -28,7 +27,7 @@ import { Mod } from "../datamodel/mods";
 import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
-const BREAK_FADE_TIME = 1750; // In ms
+const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction

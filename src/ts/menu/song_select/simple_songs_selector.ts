@@ -5,7 +5,7 @@ import { defaultBeatmapCarouselSortingType } from "./beatmap_carousel";
 
 const songFolderSelect = document.querySelector('#songs-folder-select') as HTMLInputElement;
 songFolderSelect.addEventListener('change', async () => {
-	(document.querySelector('#tempControls') as HTMLElement).style.display = 'none';
+	(document.querySelector('#temp-controls') as HTMLElement).style.display = 'none';
 
 	let songSelect = globalState.songSelect;
 	let directory = VirtualDirectory.fromFileList(songFolderSelect.files);

@@ -29,7 +29,7 @@ beatmapFileSelect.addEventListener('change', async (e) => {
 
 	if (!selectedOsuFile) return;
 
-	(document.querySelector('#tempControls') as HTMLElement).style.display = 'none';
+	(document.querySelector('#temp-controls') as HTMLElement).style.display = 'none';
 	beatmapFileSelect.style.display = 'none';
 
 	let beatmap = new Beatmap({

@@ -9,7 +9,7 @@ export const mainCanvas = document.querySelector('#main-canvas') as HTMLCanvasEl
 
 const gl = mainCanvas.getContext('webgl2', {
 	stencil: true,
-	alpha: false,
+	alpha: true,
 	powerPreference: 'high-performance',
 	desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 }) as WebGLRenderingContext; // Technically WebGL2, but idk. Rollup is complaining :S

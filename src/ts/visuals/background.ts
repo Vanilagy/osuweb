@@ -1,20 +1,19 @@
 import { EaseType, MathUtil } from "../util/math_util";
-import { addRenderingTask } from "./rendering";
 import { VirtualFile } from "../file_system/virtual_file";
 import { getBitmapFromImageFile, BitmapQuality } from "../util/image_util";
 import { fitSpriteIntoContainer } from "../util/pixi_util";
-import { uiEventEmitter, getGlobalScalingFactor, currentWindowDimensions } from "./ui";
-import { last } from "../util/misc_util";
+import { getGlobalScalingFactor, currentWindowDimensions } from "./ui";
 import { Interpolator } from "../util/interpolation";
 
 const IMAGE_FADE_IN_DURATION = 333; // In ms
+const backgroundVideoElement = document.querySelector('#background-video') as HTMLVideoElement;
 
 export class BackgroundManager {
 	public container: PIXI.Container = new PIXI.Container();
 	private isInGameplay: boolean = false;
 	private imageContainer = new PIXI.Container();
-	private videoElement = document.createElement('video');
-	private videoSprite: PIXI.Sprite;
+	private videoElement: HTMLVideoElement;
+	private videoOpacity = 0.0;
 	private currentImageFile: VirtualFile = null;
 	private currentVideoFile: VirtualFile = null;
 	private markedForDeletionSprites: WeakSet<PIXI.Sprite> = new WeakSet();
@@ -33,20 +32,17 @@ export class BackgroundManager {
 	});
 
 	constructor() {
+		this.videoElement = backgroundVideoElement;
 		this.videoElement.setAttribute('muted', '');
 		this.videoElement.setAttribute('preload', 'auto');
 		this.videoElement.setAttribute('webkit-playsinline', '');
 		this.videoElement.setAttribute('playsinline', '');
 
-		let videoTex = PIXI.Texture.from(this.videoElement);
-		this.videoSprite = new PIXI.Sprite(videoTex);
-		(videoTex.baseTexture.resource as any).autoPlay = false;
-
 		this.setBlurState(true, 0, EaseType.Linear);
 		this.setGameplayState(false, 0, EaseType.Linear);
 		this.resize();
 
-		this.container.addChild(this.imageContainer, this.videoSprite);
+		this.container.addChild(this.imageContainer);
 
 		this.blurFilter.quality = 5;
 		this.container.filters = [this.blurFilter, this.colorMatrixFilter];
@@ -109,7 +105,6 @@ export class BackgroundManager {
 		return new Promise((resolve, reject) => {
 			this.videoElement.addEventListener('error', reject);
 			this.videoElement.addEventListener('canplaythrough', () => {
-				fitSpriteIntoContainer(this.videoSprite, currentWindowDimensions.width, currentWindowDimensions.height);
 				resolve();
 			});
 		});
@@ -121,7 +116,7 @@ export class BackgroundManager {
 	}
 
 	setVideoOpacity(opacity: number) {
-		this.videoElement.style.opacity = opacity.toString();
+		this.videoOpacity = opacity;
 	}
 
 	playVideo() {
@@ -157,6 +152,8 @@ export class BackgroundManager {
 		let brightness = MathUtil.lerp(0.7, this.currentGameplayBrightness, t);
 
 		this.colorMatrixFilter.brightness(brightness, false);
+		this.videoElement.style.opacity = brightness.toString();
+		this.imageContainer.alpha = MathUtil.lerp(1.0, 1 - this.videoOpacity, t);
 
 		for (let obj of this.imageContainer.children) {
 			let sprite = obj as PIXI.Sprite;
@@ -182,7 +179,5 @@ export class BackgroundManager {
 			let sprite = obj as PIXI.Sprite;
 			fitSpriteIntoContainer(sprite, currentWindowDimensions.width, currentWindowDimensions.height);
 		}
-
-		fitSpriteIntoContainer(this.videoSprite, currentWindowDimensions.width, currentWindowDimensions.height);
 	}
 }
