@@ -1,5 +1,5 @@
 import { Mp3Util, AudioUtil } from "../util/audio_util";
-import { audioContext, mediaAudioNode } from "./audio";
+import { audioContext } from "./audio";
 import { addTickingTask, removeTickingTask } from "../util/ticker";
 import { VirtualFile } from "../file_system/virtual_file";
 import { MathUtil } from "../util/math_util";

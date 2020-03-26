@@ -14,7 +14,6 @@ export class BackgroundManager {
 	private imageContainer = new PIXI.Container();
 	private videoElement: HTMLVideoElement;
 	private videoOpacity = 0.0;
-	private currentImageFile: VirtualFile = null;
 	private markedForDeletionSprites: WeakSet<PIXI.Sprite> = new WeakSet();
 	private fadeInterpolators: WeakMap<PIXI.Sprite, Interpolator> = new WeakMap();
 	private currentGameplayBrightness: number = 1.0;
@@ -64,15 +63,16 @@ export class BackgroundManager {
 		this.gameplayInterpolator.setEase(ease, now);
 	}
 
-	async setImage(file: VirtualFile) {
-		if (this.currentImageFile === file) return;
-		this.currentImageFile = file;
+	getIsInGameplay() {
+		return this.isInGameplay;
+	}
 
+	async setImage(file: VirtualFile, highQuality = false) {
 		let newSprite = new PIXI.Sprite();
 		newSprite.visible = false;
 		this.imageContainer.addChild(newSprite);
 
-		let bitmap = await getBitmapFromImageFile(file, this.isInGameplay? BitmapQuality.High : BitmapQuality.Medium);
+		let bitmap = await getBitmapFromImageFile(file, highQuality? BitmapQuality.High : BitmapQuality.Medium);
 		newSprite.texture = PIXI.Texture.from(bitmap as any);
 		newSprite.visible = true;
 		

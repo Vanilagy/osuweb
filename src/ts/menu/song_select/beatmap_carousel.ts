@@ -283,7 +283,7 @@ export class BeatmapCarousel {
 	}
 
 	skipSet(forward: boolean) {
-		if (!this.selectedPanel || this.beatmapSetPanels.length === 0) return;
+		if (this.beatmapSetPanels.length === 0) return;
 
 		let nextIndex: number;
 		let index = this.beatmapSetPanels.indexOf(this.selectedPanel);
@@ -298,7 +298,7 @@ export class BeatmapCarousel {
 	}
 
 	skipDifficulty(forward: boolean) {
-		if (!this.selectedPanel || this.beatmapSetPanels.length === 0) return;
+		if (this.beatmapSetPanels.length === 0) return;
 
 		if (!this.beatmapSetPanels.includes(this.selectedPanel)) {
 			this.skipSet(forward);
