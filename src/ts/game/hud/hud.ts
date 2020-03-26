@@ -73,7 +73,6 @@ export class Hud {
 			textures: baseSkin.scoreNumberTextures,
 			hasX: true
 		});
-		this.phantomComboDisplay.container.alpha = 0.333;
 		this.phantomComboDisplay.setValue(0);
 	
 		this.comboDisplay = new SpriteNumber({
@@ -179,7 +178,7 @@ export class Hud {
 		this.comboDisplay.container.pivot.x = 50 * getGlobalScalingFactor() * breakiness;
 		this.comboDisplay.container.alpha = 1 - breakiness;
 		this.phantomComboDisplay.container.pivot.x = this.comboDisplay.container.pivot.x;
-		this.phantomComboDisplay.container.alpha = this.comboDisplay.container.alpha;
+		this.phantomComboDisplay.container.alpha = 0.333 * this.comboDisplay.container.alpha;
 
 		this.scorebar.container.pivot.y = 50 * getGlobalScalingFactor() * breakiness;
 		this.scorebar.container.alpha = 1 - breakiness;
