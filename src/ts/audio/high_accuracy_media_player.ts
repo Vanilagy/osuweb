@@ -51,6 +51,8 @@ export class HighAccuracyMediaPlayer {
 	/** Whether or not to stop the current time from advancing when the song is over, or to keep ticking on indefinitely. */
 	private timeCap: boolean = true;
 	private lastCurrentTimeValue: number = -Infinity;
+	private timingDeltas: number[] = [];
+	private lastDeltaAdjustmentTime: number = null;
 	
 	private tickingTask = () => { this.tick(); };
 
@@ -478,16 +480,28 @@ export class HighAccuracyMediaPlayer {
 	}
 
 	getCurrentTime() {
-		let performanceElapsedTime = (performance.now() - this.performanceStartTime) / 1000;
+		let now = performance.now();
+
+		let performanceElapsedTime = (now - this.performanceStartTime) / 1000;
 		let contextElapsedTime = audioContext.currentTime - this.startTime;
-		if (Math.abs(performanceElapsedTime - contextElapsedTime) > 0.05) {
-			// Resynchronize (should happen super rarely)
-			alert("resync'd");
-			this.performanceStartTime += (performanceElapsedTime - contextElapsedTime);
+		let delta = performanceElapsedTime - contextElapsedTime;
+
+		// make sure this time doesn't drift away from context time
+		if (!isNaN(delta) && this.playing) {
+			this.timingDeltas.push(delta);
+
+			if (this.lastDeltaAdjustmentTime === null) {
+				this.lastDeltaAdjustmentTime = now;
+			} else if (now - this.lastDeltaAdjustmentTime >= 250 && this.timingDeltas.length >= 10) {
+				let avg = MathUtil.calculateMean(this.timingDeltas);
+				this.performanceStartTime += avg * 1000;
+				this.timingDeltas.length = 0;
+	
+				this.lastDeltaAdjustmentTime = now;
+			}
 		}
 
 		let output = this.calculateCurrentTimeFromElapsedTime(performanceElapsedTime);
-		output -= 0.01; // TODO is this okay?
 
 		// This comparison is made so that we can guarantee a monotonically increasing currentTime. In reality, the value might hop back a few milliseconds, but to the outside world this is unexpected behavior and therefore should be avoided.
 		if (output > this.lastCurrentTimeValue) {

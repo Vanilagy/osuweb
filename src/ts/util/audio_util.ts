@@ -171,23 +171,15 @@ export abstract class Mp3Util {
 	// Gets the byte length of a id3 (and following xing/info) tag from its header
 	static getFileHeaderByteLength(view: DataView, offset: number) {
 		if (view.byteLength - offset < 10) return null;
-
-		let byteLength = Mp3Util.unsynchsafe(view.getUint32(offset + 6)) + 10; // Have to add 10 because the number excludes the header length (which is always 10)
-		let nextFrameIndex = offset + byteLength;
-
-		let hasXingFrame = Mp3Util.isFrameHeader(view, nextFrameIndex) && Mp3Util.isXingFrame(view, nextFrameIndex);
-		if (hasXingFrame) {
-			let xingFrameLength = Mp3Util.getFrameByteLength(view, nextFrameIndex);
-			byteLength += xingFrameLength;
-		}
-
-		let nextFrameStart = Mp3Util.getFirstFrameHeaderIndex(view, offset + byteLength);
-		if (nextFrameStart === null) return byteLength;
-		else return nextFrameStart - offset;
+		return Mp3Util.getFirstFrameHeaderIndex(view, offset);
 	}
 
 	static isId3Tag(view: DataView, offset: number) {
 		return bytesToString(new Uint8Array(view.buffer.slice(offset, offset + 3))) === "ID3";
+	}
+
+	static getId3TagLength(view: DataView, offset: number) {
+		return Mp3Util.unsynchsafe(view.getUint32(offset + 6)) + 10; // Have to add 10 because the number excludes the header length (which is always 10)
 	}
 
 	static isXingFrame(view: DataView, offset: number) {
@@ -303,9 +295,24 @@ export abstract class Mp3Util {
 		return Mp3Util.getFrameHeaderIndexAtTime(view, Mp3Util.getFileHeaderByteLength(view, 0), Infinity).exactTime;
 	}
 
-	static getFirstFrameHeaderIndex(view: DataView, offset: number) {
-		for (let i = offset; i < view.byteLength; i++) {
-			if (Mp3Util.isFrameHeader(view, i)) return i;
+	static getFirstFrameHeaderIndex(view: DataView, offset: number, acceptMetatags = false) {
+		let endIndex = Math.min(view.byteLength, offset + 100000);
+
+		for (let i = offset; i < endIndex; i++) {
+			if (Mp3Util.isId3Tag(view, i)) {
+				i += Mp3Util.getId3TagLength(view, i) - 1;
+				continue;
+			}
+
+			if (!Mp3Util.isFrameHeader(view, i)) continue;
+			if (acceptMetatags) return i;
+
+			if (Mp3Util.isXingFrame(view, i)) {
+				i += Mp3Util.getFrameByteLength(view, i) - 1;
+				continue;
+			}
+
+			return i;
 		}
 
 		return null;
