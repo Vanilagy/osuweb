@@ -17,6 +17,8 @@ export class TextInputStorage extends CustomEventEmitter<{change: string}> {
 					this.emit('change', this.stored);
 				}
 			} else {
+				if (e.ctrlKey || e.metaKey) return;
+
 				let str = e.key;
 				if (str.length !== 1) return;
 

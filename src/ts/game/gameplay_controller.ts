@@ -36,6 +36,7 @@ export class GameplayController {
 	public currentPlay: Play = null;
 
 	private fadeInterpolator: Interpolator;
+	private preScoreScreenTimeout: ReturnType<typeof setTimeout> = null;
 
     constructor() {
 		this.container = new PIXI.Container();
@@ -84,7 +85,13 @@ export class GameplayController {
 		this.interactionRegistration.addListener('keyDown', (e) => {
 			switch (e.keyCode) {
 				case KeyCode.Escape: {
-					if (!this.currentPlay || this.currentPlay.completed) break;
+					if (!this.currentPlay) break;
+
+					if (this.currentPlay.completed) {
+						console.log("BRUH *WHAT*", this.preScoreScreenTimeout)
+						if (this.preScoreScreenTimeout !== null) this.showScoreScreen(true);
+						break;
+					}
 
 					if (this.currentPlay.paused) this.unpause();
 					else this.pause();
@@ -165,17 +172,24 @@ export class GameplayController {
 		this.currentPlay.complete();
 		this.hud.setFade(false, 300);
 
-		await new Promise((resolve) => setTimeout(resolve, 600));
+		this.preScoreScreenTimeout = setTimeout(() => this.showScoreScreen(), 600);
+	}
 
-		this.hide();
-		globalState.backgroundManager.setGameplayState(false, 1500, EaseType.Linear);
-		globalState.backgroundManager.setBlurState(true, 1500, EaseType.EaseInOutQuad);
+	async showScoreScreen(spedUp = false) {
+		clearTimeout(this.preScoreScreenTimeout);
+		this.preScoreScreenTimeout = null;
 
 		let beatmap = this.currentPlay.processedBeatmap.beatmap;
 		let imageFile = await beatmap.getBackgroundImageFile();
 
 		await globalState.scoreScreen.load(this.currentPlay.scoreCounter.score, beatmap, imageFile);
 		globalState.scoreScreen.show();
+
+		this.hide();
+		globalState.backgroundManager.setGameplayState(false, 1500, EaseType.Linear);
+		globalState.backgroundManager.setBlurState(true, 1500, EaseType.EaseInOutQuad);
+
+		if (spedUp) globalState.scoreScreen.skipForward();
 	}
 
 	render(now: number) {

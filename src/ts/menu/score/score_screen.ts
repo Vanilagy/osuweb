@@ -1,8 +1,8 @@
 import { Beatmap } from "../../datamodel/beatmap";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { InteractionGroup } from "../../input/interactivity";
-import { calculateRatioBasedScalingFactor, colorToHexNumber, colorToHexString } from "../../util/graphics_util";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { calculateRatioBasedScalingFactor, colorToHexNumber } from "../../util/graphics_util";
 import { THEME_COLORS } from "../../util/constants";
 import { scoreGradeTextures } from "../components/score_grade_icon";
 import { ModIcon } from "../components/mod_icon";
@@ -11,18 +11,19 @@ import { BeatmapHeaderPanel } from "../components/beatmap_header_panel";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { padNumberWithZeroes, toPercentageString, EMPTY_FUNCTION } from "../../util/misc_util";
 import { ScoreGrade, Score } from "../../datamodel/score";
-import { createPolygonTexture } from "../../util/pixi_util";
 import { Interpolator } from "../../util/interpolation";
 import { globalState } from "../../global_state";
 import { Button, ButtonPivot, DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT } from "../components/button";
 import { AnimationParameterList, Animation, AnimationEvent, AnimationPlayer } from "../../util/animation";
 import { modComparator } from "../../datamodel/mods";
+import { KeyCode } from "../../input/input";
 
 const SCORE_SCREEN_WIDTH = 615;
 const SCORE_SCREEN_HEIGHT = 342;
 const SCORE_SCREEN_HEADER_HEIGHT = 95;
 const SCORE_SCREEN_HEADER_MARGIN = 8;
 const ROW_MARGIN = 152;
+const BUTTON_FADE_IN_START = 1550;
 
 const animationParameterList = new AnimationParameterList({
 	fadeIn: 0,
@@ -63,13 +64,14 @@ buildUpAnimation.addEvent(new AnimationEvent('accuracyInfoFadeIn', {start: 1100,
 buildUpAnimation.addEvent(new AnimationEvent('spinInfoFadeIn', {start: 1150, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
 buildUpAnimation.addEvent(new AnimationEvent('playedByFadeIn', {start: 500, duration: 1500, to: 1, ease: EaseType.EaseOutQuart}));
 buildUpAnimation.addEvent(new AnimationEvent('modIconElapsedTime', {start: 1150, duration: 10000, to: 10000}));
-buildUpAnimation.addEvent(new AnimationEvent('gradeFadeIn', {start: 1550, duration: 1500, to: 1, ease: EaseType.EaseOutQuint}));
-buildUpAnimation.addEvent(new AnimationEvent('buttonElapsedTime', {start: 1750, duration: 10000, to: 10000}));
+buildUpAnimation.addEvent(new AnimationEvent('gradeFadeIn', {start: BUTTON_FADE_IN_START, duration: 1500, to: 1, ease: EaseType.EaseOutQuint}));
+buildUpAnimation.addEvent(new AnimationEvent('buttonElapsedTime', {start: BUTTON_FADE_IN_START, duration: 10000, to: 10000}));
 
 export class ScoreScreen {
 	public container: PIXI.Container;
 	private centerContainer: PIXI.Container;
 	public interactionGroup: InteractionGroup;
+	private keyRegistration: InteractionRegistration;
 	public scalingFactor: number = 1.0;
 
 	private currentScore: Score;
@@ -112,6 +114,17 @@ export class ScoreScreen {
 		this.container.addChild(this.centerContainer);
 
 		this.interactionGroup = new InteractionGroup();
+		this.keyRegistration = new InteractionRegistration();
+		this.interactionGroup.add(this.keyRegistration);
+		this.keyRegistration.addListener('keyDown', (e) => {
+			if (e.keyCode !== KeyCode.Escape) return;
+
+			if (this.animationPlayer.getCurrentTime(performance.now()) >= BUTTON_FADE_IN_START) {
+				this.close();
+			} else {
+				this.skipForward();
+			}
+		});
 
 		this.header = new BeatmapHeaderPanel(SCORE_SCREEN_WIDTH, SCORE_SCREEN_HEADER_HEIGHT, false, true);
 		this.centerContainer.addChild(this.header.container);
@@ -170,10 +183,7 @@ export class ScoreScreen {
 		this.buttons = [closeButton, retryButton, watchReplayButton];
 		for (let b of this.buttons) this.buttonContainer.addChild(b.container);
 
-		closeButton.setupInteraction(this.interactionGroup, () => {
-			globalState.gameplayController.endPlay();
-			this.hide();
-		});
+		closeButton.setupInteraction(this.interactionGroup, () => this.close());
 		retryButton.setupInteraction(this.interactionGroup, () => {
 			globalState.gameplayController.restart();
 			this.hide();
@@ -205,6 +215,20 @@ export class ScoreScreen {
 		this.fadeOutInterpolator.setReversedState(true, performance.now());
 		this.fadeOutInterpolator.end();
 		this.animationPlayer.start(performance.now());
+	}
+
+	private close() {
+		globalState.gameplayController.endPlay();
+		this.hide();
+	}
+
+	skipForward() {
+		if (!this.fadeOutInterpolator.isReversed()) return;
+
+		let currentTime = this.animationPlayer.getCurrentTime(performance.now());
+		if (currentTime >= BUTTON_FADE_IN_START) return;
+
+		this.animationPlayer.start(performance.now() - BUTTON_FADE_IN_START);
 	}
 
 	async load(score: Score, beatmap: Beatmap | ExtendedBeatmapData, imageFile: VirtualFile) {

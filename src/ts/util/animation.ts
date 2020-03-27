@@ -62,6 +62,7 @@ export class AnimationPlayer {
 	private values: {[name: string]: number} = {};
 
 	private startTime: number = null;
+	private speed = 1.0;
 
 	constructor(animation: Animation) {
 		this.animation = animation;
@@ -74,13 +75,14 @@ export class AnimationPlayer {
 		}
 	}
 
-	start(time: number) {
+	start(time: number, speed = 1.0) {
 		this.startTime = time;
+		this.speed = speed;
 	}
 
 	getCurrentTime(now: number) {
 		if (this.startTime === null) return 0;
-		return Math.max(0, now - this.startTime);
+		return Math.max(0, now - this.startTime) * this.speed;
 	}
 
 	update(now: number) {
