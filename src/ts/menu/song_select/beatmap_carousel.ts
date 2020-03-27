@@ -105,11 +105,11 @@ export class BeatmapCarousel {
 		});
 
 		registration.addListener('wheel', (e) => {
-			this.onWheel(e);
+			this.onWheel(e, performance.now());
 		});
 	}
 
-	private onWheel(data: NormalizedWheelEvent) {
+	private onWheel(data: NormalizedWheelEvent, now: number) {
 		if (this.beatmapSetPanels.length === 0) return;
 
 		let wheelEvent = data as NormalizedWheelEvent;
@@ -125,7 +125,7 @@ export class BeatmapCarousel {
 		effectiveness = Math.pow(0.9, Math.max(0, diff/30));
 	
 		// Bottom edge
-		diff = CAROUSEL_END_THRESHOLD - lastPanel.currentNormalizedY;
+		diff = CAROUSEL_END_THRESHOLD - (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now));
 		effectiveness = Math.min(effectiveness, Math.pow(0.9, Math.max(0, diff/30)));
 	
 		this.scrollVelocity += wheelEvent.dy * 4 * effectiveness;
@@ -236,6 +236,15 @@ export class BeatmapCarousel {
 			panel.container.visible = true;
 			panel.update(now, currentY, panel.getTotalHeight(now));
 		}
+
+		// Update scrollbar;
+		let firstPanel = this.beatmapSetPanels[0];
+		let lastPanel = last(this.beatmapSetPanels);
+
+		let totalHeight = (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now)) - firstPanel.currentNormalizedY;
+		this.songSelect.scrollbar.setScrollHeight(totalHeight + REFERENCE_SCREEN_HEIGHT);
+		this.songSelect.scrollbar.setPageHeight(REFERENCE_SCREEN_HEIGHT);
+		this.songSelect.scrollbar.setCurrentPosition(-firstPanel.currentNormalizedY + CAROUSEL_END_THRESHOLD);
 	}
 
 	resize() {

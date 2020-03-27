@@ -14,6 +14,7 @@ import { EaseType, MathUtil } from "../../util/math_util";
 import { currentWindowDimensions, getGlobalScalingFactor } from "../../visuals/ui";
 import { ModSelectionPanel } from "./mod_selection_panel";
 import { KeyCode } from "../../input/input";
+import { Scrollbar } from "../components/scrollbar";
 
 export class SongSelect {
 	public container: PIXI.Container;
@@ -31,6 +32,7 @@ export class SongSelect {
 	public sideControlPanel: SongSelectSideControlPanel;
 	public searchBar: SearchBar;
 	public modSelector: ModSelectionPanel;
+	public scrollbar: Scrollbar;
 
 	private fadeInterpolator: Interpolator;
 	public visible = false;
@@ -46,8 +48,9 @@ export class SongSelect {
 		this.sideControlPanel = new SongSelectSideControlPanel(this);
 		this.searchBar = new SearchBar(this);
 		this.modSelector = new ModSelectionPanel(this);
+		this.scrollbar = new Scrollbar();
 
-		this.container.addChild(this.carousel.container, this.infoPanel.container, this.sideControlPanel.container, this.searchBar.container, this.modSelector.container);
+		this.container.addChild(this.scrollbar.container, this.carousel.container, this.infoPanel.container, this.sideControlPanel.container, this.searchBar.container, this.modSelector.container);
 		this.interactionGroup.add(this.carousel.interactionGroup, this.infoPanel.interactionGroup, this.sideControlPanel.interactionGroup, this.searchBar.interactionGroup, this.modSelector.interactionGroup);
 
 		this.fadeInterpolator = new Interpolator({
@@ -104,6 +107,7 @@ export class SongSelect {
 		this.sideControlPanel.update(now);
 		this.searchBar.update(now);
 		this.modSelector.update(now);
+		this.scrollbar.update();
 	}
 
 	resize() {
@@ -116,6 +120,10 @@ export class SongSelect {
 		this.sideControlPanel.resize();
 		this.searchBar.resize();
 		this.modSelector.resize();
+
+		this.scrollbar.setScaling(currentWindowDimensions.height, getGlobalScalingFactor());
+		this.scrollbar.setPageHeight(500);
+		this.scrollbar.setScrollHeight(5000);
 	}
 
 	selectBeatmapDifficulty(beatmapFile: VirtualFile, beatmapSet: BeatmapSet,  extendedBeatmapData: ExtendedBeatmapData) {
