@@ -213,9 +213,9 @@ export class HighAccuracyMediaPlayer {
 					let useNativePlaybackRate = this.tempo === this.pitch;
 
 					// Decode a super small part of audio so that we can get approximate bitrate info.
-					let superSmallSlice = await audioContext.decodeAudioData(this.data.slice(0, 32768));
+					let superSmallSlice = await audioContext.decodeAudioData(this.data.slice(0, 65536));
 					// The amount of bytes of audio we think we'll need to encode in order to reach the required minimum duration
-					let projectedBytes = this.minimumBeginningSliceDuration / superSmallSlice.duration * 32768;
+					let projectedBytes = this.minimumBeginningSliceDuration / superSmallSlice.duration * 65536;
 
 					let endIndex = Math.min(this.data.byteLength, Math.floor(projectedBytes) + this.calculateBeginningSliceSafetyMargin());
 					let slice = this.data.slice(0, endIndex);

@@ -3,24 +3,14 @@ import { mediaAudioNode, audioContext } from "../audio/audio";
 import { AudioUtil } from "../util/audio_util";
 
 async function tester() {
-	let request = await fetch('./assets/test_maps/MarbleSoda/Marble Soda.mp3');
+	let request = await fetch('./assets/test_maps/DreamlessWanderer/dreamless wanderer.mp3');
 	let arrayBuffer = await request.arrayBuffer();
-
-	let manualThing = await audioContext.decodeAudioData(arrayBuffer.slice(0));
-	let srcNode = audioContext.createBufferSource();
-	srcNode.buffer = manualThing;
-	let inverter = audioContext.createGain();
-	inverter.gain.value = -1;
-	srcNode.connect(inverter);
-	inverter.connect(mediaAudioNode);
 
 	let player = new HighAccuracyMediaPlayer(mediaAudioNode);
 	player.loadBuffer(arrayBuffer);
 	player.setTempo(1.0);
 	player.setPitch(1.0);
 	await player.start(0);
-
-	srcNode.start(0, 0.00003);
 
 
 
