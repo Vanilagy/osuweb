@@ -21,7 +21,7 @@ const SPIN_TEXT_FADE_OUT_TIME = 200; // In ms
 const SPINNER_GLOW_TINT: Color = {r: 2, g: 170, b: 255};
 const SPINNER_METER_STEPS = 10;
 const SPINNER_METER_STEP_HEIGHT = 69; // ( ͡° ͜ʖ ͡°)
-const SPINNER_ACCELERATION = 0.00022; // In radians/ms^2
+const SPINNER_ACCELERATION = 0.00039; // In radians/ms^2
 const DELAY_UNTIL_SPINNER_DECELERATION = 20; // In ms
 
 export class DrawableSpinner extends DrawableHitObject {
@@ -555,8 +555,8 @@ export class DrawableSpinner extends DrawableHitObject {
 		let radiansPerMs = radiansAbs/dt;
 
 		if (radiansPerMs >= velocityAbs && (Math.sign(radians) === Math.sign(this.angularVelocity) || this.angularVelocity === 0)) {
-			let thing = Math.min(radiansPerMs, velocityAbs + SPINNER_ACCELERATION * dt);
-			this.angularVelocity = thing * Math.sign(radians);
+			let vel = Math.min(radiansPerMs, velocityAbs + SPINNER_ACCELERATION * dt);
+			this.angularVelocity = vel * Math.sign(radians);
 			this.lastAccelerationTime = currentTime;
 		} else {
 			this.tryDecelerate(currentTime, dt, (Math.sign(radians) === Math.sign(this.angularVelocity))? radiansPerMs : 0);
