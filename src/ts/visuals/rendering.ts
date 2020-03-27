@@ -1,5 +1,6 @@
 import { MathUtil } from "../util/math_util";
 import { pushItemUnique, removeItem } from "../util/misc_util";
+import { audioContext } from "../audio/audio";
 
 let logRenderTimeInfo = false;
 
@@ -11,6 +12,7 @@ const gl = mainCanvas.getContext('webgl2', {
 	stencil: true,
 	alpha: true,
 	powerPreference: 'high-performance',
+	// TODO: Remember to turn this off if framerate is uncapped:
 	desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 }) as WebGLRenderingContext; // Technically WebGL2, but idk. Rollup is complaining :S
 
@@ -45,8 +47,22 @@ let inbetweenFrameTimes: number[] = [];
 let lastFrameTime: number = null;
 let lastRenderInfoLogTime: number = null;
 
+let frameCount = 0;
+let lastFrameCountStart: number = null;
+
 function mainRenderingLoop() {
 	let startTime = performance.now();
+	
+	frameCount++;
+	if (lastFrameCountStart === null) {
+		lastFrameCountStart = startTime;
+	} else if (startTime - lastFrameCountStart >= 500) {
+		let fps = frameCount / (startTime - lastFrameCountStart) * 1000;
+		// console.log("FPS: " + fps);
+
+		frameCount = 0;
+		lastFrameCountStart = startTime;
+	}
 
 	requestAnimationFrame(mainRenderingLoop);
 	

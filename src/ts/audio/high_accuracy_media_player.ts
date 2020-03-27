@@ -17,6 +17,7 @@ interface AudioBufferInfo {
 }
 
 export class HighAccuracyMediaPlayer {
+	private file: VirtualFile;
 	private data: ArrayBuffer;
 	private dataView: DataView;
 	private fileHeader: ArrayBuffer;
@@ -63,6 +64,7 @@ export class HighAccuracyMediaPlayer {
 	loadBuffer(data: ArrayBuffer) {
 		if (this.playing) this.stop();
 
+		this.file = null;
 		this.data = data;
 		this.dataView = new DataView(this.data);
 
@@ -92,6 +94,7 @@ export class HighAccuracyMediaPlayer {
 	async loadFromVirtualFile(file: VirtualFile) {
 		let arrayBuffer = await file.readAsArrayBuffer();
 		this.loadBuffer(arrayBuffer);
+		this.file = file;
 	}
 
 	setTempo(newTempo: number) {
@@ -212,10 +215,13 @@ export class HighAccuracyMediaPlayer {
 				this.beginningSliceCache = new Promise(async (resolve) => {
 					let useNativePlaybackRate = this.tempo === this.pitch;
 
-					// Decode a super small part of audio so that we can get approximate bitrate info.
-					let superSmallSlice = await audioContext.decodeAudioData(this.data.slice(0, 65536));
+					let audioElem = new Audio();
+					audioElem.src = this.file? await this.file.readAsResourceUrl() : URL.createObjectURL(new Blob([this.data]));
+					// Wait for the metadata to load in order to retrieve duration
+					await new Promise((resolve) => audioElem.onloadedmetadata = resolve);
+
 					// The amount of bytes of audio we think we'll need to encode in order to reach the required minimum duration
-					let projectedBytes = this.minimumBeginningSliceDuration / superSmallSlice.duration * 65536;
+					let projectedBytes = this.minimumBeginningSliceDuration / audioElem.duration * this.data.byteLength;
 
 					let endIndex = Math.min(this.data.byteLength, Math.floor(projectedBytes) + this.calculateBeginningSliceSafetyMargin());
 					let slice = this.data.slice(0, endIndex);
@@ -280,7 +286,7 @@ export class HighAccuracyMediaPlayer {
 	/** Returns the amount of bytes the beginning slice should be extended by to ensure that it is long enough, so that when it is completed, the full buffer will be done decoding. */
 	private calculateBeginningSliceSafetyMargin() {
 		let useNativePlaybackRate = this.tempo === this.pitch;
-		return Math.max(75000, Math.floor(this.data.byteLength * 0.04 * (useNativePlaybackRate? 1 : 1.5)));
+		return Math.max(100000, Math.floor(this.data.byteLength * 0.04 * (useNativePlaybackRate? 1 : 1.5)));
 	}
 
 	private async readyNextBufferSource() {

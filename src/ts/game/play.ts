@@ -25,6 +25,7 @@ import { ScorePopup } from "./score/score_popup";
 import { ScoringValue } from "../datamodel/score";
 import { Mod } from "../datamodel/mods";
 import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
+import { audioContext } from "../audio/audio";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1000; // In ms
@@ -781,7 +782,7 @@ export class Play {
 	}
 
 	getCurrentSongTime() {
-		return globalState.gameplayMediaPlayer.getCurrentTime() * 1000;
+		return globalState.gameplayMediaPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
 	}
 
 	toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
