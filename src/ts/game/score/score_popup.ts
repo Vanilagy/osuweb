@@ -72,6 +72,9 @@ export class ScorePopup {
 		let osuTexture = skin.textures[textureName];
 		if (osuTexture.isEmpty()) return;
 
+		// Slider points are not shown in a skin with a version greater than 1
+		if ((type === ScorePopupType.SliderPoint10 || type === ScorePopupType.SliderPoint30) && skin.getVersionNumber() > 1) return;
+
 		// Set the correct particle texture
 		if (type === ScorePopupType.Hit50) this.particleTexture = skin.textures["particle50"];
 		else if (type === ScorePopupType.Hit100 || type === ScorePopupType.Katu100) this.particleTexture = skin.textures["particle100"];
