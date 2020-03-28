@@ -1,6 +1,3 @@
-import { colorToHexNumber } from "../../util/graphics_util";
-import { THEME_COLORS } from "../../util/constants";
-
 const SCROLLBAR_WIDTH = 2.5;
 const MIN_THUMB_HEIGHT = 20;
 
@@ -24,7 +21,8 @@ export class Scrollbar {
 		this.background.tint = 0x000000;
 		this.background.alpha = 0.4;
 		this.thumb = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.thumb.tint = colorToHexNumber(THEME_COLORS.PrimaryBlue);
+		this.thumb.tint = 0xDDDDDD;
+		this.thumb.alpha = 0.8;
 
 		this.container.addChild(this.background, this.thumb);
 	}
