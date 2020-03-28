@@ -518,7 +518,7 @@ export class Play {
 					// If the slider end was hit, score it now.
 					let hit = slider.scoring.end === true;
 					if (hit) {
-						this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
+						this.scoreCounter.add(ScoringValue.SliderEnd, true, true, false, slider, playEvent.time, playEvent.position, true);
 						
 						// The hit sound is played in the .score method. (at least when this comment was writtem)
 					}
@@ -544,13 +544,13 @@ export class Play {
 
 					if (hit) {
 						slider.scoring.repeats++;
-						this.scoreCounter.add(30, true, true, false, slider, playEvent.time);
+						this.scoreCounter.add(ScoringValue.SliderRepeat, true, true, false, slider, playEvent.time, playEvent.position);
 						slider.pulseFollowCircle(playEvent.time);
 						
 						let hitSound = slider.hitSounds[playEvent.index + 1];
 						this.playHitSound(hitSound);
 					} else {
-						this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
+						this.scoreCounter.add(ScoringValue.Miss, true, true, true, slider, playEvent.time);
 						slider.releaseFollowCircle(playEvent.time);
 					}
 
@@ -571,13 +571,13 @@ export class Play {
 
 					if (hit) {
 						slider.scoring.ticks++;
-						this.scoreCounter.add(10, true, true, false, slider, playEvent.time);
+						this.scoreCounter.add(ScoringValue.SliderTick, true, true, false, slider, playEvent.time, playEvent.position);
 						slider.pulseFollowCircle(playEvent.time);
 
 						let hitSound = slider.tickSounds[playEvent.index];
 						this.playHitSound(hitSound);
 					} else {
-						this.scoreCounter.add(0, true, true, true, slider, playEvent.time);
+						this.scoreCounter.add(ScoringValue.Miss, true, true, true, slider, playEvent.time);
 						slider.releaseFollowCircle(playEvent.time);
 					}
 				}; break;

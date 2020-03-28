@@ -1,18 +1,14 @@
 import { MathUtil, EaseType } from "../../util/math_util";
 import { assert } from "../../util/misc_util";
-import { Point } from "../../util/point";
 import { DrawableHitObject } from "../drawables/drawable_hit_object";
 import { ModHelper } from "../mods/mod_helper";
-import { transferBasicProperties, transferBasicSpriteProperties } from "../../util/pixi_util";
 import { OsuSoundType } from "../skin/sound";
-import { AnimatedOsuSprite } from "../skin/animated_sprite";
-import { OsuTexture } from "../skin/texture";
-import { ParticleEmitter, DistanceDistribution } from "../../visuals/particle_emitter";
 import { ProcessedBeatmap } from "../../datamodel/processed/processed_beatmap";
 import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
 import { Play } from "../play";
 import { Score, ScoringValue } from "../../datamodel/score";
 import { ScorePopupType, hitJudgementToScorePopupType, ScorePopup } from "./score_popup";
+import { Point } from "../../util/point";
 
 interface DelayedVisualComboIncrease {
 	time: number,
@@ -81,7 +77,7 @@ export class ScoreCounter {
 	 * 
 	 * @param raw Determines if the amount should be added to the score in its raw form, ignoring any multipliers. If this is false, it additionally creates a score popup.
 	 */
-	add(rawAmount: number, raw: boolean, affectCombo: boolean, affectAccuracy: boolean, hitObject: DrawableHitObject, time: number) {
+	add(rawAmount: number, raw: boolean, affectCombo: boolean, affectAccuracy: boolean, hitObject: DrawableHitObject, time: number, positionOverride?: Point, suppressPopup = false) {
 		if (affectAccuracy) {
 			this.totalNumberOfHits++;
 			this.totalValueOfHits += rawAmount;
@@ -112,6 +108,8 @@ export class ScoreCounter {
 		this.accuracyInterpolator.setGoal(this.score.accuracy, time);
 
 		this.play.gainHealth(rawAmount/300 * 0.2, time);
+
+		let popupPosition = positionOverride || hitObject.parent.endPoint;
 
 		if (!raw) {
 			if (rawAmount === ScoringValue.Hit300) this.score.hits300++;
@@ -149,7 +147,14 @@ export class ScoreCounter {
 			
 			assert(scorePopupType !== undefined);
 			
-			let popup = new ScorePopup(this, scorePopupType, hitObject.parent.endPoint, time);
+			let popup = new ScorePopup(this, scorePopupType, popupPosition, time);
+			this.play.addScorePopup(popup);
+		}
+
+		// Handle SliderPoint10 & SliderPoint30 popups
+		if (!suppressPopup && (rawAmount === ScoringValue.SliderRepeat || rawAmount === ScoringValue.SliderTick)) {
+			let scorePopupType = hitJudgementToScorePopupType.get(rawAmount);
+			let popup = new ScorePopup(this, scorePopupType, popupPosition, time);
 			this.play.addScorePopup(popup);
 		}
 	}

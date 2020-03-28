@@ -34,7 +34,7 @@ export class Skin {
         this.comboNumberTextures = null;
         this.colors = [];
 		this.sounds = {};
-		this.allowSliderBallExtras = false;
+		this.allowSliderBallExtras = true;
     }
 
     async init(readyAssets = true) {
@@ -101,7 +101,9 @@ export class Skin {
         this.textures["hit300g"] = await OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
         this.textures["particle50"] = await OsuTexture.fromFiles(this.directory, "particle50", "png", true);
         this.textures["particle100"] = await OsuTexture.fromFiles(this.directory, "particle100", "png", true);
-        this.textures["particle300"] = await OsuTexture.fromFiles(this.directory, "particle300", "png", true);
+		this.textures["particle300"] = await OsuTexture.fromFiles(this.directory, "particle300", "png", true);
+		this.textures["sliderPoint10"] = await OsuTexture.fromFiles(this.directory, "sliderpoint10", "png", true);
+		this.textures["sliderPoint30"] = await OsuTexture.fromFiles(this.directory, "sliderpoint30", "png", true);
 
         // Scorebar
         this.textures["scorebarBackground"] = await OsuTexture.fromFiles(this.directory, "scorebar-bg", "png", true);

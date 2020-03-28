@@ -49,13 +49,15 @@ async function initBaseSkin() {
 	
 	let defaultSkin = new Skin(defaultSkinDirectory);
 	await defaultSkin.init(false);
+	defaultSkin.allowSliderBallExtras = true;
 
-	let selectedSkinPath = "./assets/skins/Seoul";
+	let selectedSkinPath = "./assets/skins/seoul";
 	let selectedSkinDirectory = new VirtualDirectory("root");
 	selectedSkinDirectory.networkFallbackUrl = selectedSkinPath;
 
 	let selectedSkin = new Skin(selectedSkinDirectory);
 	await selectedSkin.init(false);
+	if (selectedSkinPath === defaultSkinPath) selectedSkin.allowSliderBallExtras = true; // Kinda tempy
 
 	let baseSkin = joinSkins([defaultSkin, selectedSkin], true, true, true);
 	await baseSkin.readyAssets();

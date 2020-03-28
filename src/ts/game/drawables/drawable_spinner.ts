@@ -13,6 +13,7 @@ import { currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator } from "../../util/interpolation";
 import { DrawableBeatmap } from "../drawable_beatmap";
 import { Mod } from "../../datamodel/mods";
+import { ScoringValue } from "../../datamodel/score";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -488,13 +489,13 @@ export class DrawableSpinner extends DrawableHitObject {
 		let progress = spinsSpun / this.parent.requiredSpins;
 		let judgement = (() => {
 			if (progress >= 1.0) {
-				return 300;
+				return ScoringValue.Hit300;
 			} else if (progress > 0.9) {
-				return 100;
+				return ScoringValue.Hit100;
 			} else if (progress > 0.75) {
-				return 50;
+				return ScoringValue.Hit50;
 			}
-			return 0;
+			return ScoringValue.Miss;
 		})();
 
 		play.scoreCounter.add(judgement, false, true, true, this, this.parent.endTime);

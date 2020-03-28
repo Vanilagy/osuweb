@@ -447,7 +447,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let resultingRawScore = 0;
 
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) {
-			if (this.scoring.head.hit) resultingRawScore = 300;
+			if (this.scoring.head.hit) resultingRawScore = ScoringValue.Hit300;
 		} else {
 			let total = 0;
 			if (this.scoring.head.hit !== ScoringValue.Miss) total++;
@@ -460,17 +460,17 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	
 			resultingRawScore = (() => {
 				if (fraction === 1) {
-					return 300;
+					return ScoringValue.Hit300;
 				} else if (fraction >= 0.5) {
-					return 100;
+					return ScoringValue.Hit100;
 				} else if (fraction > 0) {
-					return 50;
+					return ScoringValue.Hit50;
 				}
-				return 0;
+				return ScoringValue.Miss;
 			})();
 		}
 
-		if (this.scoring.end || resultingRawScore === 300) this.drawableBeatmap.play.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
+		if (this.scoring.end || resultingRawScore === ScoringValue.Hit300) this.drawableBeatmap.play.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
 
 		this.drawableBeatmap.play.scoreCounter.add(resultingRawScore, false, false, true, this, time);
 	}
@@ -493,9 +493,9 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.scoring.head.hit = judgement;
 		this.scoring.head.time = time;
 
-		let score = (judgement === ScoringValue.Miss)? 0 : ScoringValue.SliderHead;
+		let score = (judgement === ScoringValue.Miss)? ScoringValue.Miss : ScoringValue.SliderHead;
 
-		scoreCounter.add(score, true, true, false, this, time);
+		scoreCounter.add(score, true, true, false, this, time, this.parent.startPoint);
 
 		if (judgement !== 0) {
 			const hud = this.drawableBeatmap.play.controller.hud;
