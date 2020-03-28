@@ -1,6 +1,6 @@
 import { BeatmapInfoPanel, INFO_PANEL_WIDTH, BeatmapInfoPanelTab } from "./beatmap_info_panel";
 
-export class BeatmapRankingTab implements BeatmapInfoPanelTab  {
+export class BeatmapRankingTab implements BeatmapInfoPanelTab {
 	private parent: BeatmapInfoPanel;
 	public container: PIXI.Container;
 	private text: PIXI.Text;
@@ -10,18 +10,17 @@ export class BeatmapRankingTab implements BeatmapInfoPanelTab  {
 		this.container = new PIXI.Container();
 
 		this.text = new PIXI.Text("Oops. Nothing here yet!");
+		this.text.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff
+		};
 		this.container.addChild(this.text);
 	}
 
 	resize() {
 		let scalingFactor = this.parent.scalingFactor;
 
-		this.text.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			textBaseline: 'alphabetic',
-			fontSize: Math.floor(12 * scalingFactor)
-		};
+		this.text.style.fontSize = Math.floor(12 * scalingFactor);
 		this.text.x = Math.floor(INFO_PANEL_WIDTH / 2 * scalingFactor);
 		this.text.y = Math.floor(40 * scalingFactor);
 		this.text.pivot.x = Math.floor(this.text.width/2);

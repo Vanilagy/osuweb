@@ -65,7 +65,19 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 		for (let a of this.allRangedAttributes) this.container.addChild(a.container);
 
 		this.tagsHeader = new PIXI.Text('Tags');
+		this.tagsHeader.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic',
+			fontWeight: 'bold'
+		};
 		this.tagsContents = new PIXI.Text('N/A');
+		this.tagsContents.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic',
+			wordWrap: true
+		};
 		this.container.addChild(this.tagsHeader, this.tagsContents);
 	}
 
@@ -112,24 +124,12 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 			attribute.resize();
 		});
 
-		this.tagsHeader.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			textBaseline: 'alphabetic',
-			fontWeight: 'bold',
-			fontSize: Math.floor(12 * scalingFactor)
-		};
+		this.tagsHeader.style.fontSize = Math.floor(12 * scalingFactor);
 		this.tagsHeader.x = Math.floor(20 * scalingFactor);
 		this.tagsHeader.y = Math.floor(125 * scalingFactor);
 
-		this.tagsContents.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			textBaseline: 'alphabetic',
-			fontSize: Math.floor(11 * scalingFactor),
-			wordWrap: true,
-			wordWrapWidth: Math.floor(INFO_PANEL_WIDTH * 0.9 * scalingFactor)
-		};
+		this.tagsContents.style.fontSize = Math.floor(11 * scalingFactor);
+		this.tagsContents.style.wordWrapWidth = Math.floor(INFO_PANEL_WIDTH * 0.9 * scalingFactor);
 		this.tagsContents.x = Math.floor(20 * scalingFactor);
 		this.tagsContents.y = Math.floor(145 * scalingFactor);
 
@@ -171,8 +171,18 @@ class NamedNumericalAttribute {
 		this.parent = parent;
 
 		this.nameText = new PIXI.Text(this.attributeName + ':');
+		this.nameText.style = {
+			fontFamily: 'Exo2-Light',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic'
+		};
 		this.nameText.anchor.set(0.0, 1.0);
 		this.valueText = new PIXI.Text('-');
+		this.valueText.style = {
+			fontFamily: 'Exo2-Bold',
+			fill: colorToHexNumber(THEME_COLORS.AccentGold),
+			textBaseline: 'alphabetic'
+		};
 		this.valueText.anchor.set(1.0, 1.0);
 
 		this.container.addChild(this.nameText);
@@ -188,19 +198,8 @@ class NamedNumericalAttribute {
 	resize() {
 		let scalingFactor = this.parent.parent.scalingFactor;
 
-		this.nameText.style = {
-			fontFamily: 'Exo2-Light',
-			fill: 0xffffff,
-			textBaseline: 'alphabetic',
-			fontSize: Math.floor(12 * scalingFactor)
-		};
-
-		this.valueText.style = {
-			fontFamily: 'Exo2-Bold',
-			fill: colorToHexNumber(THEME_COLORS.AccentGold),
-			textBaseline: 'alphabetic',
-			fontSize: Math.floor(16 * scalingFactor)
-		};
+		this.nameText.style.fontSize = Math.floor(12 * scalingFactor);
+		this.valueText.style.fontSize = Math.floor(16 * scalingFactor);
 		this.valueText.x = Math.floor(95 * scalingFactor);
 		this.valueText.y = Math.floor(2 * scalingFactor);
 	}
@@ -236,6 +235,11 @@ class RangedAttribute {
 		this.parent = parent;
 
 		this.nameText = new PIXI.Text(this.name);
+		this.nameText.style = {
+			fontFamily: 'Exo2-Light',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic'
+		};
 		this.container.addChild(this.nameText);
 
 		this.barBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
@@ -248,6 +252,11 @@ class RangedAttribute {
 		this.container.addChild(this.barProgress);
 
 		this.valueText = new PIXI.Text("0");
+		this.valueText.style = {
+			fontFamily: 'Exo2-Bold',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic'
+		};
 		this.container.addChild(this.valueText);
 
 		this.barInterpolator = new InterpolatedValueChanger({
@@ -266,12 +275,7 @@ class RangedAttribute {
 	resize() {
 		let scalingFactor = this.parent.parent.scalingFactor;
 
-		this.nameText.style = {
-			fontFamily: 'Exo2-Light',
-			fill: 0xffffff,
-			textBaseline: 'alphabetic',
-			fontSize: Math.floor(10 * scalingFactor)
-		};
+		this.nameText.style.fontSize = Math.floor(10 * scalingFactor);
 		this.nameText.y = Math.floor(-4 * scalingFactor);
 
 		this.barBackground.x = Math.floor(78 * scalingFactor);
@@ -281,12 +285,7 @@ class RangedAttribute {
 		this.barProgress.width = Math.floor(40 * scalingFactor);
 		this.barProgress.height = this.barBackground.height;
 
-		this.valueText.style = {
-			fontFamily: 'Exo2-Bold',
-			fill: 0xffffff,
-			textBaseline: 'alphabetic',
-			fontSize: Math.floor(10 * scalingFactor)
-		};
+		this.valueText.style.fontSize = Math.floor(10 * scalingFactor);
 		this.valueText.y = Math.floor(-4 * scalingFactor);
 		this.centerText();
 	}

@@ -38,6 +38,10 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 		this.mainContainer.addChild(this.background);
 
 		this.text = new PIXI.Text('');
+		this.text.style = {
+			fontFamily: 'FredokaOne-Regular',
+			fill: 0xffffff
+		};
 		this.mainContainer.addChild(this.text);
 
 		if (mod !== undefined) this.setMod(mod);
@@ -90,22 +94,14 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 			new PIXI.Point(0, 0), new PIXI.Point(MOD_ICON_REFERENCE_HEIGHT, 0), new PIXI.Point(MOD_ICON_REFERENCE_HEIGHT + slantWidth, MOD_ICON_REFERENCE_HEIGHT), new PIXI.Point(slantWidth, MOD_ICON_REFERENCE_HEIGHT)
 		], scalingFactor, 0, false, 20);
 
-		this.text.style = {
-			fontFamily: 'FredokaOne-Regular',
-			fill: 0xffffff,
-			fontSize: Math.floor(50 * scalingFactor),
-		};
+		this.text.style.fontSize = Math.floor(50 * scalingFactor);
 		this.text.pivot.x = Math.floor(this.text.width/2 * 1.03);
 		this.text.pivot.y = Math.floor(this.text.height/2);
 		this.text.x = Math.floor((MOD_ICON_REFERENCE_HEIGHT + slantWidth) / 2 * scalingFactor);
 		this.text.y = Math.floor(MOD_ICON_REFERENCE_HEIGHT / 2 * scalingFactor);
 
 		if (this.label) {
-			this.label.style = {
-				fontFamily: 'FredokaOne-Regular',
-				fill: 0xffffff,
-				fontSize: Math.floor(25 * scalingFactor),
-			};
+			this.label.style.fontSize = Math.floor(25 * scalingFactor);
 			this.label.pivot.x = Math.floor(this.label.width / 2);
 			this.label.x = Math.floor((MOD_ICON_REFERENCE_HEIGHT + slantWidth) / 2 * scalingFactor);
 			this.label.y = Math.floor(115 * scalingFactor);
@@ -130,6 +126,10 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 	
 	enableLabel() {
 		this.label = new PIXI.Text('');
+		this.label.style = {
+			fontFamily: 'FredokaOne-Regular',
+			fill: 0xffffff
+		};
 		this.container.addChild(this.label);
 	}
 

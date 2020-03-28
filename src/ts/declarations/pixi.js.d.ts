@@ -19923,7 +19923,7 @@ declare namespace PIXI {
          *
          * @member {object|PIXI.TextStyle}
          */
-        style: any | PIXI.TextStyle;
+        style: Partial<PIXI.TextStyle>;  //any | PIXI.TextStyle;
         /**
          * Set the copy for the text object. To split a line you can use '\n'.
          *

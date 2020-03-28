@@ -53,6 +53,13 @@ export class Button {
 
 		this.label = new PIXI.Text(label);
 		this.label.alpha = 0.8;
+		this.label.style = {
+			fontFamily: 'Exo2-LightItalic',
+			fill: 0xffffff,
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
+		};
 		this.container.addChild(this.label);
 
 		this.hoverInterpolator = new Interpolator({
@@ -87,14 +94,7 @@ export class Button {
 		this.topHighlight.width = this.background.width;
 		this.topHighlight.height = Math.floor(2 * scalingFactor);
 
-		this.label.style = {
-			fontFamily: 'Exo2-LightItalic',
-			fill: 0xffffff,
-			fontSize: Math.floor(this.fontSize * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.label.style.fontSize = Math.floor(this.fontSize * scalingFactor);
 		this.label.pivot.x = Math.floor(this.label.width / 2);
 		this.label.pivot.y = Math.floor(this.label.height / 2);
 		this.label.x = Math.floor((this.width + slantWidth)/2 * scalingFactor);

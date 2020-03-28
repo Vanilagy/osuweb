@@ -30,6 +30,12 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 			let container = new PIXI.Container();
 
 			let text = new PIXI.Text(s);
+			text.style = {
+				fill: 0xffffff,
+				dropShadow: true,
+				dropShadowDistance: 1,
+				dropShadowBlur: 0
+			};
 			container.addChild(text);
 
 			this.container.addChild(container);
@@ -109,14 +115,8 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 			let isSelected = i === this.selectedIndex;
 
 			container.x = Math.floor(currentX);
-			text.style = {
-				fontFamily: isSelected? 'Exo2-Bold' : 'Exo2-Regular',
-				fill: 0xffffff,
-				fontSize: Math.floor(12 * scalingFactor),
-				dropShadow: true,
-				dropShadowDistance: 1,
-				dropShadowBlur: 0
-			};
+			text.style.fontFamily = isSelected? 'Exo2-Bold' : 'Exo2-Regular';
+			text.style.fontSize = Math.floor(12 * scalingFactor);
 
 			let textWidth = text.width,
 				textHeight = text.height;

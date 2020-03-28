@@ -36,6 +36,13 @@ export class PauseScreen {
 		this.container.addChild(this.centerContainer);
 
 		this.heading = new PIXI.Text("paused");
+		this.heading.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
+		};
 		this.centerContainer.addChild(this.heading);
 
 		let continueButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "continue", colorToHexNumber(THEME_COLORS.PrimaryBlue));
@@ -89,14 +96,7 @@ export class PauseScreen {
 		this.centerContainer.x = Math.floor(currentWindowDimensions.width / 2);
 		this.centerContainer.y = Math.floor(currentWindowDimensions.height / 2);
 
-		this.heading.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontSize: Math.floor(36 * this.scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.heading.style.fontSize = Math.floor(36 * this.scalingFactor);
 		this.heading.y = Math.floor(-170 * this.scalingFactor);
 		this.heading.pivot.x = Math.floor(this.heading.width / 2);
 

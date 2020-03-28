@@ -51,6 +51,13 @@ export class SearchBar {
 		this.container.addChild(this.textBackground);
 
 		this.textElement = new PIXI.Text('');
+		this.textElement.style = {
+			fontFamily: 'Exo2-Light',
+			fill: 0xffffff,
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
+		};
 		this.container.addChild(this.textElement);
 
 		this.sortSelector = new TabSelector(beatmapCarouselSortingTypes, beatmapCarouselSortingTypes.indexOf(defaultBeatmapCarouselSortingType));
@@ -87,14 +94,7 @@ export class SearchBar {
 		this.textBackground.x = Math.floor(15 * this.scalingFactor);
 		this.textBackground.y = Math.floor(7 * this.scalingFactor);
 
-		this.textElement.style = {
-			fontFamily: 'Exo2-Light',
-			fill: 0xffffff,
-			fontSize: Math.floor(13 * this.scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.textElement.style.fontSize = Math.floor(13 * this.scalingFactor);
 		this.textElement.x = this.textBackground.x + Math.floor(13 * this.scalingFactor);
 		this.textElement.y = this.textBackground.y + Math.floor(2 * this.scalingFactor);
 

@@ -6,6 +6,7 @@ import { createPolygonTexture, createLinearGradientTexture } from "../../util/pi
 import { EaseType } from "../../util/math_util";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { ImageCrossfader } from "./image_crossfader";
+import { shallowObjectClone } from "../../util/misc_util";
 
 const LEFT_PADDING = 18;
 
@@ -71,6 +72,21 @@ export class BeatmapHeaderPanel {
 		this.difficultyText.anchor.set(1.0, 0.0);
 		this.container.addChild(this.difficultyText);
 
+		this.titleText.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			fontStyle: 'italic',
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
+		};
+		this.artistText.style = shallowObjectClone(this.titleText.style);
+		this.mapperTextPrefix.style = shallowObjectClone(this.titleText.style);
+		this.mapperTextPrefix.style.fontFamily = 'Exo2-Light';
+		this.mapperText.style = shallowObjectClone(this.titleText.style);
+		this.mapperText.style.fontFamily = 'Exo2-Bold';
+		this.difficultyText.style = shallowObjectClone(this.titleText.style);
+
 		this.slideInInterpolator = new Interpolator({
 			duration: 500,
 			ease: EaseType.EaseOutCubic,
@@ -125,65 +141,25 @@ export class BeatmapHeaderPanel {
 
 		let slantWidth = this.getSlantWidth();
 
-		this.titleText.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(22 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.titleText.style.fontSize = Math.floor(22 * scalingFactor);
 		this.titleText.position.set((slantWidth + LEFT_PADDING) * scalingFactor, (this.height - 80) * scalingFactor);
 		this.titleText.x = Math.floor(this.titleText.x);
 		this.titleText.y = Math.floor(this.titleText.y);
 
-		this.artistText.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(14 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.artistText.style.fontSize = Math.floor(14 * scalingFactor);
 		this.artistText.position.set((slantWidth + LEFT_PADDING) * scalingFactor, (this.height - 57) * scalingFactor);
 		this.artistText.x = Math.floor(this.artistText.x);
 		this.artistText.y = Math.floor(this.artistText.y);
 
-		this.mapperTextPrefix.style = {
-			fontFamily: 'Exo2-Light',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(12 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.mapperTextPrefix.style.fontSize = Math.floor(12 * scalingFactor);
 		this.mapperTextPrefix.position.set((slantWidth + LEFT_PADDING) * scalingFactor, (this.height - 27) * scalingFactor);
 		this.mapperTextPrefix.x = Math.floor(this.mapperTextPrefix.x);
 		this.mapperTextPrefix.y = Math.floor(this.mapperTextPrefix.y);
 
-		this.mapperText.style = {
-			fontFamily: 'Exo2-Bold',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(12 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.mapperText.style.fontSize = Math.floor(12 * scalingFactor);
 		this.positionMapperText();
 
-		this.difficultyText.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(12 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
+		this.difficultyText.style.fontSize = Math.floor(12 * scalingFactor);
 		this.difficultyText.position.set((this.width + slantWidth - 20) * scalingFactor, (this.height - 27) * scalingFactor);
 		this.difficultyText.x = Math.floor(this.difficultyText.x);
 		this.difficultyText.y = Math.floor(this.difficultyText.y);

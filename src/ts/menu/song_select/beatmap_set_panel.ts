@@ -12,6 +12,7 @@ import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { JobUtil } from "../../multithreading/job_util";
 import { Interpolator } from "../../util/interpolation";
 import { globalState } from "../../global_state";
+import { shallowObjectClone } from "../../util/misc_util";
 
 export class BeatmapSetPanel {
 	public carousel: BeatmapCarousel;
@@ -69,7 +70,16 @@ export class BeatmapSetPanel {
 		this.panelContainer.addChild(this.darkening);
 
 		this.primaryText = new PIXI.Text('');
+		this.primaryText.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			fontStyle: 'italic',
+			dropShadow: true,
+			dropShadowDistance: 1,
+			dropShadowBlur: 0
+		};
 		this.secondaryText = new PIXI.Text('');
+		this.secondaryText.style = shallowObjectClone(this.primaryText.style);
 		this.panelContainer.addChild(this.primaryText, this.secondaryText);
 
 		this.imageColorFilter = new PIXI.filters.ColorMatrixFilter();
@@ -169,26 +179,9 @@ export class BeatmapSetPanel {
 
 		this.darkening.texture = getDarkeningOverlay();
 
-		this.primaryText.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(22 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
-		this.secondaryText.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(14 * scalingFactor),
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
-
+		this.primaryText.style.fontSize = Math.floor(22 * scalingFactor);
 		this.primaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(10 * scalingFactor));
+		this.secondaryText.style.fontSize = Math.floor(14 * scalingFactor);
 		this.secondaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(35 * scalingFactor));
 
 		for (let i = 0; i < this.difficultyPanels.length; i++) {

@@ -160,6 +160,11 @@ export class ScoreScreen {
 		for (let c of this.judgementCounts) this.mainContainer.addChild(c.container);
 
 		this.accuracyInfoText = new PIXI.Text("error: -0.00ms - +0.00ms\nunstable rate: 0.00");
+		this.accuracyInfoText.style = {
+			fontFamily: 'Exo2-Light',
+			fill: 0xffffff,
+			align: 'right'
+		};
 		this.accuracyInfoText.anchor.set(1.0, 1.0);
 		this.accuracyInfoText.alpha = 0.75;
 		this.mainContainer.addChild(this.accuracyInfoText);
@@ -171,6 +176,10 @@ export class ScoreScreen {
 		this.mainContainer.addChild(this.spinInfoText);
 
 		this.playedByText = new PIXI.Text("Played by Vanilagy on 2019/01/01 12:45:56");
+		this.playedByText.style = {
+			fontFamily: 'Exo2-LightItalic',
+			fill: 0xffffff
+		};
 		this.playedByText.alpha = 0.66;
 		this.mainContainer.addChild(this.playedByText);
 
@@ -337,12 +346,7 @@ export class ScoreScreen {
 			c.container.y = Math.floor(c.container.y * this.scalingFactor);
 		}
 
-		this.accuracyInfoText.style = {
-			fontFamily: 'Exo2-Light',
-			fill: 0xffffff,
-			fontSize: Math.floor(11 * this.scalingFactor),
-			align: 'right'
-		};
+		this.accuracyInfoText.style.fontSize = Math.floor(11 * this.scalingFactor);
 		this.accuracyInfoText.x = Math.floor((SCORE_SCREEN_WIDTH - 46) * this.scalingFactor);
 		this.accuracyInfoText.y = Math.floor((SCORE_SCREEN_HEIGHT - 32) * this.scalingFactor);
 
@@ -350,11 +354,7 @@ export class ScoreScreen {
 		this.spinInfoText.x = Math.floor((SCORE_SCREEN_WIDTH - 190) * this.scalingFactor);
 		this.spinInfoText.y = this.accuracyInfoText.y;
 
-		this.playedByText.style = {
-			fontFamily: 'Exo2-LightItalic',
-			fill: 0xffffff,
-			fontSize: Math.floor(10 * this.scalingFactor),
-		};
+		this.playedByText.style.fontSize = Math.floor(10 * this.scalingFactor);
 		this.playedByText.pivot.x = Math.floor(this.playedByText.width / 2);
 		this.playedByText.x = Math.floor((SCORE_SCREEN_WIDTH / 2) * this.scalingFactor);
 		this.playedByText.y = Math.floor(6 * this.scalingFactor);
@@ -491,7 +491,15 @@ class LabeledNumericValue {
 		this.parent = parent;
 
 		this.label = new PIXI.Text(label);
+		this.label.style = {
+			fontFamily: 'Exo2-SemiBoldItalic',
+			fill: colorToHexNumber(THEME_COLORS.AccentGold)
+		};
 		this.valueText = new PIXI.Text(initialValue);
+		this.valueText.style = {
+			fontFamily: 'Exo2-Light',
+			fill: 0xffffff
+		};
 		this.valueFontSizeScaling = valueFontSizeScaling;
 
 		this.container.addChild(this.label, this.valueText);
@@ -500,17 +508,8 @@ class LabeledNumericValue {
 	resize() {
 		let scalingFactor = this.parent.scalingFactor;
 
-		this.label.style = {
-			fontFamily: 'Exo2-SemiBoldItalic',
-			fill: colorToHexNumber(THEME_COLORS.AccentGold),
-			fontSize: Math.floor(14.5 * scalingFactor),
-		};
-
-		this.valueText.style = {
-			fontFamily: 'Exo2-Light',
-			fill: 0xffffff,
-			fontSize: Math.floor(50 * scalingFactor * this.valueFontSizeScaling),
-		};
+		this.label.style.fontSize = Math.floor(14.5 * scalingFactor);
+		this.valueText.style.fontSize = Math.floor(50 * scalingFactor * this.valueFontSizeScaling);
 		this.valueText.y = Math.floor((18 - 5 * this.valueFontSizeScaling) * scalingFactor);
 		this.valueText.x = Math.floor(-2 * scalingFactor);
 	}
@@ -524,7 +523,6 @@ class JudgementCount {
 	public container: PIXI.Container;
 	private parent: ScoreScreen;
 	private label: PIXI.Text;
-	private labelColor: number;
 	private valueText: PIXI.Text;
 
 	constructor(parent: ScoreScreen, label: string, labelColor: number, initialValue: string) {
@@ -532,8 +530,15 @@ class JudgementCount {
 		this.parent = parent;
 
 		this.label = new PIXI.Text(label);
-		this.labelColor = labelColor;
+		this.label.style = {
+			fontFamily: 'FredokaOne-Regular',
+			fill: labelColor
+		};
 		this.valueText = new PIXI.Text(initialValue);
+		this.valueText.style = {
+			fontFamily: 'Exo2-Bold',
+			fill: 0xffffff
+		};
 		
 		this.label.anchor.set(1.0, 0.0);
 
@@ -543,18 +548,10 @@ class JudgementCount {
 	resize() {
 		let scalingFactor = this.parent.scalingFactor;
 
-		this.label.style = {
-			fontFamily: 'FredokaOne-Regular',
-			fill: this.labelColor,
-			fontSize: Math.floor(14.5 * scalingFactor),
-		};
+		this.label.style.fontSize =  Math.floor(14.5 * scalingFactor);
 		this.label.pivot.y = Math.floor(this.label.height);
 
-		this.valueText.style = {
-			fontFamily: 'Exo2-Bold',
-			fill: 0xffffff,
-			fontSize: Math.floor(22 * scalingFactor),
-		};
+		this.valueText.style.fontSize = Math.floor(22 * scalingFactor);
 		this.valueText.x = Math.floor(10 * scalingFactor);
 		this.valueText.pivot.y = Math.floor(this.valueText.height * 0.97); // factor because exo2 is weird regaring letter baseline
 	}

@@ -97,9 +97,17 @@ export class ModSelectionPanel {
 		this.centerContainer.addChild(this.centerContainerBackground);
 
 		this.header = new PIXI.Text("mods");
+		this.header.style = {
+			fontFamily: 'Exo2-BoldItalic',
+			fill: 0xffffff
+		};
 		this.centerContainer.addChild(this.header);
 
 		this.scoreMultiplierNumber = new PIXI.Text("1.00x");
+		this.scoreMultiplierNumber.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff
+		};
 		this.scoreMultiplierNumber.anchor.set(1.0, 0.0);
 		this.scoreMultiplierText = new PIXI.Text("score multiplier: ");
 		this.scoreMultiplierText.anchor.set(1.0, 0.0);
@@ -108,6 +116,10 @@ export class ModSelectionPanel {
 		// Build up the mod selection from the structure object above
 		for (let section of structure) {
 			let header = new PIXI.Text(section.header);
+			header.style = {
+				fontFamily: 'Exo2-LightItalic',
+				fill: 0xffffff
+			};
 			this.centerContainer.addChild(header);
 
 			this.sectionHeaders.push(header);
@@ -224,29 +236,17 @@ export class ModSelectionPanel {
 		this.centerContainer.pivot.x = Math.floor((PANEL_WIDTH + slantWidth) * this.scalingFactor / 2);
 		this.centerContainer.pivot.y = Math.floor((PANEL_HEIGHT + DEFAULT_BUTTON_MARGIN + DEFAULT_BUTTON_HEIGHT) * this.scalingFactor / 2);
 
-		this.header.style = {
-			fontFamily: 'Exo2-BoldItalic',
-			fill: 0xffffff,
-			fontSize: Math.floor(22 * this.scalingFactor)
-		};
+		this.header.style.fontSize = Math.floor(22 * this.scalingFactor);
 		this.header.y = Math.floor(TOP_MARGIN * this.scalingFactor);
 
-		this.scoreMultiplierNumber.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontSize: Math.floor(13 * this.scalingFactor)
-		};
+		this.scoreMultiplierNumber.style.fontSize = Math.floor(13 * this.scalingFactor);
 		this.scoreMultiplierText.style = this.scoreMultiplierNumber.style;
 		this.updateScoreMultiplierPositioning();
 
 		for (let i = 0; i < this.sectionHeaders.length; i++) {
 			let sectionHeader = this.sectionHeaders[i];
 
-			sectionHeader.style = {
-				fontFamily: 'Exo2-LightItalic',
-				fill: 0xffffff,
-				fontSize: Math.floor(14.5 * this.scalingFactor)
-			};
+			sectionHeader.style.fontSize = Math.floor(14.5 * this.scalingFactor);
 			sectionHeader.y = Math.floor((77 + i*102) * this.scalingFactor);
 
 			let icons = this.modIcons[i];

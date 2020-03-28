@@ -77,6 +77,11 @@ export class BeatmapDifficultyPanel {
 
 		this.infoContainer = new PIXI.Container();
 		this.primaryText = new PIXI.Text('');
+		this.primaryText.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			fontStyle: 'italic'
+		};
 		this.starRatingTicks = new PIXI.Graphics();
 		
 		this.infoContainer.addChild(this.primaryText);
@@ -164,13 +169,7 @@ export class BeatmapDifficultyPanel {
 		this.glowSprite.texture = getBeatmapDifficultyPanelGlowTexture();
 		this.glowSprite.position.copyFrom(this.mainMask.position);
 
-		this.primaryText.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			fontSize: Math.floor(16 * scalingFactor)
-		};
-
+		this.primaryText.style.fontSize = Math.floor(16 * scalingFactor);
 		this.primaryText.position.set(Math.floor(30 * scalingFactor), Math.floor(10 * scalingFactor));
 
 		this.drawStarRatingTicks();

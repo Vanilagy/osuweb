@@ -153,7 +153,12 @@ class SideControlPanelButton {
         this.background = new PIXI.Sprite();
         this.container.addChild(this.background);
 
-        this.text = new PIXI.Text(this.label);
+		this.text = new PIXI.Text(this.label);
+		this.text.style = {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff,
+			textBaseline: 'alphabetic'
+        };
 		this.container.addChild(this.text);
 		
 		this.icon = new PIXI.Sprite();
@@ -197,12 +202,7 @@ class SideControlPanelButton {
 
 		this.background.texture = createPanelButtonTexture(scalingFactor);
 
-        this.text.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			textBaseline: 'alphabetic',
-			fontSize: Math.floor(9 * scalingFactor)
-        };
+        this.text.style.fontSize = Math.floor(9 * scalingFactor);
         this.text.pivot.x = Math.floor(this.text.width / 2);
         this.text.x = Math.floor(SIDE_CONTROL_PANEL_WIDTH / 2 * scalingFactor);
         this.text.y = Math.floor(SIDE_CONTROL_PANEL_WIDTH * 0.85 * scalingFactor);
