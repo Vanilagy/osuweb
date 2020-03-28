@@ -302,10 +302,6 @@ export class BeatmapSetPanel {
 		}
 		this.difficultyPanels[0].select(false);
 
-		representingBeatmap.getBackgroundImageFile().then((backgroundImage) => {
-			if (backgroundImage) globalState.backgroundManager.setImage(backgroundImage);
-		});
-
 		this.carousel.songSelect.startAudio(representingBeatmap);
 
 		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);

@@ -14,6 +14,7 @@ import { InteractionGroup, InteractionRegistration } from "../../input/interacti
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { SongSelect } from "./song_select";
 import { BeatmapHeaderPanel } from "../components/beatmap_header_panel";
+import { globalState } from "../../global_state";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEADER_HEIGHT = 260;
@@ -114,6 +115,7 @@ export class BeatmapInfoPanel {
 		this.currentBeatmapSet = beatmapSet;
 
 		let imageFile = await representingBeatmap.getBackgroundImageFile();
+		globalState.backgroundManager.setImage(imageFile);
 		await this.header.loadImage(imageFile);
 		this.header.updateText(representingBeatmap, false, true);
 	}

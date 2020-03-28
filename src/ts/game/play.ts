@@ -179,7 +179,7 @@ export class Play {
 		console.timeEnd("Audio load");
 
 		let backgroundImageFile = await this.processedBeatmap.beatmap.getBackgroundImageFile();
-		if (backgroundImageFile) backgroundManager.setImage(backgroundImageFile, true);
+		backgroundManager.setImage(backgroundImageFile, true);
 		
 		let backgroundVideoFile = await this.processedBeatmap.beatmap.getBackgroundVideoFile();
 		if (backgroundVideoFile && !DISABLE_VIDEO) {
