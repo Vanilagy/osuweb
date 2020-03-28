@@ -2,12 +2,12 @@ import { SpriteNumberTextures } from "../../visuals/sprite_number";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../../datamodel/skin_configuration";
 import { Color } from "../../util/graphics_util";
-import { assert, jsonClone, shallowObjectClone } from "../../util/misc_util";
+import { assert, jsonClone, shallowObjectClone, last } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
 import { OsuSoundType, OsuSound, osuSoundFileNames } from "./sound";
 
 export const IGNORE_BEATMAP_SKIN = false;
-export const IGNORE_BEATMAP_HIT_SOUNDS = true;
+export const IGNORE_BEATMAP_HIT_SOUNDS = false;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
@@ -22,7 +22,9 @@ export class Skin {
     public scoreNumberTextures: SpriteNumberTextures;
     public comboNumberTextures: SpriteNumberTextures;
     public colors: Color[];
-    public sounds: { [key in keyof typeof OsuSoundType]?: OsuSound };
+	public sounds: { [key in keyof typeof OsuSoundType]?: OsuSound };
+	/** Whether sliderBallBg and sliderBallSpec are shown. */
+	public allowSliderBallExtras: boolean;
 
     constructor(directory: VirtualDirectory) {
         this.directory = directory;
@@ -31,10 +33,11 @@ export class Skin {
         this.scoreNumberTextures = null;
         this.comboNumberTextures = null;
         this.colors = [];
-        this.sounds = {};
+		this.sounds = {};
+		this.allowSliderBallExtras = false;
     }
 
-    async init() {
+    async init(readyAssets = true) {
         console.time("Skin init");
 
         let skinConfigurationFile = await this.directory.getFileByName("skin.ini") || await this.directory.getFileByName("Skin.ini");
@@ -135,14 +138,16 @@ export class Skin {
         this.comboNumberTextures = {} as SpriteNumberTextures;
         for (let suffix of SCORE_NUMBER_SUFFIXES) { // Combo uses the same suffixes as score
             this.comboNumberTextures[suffix as keyof SpriteNumberTextures] = await OsuTexture.fromFiles(this.directory, `${this.config.fonts.comboPrefix}-${suffix}`, "png", true);
-        }
+		}
+		
+		if (!this.textures["sliderBall"].isEmpty()) {
+			// "extras will not be added if a custom sliderb sprite is used"
+			this.allowSliderBallExtras = false;
+			// Note that if you still want extras, you just gotta set this property to true from outside.
+		}
         
         /* Sounds */
         
-        console.time("Hit sounds load");
-
-        let hitSoundReadyPromises: Promise<void>[] = [];
-
         for (let key in OsuSoundType) {
             if (isNaN(Number(key))) continue;
 
@@ -154,13 +159,26 @@ export class Skin {
                 await this.directory.getFileByName(fileName + '.mp3');
             }
 
-            let hitSound = new OsuSound(this.directory, fileName);
-            hitSoundReadyPromises.push(hitSound.ready());
+            let osuSound = new OsuSound(this.directory, fileName);
+            this.sounds[key] = osuSound;
+		}
+		
+		if (readyAssets) await this.readyAssets();
 
-            this.sounds[key] = hitSound;
+        console.timeEnd("Skin init");
+    }
+
+    async readyAssets() {
+		console.time("Hit sounds load");
+
+        let osuSoundReadyPromises: Promise<void>[] = [];
+
+        for (let key in this.sounds) {
+			let osuSound = this.sounds[key];
+            osuSoundReadyPromises.push(osuSound.ready());
         }
 
-        await Promise.all(hitSoundReadyPromises);
+        await Promise.all(osuSoundReadyPromises);
 
         console.timeEnd("Hit sounds load");
 
@@ -170,13 +188,7 @@ export class Skin {
             this.textures[key].uploadToGpu();
         }
         console.timeEnd("Texture upload to GPU");
-
-        console.timeEnd("Skin init");
-    }
-
-    async load() {
-        await this.directory.loadShallow();
-    }
+	}
 
     clone() {
         let newSkin = new Skin(this.directory);
@@ -198,10 +210,10 @@ export class Skin {
     }
 }
 
-export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = true) {
+export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = true, useLastConfig = false) {
     assert(skins.length > 0);
 
-    let baseSkin = skins[0].clone();
+	let baseSkin = skins[0].clone();
 
     for (let i = 1; i < skins.length; i++) {
         let skin = skins[i];
@@ -238,7 +250,26 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = tr
                 baseSkin.comboNumberTextures[key] = tex;
             }
     
-            if (!skin.hasDefaultConfig) baseSkin.colors = skin.colors.slice(0);
+			if (!skin.hasDefaultConfig) baseSkin.colors = skin.colors.slice(0);
+			
+			if (!skin.allowSliderBallExtras) baseSkin.allowSliderBallExtras = false;
+
+			// If the hit50 texture is present, strictly copy particle50
+			if (!skin.textures["hit50"].isEmpty()) {
+				baseSkin.textures["particle50"] = skin.textures["particle50"];
+			}
+			// If any hit100 texture is present, strictly copy particle100
+			if (!skin.textures["hit100"].isEmpty() || !skin.textures["hit100k"].isEmpty()) {
+				baseSkin.textures["particle100"] = skin.textures["particle100"];
+			}
+			// If any hit300 texture is present, strictly copy particle300
+			if (!skin.textures["hit300"].isEmpty() || !skin.textures["hit300k"].isEmpty() || !skin.textures["hit300g"].isEmpty()) {
+				baseSkin.textures["particle300"] = skin.textures["particle300"];
+			}
+			// If the scorebarColor texture is present, strictly copy scorebarMarker
+			if (!skin.textures["scorebarColor"].isEmpty()) {
+				baseSkin.textures["scorebarMarker"] = skin.textures["scorebarMarker"];
+			}
         }
 
         if (joinHitSounds) {
@@ -251,5 +282,6 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = tr
         }
     }
 
+	if (useLastConfig) baseSkin.config = last(skins).config;
     return baseSkin;
 }

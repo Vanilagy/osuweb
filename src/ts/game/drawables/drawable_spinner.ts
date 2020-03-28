@@ -145,7 +145,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		});
 
 		let backgroundTexture = skin.textures["spinnerBackground"];
-		this.isNewStyle = backgroundTexture.isEmpty();
+		this.isNewStyle = backgroundTexture.isEmpty() && skin.getVersionNumber() > 2.0;
 
 		if (this.isNewStyle) {
 			// Add spinner glow

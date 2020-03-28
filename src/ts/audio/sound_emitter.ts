@@ -105,6 +105,7 @@ export class SoundEmitter {
 		if (!this.sourceNode) return;
 
 		this.sourceNode.stop();
+		this.sourceNode = null;
 	}
 
 	getCurrentTime() {

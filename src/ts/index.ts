@@ -2,7 +2,7 @@ import './visuals/ui';
 import './visuals/simple_beatmap_selector';
 import './menu/song_select/simple_songs_selector';
 import './menu/song_select/song_select';
-import { Skin } from './game/skin/skin';
+import { Skin, joinSkins } from './game/skin/skin';
 import { showChooseFile } from './visuals/simple_beatmap_selector';
 import { SongSelect } from './menu/song_select/song_select';
 import { stage, addRenderingTask } from './visuals/rendering';
@@ -29,10 +29,10 @@ window.addEventListener('load', init);
 async function init() {
 	//return;
 
-	await initBaseSkin();
 	initAudio();
 	initBackground();
 	initSongSelect();
+	await initBaseSkin();
 	initGameplay();
 	initScoreGrades();
 	initScoreScreen();
@@ -43,12 +43,22 @@ async function init() {
 }
 
 async function initBaseSkin() {
-	let baseSkinPath = "./assets/skins/Seoul";
-	let baseSkinDirectory = new VirtualDirectory("root");
-	baseSkinDirectory.networkFallbackUrl = baseSkinPath;
+	let defaultSkinPath = "./assets/skins/default";
+	let defaultSkinDirectory = new VirtualDirectory("root");
+	defaultSkinDirectory.networkFallbackUrl = defaultSkinPath;
+	
+	let defaultSkin = new Skin(defaultSkinDirectory);
+	await defaultSkin.init(false);
 
-	let baseSkin = new Skin(baseSkinDirectory);
-	await baseSkin.init();
+	let selectedSkinPath = "./assets/skins/Seoul";
+	let selectedSkinDirectory = new VirtualDirectory("root");
+	selectedSkinDirectory.networkFallbackUrl = selectedSkinPath;
+
+	let selectedSkin = new Skin(selectedSkinDirectory);
+	await selectedSkin.init(false);
+
+	let baseSkin = joinSkins([defaultSkin, selectedSkin], true, true, true);
+	await baseSkin.readyAssets();
 
 	globalState.baseSkin = baseSkin;
 }
