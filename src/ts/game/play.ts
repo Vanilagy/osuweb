@@ -479,8 +479,6 @@ export class Play {
 					if (drawable instanceof DrawableSlider) {
 						let slider = drawable;
 
-						slider.beginSliderSlideSound(currentTime);
-
 						let distance = pointDistance(osuMouseCoordinates, playEvent.position);
 						let hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
 
@@ -515,7 +513,7 @@ export class Play {
 				case PlayEventType.SliderEnd: {
 					let slider = drawable as DrawableSlider;
 
-					slider.stopSliderSlideSound();
+					slider.setHoldingState(false, playEvent.time);
 
 					// If the slider end was hit, score it now.
 					let hit = slider.scoring.end === true;
@@ -614,7 +612,9 @@ export class Play {
 					
 					let distanceToCursor = pointDistance(osuMouseCoordinates, currentPosition);
 					if ((buttonPressed && distanceToCursor <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit) {
-						slider.holdFollowCircle(currentTime);
+						slider.setHoldingState(true, currentTime);
+					} else {
+						slider.setHoldingState(false, currentTime);
 					}
 				}; break;
 				case PlayEventType.SpinnerSpin: {
@@ -650,9 +650,11 @@ export class Play {
 	}
 
 	private stopHitObjectSounds() {
+		let currentTime = this.getCurrentSongTime();
+
 		for (let hitObject of this.onscreenHitObjects) {
 			if (hitObject instanceof DrawableSlider) {
-				hitObject.stopSliderSlideSound();
+				hitObject.setHoldingState(false, currentTime);
 			} else if (hitObject instanceof DrawableSpinner) {
 				hitObject.stopSpinningSound();
 			}
@@ -664,14 +666,6 @@ export class Play {
 		
 		this.paused = false;
 		this.playing = true;
-
-		let currentTime = this.getCurrentSongTime();
-
-		for (let hitObject of this.onscreenHitObjects) {
-			if (hitObject instanceof DrawableSlider) {
-				hitObject.beginSliderSlideSound(currentTime);
-			}
-		}
 
 		globalState.gameplayMediaPlayer.unpause();
 	}

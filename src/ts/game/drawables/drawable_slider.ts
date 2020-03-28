@@ -55,6 +55,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	public hitSounds: HitSoundInfo[];
 	public tickSounds: HitSoundInfo[];
 	public slideEmitters: SoundEmitter[];
+	private sliderSlideSoundPlaying = false;
+	private currentlyHolding = false;
 
 	constructor(drawableBeatmap: DrawableBeatmap, processedSlider: ProcessedSlider) {
 		super(drawableBeatmap, processedSlider);
@@ -139,7 +141,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		}
 
 		this.scoring = getDefaultSliderScoring();
-		this.stopSliderSlideSound();
+		this.setHoldingState(false, 0);
 	}
 
 	draw() {
@@ -385,27 +387,44 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		*/
 	}
 
-	beginSliderSlideSound(currentTime: number) {
+	private beginSliderSlideSound() {
+		if (this.sliderSlideSoundPlaying) return;
 		if (!this.slideEmitters) return;
-		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
 		for (let i = 0; i < this.slideEmitters.length; i++) {
 			this.slideEmitters[i].start();
 		}
+
+		this.sliderSlideSoundPlaying = true;
 	}
 
-	stopSliderSlideSound() {
+	private stopSliderSlideSound() {
+		if (!this.sliderSlideSoundPlaying) return;
 		if (!this.slideEmitters) return;
 
 		for (let i = 0; i < this.slideEmitters.length; i++) {
 			this.slideEmitters[i].stop();
 		}
+
+		this.sliderSlideSoundPlaying = false;
+	}
+
+	setHoldingState(holding: boolean, time: number) {
+		if (holding === this.currentlyHolding) return;
+		if (holding && (time < this.parent.startTime || time >= this.parent.endTime)) return;
+
+		if (holding) {
+			this.holdFollowCircle(time);
+			this.beginSliderSlideSound();
+		} else {
+			this.stopSliderSlideSound();
+		}
+
+		this.currentlyHolding = holding;
 	}
 
 	holdFollowCircle(time: number) {
-		if (this.followCircleHoldStartTime !== null) return;
-
 		this.followCircleHoldStartTime = Math.max(this.parent.startTime, time);
 		this.followCircleReleaseStartTime = null;
 		this.followCirclePulseStartTime = null;
@@ -725,7 +744,7 @@ class SliderBall {
 		if (skin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.color);
 		else baseSprite.tint = colorToHexNumber(skin.config.colors.sliderBall);
 
-		if (!osuTexture.hasActualBase()) {
+		if (!osuTexture.hasActualBase() && skin.allowSliderBallExtras) {
 			let bgTexture = skin.textures["sliderBallBg"];
 
 			if (!bgTexture.isEmpty()) {
@@ -740,7 +759,7 @@ class SliderBall {
 		}
 
 		let specTexture = skin.textures["sliderBallSpec"];
-		if (!specTexture.isEmpty()) {
+		if (!specTexture.isEmpty() && skin.allowSliderBallExtras) {
 			let sprite = new PIXI.Sprite();
 			sprite.anchor.set(0.5, 0.5);
 			sprite.blendMode = PIXI.BLEND_MODES.ADD;
