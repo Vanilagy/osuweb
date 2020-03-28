@@ -201,7 +201,8 @@ export class Skin {
         newSkin.scoreNumberTextures = shallowObjectClone(this.scoreNumberTextures);
         newSkin.comboNumberTextures = shallowObjectClone(this.comboNumberTextures);
         newSkin.colors = this.colors.slice(0);
-        newSkin.sounds = shallowObjectClone(this.sounds);
+		newSkin.sounds = shallowObjectClone(this.sounds);
+		newSkin.allowSliderBallExtras = this.allowSliderBallExtras;
 
         return newSkin;
     }
