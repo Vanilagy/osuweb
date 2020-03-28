@@ -43,3 +43,5 @@ export const THEME_COLORS = {
 
 	SecondaryActionGray: hexNumberToColor(0x909090)
 } as const;
+
+export const NO_IMAGE_TINT = 0x1c1c1c;

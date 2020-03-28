@@ -1,12 +1,12 @@
 import { Beatmap } from "../../datamodel/beatmap";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { Interpolator } from "../../util/interpolation";
-import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
-import { fitSpriteIntoContainer, createPolygonTexture, createLinearGradientTexture } from "../../util/pixi_util";
-import { EaseType, MathUtil } from "../../util/math_util";
+import { BitmapQuality } from "../../util/image_util";
+import { createPolygonTexture, createLinearGradientTexture } from "../../util/pixi_util";
+import { EaseType } from "../../util/math_util";
 import { VirtualFile } from "../../file_system/virtual_file";
+import { ImageCrossfader } from "./image_crossfader";
 
-const IMAGE_FADE_IN_TIME = 333;
 const LEFT_PADDING = 18;
 
 export class BeatmapHeaderPanel {
@@ -19,9 +19,7 @@ export class BeatmapHeaderPanel {
 	private mask: PIXI.Sprite;
 	private darkening: PIXI.Sprite;
 
-	private backgroundImageContainer: PIXI.Container;
-	private markedForDeletionImages = new WeakSet<PIXI.Container>();
-	private imageInterpolators = new WeakMap<PIXI.Container, Interpolator>();
+	private imageCrossfader: ImageCrossfader;
 
 	private titleText: PIXI.Text;
 	private artistText: PIXI.Text;
@@ -53,13 +51,10 @@ export class BeatmapHeaderPanel {
 			this.container.filters = [shadowFilter];
 		}
 
-		this.backgroundImageContainer = new PIXI.Container();
-		let placeholderImage = new PIXI.Sprite(PIXI.Texture.WHITE);
-		placeholderImage.tint = 0x000000;
-		let lol = new PIXI.Container();
-		lol.addChild(placeholderImage);
-		this.backgroundImageContainer.addChild(lol);
-		this.container.addChild(this.backgroundImageContainer);
+		this.imageCrossfader = new ImageCrossfader();
+		this.imageCrossfader.setScaleBehavior(1.07, 1.0);
+		this.imageCrossfader.setEase(EaseType.EaseOutCubic);
+		this.container.addChild(this.imageCrossfader.container);
 
 		this.darkening = new PIXI.Sprite();
 		this.container.addChild(this.darkening);
@@ -84,42 +79,7 @@ export class BeatmapHeaderPanel {
 	}
 
 	async loadImage(imageFile: VirtualFile, doAnimation = true) {
-		if (!imageFile) return;
-
-		let bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
-		let texture = PIXI.Texture.from(bitmap as any);
-
-		let newSprite = new PIXI.Sprite(texture);
-		fitSpriteIntoContainer(newSprite, this.mask.width, this.mask.height);
-
-		let spriteContainer = new PIXI.Container();
-		spriteContainer.addChild(newSprite);
-		spriteContainer.pivot.set(this.mask.width / 2, this.mask.height / 2);
-		spriteContainer.position.copyFrom(spriteContainer.pivot);
-
-		for (let obj of this.backgroundImageContainer.children) {
-			let container = obj as PIXI.Container;
-			if (this.markedForDeletionImages.has(container)) continue;
-
-			this.markedForDeletionImages.add(container);
-
-			if (doAnimation) {
-				setTimeout(() => this.backgroundImageContainer.removeChild(container), IMAGE_FADE_IN_TIME);
-			} else {
-				this.backgroundImageContainer.removeChild(container);
-			}
-		}
-
-		this.backgroundImageContainer.addChild(spriteContainer);
-
-		let interpolator = new Interpolator({
-			duration: 333,
-			ease: EaseType.EaseOutCubic
-		});
-		interpolator.start(performance.now());
-		this.imageInterpolators.set(spriteContainer, interpolator);
-
-		if (!doAnimation) interpolator.end();
+		await this.imageCrossfader.loadImage(imageFile, BitmapQuality.Medium, doAnimation);
 	}
 
 	updateText(beatmap: Beatmap | ExtendedBeatmapData, showDifficulty: boolean, beginAnimation: boolean) {
@@ -161,14 +121,7 @@ export class BeatmapHeaderPanel {
 		this.mask.texture = this.createMaskTexture(scalingFactor);
 		this.darkening.texture = this.createGradientTexture(scalingFactor);
 
-		for (let obj of this.backgroundImageContainer.children) {
-			let container = obj as PIXI.Container;
-			let sprite = container.children[0] as PIXI.Sprite;
-
-			fitSpriteIntoContainer(sprite, this.mask.width, this.mask.height);
-			container.pivot.set(this.mask.width / 2, this.mask.height / 2);
-			container.position.copyFrom(container.pivot);
-		}
+		this.imageCrossfader.resize(this.mask.width, this.mask.height);
 
 		let slantWidth = this.getSlantWidth();
 
@@ -252,15 +205,6 @@ export class BeatmapHeaderPanel {
 		this.artistText.pivot.x = this.titleText.pivot.x * 0.666;
 		this.mapperText.pivot.x = this.mapperTextPrefix.pivot.x = this.titleText.pivot.x * 0.333;
 
-		for (let obj of this.backgroundImageContainer.children) {
-			let container = obj as PIXI.Container;
-			let interpolator = this.imageInterpolators.get(container);
-			if (!interpolator) continue;
-
-			let value = interpolator.getCurrentValue(now);
-
-			container.alpha = value;
-			container.scale.set(MathUtil.lerp(1.07, 1.0, value));
-		}
+		this.imageCrossfader.update(now);
 	}
 }
