@@ -3,6 +3,7 @@ import { OsuTexture } from "../skin/texture";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation";
 import { Hud } from "./hud";
+import { AnimatedOsuSprite } from "../skin/animated_sprite";
 
 const SCOREBAR_KI_DANGER_THRESHOLD = 0.5;
 const SCOREBAR_KI_DANGER2_THRESHOLD = 0.25;
@@ -11,7 +12,7 @@ export class Scorebar {
 	public hud: Hud;
 	public container: PIXI.Container;
 	private backgroundLayer: PIXI.Sprite;
-	private colorLayer: PIXI.Sprite; // The part that actually changes with health
+	private colorLayerAnimator: AnimatedOsuSprite;
 	private colorLayerMask: PIXI.Graphics;
 	private progressInterpolator: InterpolatedValueChanger;
 	private marker: PIXI.Container; // The marker at the end of the HP thing. Can refer to the marker texture, but also scorebar-ki, scorebar-kidanger and scorebar-kidanger2
@@ -51,7 +52,7 @@ export class Scorebar {
 		this.initMarker();
 
 		this.container.addChild(this.backgroundLayer);
-		this.container.addChild(this.colorLayer);
+		this.container.addChild(this.colorLayerAnimator.sprite);
 		this.container.addChild(this.colorLayerMask);
 		this.container.addChild(this.marker);
 	}
@@ -70,10 +71,10 @@ export class Scorebar {
 		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
 
 		let osuTexture = skin.textures["scorebarColor"];
-		let sprite = new PIXI.Sprite();
-
-		let factor = screenPixelRatio;
-		osuTexture.applyToSprite(sprite, factor);
+		let animator = new AnimatedOsuSprite(osuTexture, screenPixelRatio);
+		animator.setFps(skin.config.general.animationFramerate);
+		animator.play(0);
+		animator.sprite.anchor.set(0.0, 0.0);
 
 		let x: number, y: number;
 		if (this.hasPureMarker) {
@@ -84,20 +85,20 @@ export class Scorebar {
 			y = 16;
 		}
 
-		sprite.position.set(Math.floor(x * factor), Math.floor(y * factor));
+		animator.sprite.position.set(Math.floor(x * screenPixelRatio), Math.floor(y * screenPixelRatio));
 
-		this.colorLayer = sprite;
+		this.colorLayerAnimator = animator;
 	}
 
 	private initMask() {
 		let mask = new PIXI.Graphics();
 		mask.beginFill(0xFF0000);
-		mask.drawRect(0, 0, this.colorLayer.width, currentWindowDimensions.height);
+		mask.drawRect(0, 0, this.colorLayerAnimator.sprite.width, currentWindowDimensions.height);
 		mask.endFill();
 
-		mask.position.copyFrom(this.colorLayer.position);
+		mask.position.copyFrom(this.colorLayerAnimator.sprite.position);
 
-		this.colorLayer.mask = mask;
+		this.colorLayerAnimator.sprite.mask = mask;
 		this.colorLayerMask = mask;
 	}
 
@@ -131,9 +132,9 @@ export class Scorebar {
 
 		let currentPercentage = this.progressInterpolator.getCurrentValue(currentTime);
 
-		this.colorLayerMask.pivot.x = Math.floor((1-currentPercentage) * this.colorLayer.width);
+		this.colorLayerMask.pivot.x = Math.floor((1-currentPercentage) * this.colorLayerAnimator.sprite.width);
 
-		this.marker.x = 12 * screenPixelRatio + Math.floor(currentPercentage * this.colorLayer.width);
+		this.marker.x = 12 * screenPixelRatio + Math.floor(currentPercentage * this.colorLayerAnimator.sprite.width);
 		this.marker.scale.set(this.markerInterpolator.getCurrentValue(currentTime));
 
 		// Update the texture of the marker based on current percentage
