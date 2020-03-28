@@ -20,6 +20,7 @@ export class Hud {
 	public scoreDisplay: SpriteNumber;
 	public phantomComboDisplay: SpriteNumber;
 	public comboDisplay: SpriteNumber;
+	private comboContainer: PIXI.Container;
 	public accuracyDisplay: SpriteNumber;
 	public progressIndicator: ProgressIndicator;
 	public accuracyMeter: AccuracyMeter;
@@ -73,6 +74,7 @@ export class Hud {
 			textures: baseSkin.scoreNumberTextures,
 			hasX: true
 		});
+		this.phantomComboDisplay.container.alpha = 0.0;
 		this.phantomComboDisplay.setValue(0);
 	
 		this.comboDisplay = new SpriteNumber({
@@ -83,8 +85,10 @@ export class Hud {
 			textures: baseSkin.scoreNumberTextures,
 			hasX: true
 		});
-		
 		this.comboDisplay.setValue(0);
+
+		this.comboContainer = new PIXI.Container();
+		this.comboContainer.addChild(this.phantomComboDisplay.container, this.comboDisplay.container);
 	
 		this.accuracyMeter = new AccuracyMeter(this);
 		this.scorebar = new Scorebar(this);
@@ -102,8 +106,7 @@ export class Hud {
 		this.container.addChild(this.scorebar.container);
 		this.container.addChild(this.gameplayWarningArrows.container);
 		this.container.addChild(this.scoreDisplay.container);
-		this.container.addChild(this.phantomComboDisplay.container);
-		this.container.addChild(this.comboDisplay.container);
+		this.container.addChild(this.comboContainer);
 		this.container.addChild(this.accuracyDisplay.container);
 		this.container.addChild(this.progressIndicator.container);
 		this.container.addChild(this.skipButton.container);
@@ -175,10 +178,8 @@ export class Hud {
 
 		let breakiness = MathUtil.ease(EaseType.EaseInQuad, this.currentBreakiness);
 
-		this.comboDisplay.container.pivot.x = 50 * getGlobalScalingFactor() * breakiness;
-		this.comboDisplay.container.alpha = 1 - breakiness;
-		this.phantomComboDisplay.container.pivot.x = this.comboDisplay.container.pivot.x;
-		this.phantomComboDisplay.container.alpha = 0.333 * this.comboDisplay.container.alpha;
+		this.comboContainer.pivot.x = 50 * getGlobalScalingFactor() * breakiness;
+		this.comboContainer.alpha = 1 - breakiness;
 
 		this.scorebar.container.pivot.y = 50 * getGlobalScalingFactor() * breakiness;
 		this.scorebar.container.alpha = 1 - breakiness;
