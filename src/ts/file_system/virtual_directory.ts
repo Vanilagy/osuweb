@@ -29,14 +29,14 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		this.caseInsensitiveEntries.delete(entry.name.toLowerCase());
 	}
 
-	async getEntryByName(name: string, caseInsensitive = false) {
+	async getEntryByName(name: string, caseSensitive = false) {
 		if (name !== null && name !== undefined) {
-			let entry = caseInsensitive? this.caseInsensitiveEntries.get(name.toLowerCase()) : this.entries.get(name);
+			let entry = caseSensitive? this.entries.get(name) : this.caseInsensitiveEntries.get(name.toLowerCase());
 			if (entry) return entry;
 		}
 
 		if (this.networkFallbackUrl) {
-			let url = this.networkFallbackUrl + '/' + name;
+			let url = this.networkFallbackUrl + '/' + name; // We ignore case sensitivity here
 			if (this.failedNetworkFallbacks.has(url)) return null;
 
 			let response = await fetch(url);
@@ -54,8 +54,8 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		return null;
 	}
 
-	async getFileByName(name: string, caseInsensitive = false) {
-		let entry = await this.getEntryByName(name, caseInsensitive);
+	async getFileByName(name: string, caseSensitive = false) {
+		let entry = await this.getEntryByName(name, caseSensitive);
 
 		if (entry instanceof VirtualFile) return entry as VirtualFile;
 		return null;

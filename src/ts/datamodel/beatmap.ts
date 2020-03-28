@@ -164,7 +164,7 @@ export class Beatmap {
 	}
 
 	getAudioFile() {
-		return this.beatmapSet.directory.getFileByName(this.audioFilename, true);
+		return this.beatmapSet.directory.getFileByName(this.audioFilename);
 	}
 
 	getBackgroundImageName() {
@@ -193,12 +193,12 @@ export class Beatmap {
 
 	getBackgroundImageFile() {
 		let fileName = this.getBackgroundImageName();
-		return this.beatmapSet.directory.getFileByName(fileName, true);
+		return this.beatmapSet.directory.getFileByName(fileName);
 	}
 
 	getBackgroundVideoFile() {
 		let fileName = this.getBackgroundVideoName();
-		return this.beatmapSet.directory.getFileByName(fileName, true);
+		return this.beatmapSet.directory.getFileByName(fileName);
 	}
 
 	getAudioPreviewTimeInSeconds() {
