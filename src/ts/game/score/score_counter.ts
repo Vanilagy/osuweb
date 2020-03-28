@@ -34,9 +34,39 @@ export class ScoreCounter {
 	private difficultyMultiplier: number;
 	private modMultiplier: number;
 
+	private scoreInterpolator: InterpolatedValueChanger;
+	private accuracyInterpolator: InterpolatedValueChanger;
+	private phantomComboAnimationInterpolator: Interpolator;
+	private comboAnimationInterpolator: Interpolator;
+
 	constructor(play: Play, processedBeatmap: ProcessedBeatmap) {
 		this.play = play;
 		this.processedBeatmap = processedBeatmap;
+
+		this.scoreInterpolator = new InterpolatedValueChanger({
+			initial: 0,
+			duration: (distanceToGoal: number) => {
+				// Quick animation for small score increases, like slider ticks
+				if (distanceToGoal <= 30) return 110;
+				return 500;
+			},
+			ease: EaseType.EaseOutCubic
+		});
+		this.accuracyInterpolator = new InterpolatedValueChanger({
+			initial: 1,
+			duration: 250,
+			ease: EaseType.EaseOutQuad
+		});
+		this.phantomComboAnimationInterpolator = new Interpolator({
+			ease: EaseType.Linear,
+			duration: 500,
+			defaultToFinished: true
+		});
+		this.comboAnimationInterpolator = new Interpolator({
+			ease: EaseType.Linear,
+			duration: 250,
+			defaultToFinished: true
+		});
 	}
 
 	init() {
@@ -72,14 +102,14 @@ export class ScoreCounter {
 				this.currentCombo++;
 				if (this.currentCombo > this.score.maxCombo) this.score.maxCombo = this.currentCombo;
 
-				phantomComboAnimationInterpolator.start(time);
+				this.phantomComboAnimationInterpolator.start(time);
 				this.delayedVisualComboIncreases.push({time: time, value: this.currentCombo});
 			}
 		}
 
-		scoreInterpolator.setGoal(this.score.points, time);
+		this.scoreInterpolator.setGoal(this.score.points, time);
 		this.score.accuracy = this.calculateAccuracy();
-		accuracyInterpolator.setGoal(this.score.accuracy, time);
+		this.accuracyInterpolator.setGoal(this.score.accuracy, time);
 
 		this.play.gainHealth(rawAmount/300 * 0.2, time);
 
@@ -140,7 +170,7 @@ export class ScoreCounter {
 		}
 
 		this.currentCombo = 0;
-		phantomComboAnimationInterpolator.start(time);
+		this.phantomComboAnimationInterpolator.start(time);
 		this.delayedVisualComboIncreases.push({time: time, value: this.currentCombo});
 	}
 
@@ -157,28 +187,28 @@ export class ScoreCounter {
 	updateDisplay(currentTime: number) {
 		const hud = this.play.controller.hud;
 
-		hud.scoreDisplay.setValue(Math.floor(scoreInterpolator.getCurrentValue(currentTime)));
+		hud.scoreDisplay.setValue(Math.floor(this.scoreInterpolator.getCurrentValue(currentTime)));
 
 		hud.phantomComboDisplay.setValue(this.currentCombo);
-		let phantomComboAnimCompletion = phantomComboAnimationInterpolator.getCurrentValue(currentTime);
+		let phantomComboAnimCompletion = this.phantomComboAnimationInterpolator.getCurrentValue(currentTime);
 		let phantomComboScale = MathUtil.lerp(1.5, 1, MathUtil.ease(EaseType.EaseOutCubic, phantomComboAnimCompletion));
 		hud.phantomComboDisplay.container.scale.set(phantomComboScale);
 		hud.phantomComboDisplay.container.alpha = 0.666 * (1 - phantomComboAnimCompletion);
 
-		let comboAnimCompletion = comboAnimationInterpolator.getCurrentValue(currentTime);
+		let comboAnimCompletion = this.comboAnimationInterpolator.getCurrentValue(currentTime);
 		let parabola = -4 * comboAnimCompletion**2 + 4 * comboAnimCompletion;
 		hud.comboDisplay.container.scale.set(1 + parabola * 0.08);
 
 		let nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
 		while (nextDelayedComboIncrease && currentTime >= nextDelayedComboIncrease.time + 150) {
-			comboAnimationInterpolator.start(nextDelayedComboIncrease.time);
+			this.comboAnimationInterpolator.start(nextDelayedComboIncrease.time);
 			hud.comboDisplay.setValue(nextDelayedComboIncrease.value);
 
 			this.delayedVisualComboIncreases.shift();
 			nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
 		}
 
-		hud.accuracyDisplay.setValue(accuracyInterpolator.getCurrentValue(currentTime) * 100);
+		hud.accuracyDisplay.setValue(this.accuracyInterpolator.getCurrentValue(currentTime) * 100);
 	}
 
 	reset() {
@@ -200,38 +230,9 @@ export class ScoreCounter {
 		hud.phantomComboDisplay.setValue(0);
 		hud.comboDisplay.setValue(0);
 
-		scoreInterpolator.reset(0);
-		accuracyInterpolator.reset(1);
-		phantomComboAnimationInterpolator.reset();
-		comboAnimationInterpolator.reset();
+		this.scoreInterpolator.reset(0);
+		this.accuracyInterpolator.reset(1);
+		this.phantomComboAnimationInterpolator.reset();
+		this.comboAnimationInterpolator.reset();
 	}
 }
-
-let scoreInterpolator = new InterpolatedValueChanger({
-	initial: 0,
-	duration: (distanceToGoal: number) => {
-		// Quick animation for small score increases, like slider ticks
-		if (distanceToGoal <= 30) return 110;
-		return 500;
-	},
-	ease: EaseType.EaseOutCubic
-});
-
-let accuracyInterpolator = new InterpolatedValueChanger({
-	initial: 1,
-	duration: 250,
-	ease: EaseType.EaseOutQuad
-});
-
-let phantomComboAnimationInterpolator = new Interpolator({
-	ease: EaseType.Linear,
-	duration: 500,
-	defaultToFinished: true
-});
-phantomComboAnimationInterpolator.end();
-
-let comboAnimationInterpolator = new Interpolator({
-	ease: EaseType.Linear,
-	duration: 250,
-	defaultToFinished: true
-});
