@@ -107,12 +107,12 @@ export function generateHitSoundInfo(hitSound: number, baseSet: number, addition
 }
 
 export class OsuSound {
-    private files: { [index: number]: VirtualFile };
-    private audioBuffers: { [index: number]: AudioBuffer };
+    private files: Map<number, VirtualFile>;
+    private audioBuffers: Map<number, AudioBuffer>;
 
     constructor(directory: VirtualDirectory, fileName: string) {
-        this.files = {};
-        this.audioBuffers = {};
+        this.files = new Map();
+        this.audioBuffers = new Map();
 
         directory.forEachFile((file) => {
             if (!file.name.startsWith(fileName)) return;
@@ -132,41 +132,28 @@ export class OsuSound {
                 index = Number(indexString);
             }
 
-            this.files[index] = file;
+            this.files.set(index, file);
         });
     }
 
-    isEmpty() { // TODO. Eh. Is this fine?
-        return Object.keys(this.files).length === 0;
+	isEmpty() { // TODO. Eh. Is this fine?
+		return this.files.size === 0;
     }
 
     async ready() {
         let audioBufferPromises: Promise<AudioBuffer>[] = [];
 
-        for (let key in this.files) {
-            let index = Number(key);
-            let file = this.files[index];
+        for (let [key, file] of this.files) {
             let arrayBuffer = await file.readAsArrayBuffer();
-
             audioBufferPromises.push(audioContext.decodeAudioData(arrayBuffer));
-
-            /*
-            try {
-                let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-                this.audioBuffers[index] = audioBuffer;
-            } catch(e) {
-                // Audio wasn't able to be decoded. Add no emitter.
-            }*/
         }
 
         let audioBuffers = await promiseAllSettled(audioBufferPromises);
-        for (let key in this.files) {
-            let index = Number(key);
+        for (let [key, file] of this.files) {
             let elem = audioBuffers.shift();
 
             if (elem.status === "fulfilled") {
-                this.audioBuffers[index] = elem.value;
+                this.audioBuffers.set(key, elem.value);
             } else {
                 // Audio wasn't able to be decoded. Add no emitter.
             }
@@ -174,8 +161,8 @@ export class OsuSound {
     }
 
     getEmitter(volume: number, index = 1, pan = 0, playbackRate = 1.0) {
-        let buffer = this.audioBuffers[index];
-        if (!buffer) buffer = this.audioBuffers[1]; // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
+        let buffer = this.audioBuffers.get(index);
+        if (!buffer) buffer = this.audioBuffers.get(1); // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
 		if (!buffer) return null;
 
         // TODO: How correct is this? Eeeeeeh
