@@ -19,7 +19,8 @@ export interface ExtendedBeatmapData {
 	difficulty: Exclude<BeatmapDifficulty, Function>,
 	difficultyAttributes: DifficultyAttributes,
 	playableLength: number,
-	msPerBeatTimings: number[][]
+	msPerBeatTimings: number[][],
+	imageName: string
 }
 
 export abstract class BeatmapUtil {
@@ -60,7 +61,8 @@ export abstract class BeatmapUtil {
 			difficulty: beatmap.difficulty,
 			difficultyAttributes: difficultyAttributes,
 			playableLength: processedBeatmap.getPlayableLength(),
-			msPerBeatTimings: msPerBeatTimings
+			msPerBeatTimings: msPerBeatTimings,
+			imageName: beatmap.getBackgroundImageName()
 		};
 	}
 }

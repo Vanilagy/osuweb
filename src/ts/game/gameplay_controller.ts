@@ -104,7 +104,6 @@ export class GameplayController {
 			}
 		});
 
-		// TODO get rid of these:
 		this.interactionRegistration.addListener('mouseMove', () => {
 			if (!this.currentPlay) return;
 			this.currentPlay.handleMouseMove();

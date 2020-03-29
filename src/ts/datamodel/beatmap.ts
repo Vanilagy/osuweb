@@ -168,9 +168,7 @@ export class Beatmap {
 	}
 
 	getBackgroundImageName() {
-		for (let key in this.events) {
-			let evt = this.events[key];
-
+		for (let evt of this.events) {
 			if (evt.type === BeatmapEventType.Background) {
 				return (evt as BeatmapEventBackground).file;
 			}
@@ -180,9 +178,7 @@ export class Beatmap {
 	}
 
 	getBackgroundVideoName() {
-		for (let key in this.events) {
-			let evt = this.events[key];
-
+		for (let evt of this.events) {
 			if (evt.type === BeatmapEventType.Video) {
 				return (evt as BeatmapEventVideo).file;
 			}

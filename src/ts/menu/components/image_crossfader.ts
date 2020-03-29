@@ -20,7 +20,10 @@ export class ImageCrossfader {
 
 	private markedForDeletion = new WeakSet<PIXI.Container>();
 	private interpolators = new WeakMap<PIXI.Container, Interpolator>();
+
 	private currentAwaitId = 0;
+	private currentImageFile: VirtualFile;
+	private currentQuality: BitmapQuality;
 
 	constructor() {
 		this.container = new PIXI.Container();
@@ -40,6 +43,10 @@ export class ImageCrossfader {
 	}
 
 	async loadImage(imageFile: VirtualFile, quality: BitmapQuality, doAnimation = true) {
+		if (imageFile === this.currentImageFile && quality === this.currentQuality) return;
+		this.currentImageFile = imageFile;
+		this.currentQuality = quality;
+
 		let texture: PIXI.Texture;
 		if (imageFile) {
 			let lastId = ++this.currentAwaitId;

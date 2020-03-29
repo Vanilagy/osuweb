@@ -8,6 +8,7 @@ import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
 import { Interpolator } from "../../util/interpolation";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
+import { globalState } from "../../global_state";
 
 export class BeatmapDifficultyPanel {
 	public container: PIXI.Container;
@@ -257,7 +258,7 @@ export class BeatmapDifficultyPanel {
 		if (this.beatmapFile) this.selectDifficulty();
 	}
 
-	private selectDifficulty() {
+	private async selectDifficulty() {
 		this.parentPanel.carousel.songSelect.selectBeatmapDifficulty(this.beatmapFile, this.parentPanel.beatmapSet, this.extendedBeatmapData);
 	}
  

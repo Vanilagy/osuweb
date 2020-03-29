@@ -131,7 +131,7 @@ export class SongSelect {
 		this.selectedBeatmapSet = beatmapSet;
 		this.selectedExtendedBeatmapData = extendedBeatmapData;
 	
-		this.infoPanel.loadBeatmapData(extendedBeatmapData);
+		this.infoPanel.loadBeatmapData(extendedBeatmapData, beatmapSet);
 	}
 
 	triggerSelectedBeatmap() {

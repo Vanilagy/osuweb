@@ -15,6 +15,7 @@ import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { SongSelect } from "./song_select";
 import { BeatmapHeaderPanel } from "../components/beatmap_header_panel";
 import { globalState } from "../../global_state";
+import { VirtualFile } from "../../file_system/virtual_file";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEADER_HEIGHT = 260;
@@ -114,17 +115,22 @@ export class BeatmapInfoPanel {
 		if (this.currentBeatmapSet === beatmapSet) return;
 		this.currentBeatmapSet = beatmapSet;
 
-		let imageFile = await representingBeatmap.getBackgroundImageFile();
-		globalState.backgroundManager.setImage(imageFile);
-		await this.header.loadImage(imageFile);
 		this.header.updateText(representingBeatmap, false, true);
 	}
 
-	async loadBeatmapData(extendedData: ExtendedBeatmapData) {
+	async loadBeatmapData(extendedData: ExtendedBeatmapData, beatmapSet: BeatmapSet) {
 		this.header.updateText(extendedData, true, false);
 
 		let detailsTab = this.tabs[0] as BeatmapDetailsTab;
 		detailsTab.loadBeatmapData(extendedData);
+
+		let imageFile = await beatmapSet.directory.getFileByName(extendedData.imageName);
+		await this.loadImage(imageFile);
+	}
+
+	private async loadImage(imageFile: VirtualFile) {
+		globalState.backgroundManager.setImage(imageFile);
+		await this.header.loadImage(imageFile);
 	}
 
 	resize() {
