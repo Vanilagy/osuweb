@@ -55,74 +55,88 @@ export class Skin {
             if (color === null) break;
 
             this.colors.push(color);
-        }
+		}
+		
+		let texturePromises: {[name: string]: Promise<OsuTexture>} = {};
 
         // Circles
-        this.textures["hitCircle"] = await OsuTexture.fromFiles(this.directory, "hitcircle", "png", true);
-        this.textures["hitCircleOverlay"] = await OsuTexture.fromFiles(this.directory, "hitcircleoverlay", "png", true, "hitcircleoverlay-{n}");
-        this.textures["approachCircle"] = await OsuTexture.fromFiles(this.directory, "approachcircle", "png", true);
+        texturePromises["hitCircle"] = OsuTexture.fromFiles(this.directory, "hitcircle", "png", true);
+        texturePromises["hitCircleOverlay"] = OsuTexture.fromFiles(this.directory, "hitcircleoverlay", "png", true, "hitcircleoverlay-{n}");
+        texturePromises["approachCircle"] = OsuTexture.fromFiles(this.directory, "approachcircle", "png", true);
 
         // Sliders
-        this.textures["sliderStartCircle"] = await OsuTexture.fromFiles(this.directory, "sliderstartcircle", "png", true);
-        this.textures["sliderStartCircleOverlay"] = await OsuTexture.fromFiles(this.directory, "sliderstartcircleoverlay", "png", true, "sliderstartcircleoverlay-{n}");
-        this.textures["sliderEndCircle"] = await OsuTexture.fromFiles(this.directory, "sliderendcircle", "png", true);
-        this.textures["sliderEndCircleOverlay"] = await OsuTexture.fromFiles(this.directory, "sliderendcircleoverlay", "png", true, "sliderendcircleoverlay-{n}");
-        this.textures["sliderBall"] = await OsuTexture.fromFiles(this.directory, "sliderb", "png", true, "sliderb{n}"); // No hyphen
-        this.textures["sliderBallBg"] = await OsuTexture.fromFiles(this.directory, "sliderb-nd", "png", false);
-        this.textures["sliderBallSpec"] = await OsuTexture.fromFiles(this.directory, "sliderb-spec", "png", false);
-        this.textures["followCircle"] = await OsuTexture.fromFiles(this.directory, "sliderfollowcircle", "png", true, "sliderfollowcircle-{n}");
-        this.textures["reverseArrow"] = await OsuTexture.fromFiles(this.directory, "reversearrow", "png", true);
-        this.textures["sliderTick"] = await OsuTexture.fromFiles(this.directory, "sliderscorepoint", "png", true);
+        texturePromises["sliderStartCircle"] = OsuTexture.fromFiles(this.directory, "sliderstartcircle", "png", true);
+        texturePromises["sliderStartCircleOverlay"] = OsuTexture.fromFiles(this.directory, "sliderstartcircleoverlay", "png", true, "sliderstartcircleoverlay-{n}");
+        texturePromises["sliderEndCircle"] = OsuTexture.fromFiles(this.directory, "sliderendcircle", "png", true);
+        texturePromises["sliderEndCircleOverlay"] = OsuTexture.fromFiles(this.directory, "sliderendcircleoverlay", "png", true, "sliderendcircleoverlay-{n}");
+        texturePromises["sliderBall"] = OsuTexture.fromFiles(this.directory, "sliderb", "png", true, "sliderb{n}"); // No hyphen
+        texturePromises["sliderBallBg"] = OsuTexture.fromFiles(this.directory, "sliderb-nd", "png", false);
+        texturePromises["sliderBallSpec"] = OsuTexture.fromFiles(this.directory, "sliderb-spec", "png", false);
+        texturePromises["followCircle"] = OsuTexture.fromFiles(this.directory, "sliderfollowcircle", "png", true, "sliderfollowcircle-{n}");
+        texturePromises["reverseArrow"] = OsuTexture.fromFiles(this.directory, "reversearrow", "png", true);
+        texturePromises["sliderTick"] = OsuTexture.fromFiles(this.directory, "sliderscorepoint", "png", true);
 
         // Spinners
-        this.textures["spinnerGlow"] = await OsuTexture.fromFiles(this.directory, "spinner-glow", "png", true);
-        this.textures["spinnerBottom"] = await OsuTexture.fromFiles(this.directory, "spinner-bottom", "png", true);
-        this.textures["spinnerTop"] = await OsuTexture.fromFiles(this.directory, "spinner-top", "png", true);
-        this.textures["spinnerMiddle2"] = await OsuTexture.fromFiles(this.directory, "spinner-middle2", "png", true);
-        this.textures["spinnerMiddle"] = await OsuTexture.fromFiles(this.directory, "spinner-middle", "png", true);
-        this.textures["spinnerBackground"] = await OsuTexture.fromFiles(this.directory, "spinner-background", "png", true);
-        this.textures["spinnerMeter"] = await OsuTexture.fromFiles(this.directory, "spinner-metre", "png", true);
-        this.textures["spinnerCircle"] = await OsuTexture.fromFiles(this.directory, "spinner-circle", "png", true);
-        this.textures["spinnerApproachCircle"] = await OsuTexture.fromFiles(this.directory, "spinner-approachcircle", "png", true);
-        this.textures["spinnerRpm"] = await OsuTexture.fromFiles(this.directory, "spinner-rpm", "png", true);
-        this.textures["spinnerSpin"] = await OsuTexture.fromFiles(this.directory, "spinner-spin", "png", true);
-        this.textures["spinnerClear"] = await OsuTexture.fromFiles(this.directory, "spinner-clear", "png", true);
+        texturePromises["spinnerGlow"] = OsuTexture.fromFiles(this.directory, "spinner-glow", "png", true);
+        texturePromises["spinnerBottom"] = OsuTexture.fromFiles(this.directory, "spinner-bottom", "png", true);
+        texturePromises["spinnerTop"] = OsuTexture.fromFiles(this.directory, "spinner-top", "png", true);
+        texturePromises["spinnerMiddle2"] = OsuTexture.fromFiles(this.directory, "spinner-middle2", "png", true);
+        texturePromises["spinnerMiddle"] = OsuTexture.fromFiles(this.directory, "spinner-middle", "png", true);
+        texturePromises["spinnerBackground"] = OsuTexture.fromFiles(this.directory, "spinner-background", "png", true);
+        texturePromises["spinnerMeter"] = OsuTexture.fromFiles(this.directory, "spinner-metre", "png", true);
+        texturePromises["spinnerCircle"] = OsuTexture.fromFiles(this.directory, "spinner-circle", "png", true);
+        texturePromises["spinnerApproachCircle"] = OsuTexture.fromFiles(this.directory, "spinner-approachcircle", "png", true);
+        texturePromises["spinnerRpm"] = OsuTexture.fromFiles(this.directory, "spinner-rpm", "png", true);
+        texturePromises["spinnerSpin"] = OsuTexture.fromFiles(this.directory, "spinner-spin", "png", true);
+        texturePromises["spinnerClear"] = OsuTexture.fromFiles(this.directory, "spinner-clear", "png", true);
 
         // Follow points
-        this.textures["followPoint"] = await OsuTexture.fromFiles(this.directory, "followpoint", "png", true, "followpoint-{n}");
+        texturePromises["followPoint"] = OsuTexture.fromFiles(this.directory, "followpoint", "png", true, "followpoint-{n}");
 
         // Judgements
-        this.textures["hit0"] = await OsuTexture.fromFiles(this.directory, "hit0", "png", true, "hit0-{n}");
-        this.textures["hit50"] = await OsuTexture.fromFiles(this.directory, "hit50", "png", true, "hit50-{n}");
-        this.textures["hit100"] = await OsuTexture.fromFiles(this.directory, "hit100", "png", true, "hit100-{n}");
-        this.textures["hit100k"] = await OsuTexture.fromFiles(this.directory, "hit100k", "png", true, "hit100k-{n}");
-        this.textures["hit300"] = await OsuTexture.fromFiles(this.directory, "hit300", "png", true, "hit300-{n}");
-        this.textures["hit300k"] = await OsuTexture.fromFiles(this.directory, "hit300k", "png", true, "hit300k-{n}");
-        this.textures["hit300g"] = await OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
-        this.textures["particle50"] = await OsuTexture.fromFiles(this.directory, "particle50", "png", true);
-        this.textures["particle100"] = await OsuTexture.fromFiles(this.directory, "particle100", "png", true);
-		this.textures["particle300"] = await OsuTexture.fromFiles(this.directory, "particle300", "png", true);
-		this.textures["sliderPoint10"] = await OsuTexture.fromFiles(this.directory, "sliderpoint10", "png", true);
-		this.textures["sliderPoint30"] = await OsuTexture.fromFiles(this.directory, "sliderpoint30", "png", true);
+        texturePromises["hit0"] = OsuTexture.fromFiles(this.directory, "hit0", "png", true, "hit0-{n}");
+        texturePromises["hit50"] = OsuTexture.fromFiles(this.directory, "hit50", "png", true, "hit50-{n}");
+        texturePromises["hit100"] = OsuTexture.fromFiles(this.directory, "hit100", "png", true, "hit100-{n}");
+        texturePromises["hit100k"] = OsuTexture.fromFiles(this.directory, "hit100k", "png", true, "hit100k-{n}");
+        texturePromises["hit300"] = OsuTexture.fromFiles(this.directory, "hit300", "png", true, "hit300-{n}");
+        texturePromises["hit300k"] = OsuTexture.fromFiles(this.directory, "hit300k", "png", true, "hit300k-{n}");
+        texturePromises["hit300g"] = OsuTexture.fromFiles(this.directory, "hit300g", "png", true, "hit300g-{n}");
+        texturePromises["particle50"] = OsuTexture.fromFiles(this.directory, "particle50", "png", true);
+        texturePromises["particle100"] = OsuTexture.fromFiles(this.directory, "particle100", "png", true);
+		texturePromises["particle300"] = OsuTexture.fromFiles(this.directory, "particle300", "png", true);
+		texturePromises["sliderPoint10"] = OsuTexture.fromFiles(this.directory, "sliderpoint10", "png", true);
+		texturePromises["sliderPoint30"] = OsuTexture.fromFiles(this.directory, "sliderpoint30", "png", true);
 
         // Scorebar
-        this.textures["scorebarBackground"] = await OsuTexture.fromFiles(this.directory, "scorebar-bg", "png", true);
-        this.textures["scorebarColor"] = await OsuTexture.fromFiles(this.directory, "scorebar-colour", "png", true, "scorebar-colour-{n}");
-        this.textures["scorebarMarker"] = await OsuTexture.fromFiles(this.directory, "scorebar-marker", "png", true);
-        this.textures["scorebarKi"] = await OsuTexture.fromFiles(this.directory, "scorebar-ki", "png", true);
-        this.textures["scorebarKiDanger"] = await OsuTexture.fromFiles(this.directory, "scorebar-kidanger", "png", true);
-        this.textures["scorebarKiDanger2"] = await OsuTexture.fromFiles(this.directory, "scorebar-kidanger2", "png", true);
+        texturePromises["scorebarBackground"] = OsuTexture.fromFiles(this.directory, "scorebar-bg", "png", true);
+        texturePromises["scorebarColor"] = OsuTexture.fromFiles(this.directory, "scorebar-colour", "png", true, "scorebar-colour-{n}");
+        texturePromises["scorebarMarker"] = OsuTexture.fromFiles(this.directory, "scorebar-marker", "png", true);
+        texturePromises["scorebarKi"] = OsuTexture.fromFiles(this.directory, "scorebar-ki", "png", true);
+        texturePromises["scorebarKiDanger"] = OsuTexture.fromFiles(this.directory, "scorebar-kidanger", "png", true);
+        texturePromises["scorebarKiDanger2"] = OsuTexture.fromFiles(this.directory, "scorebar-kidanger2", "png", true);
 
         // Section fail/pass
-        this.textures["sectionPass"] = await OsuTexture.fromFiles(this.directory, "section-pass", "png", true);
-        this.textures["sectionFail"] = await OsuTexture.fromFiles(this.directory, "section-fail", "png", true);
+        texturePromises["sectionPass"] = OsuTexture.fromFiles(this.directory, "section-pass", "png", true);
+        texturePromises["sectionFail"] = OsuTexture.fromFiles(this.directory, "section-fail", "png", true);
 
         // Warning arrows
-        this.textures["playWarningArrow"] = await OsuTexture.fromFiles(this.directory, "play-warningarrow", "png", true);
-		this.textures["arrowWarning"] = await OsuTexture.fromFiles(this.directory, "arrow-warning", "png", true);
+        texturePromises["playWarningArrow"] = OsuTexture.fromFiles(this.directory, "play-warningarrow", "png", true);
+		texturePromises["arrowWarning"] = OsuTexture.fromFiles(this.directory, "arrow-warning", "png", true);
 		
 		// Skip button
-		this.textures["playSkip"] = await OsuTexture.fromFiles(this.directory, "play-skip", "png", true, "play-skip-{n}");
+		texturePromises["playSkip"] = OsuTexture.fromFiles(this.directory, "play-skip", "png", true, "play-skip-{n}");
+
+		let promises: Promise<OsuTexture>[] = [];
+		for (let name in texturePromises) {
+			promises.push(texturePromises[name]);
+		}
+		let results = await Promise.all(promises);
+
+		let i = 0;
+		for (let name in texturePromises) {
+			this.textures[name] = results[i];
+			i++;
+		}
         
         // Hit circle numbers
         this.hitCircleNumberTextures = {} as SpriteNumberTextures;
