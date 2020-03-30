@@ -35,6 +35,8 @@ export class ScoreCounter {
 	private phantomComboAnimationInterpolator: Interpolator;
 	private comboAnimationInterpolator: Interpolator;
 
+	private scorePopups: ScorePopup[];
+
 	constructor(play: Play, processedBeatmap: ProcessedBeatmap) {
 		this.play = play;
 		this.processedBeatmap = processedBeatmap;
@@ -148,15 +150,20 @@ export class ScoreCounter {
 			assert(scorePopupType !== undefined);
 			
 			let popup = new ScorePopup(this, scorePopupType, popupPosition, time);
-			this.play.addScorePopup(popup);
+			this.addScorePopup(popup);
 		}
 
 		// Handle SliderPoint10 & SliderPoint30 popups
 		if (!suppressPopup && (rawAmount === ScoringValue.SliderRepeat || rawAmount === ScoringValue.SliderTick)) {
 			let scorePopupType = hitJudgementToScorePopupType.get(rawAmount);
 			let popup = new ScorePopup(this, scorePopupType, popupPosition, time);
-			this.play.addScorePopup(popup);
+			this.addScorePopup(popup);
 		}
+	}
+
+	addScorePopup(popup: ScorePopup) {
+		this.scorePopups.push(popup);
+		popup.show();
 	}
 
 	addHitInaccuracy(timeInaccuracy: number) {
@@ -189,8 +196,27 @@ export class ScoreCounter {
 		return this.totalValueOfHits / (this.totalNumberOfHits * 300);
 	}
 
-	updateDisplay(currentTime: number) {
+	compose() {
+		for (let i = 0; i < this.scorePopups.length; i++) {
+			this.scorePopups[i].compose();
+		}
+	}
+
+	update(currentTime: number) {
 		const hud = this.play.controller.hud;
+
+		// Update score popups
+		for (let i = 0; i < this.scorePopups.length; i++) {
+			let popup = this.scorePopups[i];
+
+			popup.update(currentTime);
+
+			if (popup.renderingFinished) {
+				popup.remove();
+				this.scorePopups.splice(i, 1);
+				i--;
+			}
+		}
 
 		hud.scoreDisplay.setValue(Math.floor(this.scoreInterpolator.getCurrentValue(currentTime)));
 
@@ -220,6 +246,13 @@ export class ScoreCounter {
 		const hud = this.play.controller.hud;
 
 		this.delayedVisualComboIncreases = [];
+
+		if (this.scorePopups) {
+			for (let scorePopup of this.scorePopups) {
+				scorePopup.remove();
+			}
+		}
+		this.scorePopups = [];
 
 		this.currentCombo = 0;
 		// These are used to calculate accuracy:

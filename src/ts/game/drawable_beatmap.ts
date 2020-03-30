@@ -10,6 +10,8 @@ import { ProcessedCircle } from "../datamodel/processed/processed_circle";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { ProcessedSpinner } from "../datamodel/processed/processed_spinner";
 import { Play } from "./play";
+import { PlayEvent } from "../datamodel/play_events";
+import { Mod } from "../datamodel/mods";
 
 export class DrawableBeatmap {
 	public play: Play;
@@ -17,6 +19,16 @@ export class DrawableBeatmap {
 	public drawableHitObjects: DrawableHitObject[] = [];
 	public followPoints: FollowPoint[] = [];
 	public processedToDrawable: Map<ProcessedHitObject, DrawableHitObject> = new Map();
+
+	private currentHitObjectIndex: number;
+	private onscreenHitObjects: DrawableHitObject[] = [];
+	private showHitObjectsQueue: DrawableHitObject[] = [];
+	private currentFollowPointIndex = 0;
+	private onscreenFollowPoints: FollowPoint[];
+
+	private playEvents: PlayEvent[] = [];
+	private currentSustainedEvents: PlayEvent[];
+	private currentPlayEvent: number = 0;
 
 	constructor(play: Play, processedBeatmap: ProcessedBeatmap) {
 		this.play = play;
@@ -39,6 +51,12 @@ export class DrawableBeatmap {
 			this.processedToDrawable.set(processedObj, drawable);
 			this.drawableHitObjects.push(drawable);
 		}
+		
+		console.time("Play event generation");
+		this.playEvents = this.processedBeatmap.getAllPlayEvents();
+		console.timeEnd("Play event generation");
+
+		this.generateFollowPoints();
 	}
 
 	draw() {
@@ -75,6 +93,113 @@ export class DrawableBeatmap {
 			let followPoint = this.followPoints[i];
 			followPoint.reset();
 		}
+
+		this.currentHitObjectIndex = 0;
+
+		if (this.onscreenHitObjects) {
+			for (let hitObject of this.onscreenHitObjects) {
+				hitObject.remove();
+			}
+		}
+		this.onscreenHitObjects = [];
+
+		if (this.onscreenFollowPoints) {
+			for (let followPoint of this.onscreenFollowPoints) {
+				followPoint.remove();
+			}
+		}
+		this.onscreenFollowPoints = [];
+
+		this.showHitObjectsQueue = [];
+		this.currentPlayEvent = 0;
+		this.currentSustainedEvents = [];
+		this.currentFollowPointIndex = 0;
+	}
+
+	render(currentTime: number) {
+		// Show new hit objects
+		for (let i = 0; i < this.showHitObjectsQueue.length; i++) {
+			this.showHitObjectsQueue[i].show(currentTime);
+		}
+		this.showHitObjectsQueue.length = 0;
+
+		// Update hit objects on screen, or remove them if necessary
+		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+			let hitObject = this.onscreenHitObjects[i];
+
+			hitObject.update(currentTime);
+
+			if (hitObject.renderFinished) {
+				// Hit object can now safely be removed from the screen
+
+				hitObject.remove();
+				this.onscreenHitObjects.splice(i--, 1);
+
+				continue;
+			}
+		}
+
+		// Render follow points
+		for (let i = this.currentFollowPointIndex; i < this.followPoints.length; i++) {
+			let followPoint = this.followPoints[i];
+			if (currentTime < followPoint.renderStartTime) break;
+
+			this.onscreenFollowPoints.push(followPoint);
+			followPoint.show();
+
+			this.currentFollowPointIndex++;
+		}
+
+		for (let i = 0; i < this.onscreenFollowPoints.length; i++) {
+			let followPoint = this.onscreenFollowPoints[i];
+
+			followPoint.update(currentTime);
+
+			if (followPoint.renderFinished) {
+				followPoint.remove();
+				this.onscreenFollowPoints.splice(i--, 1);
+			}
+		}
+	}
+
+	tick(currentTime: number, dt: number) {
+		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
+		let buttonPressed = this.play.controller.inputController.isAnyButtonPressed();
+
+		// Add new hit objects to screen
+		for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableHitObjects.length; this.currentHitObjectIndex++) {
+			let hitObject = this.drawableHitObjects[this.currentHitObjectIndex];
+			if (currentTime < hitObject.renderStartTime) break;
+
+			this.onscreenHitObjects.push(hitObject);
+			this.showHitObjectsQueue.push(hitObject);
+		}
+		
+		// Call regular play event handlers
+		for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
+			let playEvent = this.playEvents[this.currentPlayEvent];
+			if (playEvent.time > currentTime) break;
+
+			if (playEvent.endTime !== undefined) {
+				this.currentSustainedEvents.push(playEvent);
+				continue;
+			}
+			
+			let drawable = this.processedToDrawable.get(playEvent.hitObject);
+			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
+		}
+
+		// Call sustained play event handlers
+		for (let i = 0; i < this.currentSustainedEvents.length; i++) {
+			let playEvent = this.currentSustainedEvents[i];
+			if (currentTime >= playEvent.endTime) {
+				this.currentSustainedEvents.splice(i--, 1);
+				continue;
+			}
+			
+			let drawable = this.processedToDrawable.get(playEvent.hitObject);
+			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
+		}
 	}
 
 	compose(updateSkin: boolean, triggerInstantly: boolean) {
@@ -90,6 +215,53 @@ export class DrawableBeatmap {
 
 			if (triggerInstantly) followPoint.compose(updateSkin);
 			else followPoint.recomposition = updateSkin? RecompositionType.Skin : RecompositionType.Normal;
+		}
+	}
+
+	dispose() {
+		for (let i = 0; i < this.drawableHitObjects.length; i++) {
+			let drawable = this.drawableHitObjects[i];
+			drawable.dispose();
+		}
+	}
+
+	playEventsCompleted() {
+		return this.currentPlayEvent >= this.playEvents.length;
+	}
+
+	stopHitObjectSounds() {
+		for (let hitObject of this.onscreenHitObjects) {
+			if (hitObject instanceof DrawableSlider) {
+				hitObject.setHoldingState(false, 0);
+			} else if (hitObject instanceof DrawableSpinner) {
+				hitObject.stopSpinningSound();
+			}
+		}
+	}
+	
+	handleButtonDown() {
+		let currentTime = this.play.getCurrentSongTime();
+		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
+
+		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+			let hitObject = this.onscreenHitObjects[i];
+			let handled = hitObject.handleButtonDown(osuMouseCoordinates, currentTime);
+
+			if (handled) break; // One button press can only affect one hit object.
+		}
+	}
+
+	handleMouseMove() {
+		let currentTime = this.play.getCurrentSongTime();
+		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
+
+		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+			let hitObject = this.onscreenHitObjects[i];
+
+			if (hitObject instanceof DrawableSpinner && !this.play.activeMods.has(Mod.SpunOut)) {
+				let spinner = hitObject as DrawableSpinner;
+				spinner.handleMouseMove(osuMouseCoordinates, currentTime);
+			}
 		}
 	}
 }

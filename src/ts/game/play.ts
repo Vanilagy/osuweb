@@ -49,13 +49,6 @@ export class Play {
 	private initted: boolean = false;
 	public completed: boolean = false;
 
-	private currentHitObjectIndex: number;
-	private onscreenHitObjects: DrawableHitObject[];
-	private currentFollowPointIndex = 0;
-	private onscreenFollowPoints: FollowPoint[];
-	private showHitObjectsQueue: DrawableHitObject[]; // New hit objects that have to get added to the scene next frame
-	private scorePopups: ScorePopup[];
-
 	private passiveHealthDrain: number = 0.00005; // In health/ms
 	public currentHealth: number;
 	public scoreCounter: ScoreCounter;
@@ -63,9 +56,6 @@ export class Play {
 	public colorArray: Color[];
 
 	private lastTickTime: number = null;
-	private playEvents: PlayEvent[] = [];
-	private currentSustainedEvents: PlayEvent[];
-	private currentPlayEvent: number = 0;
 	private currentBreakIndex = 0;
 	private breakEndWarningTimes: number[] = [];
 	
@@ -118,13 +108,7 @@ export class Play {
 		this.drawableBeatmap.draw();
 		console.timeEnd("Beatmap draw");
 
-		console.time("Play event generation");
-		this.playEvents = this.processedBeatmap.getAllPlayEvents();
-		console.timeEnd("Play event generation");
-
 		this.scoreCounter.init();
-
-		this.drawableBeatmap.generateFollowPoints();
 
 		this.autohit = AUTOHIT_OVERRIDE;
 		if (this.activeMods.has(Mod.Auto)) {
@@ -214,10 +198,7 @@ export class Play {
 		}
 
 		this.drawableBeatmap.compose(updateSkin, triggerInstantly);
-
-		for (let i = 0; i < this.scorePopups.length; i++) {
-			this.scorePopups[i].compose();
-		}
+		this.scoreCounter.compose();
 	}
 
 	async start(when?: number) {
@@ -237,7 +218,7 @@ export class Play {
 	}
 
 	render() {
-		if (!this.initted) return;
+		if (!this.initted || !this.playing) return;
 
 		let currentTime = this.getCurrentSongTime();
 		const hud = this.controller.hud;
@@ -246,36 +227,13 @@ export class Play {
 		// Run a game tick right before rendering
 		this.tick(currentTime);
 
-		// Show new hit objects
-		for (let i = 0; i < this.showHitObjectsQueue.length; i++) {
-			this.showHitObjectsQueue[i].show(currentTime);
-		}
-		this.showHitObjectsQueue.length = 0;
+		this.drawableBeatmap.render(currentTime);
+		this.scoreCounter.update(currentTime);
 
-		// Update hit objects on screen, or remove them if necessary
-		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
-			let hitObject = this.onscreenHitObjects[i];
-
-			hitObject.update(currentTime);
-
-			if (hitObject.renderFinished) {
-				// Hit object can now safely be removed from the screen
-
-				hitObject.remove();
-				this.onscreenHitObjects.splice(i--, 1);
-
-				continue;
-			}
-		}
-
-		// Update the score display
-		this.scoreCounter.updateDisplay(currentTime);
-
-		// Update scorebar
 		hud.scorebar.update(currentTime);
-
-		// Update section state displayer (MAN, THESE COMMENTS ARE SO USEFUL, OMG)
 		hud.sectionStateDisplayer.update(currentTime);
+		hud.skipButton.update(currentTime);
+		hud.accuracyMeter.update(currentTime);
 
 		// Update the progress indicator
 		let firstHitObject = this.processedBeatmap.hitObjects[0],
@@ -295,22 +253,6 @@ export class Play {
 				completion = MathUtil.clamp(completion, 0, 1);
 
 				hud.progressIndicator.draw(completion, false); 
-			}
-		}
-
-		// Update the accuracy meter
-		hud.accuracyMeter.update(currentTime);
-
-		// Update score popups
-		for (let i = 0; i < this.scorePopups.length; i++) {
-			let popup = this.scorePopups[i];
-
-			popup.update(currentTime);
-
-			if (popup.renderingFinished) {
-				popup.remove();
-				this.scorePopups.splice(i, 1); // I hope this won't be slow
-				i--;
 			}
 		}
 
@@ -348,34 +290,6 @@ export class Play {
 				backgroundManager.playVideo();
 			}
 		}
-
-		if (!this.playing) return;
-		// Don't run the following code if not playing
-
-		// Render follow points
-		for (let i = this.currentFollowPointIndex; i < this.drawableBeatmap.followPoints.length; i++) {
-			let followPoint = this.drawableBeatmap.followPoints[i];
-			if (currentTime < followPoint.renderStartTime) break;
-
-			this.onscreenFollowPoints.push(followPoint);
-			followPoint.show();
-
-			this.currentFollowPointIndex++;
-		}
-
-		for (let i = 0; i < this.onscreenFollowPoints.length; i++) {
-			let followPoint = this.onscreenFollowPoints[i];
-
-			followPoint.update(currentTime);
-
-			if (followPoint.renderFinished) {
-				followPoint.remove();
-				this.onscreenFollowPoints.splice(i--, 1);
-			}
-		}
-
-		// Skip button
-		hud.skipButton.update(currentTime);
 
 		// Handle breaks
 		while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
@@ -443,8 +357,7 @@ export class Play {
 		let dt = currentTime - this.lastTickTime;
 		this.lastTickTime = currentTime;
 
-		let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
-		let buttonPressed = this.controller.inputController.isAnyButtonPressed();
+		this.drawableBeatmap.tick(currentTime, dt);
 
 		// Update health
 		if (!this.processedBeatmap.isInBreak(currentTime)) this.gainHealth(-this.passiveHealthDrain * dt, currentTime); // "Gain" negative health
@@ -461,43 +374,8 @@ export class Play {
 			}
 		}
 
-		// Add new hit objects to screen
-		for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableBeatmap.drawableHitObjects.length; this.currentHitObjectIndex++) {
-			let hitObject = this.drawableBeatmap.drawableHitObjects[this.currentHitObjectIndex];
-			if (currentTime < hitObject.renderStartTime) break;
-
-			this.onscreenHitObjects.push(hitObject);
-			this.showHitObjectsQueue.push(hitObject);
-		}
-		
-		// Call regular play event handlers
-		for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
-			let playEvent = this.playEvents[this.currentPlayEvent];
-			if (playEvent.time > currentTime) break;
-
-			if (playEvent.endTime !== undefined) {
-				this.currentSustainedEvents.push(playEvent);
-				continue;
-			}
-			
-			let drawable = this.drawableBeatmap.processedToDrawable.get(playEvent.hitObject);
-			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
-		}
-
-		// Call sustained play event handlers
-		for (let i = 0; i < this.currentSustainedEvents.length; i++) {
-			let playEvent = this.currentSustainedEvents[i];
-			if (currentTime >= playEvent.endTime) {
-				this.currentSustainedEvents.splice(i--, 1);
-				continue;
-			}
-			
-			let drawable = this.drawableBeatmap.processedToDrawable.get(playEvent.hitObject);
-			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
-		}
-
 		// Check if the map has been completed
-		if (this.currentPlayEvent >= this.playEvents.length) {
+		if (this.drawableBeatmap.playEventsCompleted()) {
 			this.controller.completePlay();
 		}
 	}
@@ -510,24 +388,14 @@ export class Play {
 	pause() {
 		if (this.paused) return;
 
+		this.render();
+
 		this.paused = true;
 		this.playing = false;
 
 		globalState.gameplayMediaPlayer.pause();
-		this.stopHitObjectSounds();
+		this.drawableBeatmap.stopHitObjectSounds();
 		if (this.hasVideo) globalState.backgroundManager.pauseVideo();
-	}
-
-	private stopHitObjectSounds() {
-		let currentTime = this.getCurrentSongTime();
-
-		for (let hitObject of this.onscreenHitObjects) {
-			if (hitObject instanceof DrawableSlider) {
-				hitObject.setHoldingState(false, currentTime);
-			} else if (hitObject instanceof DrawableSpinner) {
-				hitObject.stopSpinningSound();
-			}
-		}
 	}
 
 	unpause() {
@@ -541,36 +409,10 @@ export class Play {
 
 	reset() {
 		this.drawableBeatmap.reset();
-		this.currentHitObjectIndex = 0;
-
-		if (this.onscreenHitObjects) {
-			for (let hitObject of this.onscreenHitObjects) {
-				hitObject.remove();
-			}
-		}
-		this.onscreenHitObjects = [];
-
-		if (this.onscreenFollowPoints) {
-			for (let followPoint of this.onscreenFollowPoints) {
-				followPoint.remove();
-			}
-		}
-		this.onscreenFollowPoints = [];
-
-		this.showHitObjectsQueue = [];
-
-		if (this.scorePopups) {
-			for (let scorePopup of this.scorePopups) {
-				scorePopup.remove();
-			}
-		}
-		this.scorePopups = [];
+		this.scoreCounter.reset();
 
 		this.currentHealth = 1.0;
 		this.lastTickTime = null;
-		this.currentPlayEvent = 0;
-		this.currentSustainedEvents = [];
-		this.currentFollowPointIndex = 0;
 		this.currentBreakIndex = 0;
 		this.paused = false;
 		this.playing = false;
@@ -579,8 +421,6 @@ export class Play {
 		if (this.activeMods.has(Mod.Auto)) {
 			this.currentPlaythroughInstruction = 0;
 		}
-
-		this.scoreCounter.reset();
 	}
 
 	async restart() {
@@ -591,40 +431,21 @@ export class Play {
 	// Instance should be discarded after this is called.
 	stop() {
 		this.playing = false;
+		this.drawableBeatmap.dispose();
 
 		globalState.gameplayMediaPlayer.stop();
-		this.stopHitObjectSounds();
+		this.drawableBeatmap.stopHitObjectSounds();
 		if (this.hasVideo) globalState.backgroundManager.removeVideo();
 	}
 
 	handleButtonDown() {
 		if (!this.shouldHandleInputRightNow()) return;
-
-		let currentTime = this.getCurrentSongTime();
-		let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
-
-		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
-			let hitObject = this.onscreenHitObjects[i];
-			let handled = hitObject.handleButtonDown(osuMouseCoordinates, currentTime);
-
-			if (handled) break; // One button press can only affect one hit object.
-		}
+		this.drawableBeatmap.handleButtonDown();
 	}
 
 	handleMouseMove() {
 		if (!this.shouldHandleInputRightNow()) return;
-
-		let currentTime = this.getCurrentSongTime();
-		let osuMouseCoordinates = this.getOsuMouseCoordinatesFromCurrentMousePosition();
-
-		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
-			let hitObject = this.onscreenHitObjects[i];
-
-			if (hitObject instanceof DrawableSpinner && !this.activeMods.has(Mod.SpunOut)) {
-				let spinner = hitObject as DrawableSpinner;
-				spinner.handleMouseMove(osuMouseCoordinates, currentTime);
-			}
-		}
+		this.drawableBeatmap.handleMouseMove();
 	}
 
 	private shouldHandleInputRightNow() {
@@ -694,11 +515,6 @@ export class Play {
 			x: this.toOsuCoordinatesX(currentMousePosition.x),
 			y: this.toOsuCoordinatesY(currentMousePosition.y)
 		};
-	}
-
-	addScorePopup(popup: ScorePopup) {
-		this.scorePopups.push(popup);
-		popup.show();
 	}
 
 	gainHealth(gain: number, currentTime: number) {
