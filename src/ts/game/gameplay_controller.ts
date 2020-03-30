@@ -139,7 +139,7 @@ export class GameplayController {
 		
 		await newPlay.start();
 
-		this.resize();
+		this.resize(false);
 		this.show();
 	}
 
@@ -208,9 +208,10 @@ export class GameplayController {
 		if (this.currentPlay) this.currentPlay.tick();
 	}
 
-	resize() {
+	resize(recompose = true) {
 		if (!this.currentPlay) return;
 
+		if (recompose) this.currentPlay.compose(false);
 		this.hud.resize();
 		this.pauseScreen.resize();
 		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);

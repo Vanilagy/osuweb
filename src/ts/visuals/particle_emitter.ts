@@ -8,7 +8,8 @@ interface Particle {
 	startPosition: Point,
 	endPosition: Point,
 	spawnTime: number,
-	longevity: number
+	longevity: number,
+	osuTexture: OsuTexture
 }
 
 export enum DistanceDistribution {
@@ -83,7 +84,13 @@ export class ParticleEmitter {
 	}
 
 	setScale(scale: number) {
+		if (scale === this.scale) return;
 		this.scale = scale;
+
+		for (let i = 0; i < this.currentParticles.length; i++) {
+			let particle = this.currentParticles[i];
+			particle.osuTexture.applyToSprite(particle.sprite, this.scale);
+		}
 	}
 
 	setBlendMode(mode: PIXI.BLEND_MODES) {
@@ -134,7 +141,8 @@ export class ParticleEmitter {
 			startPosition: origin,
 			endPosition: endPosition,
 			spawnTime: currentTime,
-			longevity: longevity
+			longevity: longevity,
+			osuTexture: osuTexture
 		};
 		this.currentParticles.push(particle);
 	}
@@ -180,7 +188,7 @@ export class ParticleEmitter {
 
 			let alphaCompletion = MathUtil.ease(this.alphaEase, completion);
 			sprite.alpha = MathUtil.lerp(this.alphaStart, this.alphaEnd, alphaCompletion);
-
+			
 			let travelCompletion = MathUtil.ease(this.particleTravelEase, completion);
 			let currentPosition = lerpPoints(particle.startPosition, particle.endPosition, travelCompletion * this.scale);
 			sprite.position.set(currentPosition.x, currentPosition.y);

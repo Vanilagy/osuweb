@@ -49,6 +49,8 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 			return;
 		}
 
+		super.update(currentTime);
+		
 		this.updateHeadElements(currentTime);
 	}
 

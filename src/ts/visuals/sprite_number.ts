@@ -21,12 +21,12 @@ export interface SpriteNumberTextures {
 }
 
 export interface SpriteNumberOptions {
-	textures: SpriteNumberTextures,
+	textures?: SpriteNumberTextures,
 	horizontalAlign: "left" | "center" | "right",
 	verticalAlign: "top" | "middle" | "bottom",
-	scaleFactor: number,
+	scaleFactor?: number,
 	equalWidthDigits?: boolean,
-	overlap: number,
+	overlap?: number,
 	overlapAtEnd?: boolean,
 	leftPad?: number,
 	fixedDecimals?: number,
@@ -36,8 +36,8 @@ export interface SpriteNumberOptions {
 
 export class SpriteNumber {
 	public container: PIXI.Container;
-	private options: SpriteNumberOptions;
-	private scaleFactor: number;
+	/** NOTE: When changing these from the outside, be sure to call .refresh! */
+	public options: SpriteNumberOptions;
 	private sprites: PIXI.Sprite[];
 	private maxDigitWidth: number = 0;
 	/** The resolution used for all sprites in the number. This is done so that we don't mix SD/HD for differently-sized textures. */
@@ -56,12 +56,14 @@ export class SpriteNumber {
 		this.setScaleFactor(this.options.scaleFactor);
 	}
 
-	private updateScale() {
+	refresh() {
+		if (!this.options.textures) return;
+
 		for (let i = 0; i <= 9; i++) {
 			let texture = this.options.textures[i as keyof SpriteNumberTextures];
 
 			// If any texture would end up in HD with the current scaling factor, make all textures use HD.
-			if (texture.getOptimalResolution(texture.getBiggestDimension(this.scaleFactor)) === 'hd') this.resolution = 'hd';
+			if (texture.getOptimalResolution(texture.getBiggestDimension(this.options.scaleFactor)) === 'hd') this.resolution = 'hd';
 		}
 
 		if (this.options.equalWidthDigits) {
@@ -79,11 +81,14 @@ export class SpriteNumber {
 	}
 
 	setScaleFactor(factor: number) {
-		this.scaleFactor = factor;
-		this.updateScale();
+		this.options.scaleFactor = factor;
+		this.refresh();
 	}
 
 	setValue(num: number) {
+		this.lastValue = num;
+		if (!this.options.textures) return;
+
 		let str: string;
 		if (this.options.fixedDecimals !== undefined) {
 			str = num.toFixed(this.options.fixedDecimals);
@@ -149,33 +154,33 @@ export class SpriteNumber {
 			let sprite = this.sprites[i];
 
 			sprite.texture = texture;
-			sprite.width = Math.floor(textureWidth * this.scaleFactor);
-			sprite.height = Math.floor(textureHeight * this.scaleFactor);
+			sprite.width = Math.floor(textureWidth * this.options.scaleFactor);
+			sprite.height = Math.floor(textureHeight * this.options.scaleFactor);
 
 			totalHeight = Math.max(totalHeight, sprite.height);
 
 			sprite.position.x = currentX;
 
 			if (this.options.equalWidthDigits && isDigit) {
-				sprite.position.x += (this.maxDigitWidth - textureWidth) / 2 * this.scaleFactor;
-				currentX += (this.maxDigitWidth - this.options.overlap) * this.scaleFactor;
-				totalWidth += this.maxDigitWidth * this.scaleFactor;
+				sprite.position.x += (this.maxDigitWidth - textureWidth) / 2 * this.options.scaleFactor;
+				currentX += (this.maxDigitWidth - this.options.overlap) * this.options.scaleFactor;
+				totalWidth += this.maxDigitWidth * this.options.scaleFactor;
 			} else {
 				if (i === osuTextures.length-1 && this.options.hasPercent) {
 					textureWidth = osuTexture.getWidth(); // The percent width is always the width of the sd version. Aaaah. This code is the result of one long and annoying evening of trying shit out.
 				}
 
-				currentX += (Math.floor(textureWidth) - this.options.overlap) * this.scaleFactor;
-				totalWidth += Math.floor(textureWidth) * this.scaleFactor;
+				currentX += (Math.floor(textureWidth) - this.options.overlap) * this.options.scaleFactor;
+				totalWidth += Math.floor(textureWidth) * this.options.scaleFactor;
 			}
 
 			sprite.position.x = Math.floor(sprite.position.x);
 		}
 
-		totalWidth -= (osuTextures.length - 1) * this.options.overlap * this.scaleFactor;
+		totalWidth -= (osuTextures.length - 1) * this.options.overlap * this.options.scaleFactor;
 
 		// Add another overlap at the end, if specified
-		if (this.options.overlapAtEnd) totalWidth -= this.options.overlap * this.scaleFactor;
+		if (this.options.overlapAtEnd) totalWidth -= this.options.overlap * this.options.scaleFactor;
 
 		switch (this.options.horizontalAlign) {
 			case "left": {
@@ -203,7 +208,6 @@ export class SpriteNumber {
 
 		this.lastComputedWidth = totalWidth;
 		this.lastComputedHeight = totalHeight;
-		this.lastValue = num;
 	}
 
 	getLastValue() {

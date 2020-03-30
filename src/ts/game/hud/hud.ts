@@ -37,16 +37,12 @@ export class Hud {
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
 
-		let baseSkin = globalState.baseSkin;
-
 		this.scoreDisplay = new SpriteNumber({
 			scaleFactor: 1,
 			equalWidthDigits: true,
 			verticalAlign: "top",
 			horizontalAlign: "right",
-			overlap: baseSkin.config.fonts.scoreOverlap,
 			overlapAtEnd: true,
-			textures: baseSkin.scoreNumberTextures,
 			leftPad: 8
 		});
 		this.scoreDisplay.setValue(0);
@@ -56,22 +52,16 @@ export class Hud {
 			equalWidthDigits: true,
 			verticalAlign: "top",
 			horizontalAlign: "right",
-			overlap: baseSkin.config.fonts.scoreOverlap,
 			overlapAtEnd: true,
-			textures: baseSkin.scoreNumberTextures,
 			fixedDecimals: 2,
 			hasPercent: true
 		});
 		this.accuracyDisplay.setValue(100);
-	
-		this.progressIndicator = new ProgressIndicator(0);
-	
+
 		this.phantomComboDisplay = new SpriteNumber({
 			scaleFactor: 1,
 			verticalAlign: "bottom",
 			horizontalAlign: "left",
-			overlap: baseSkin.config.fonts.comboOverlap,
-			textures: baseSkin.scoreNumberTextures,
 			hasX: true
 		});
 		this.phantomComboDisplay.container.alpha = 0.0;
@@ -81,8 +71,6 @@ export class Hud {
 			scaleFactor: 1,
 			verticalAlign: "bottom",
 			horizontalAlign: "left",
-			overlap: baseSkin.config.fonts.comboOverlap,
-			textures: baseSkin.scoreNumberTextures,
 			hasX: true
 		});
 		this.comboDisplay.setValue(0);
@@ -90,6 +78,7 @@ export class Hud {
 		this.comboContainer = new PIXI.Container();
 		this.comboContainer.addChild(this.phantomComboDisplay.container, this.comboDisplay.container);
 	
+		this.progressIndicator = new ProgressIndicator(0);
 		this.accuracyMeter = new AccuracyMeter(this);
 		this.scorebar = new Scorebar(this);
 		this.sectionStateDisplayer = new SectionStateDisplayer(this);
@@ -112,8 +101,29 @@ export class Hud {
 		this.container.addChild(this.skipButton.container);
 	}
 
+	updateSkin() {
+		let skin = this.controller.currentPlay.skin;
+
+		this.scoreDisplay.options.textures = skin.scoreNumberTextures;
+		this.scoreDisplay.options.overlap = skin.config.fonts.scoreOverlap;
+		this.scoreDisplay.refresh();
+
+		this.accuracyDisplay.options.textures = skin.scoreNumberTextures;
+		this.accuracyDisplay.options.overlap = skin.config.fonts.scoreOverlap;
+		this.accuracyDisplay.refresh();
+
+		this.phantomComboDisplay.options.textures = skin.comboNumberTextures;
+		this.phantomComboDisplay.options.overlap = skin.config.fonts.comboOverlap;
+		this.phantomComboDisplay.refresh();
+
+		this.comboDisplay.options.textures = skin.comboNumberTextures;
+		this.comboDisplay.options.overlap = skin.config.fonts.comboOverlap;
+		this.comboDisplay.refresh();
+	}
+
 	// Should be called every time a Play is started
 	init() {
+		this.updateSkin();
 		this.accuracyMeter.init();
 		this.scorebar.init();
 		this.gameplayWarningArrows.init();
@@ -168,9 +178,12 @@ export class Hud {
 		this.accuracyMeter.container.y = currentWindowDimensions.height;
 
 		this.sectionStateDisplayer.resize();
-		this.gameplayWarningArrows.resize();
+		this.gameplayWarningArrows.init();
 
+		this.skipButton.init();
 		this.skipButton.resize();
+
+		this.scorebar.init();
 	}
 
 	update(now: number) {

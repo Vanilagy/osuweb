@@ -1,4 +1,4 @@
-import { DrawableHitObject } from "./drawables/drawable_hit_object";
+import { DrawableHitObject, RecompositionType } from "./drawables/drawable_hit_object";
 import { DrawableCircle } from "./drawables/drawable_circle";
 import { DrawableSlider } from "./drawables/drawable_slider";
 import { DrawableSpinner } from "./drawables/drawable_spinner";
@@ -74,6 +74,22 @@ export class DrawableBeatmap {
 		for (let i = 0; i < this.followPoints.length; i++) {
 			let followPoint = this.followPoints[i];
 			followPoint.reset();
+		}
+	}
+
+	compose(updateSkin: boolean, triggerInstantly: boolean) {
+		for (let i = 0; i < this.drawableHitObjects.length; i++) {
+			let drawable = this.drawableHitObjects[i];
+			
+			if (triggerInstantly) drawable.compose(updateSkin);
+			else drawable.recomposition = updateSkin? RecompositionType.Skin : RecompositionType.Normal;
+		}
+
+		for (let i = 0; i < this.followPoints.length; i++) {
+			let followPoint = this.followPoints[i];
+
+			if (triggerInstantly) followPoint.compose(updateSkin);
+			else followPoint.recomposition = updateSkin? RecompositionType.Skin : RecompositionType.Normal;
 		}
 	}
 }

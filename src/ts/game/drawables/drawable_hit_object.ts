@@ -5,6 +5,12 @@ import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beat
 import { Color } from "../../util/graphics_util";
 import { DrawableBeatmap } from "../drawable_beatmap";
 
+export enum RecompositionType {
+	None,
+	Normal,
+	Skin
+}
+
 export abstract class DrawableHitObject {
 	public drawableBeatmap: DrawableBeatmap;
 	public parent: ProcessedHitObject;
@@ -15,16 +21,12 @@ export abstract class DrawableHitObject {
 	public renderStartTime: number;
 	/** When true, the hit object has ended its short life as a graphical element and need not be rendered anymore. */
 	public renderFinished: boolean;
+	public recomposition: RecompositionType = RecompositionType.None;
 	
 	constructor(drawableBeatmap: DrawableBeatmap, processedHitObject: ProcessedHitObject) {
 		this.drawableBeatmap = drawableBeatmap;
 		this.parent = processedHitObject;
-
-		let { colorArray } = this.drawableBeatmap.play;
-
-		this.colorIndex = this.parent.comboInfo.comboNum % colorArray.length;
-		this.color = colorArray[this.colorIndex];
-
+		
 		this.reset();
 	}
 
@@ -32,11 +34,24 @@ export abstract class DrawableHitObject {
 
 	abstract draw(): void;
 
+	compose(updateSkin: boolean) {
+		this.recomposition = RecompositionType.None;
+
+		let { colorArray } = this.drawableBeatmap.play;
+
+		this.colorIndex = this.parent.comboInfo.comboNum % colorArray.length;
+		this.color = colorArray[this.colorIndex];
+
+		this.position();
+	}
+
 	abstract show(currentTime: number): void;
 
 	abstract position(): void;
 
-	abstract update(currentTime: number): void;
+	update(currentTime: number) {
+		if (this.recomposition !== RecompositionType.None) this.compose(this.recomposition === RecompositionType.Skin);
+	}
 
 	abstract remove(): void;
 

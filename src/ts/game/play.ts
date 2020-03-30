@@ -96,26 +96,12 @@ export class Play {
 	async init() {
 		if (this.initted) return;
 
-		let screenHeight = currentWindowDimensions.height * 1; // The factor was determined through experimentation. Makes sense it's 1.
-		this.hitObjectPixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
-		this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
-
-		if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
-			this.skin = globalState.baseSkin;
-		} else {
-			let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-			this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
-		}
-
 		if (this.activeMods.has(Mod.Easy)) ModHelper.applyEz(this.processedBeatmap);
 		if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrFirstPass(this.processedBeatmap);
 
 		this.approachTime = this.processedBeatmap.difficulty.getApproachTime();
 		this.circleDiameterOsuPx = this.processedBeatmap.difficulty.getCirclePixelSize();
-		this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.hitObjectPixelRatio);
 		this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
-		this.circleRadius = this.circleDiameter / 2;
-		this.headedHitObjectTextureFactor = this.circleDiameter / 128;
 
 		console.time("Beatmap process");
 		this.processedBeatmap.init();
@@ -126,17 +112,6 @@ export class Play {
 		console.time('Stack shift');
 		this.processedBeatmap.applyStackShift();
 		console.timeEnd('Stack shift');
-
-		let colorArray: Color[];
-		if (IGNORE_BEATMAP_SKIN) {
-			colorArray = this.skin.colors;
-			if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
-		} else {
-			colorArray = this.processedBeatmap.beatmap.colors.comboColors;
-			if (colorArray.length === 0) colorArray = this.skin.colors;
-			if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
-		}
-		this.colorArray = colorArray;
 
 		console.time("Beatmap draw");
 		this.drawableBeatmap.init();
@@ -204,7 +179,45 @@ export class Play {
 
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
 
+		await this.compose(true, true);
+
 		this.initted = true;
+	}
+
+	async compose(updateSkin: boolean, triggerInstantly = false) {
+		let screenHeight = currentWindowDimensions.height * 1; // The factor was determined through experimentation. Makes sense it's 1.
+
+		this.hitObjectPixelRatio = screenHeight / STANDARD_SCREEN_DIMENSIONS.height;
+		this.screenPixelRatio = screenHeight / REFERENCE_SCREEN_HEIGHT;
+		this.circleDiameter = Math.round(this.circleDiameterOsuPx * this.hitObjectPixelRatio);
+		this.circleRadius = this.circleDiameter / 2;
+		this.headedHitObjectTextureFactor = this.circleDiameter / 128;
+
+		if (updateSkin) {
+			if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
+				this.skin = globalState.baseSkin;
+			} else {
+				let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
+				this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
+			}
+
+			let colorArray: Color[];
+			if (IGNORE_BEATMAP_SKIN) {
+				colorArray = this.skin.colors;
+				if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
+			} else {
+				colorArray = this.processedBeatmap.beatmap.colors.comboColors;
+				if (colorArray.length === 0) colorArray = this.skin.colors;
+				if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
+			}
+			this.colorArray = colorArray;
+		}
+
+		this.drawableBeatmap.compose(updateSkin, triggerInstantly);
+
+		for (let i = 0; i < this.scorePopups.length; i++) {
+			this.scorePopups[i].compose();
+		}
 	}
 
 	async start(when?: number) {

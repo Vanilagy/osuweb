@@ -40,6 +40,7 @@ export class Scorebar {
 
 	init() {
 		this.container.removeChildren();
+		if (this.colorLayerMask) this.colorLayerMask.destroy();
 
 		let { skin } = this.hud.controller.currentPlay;
 

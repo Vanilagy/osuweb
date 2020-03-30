@@ -1,6 +1,6 @@
 import { Slider } from "../../datamodel/slider";
 import { MathUtil, EaseType } from "../../util/math_util";
-import { pointDistance } from "../../util/point";
+import { pointDistance, Point } from "../../util/point";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../../util/constants";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { assert, last } from "../../util/misc_util";
@@ -8,7 +8,7 @@ import { DrawableHeadedHitObject, SliderScoring, getDefaultSliderScoring } from 
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { SoundEmitter } from "../../audio/sound_emitter";
 import { renderer } from "../../visuals/rendering";
-import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix } from "./slider_body_shader";
+import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix, updateSliderBodyShaderUniforms } from "./slider_body_shader";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
 import { HitSoundInfo, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates, determineSampleSet, determineVolume, determineSampleIndex } from "../skin/sound";
 import { ProcessedSlider, SpecialSliderBehavior } from "../../datamodel/processed/processed_slider";
@@ -36,8 +36,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	private baseSprite: PIXI.Sprite;
 	public hasFullscreenBaseSprite: boolean = false; // If a slider is really big, like bigger-than-the-screen big, we change slider body rendering to happen in relation to the entire screen rather than a local slider texture. This way, we don't get WebGL errors from trying to draw to too big of a texture buffer, and it allows us to support slider distortions with some matrix magic.
 	private sliderBodyMesh: PIXI.Mesh;
-	private sliderBodyHasBeenRendered: boolean;
 	private lastGeneratedSnakingCompletion: number;
+	private forceSliderBodyRender: boolean = false;
 	
 	private container: PIXI.Container;
 	private overlayContainer: PIXI.Container;
@@ -62,9 +62,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		super(drawableBeatmap, processedSlider);
 
 		this.drawablePath = DrawableSliderPath.fromSliderPath(processedSlider.path, this);
-		let bounds = this.drawablePath.calculateBounds();
-		this.bounds = bounds;
-
+		this.bounds = this.drawablePath.calculateBounds();
 		this.scoring = getDefaultSliderScoring();
 
 		this.initSounds(processedSlider.hitObject, processedSlider.timingInfo);
@@ -105,31 +103,13 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			tickSounds.push(info);
 		}
 		this.tickSounds = tickSounds;
-
-		let sampleSet = determineSampleSet(slider.extras.sampleSet, currentTimingPoint),
-			volume = determineVolume(slider.extras.sampleVolume, currentTimingPoint),
-			sampleIndex = determineSampleIndex(slider.extras.customIndex, currentTimingPoint);
-
-		// Slider slide sound
-		let sliderSlideTypes = getSliderSlideTypesFromSampleSet(sampleSet, slider.hitSound);
-		let sliderSlideEmitters: SoundEmitter[] = [];
-		let sliderSlideStartPan = calculatePanFromOsuCoordinates(this.parent.startPoint);
-		for (let i = 0; i < sliderSlideTypes.length; i++) {
-			let type = sliderSlideTypes[i];
-			let emitter = this.drawableBeatmap.play.skin.sounds[type].getEmitter(volume, sampleIndex, sliderSlideStartPan);
-			if (!emitter || emitter.isReallyShort()) continue;
-
-			emitter.setLoopState(true);
-			sliderSlideEmitters.push(emitter);
-		}
-		this.slideEmitters = sliderSlideEmitters;
 	}
 
 	reset() {
 		super.reset();
 
-		this.sliderBodyHasBeenRendered = false;
-		this.lastGeneratedSnakingCompletion = 0;
+		this.forceSliderBodyRender = false;
+		this.lastGeneratedSnakingCompletion = this.getSliderBodyDefaultSnake();
 		this.followCircleHoldStartTime = null;
 		this.followCircleReleaseStartTime = null;
 		this.followCirclePulseStartTime = -Infinity;
@@ -147,7 +127,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	draw() {
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-		let { approachTime, circleRadiusOsuPx, headedHitObjectTextureFactor, activeMods, skin } = this.drawableBeatmap.play;
+		let { approachTime, circleRadiusOsuPx, activeMods } = this.drawableBeatmap.play;
 
 		let hasHidden = activeMods.has(Mod.Hidden);
 
@@ -162,9 +142,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		});
 		this.head.container.zIndex = -this.parent.startTime;
 
-		let screenStartPos = this.drawableBeatmap.play.toScreenCoordinates(this.parent.startPoint);
-		let screenTailPos = this.drawableBeatmap.play.toScreenCoordinates(this.parent.tailPoint);
-
 		this.reverseArrowContainer = new PIXI.Container();
 
 		this.drawablePath.generatePointData();
@@ -172,7 +149,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.sliderEnds = [];
 		let msPerRepeatCycle = this.parent.length / this.parent.velocity;
 		for (let i = 0; i < this.parent.repeat; i++) {
-			let pos = (i % 2 === 0)? screenTailPos : screenStartPos;
 			
 			let fadeInStart: number;
 			if (i === 0) {
@@ -208,46 +184,28 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				baseElementsHidden: hasHidden && i > 0
 			});
 
-			primitive.container.position.set(pos.x, pos.y);
 			primitive.container.zIndex = -Math.min(fadeInStart + approachTime, this.parent.endTime); // Math.min is necessary, because without it, for some sliders, the end circle would end up BELOW the slider body. No good!
 
 			this.sliderEnds.push(primitive);
-
-			if (primitive.reverseArrow !== null) {
-				primitive.reverseArrow.position.set(pos.x, pos.y);
-				this.reverseArrowContainer.addChildAt(primitive.reverseArrow, 0);
-			}
+			if (primitive.reverseArrow !== null) this.reverseArrowContainer.addChildAt(primitive.reverseArrow, 0);
 		}
 
-		this.hasFullscreenBaseSprite = Math.max(this.bounds.screenWidth, this.bounds.screenHeight) >= Math.max(currentWindowDimensions.width, currentWindowDimensions.height);
-
-		let renderTex = PIXI.RenderTexture.create({
-			width: this.hasFullscreenBaseSprite? currentWindowDimensions.width : this.bounds.screenWidth,
-			height: this.hasFullscreenBaseSprite? currentWindowDimensions.height : this.bounds.screenHeight,
-			resolution: 2 // For anti-aliasing
-		});
-		let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
-		renderTexFramebuffer.enableDepth();
-		renderTexFramebuffer.addDepthTexture();
-
-		this.baseSprite = new PIXI.Sprite(renderTex);
+		this.baseSprite = new PIXI.Sprite();
 		//this.baseSprite.filters = [new PIXI.filters.FXAAFilter()]; // Enable this for FXAA. Makes slider edges look kinda janky, that's why it's disabled.
 		this.baseSprite.zIndex = -this.parent.endTime;
 
 		this.drawablePath.generateBaseVertexBuffer();
-		let sliderBodyDefaultSnake = SLIDER_SETTINGS.snaking? 0.0 : 1.0;
+		let sliderBodyDefaultSnake = this.getSliderBodyDefaultSnake();
 		let sliderBodyGeometry = this.drawablePath.generateGeometry(sliderBodyDefaultSnake);
 		this.lastGeneratedSnakingCompletion = sliderBodyDefaultSnake;
-		let sliderBodyShader = createSliderBodyShader(this);
+		let sliderBodyShader = createSliderBodyShader();
 		let sliderBodyMesh = new PIXI.Mesh(sliderBodyGeometry, sliderBodyShader, SLIDER_BODY_MESH_STATE);
 		sliderBodyMesh.size = this.drawablePath.currentVertexCount;
 		this.sliderBodyMesh = sliderBodyMesh;
 
 		this.sliderBall = new SliderBall(this);
 
-		let followCircleOsuTexture = skin.textures["followCircle"];
-		let followCircleAnimator = new AnimatedOsuSprite(followCircleOsuTexture, headedHitObjectTextureFactor);
-		followCircleAnimator.setFps(skin.config.general.animationFramerate);
+		let followCircleAnimator = new AnimatedOsuSprite();
 		followCircleAnimator.play(this.parent.startTime);
 
 		let followCircleWrapper = new PIXI.Container();
@@ -273,17 +231,10 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				continue;
 			}
 
-			let tickOsuTexture = skin.textures["sliderTick"];
 			let tickSprite = new PIXI.Sprite();
 			tickSprite.anchor.set(0.5, 0.5);
-
-			tickOsuTexture.applyToSprite(tickSprite, headedHitObjectTextureFactor);
-
 			let tickWrapper = new PIXI.Container();
 			tickWrapper.addChild(tickSprite);
-
-			let screenPos = this.drawableBeatmap.play.toScreenCoordinates(sliderTickPos);
-			tickWrapper.position.set(screenPos.x, screenPos.y);
 
 			this.tickContainer.addChild(tickWrapper);
 			this.tickElements.push(tickWrapper);
@@ -299,6 +250,76 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.container.addChild(this.overlayContainer);
 
 		this.container.zIndex = -this.parent.startTime;
+	}
+
+	compose(updateSkin: boolean) {
+		super.compose(updateSkin);
+		let { skin, headedHitObjectTextureFactor, hitObjectPixelRatio } = this.drawableBeatmap.play;
+
+		this.bounds.updateScreenDimensions(hitObjectPixelRatio);
+		this.hasFullscreenBaseSprite = Math.max(this.bounds.screenWidth, this.bounds.screenHeight) >= Math.max(currentWindowDimensions.width, currentWindowDimensions.height);
+
+		let renderTex = PIXI.RenderTexture.create({
+			width: this.hasFullscreenBaseSprite? currentWindowDimensions.width : this.bounds.screenWidth,
+			height: this.hasFullscreenBaseSprite? currentWindowDimensions.height : this.bounds.screenHeight,
+			resolution: 2 // For anti-aliasing
+		});
+		let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
+		renderTexFramebuffer.enableDepth();
+		renderTexFramebuffer.addDepthTexture();
+
+		this.baseSprite.texture.destroy();
+		this.baseSprite.texture = renderTex;
+		
+		this.updateTransformationMatrix();
+		if (updateSkin) updateSliderBodyShaderUniforms(this.sliderBodyMesh.shader, this);
+		this.forceSliderBodyRender = true;
+
+		for (let i = 0; i < this.sliderEnds.length; i++) {
+			this.sliderEnds[i].compose();
+		}
+
+		this.sliderBall.compose();
+
+		let followCircleOsuTexture = skin.textures["followCircle"];
+		this.followCircleAnimator.setFps(skin.config.general.animationFramerate);
+		this.followCircleAnimator.setTexture(followCircleOsuTexture, headedHitObjectTextureFactor);
+
+		let tickOsuTexture = skin.textures["sliderTick"];
+		for (let i = 0; i < this.tickElements.length; i++) {
+			let tick = this.tickElements[i];
+			if (!tick) continue;
+
+			let sprite = tick.children[0] as PIXI.Sprite;
+			tickOsuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+		}
+
+		if (updateSkin) {
+			if (this.currentlyHolding) this.stopSliderSlideSound();
+
+			let currentTimingPoint = this.parent.timingInfo.timingPoint;
+			let slider = this.parent.hitObject;
+	
+			let sampleSet = determineSampleSet(slider.extras.sampleSet, currentTimingPoint),
+				volume = determineVolume(slider.extras.sampleVolume, currentTimingPoint),
+				sampleIndex = determineSampleIndex(slider.extras.customIndex, currentTimingPoint);
+	
+			// Slider slide sound
+			let sliderSlideTypes = getSliderSlideTypesFromSampleSet(sampleSet, slider.hitSound);
+			let sliderSlideEmitters: SoundEmitter[] = [];
+			let sliderSlideStartPan = calculatePanFromOsuCoordinates(this.parent.startPoint);
+			for (let i = 0; i < sliderSlideTypes.length; i++) {
+				let type = sliderSlideTypes[i];
+				let emitter = this.drawableBeatmap.play.skin.sounds[type].getEmitter(volume, sampleIndex, sliderSlideStartPan);
+				if (!emitter || emitter.isReallyShort()) continue;
+	
+				emitter.setLoopState(true);
+				sliderSlideEmitters.push(emitter);
+			}
+			this.slideEmitters = sliderSlideEmitters;
+
+			if (this.currentlyHolding) this.beginSliderSlideSound();
+		}
 	}
 	
 	show() {
@@ -326,6 +347,26 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		if (this.hasFullscreenBaseSprite) this.baseSprite.position.set(0, 0);
 		else this.baseSprite.position.set(screenX, screenY);
+
+		let screenStartPos = this.drawableBeatmap.play.toScreenCoordinates(this.parent.startPoint);
+		let screenTailPos = this.drawableBeatmap.play.toScreenCoordinates(this.parent.tailPoint);
+		for (let i = 0; i < this.sliderEnds.length; i++) {
+			let primitive = this.sliderEnds[i];
+			let pos = (i % 2 === 0)? screenTailPos : screenStartPos;
+
+			primitive.container.position.set(pos.x, pos.y);
+			if (primitive.reverseArrow !== null) primitive.reverseArrow.position.copyFrom(primitive.container.position);
+		}
+
+		for (let i = 0; i < this.tickElements.length; i++) {
+			let tick = this.tickElements[i];
+			if (!tick) continue;
+
+			let completion = this.parent.tickCompletions[i];
+			let sliderTickPos = this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion));
+			let screenPos = this.drawableBeatmap.play.toScreenCoordinates(sliderTickPos);
+			tick.position.set(screenPos.x, screenPos.y);
+		}
 	}
 
 	update(currentTime: number) {
@@ -337,6 +378,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		}
 
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
+		super.update(currentTime);
 
 		this.updateHeadElements(currentTime);
 		
@@ -529,21 +572,18 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			snakeCompletion = 1.0;
 		}
 
-		let doRender = !this.sliderBodyHasBeenRendered;
+		let doRender = this.forceSliderBodyRender;
 		let renderTex = this.baseSprite.texture as PIXI.RenderTexture;
 		let gl = renderer.state.gl;
 
 		if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
 			let newBounds = this.drawablePath.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion, this.hasFullscreenBaseSprite);
 			this.sliderBodyMesh.size = this.drawablePath.currentVertexCount;
-			this.lastGeneratedSnakingCompletion = snakeCompletion;
 
-			if (this.hasFullscreenBaseSprite) {
-				let transformationMatrix = createSliderBodyTransformationMatrix(this, newBounds);
-				this.sliderBodyMesh.shader.uniforms.matrix = transformationMatrix; // Update the matrix uniform
-			}
+			if (this.hasFullscreenBaseSprite) this.updateTransformationMatrix(newBounds);
 
 			doRender = true;
+			this.lastGeneratedSnakingCompletion = snakeCompletion;
 		}
 
 		if (!doRender) return;
@@ -554,7 +594,12 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		renderer.render(this.sliderBodyMesh, renderTex);
 		gl.enable(gl.BLEND);
 
-		this.sliderBodyHasBeenRendered = true;
+		this.forceSliderBodyRender = false;
+	}
+	
+	private updateTransformationMatrix(boundsOverride?: SliderBounds) {
+		let transformationMatrix = createSliderBodyTransformationMatrix(this, boundsOverride || this.bounds);
+		this.sliderBodyMesh.shader.uniforms.matrix = transformationMatrix; // Update the matrix uniform
 	}
 
 	calculateCompletionAtTime(time: number) {
@@ -568,9 +613,11 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	private updateSubelements(currentTime: number) {
 		let completion = this.calculateCompletionAtTime(currentTime);
 		let currentSliderTime = currentTime - this.parent.hitObject.time;
+		let sliderBallPos = this.drawableBeatmap.play.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
 
 		this.updateSliderEnds(currentTime);
-		this.updateSliderBall(completion, currentTime);
+		this.updateSliderBall(completion, currentTime, sliderBallPos);
+		this.updateFollowCircle(currentTime, sliderBallPos);
 		if (this.parent.tickCompletions.length > 0) this.updateSliderTicks(completion, currentSliderTime);
 	}
 
@@ -581,38 +628,16 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		}
 	}
 
-	private updateSliderBall(completion: number, currentTime: number) {
-		let sliderBallPos = this.drawableBeatmap.play.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
-
+	private updateSliderBall(completion: number, currentTime: number, sliderBallPos: Point) {
 		if (currentTime < this.parent.endTime) {
-			let baseElement = this.sliderBall.base.sprite;
-			let skin = this.drawableBeatmap.play.skin;
-
-			this.sliderBall.container.visible = currentTime >= this.parent.startTime;
-			this.sliderBall.container.position.set(sliderBallPos.x, sliderBallPos.y);
-			baseElement.rotation = this.drawablePath.getAngleFromPercentage(MathUtil.mirror(completion));
-
-			let osuTex = skin.textures["sliderBall"];
-			let frameCount = osuTex.getAnimationFrameCount();
-			if (frameCount > 1) {
-				let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.parent.velocity);
-				let rolledDistance = this.parent.length * velocityRatio * MathUtil.mirror(completion);
-				let radians = rolledDistance / 15;
-				let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
-
-				this.sliderBall.base.setFrame(currentFrame);
-			}
-
-			if (skin.config.general.sliderBallFlip) {
-				// Flip the scale when necessary
-				if      (completion % 2 <= 1 && baseElement.scale.x < 0) baseElement.scale.x *= -1;
-				else if (completion % 2 > 1  && baseElement.scale.x > 0) baseElement.scale.x *= -1;
-			}
+			this.sliderBall.update(completion, currentTime, sliderBallPos);
 		} else {
 			// The slider ball disappears upon slider completion
 			this.sliderBall.container.visible = false;
 		}
+	}
 
+	private updateFollowCircle(currentTime: number, sliderBallPos: Point) {
 		this.followCircle.visible = true;
 		this.followCircle.position.set(sliderBallPos.x, sliderBallPos.y);
 
@@ -654,8 +679,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		this.followCircle.scale.set(followCircleSizeFactor);
 		this.followCircle.alpha = followCircleAlpha;
-
-		if (this.followCircleAnimator) this.followCircleAnimator.update(currentTime);
+		this.followCircleAnimator.update(currentTime);
 	}
 
 	private updateSliderTicks(completion: number, currentSliderTime: number) {
@@ -721,29 +745,36 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			}
 		}
 	}
+
+	private getSliderBodyDefaultSnake() {
+		return SLIDER_SETTINGS.snaking? 0.0 : 1.0;
+	}
 }
 
 class SliderBall {
-	public container: PIXI.Container;
-	public base: AnimatedOsuSprite;
-	public background: PIXI.Container;
-	public spec: PIXI.Container;
+	private slider: DrawableSlider = null;
+	public container: PIXI.Container = null;
+	public base: AnimatedOsuSprite = null;
+	public background: PIXI.Container = null;
+	public spec: PIXI.Container = null;
 
 	constructor(slider: DrawableSlider) {
-		let { headedHitObjectTextureFactor, skin } = slider.drawableBeatmap.play;
+		this.slider = slider;
 
 		this.container = new PIXI.Container();
-		let baseElement: PIXI.Container;
+		this.base = new AnimatedOsuSprite();
+	}
+
+	compose() {
+		let { headedHitObjectTextureFactor, skin } = this.slider.drawableBeatmap.play;
 
 		let osuTexture = skin.textures["sliderBall"];
+		this.base.setTexture(osuTexture, headedHitObjectTextureFactor);
 
-		this.base = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
-		let baseSprite = this.base.sprite;
-		baseElement = baseSprite;
+		if (skin.config.general.allowSliderBallTint) this.base.sprite.tint = colorToHexNumber(this.slider.color);
+		else this.base.sprite.tint = colorToHexNumber(skin.config.colors.sliderBall);
 
-		if (skin.config.general.allowSliderBallTint) baseSprite.tint = colorToHexNumber(slider.color);
-		else baseSprite.tint = colorToHexNumber(skin.config.colors.sliderBall);
-
+		this.background = null;
 		if (!osuTexture.hasActualBase() && skin.allowSliderBallExtras) {
 			let bgTexture = skin.textures["sliderBallBg"];
 
@@ -758,6 +789,7 @@ class SliderBall {
 			}
 		}
 
+		this.spec = null;
 		let specTexture = skin.textures["sliderBallSpec"];
 		if (!specTexture.isEmpty() && skin.allowSliderBallExtras) {
 			let sprite = new PIXI.Sprite();
@@ -769,8 +801,36 @@ class SliderBall {
 			this.spec = sprite;
 		}
 
+		this.container.removeChildren();
+		
 		if (this.background) this.container.addChild(this.background);
-		this.container.addChild(baseElement);
+		this.container.addChild(this.base.sprite);
 		if (this.spec) this.container.addChild(this.spec);
+	}
+
+	update(completion: number, currentTime: number, sliderBallPos: Point) {
+		let baseElement = this.base.sprite;
+		let skin = this.slider.drawableBeatmap.play.skin;
+
+		this.container.visible = currentTime >= this.slider.parent.startTime;
+		this.container.position.set(sliderBallPos.x, sliderBallPos.y);
+		baseElement.rotation = this.slider.drawablePath.getAngleFromPercentage(MathUtil.mirror(completion));
+
+		let osuTex = skin.textures["sliderBall"];
+		let frameCount = osuTex.getAnimationFrameCount();
+		if (frameCount > 1) {
+			let velocityRatio = Math.min(1, MAX_SLIDER_BALL_SLIDER_VELOCITY/this.slider.parent.velocity);
+			let rolledDistance = this.slider.parent.length * velocityRatio * MathUtil.mirror(completion);
+			let radians = rolledDistance / 15;
+			let currentFrame = Math.floor(frameCount * (radians % (Math.PI/2) / (Math.PI/2))); // TODO: Is this correct for all skins?
+
+			this.base.setFrame(currentFrame);
+		}
+
+		if (skin.config.general.sliderBallFlip) {
+			// Flip the scale when necessary
+			if      (completion % 2 <= 1 && baseElement.scale.x < 0) baseElement.scale.x *= -1;
+			else if (completion % 2 > 1  && baseElement.scale.x > 0) baseElement.scale.x *= -1;
+		}
 	}
 }

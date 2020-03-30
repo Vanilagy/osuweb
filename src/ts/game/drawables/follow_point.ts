@@ -2,6 +2,7 @@ import { Point, pointDistance, pointAngle } from "../../util/point";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
 import { DrawableBeatmap } from "../drawable_beatmap";
+import { RecompositionType } from "./drawable_hit_object";
 
 export const POINT_DISTANCE = 32; // Taken from ppy, this **probably** means how many osu!pixels follow point images are apart.
 export const FOLLOW_POINT_DISTANCE_THRESHOLD = POINT_DISTANCE * 3; // The minimum distance, in osu!pixels, that two objects need to be away from each other in order to create a follow point between them. In regular osu! terms, three follow point images.
@@ -25,10 +26,9 @@ export class FollowPoint {
 	private parts: PIXI.Container[];
 	public renderStartTime: number;
 	public renderFinished: boolean = false;
+	public recomposition: RecompositionType = RecompositionType.None;
 
 	constructor(drawableBeatmap: DrawableBeatmap, hitObjectA: ProcessedHitObject, hitObjectB: ProcessedHitObject) {
-		let { headedHitObjectTextureFactor, skin } = drawableBeatmap.play;
-
 		this.drawableBeatmap = drawableBeatmap;
 		this.hitObjectA = hitObjectA;
 		this.hitObjectB = hitObjectB;
@@ -48,19 +48,10 @@ export class FollowPoint {
 		this.container.rotation = angle;
 
 		let partCount = Math.floor((this.length - POINT_DISTANCE * 1.52) / POINT_DISTANCE); // This 1.52 was just found to be right through testing. Past-David did his job here, trust him.
-		let osuTexture = skin.textures["followPoint"];
-
-		let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor));
-		let texture = osuTexture.getForResolution(resolution);
-		let width = osuTexture.getWidthForResolution(resolution) * headedHitObjectTextureFactor;
-		let height = osuTexture.getHeightForResolution(resolution) * headedHitObjectTextureFactor;
 
 		for (let i = 0; i < partCount; i++) {
-			let sprite = new PIXI.Sprite(texture);
-
+			let sprite = new PIXI.Sprite();
 			sprite.anchor.set(0.5, 0.5);
-			sprite.width = width;
-			sprite.height = height;
 
 			let wrapper = new PIXI.Container();
 			wrapper.addChild(sprite);
@@ -70,11 +61,29 @@ export class FollowPoint {
 		}
 	}
 
+	compose(updateSkin: boolean) {
+		let { headedHitObjectTextureFactor, skin } = this.drawableBeatmap.play;
+
+		let osuTexture = skin.textures["followPoint"];
+		let resolution = osuTexture.getOptimalResolution(osuTexture.getBiggestDimension(headedHitObjectTextureFactor));
+		let texture = osuTexture.getForResolution(resolution);
+		let width = osuTexture.getWidthForResolution(resolution) * headedHitObjectTextureFactor;
+		let height = osuTexture.getHeightForResolution(resolution) * headedHitObjectTextureFactor;
+
+		for (let i = 0; i < this.parts.length; i++) {
+			let sprite = this.parts[i].children[0] as PIXI.Sprite;
+
+			sprite.texture = texture;
+			sprite.width = width;
+			sprite.height = height;
+		}
+
+		this.position();
+	}
+
 	show() {
 		const controller = this.drawableBeatmap.play.controller;
-
 		controller.followPointContainer.addChild(this.container);
-		this.position();
 	}
 
 	position() {
@@ -92,6 +101,8 @@ export class FollowPoint {
 			this.renderFinished = true;
 			return;
 		}
+
+		if (this.recomposition !== RecompositionType.None) this.compose(this.recomposition === RecompositionType.Skin);
 
 		let { headedHitObjectTextureFactor, hitObjectPixelRatio, skin } = this.drawableBeatmap.play;
 

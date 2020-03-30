@@ -57,7 +57,12 @@ void main() {
 
 let sliderBodyProgram = new PIXI.Program(vertexShaderSource, fragmentShaderSource, "sliderBodyProgram");
 
-export function createSliderBodyShader(slider: DrawableSlider) {
+export function createSliderBodyShader() {
+	let shader = new PIXI.Shader(sliderBodyProgram, {});
+	return shader;
+}
+
+export function updateSliderBodyShaderUniforms(shader: PIXI.Shader, slider: DrawableSlider) {
 	let beatmap = slider.drawableBeatmap.processedBeatmap.beatmap;
 	let { skin } = slider.drawableBeatmap.play;
 
@@ -74,15 +79,11 @@ export function createSliderBodyShader(slider: DrawableSlider) {
 		targetGreen = Math.min(255, sliderBodyColor.g * 1.125 + 75),
 		targetBlue = Math.min(255, sliderBodyColor.b * 1.125 + 75);
 
-	let pixiUniforms = {} as any;
-	pixiUniforms.matrix = createSliderBodyTransformationMatrix(slider, slider.bounds);
-	pixiUniforms.insideToTotalRatio = SLIDER_BODY_INSIDE_TO_TOTAL_RATIO;
-	pixiUniforms.borderColor = [borderColor.r/255, borderColor.g/255, borderColor.b/255];
-	pixiUniforms.innerColor = [targetRed/255, targetGreen/255, targetBlue/255];
-	pixiUniforms.outerColor = [sliderBodyColor.r/255, sliderBodyColor.g/255, sliderBodyColor.b/255];
-
-	let shader = new PIXI.Shader(sliderBodyProgram, pixiUniforms);
-	return shader;
+	let uniforms = shader.uniforms;
+	uniforms.insideToTotalRatio = SLIDER_BODY_INSIDE_TO_TOTAL_RATIO;
+	uniforms.borderColor = [borderColor.r/255, borderColor.g/255, borderColor.b/255];
+	uniforms.innerColor = [targetRed/255, targetGreen/255, targetBlue/255];
+	uniforms.outerColor = [sliderBodyColor.r/255, sliderBodyColor.g/255, sliderBodyColor.b/255];
 }
 
 export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sliderBounds: SliderBounds) { // The reason the bounds is given as a separate argument here is that bounds can change dynamically for very large, snaking sliders.

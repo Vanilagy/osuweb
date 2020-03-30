@@ -22,13 +22,25 @@ interface VertexBufferGenerationData {
 	radius: number
 }
 
-export interface SliderBounds {
-	min: Point,
-	max: Point
-	width: number,
-	height: number,
-	screenWidth: number,
-	screenHeight: number
+export class SliderBounds {
+	public min: Point;
+	public max: Point;
+	public width: number;
+	public height: number;
+	public screenWidth: number = null;
+	public screenHeight: number = null;
+
+	constructor(min: Point, max: Point, width: number, height: number) {
+		this.min = min;
+		this.max = max;
+		this.width = width;
+		this.height = height;
+	}
+
+	updateScreenDimensions(factor: number) {
+		this.screenWidth = this.width * factor;
+		this.screenHeight = this.height * factor;
+	}
 }
 
 export class DrawableSliderPath extends SliderPath {
@@ -168,28 +180,29 @@ export class DrawableSliderPath extends SliderPath {
 	}
 
 	static calculateBounds(points: Point[], drawableSlider: DrawableSlider) {
-		let { hitObjectPixelRatio, circleDiameterOsuPx } = drawableSlider.drawableBeatmap.play;
+		let { circleDiameterOsuPx, hitObjectPixelRatio } = drawableSlider.drawableBeatmap.play;
 
 		let firstPoint = points[0];
 
-		let bounds = {
-			min: clonePoint(firstPoint),
-			max: clonePoint(firstPoint)
-		} as SliderBounds;
+		let min = clonePoint(firstPoint),
+			max = clonePoint(firstPoint),
+			width: number,
+			height: number;
 
 		for (let i = 1; i < points.length; i++) {
 			let point = points[i];
 
-			if (point.x < bounds.min.x) bounds.min.x = point.x;
-			if (point.x > bounds.max.x) bounds.max.x = point.x;
-			if (point.y < bounds.min.y) bounds.min.y = point.y;
-			if (point.y > bounds.max.y) bounds.max.y = point.y;
+			if (point.x < min.x) min.x = point.x;
+			if (point.x > max.x) max.x = point.x;
+			if (point.y < min.y) min.y = point.y;
+			if (point.y > max.y) max.y = point.y;
 		}
 		
-		bounds.width = bounds.max.x - bounds.min.x + circleDiameterOsuPx;
-		bounds.height = bounds.max.y - bounds.min.y + circleDiameterOsuPx;
-		bounds.screenWidth = bounds.width * hitObjectPixelRatio;
-		bounds.screenHeight = bounds.height * hitObjectPixelRatio;
+		width = max.x - min.x + circleDiameterOsuPx;
+		height = max.y - min.y + circleDiameterOsuPx;
+
+		let bounds = new SliderBounds(min, max, width, height);
+		bounds.updateScreenDimensions(hitObjectPixelRatio);
 
 		return bounds;
 	}

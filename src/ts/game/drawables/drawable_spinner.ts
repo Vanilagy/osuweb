@@ -40,25 +40,25 @@ export class DrawableSpinner extends DrawableHitObject {
 	private isNewStyle: boolean;
 
 	// New-style elements:
-	private spinnerGlow: PIXI.Container;
-	private spinnerBottom: PIXI.Container;
-	private spinnerTop: PIXI.Container;
+	private spinnerGlow: PIXI.Sprite;
+	private spinnerBottom: PIXI.Sprite;
+	private spinnerTop: PIXI.Sprite;
 	// The following shitty nomenclature is taken from skin file names. Despite being named "middle", they're visually above "top".
-	private spinnerMiddle2: PIXI.Container;
-	private spinnerMiddle: PIXI.Container
+	private spinnerMiddle2: PIXI.Sprite;
+	private spinnerMiddle: PIXI.Sprite
 	private scalablePart: PIXI.Container;
 
 	// Old-style elements:
-	private spinnerBackground: PIXI.Container;
+	private spinnerBackground: PIXI.Sprite;
 	private spinnerMeter: PIXI.Container;
 	private spinnerMeterMask: PIXI.Graphics;
 	private spinnerCircle: PIXI.Container;
 	private spinnerApproachCircle: PIXI.Container;
 
 	// Informative elements for both styles
-	private spinnerRpm: PIXI.Container;
+	private spinnerRpm: PIXI.Sprite;
 	private spinnerRpmNumber: SpriteNumber;
-	private spinnerSpin: PIXI.Container;
+	private spinnerSpin: PIXI.Sprite;
 	private spinnerClear: PIXI.Container;
 	private spinnerBonus: SpriteNumber;
 	private spinnerSpinFadeOutStart: number;
@@ -87,17 +87,6 @@ export class DrawableSpinner extends DrawableHitObject {
 		let currentTimingPoint = timingInfo.timingPoint;
 
 		this.hitSound = generateHitSoundInfo(spinner.hitSound, spinner.extras.sampleSet, spinner.extras.additionSet, spinner.extras.sampleVolume, spinner.extras.customIndex, currentTimingPoint);
-
-		let volume = spinner.extras.sampleVolume || currentTimingPoint.volume,
-			index = spinner.extras.customIndex || currentTimingPoint.sampleIndex || 1;
-
-		let emitter = this.drawableBeatmap.play.skin.sounds[OsuSoundType.SpinnerSpin].getEmitter(volume, index);
-		if (emitter && !emitter.isReallyShort()) {
-			emitter.setLoopState(true);
-			this.spinSoundEmitter = emitter;
-		}
-
-		this.bonusSoundVolume = volume;
 	}
 
 	reset() {
@@ -120,224 +109,85 @@ export class DrawableSpinner extends DrawableHitObject {
 		this.stopSpinningSound();
 	}
 
-	draw() {
+	compose(updateSkin: boolean) {
+		super.compose(updateSkin);
 		let { screenPixelRatio, activeMods, skin } = this.drawableBeatmap.play;
 
-		this.renderStartTime = this.parent.startTime - SPINNER_FADE_IN_TIME;
-
-		this.container = new PIXI.Container();
-		this.container.zIndex = -1e10; // Sliders are always behind everything
-
-		this.componentContainer = new PIXI.Container();
-		this.componentContainer2 = new PIXI.Container();
-		this.clearTextInterpolator = new Interpolator({
-			ease: EaseType.Linear,
-			duration: 333
-		});
-		this.bonusSpinsInterpolator = new Interpolator({
-			ease: EaseType.EaseOutQuad,
-			duration: 750,
-			defaultToFinished: true
-		});
-		this.glowInterpolator = new Interpolator({
-			ease: EaseType.Linear,
-			duration: 333,
-			defaultToFinished: true
-		});
-
 		let backgroundTexture = skin.textures["spinnerBackground"];
-		this.isNewStyle = backgroundTexture.isEmpty() && skin.getVersionNumber() > 2.0;
+		this.isNewStyle = backgroundTexture.isEmpty() && skin.getVersionNumber() >= 2.0;
+
+		const createElement = (textureName: string, anchor: PIXI.Point, maxDimensionFactor = 1) => {
+			let osuTexture = skin.textures[textureName];
+			let sprite = new PIXI.Sprite();
+
+			osuTexture.applyToSprite(sprite, screenPixelRatio, undefined, maxDimensionFactor);
+			sprite.anchor.set(anchor.x, anchor.y);
+
+			return sprite;
+		};
 
 		if (this.isNewStyle) {
-			// Add spinner glow
-			{
-				let osuTexture = skin.textures["spinnerGlow"];
-				let sprite = new PIXI.Sprite();
+			this.spinnerGlow = createElement("spinnerGlow", new PIXI.Point(0.5, 0.5));
+			this.spinnerGlow.tint = colorToHexNumber(SPINNER_GLOW_TINT); // The default slider ball tint
+			this.spinnerGlow.blendMode = PIXI.BLEND_MODES.ADD;
 
-				osuTexture.applyToSprite(sprite, screenPixelRatio); 
-
-				sprite.anchor.set(0.5, 0.5);
-				sprite.tint = colorToHexNumber(SPINNER_GLOW_TINT); // The default slider ball tint
-				sprite.blendMode = PIXI.BLEND_MODES.ADD;
-	
-				this.spinnerGlow = sprite;
-			}
-	
-			// Add spinner bottom
-			{
-				let osuTexture = skin.textures["spinnerBottom"];
-				let sprite = new PIXI.Sprite();
-
-				osuTexture.applyToSprite(sprite, screenPixelRatio);
-
-				sprite.anchor.set(0.5, 0.5);
-	
-				this.spinnerBottom = sprite;
-			}
-	
-			// Add spinner top
-			{
-				let osuTexture = skin.textures["spinnerTop"];
-				let sprite = new PIXI.Sprite();
-
-				osuTexture.applyToSprite(sprite, screenPixelRatio);
-
-				sprite.anchor.set(0.5, 0.5);
-	
-				this.spinnerTop = sprite;
-			}
-	
-			// Add spinner middle2
-			{
-				let osuTexture = skin.textures["spinnerMiddle2"];
-				let sprite = new PIXI.Sprite();
-
-				osuTexture.applyToSprite(sprite, screenPixelRatio);
-	
-				sprite.anchor.set(0.5, 0.5);
-	
-				this.spinnerMiddle2 = sprite;
-			}
-	
-			// Add spinner middle
-			{
-				let osuTexture = skin.textures["spinnerMiddle"];
-				let sprite = new PIXI.Sprite();
-
-				osuTexture.applyToSprite(sprite, screenPixelRatio);
-	
-				sprite.anchor.set(0.5, 0.5);
-	
-				this.spinnerMiddle = sprite;
-			}
+			this.spinnerBottom = createElement("spinnerBottom", new PIXI.Point(0.5, 0.5));
+			this.spinnerTop = createElement("spinnerTop", new PIXI.Point(0.5, 0.5));
+			this.spinnerMiddle2 = createElement("spinnerMiddle2", new PIXI.Point(0.5, 0.5));
+			this.spinnerMiddle = createElement("spinnerMiddle", new PIXI.Point(0.5, 0.5));
 		} else {
-			// Add spinner approach circle
-			{
-				let osuTexture = skin.textures["spinnerApproachCircle"];
-				let sprite = new PIXI.Sprite();
+			let approachCircleSprite = createElement("spinnerApproachCircle", new PIXI.Point(0.5, 0.5), 2.0); // Since the approach circle starts out at ~2.0x the scale, use that as the reference for texture quality.
+			this.spinnerApproachCircle = new PIXI.Container();
+			this.spinnerApproachCircle.addChild(approachCircleSprite);
+			if (activeMods.has(Mod.Hidden)) this.spinnerApproachCircle.visible = false; // With HD, all spinner approach circles are hidden
 
-				osuTexture.applyToSprite(sprite, screenPixelRatio, undefined, 2.0); // Since the approach circle starts out at ~2.0x the scale, use that as the reference for texture quality.
-				sprite.anchor.set(0.5, 0.5);
-	
-				let wrapper = new PIXI.Container();
-				wrapper.addChild(sprite);
+			this.spinnerBackground = createElement("spinnerBackground", new PIXI.Point(0.5, 0.5));
+			this.spinnerBackground.y = 5 * screenPixelRatio; // TODO: Where does this come from?
+			this.spinnerBackground.tint = colorToHexNumber(skin.config.colors.spinnerBackground);
 
-				if (activeMods.has(Mod.Hidden)) wrapper.visible = false; // With HD, all spinner approach circles are hidden
-	
-				this.spinnerApproachCircle = wrapper;
-			}
-
-			// Add spinner background
-			{
-				let osuTexture = skin.textures["spinnerBackground"];
-				let sprite = new PIXI.Sprite();
-				
-				osuTexture.applyToSprite(sprite, screenPixelRatio);
-
-				sprite.anchor.set(0.5, 0.5);
-				sprite.y = 5 * screenPixelRatio; // TODO: Where does this come from?
-				sprite.tint = colorToHexNumber(skin.config.colors.spinnerBackground);
-	
-				this.spinnerBackground = sprite;
-			}
-	
-			// Add spinner meter
+			if (this.spinnerMeterMask) this.spinnerMeterMask.destroy();
 			this.spinnerMeterMask = new PIXI.Graphics();
-			{
-				let osuTexture = skin.textures["spinnerMeter"];
-				let sprite = new PIXI.Sprite();
-				
-				osuTexture.applyToSprite(sprite, screenPixelRatio);
-	
-				sprite.anchor.set(0.0, 0.0);
-				sprite.position.set(currentWindowDimensions.width/2 - 512 * screenPixelRatio, 46 * screenPixelRatio);
-				sprite.mask = this.spinnerMeterMask;
-	
-				this.spinnerMeter = sprite;
-			}
-	
-			// Add spinner circle
-			{
-				let osuTexture = skin.textures["spinnerCircle"];
-				let sprite = new PIXI.Sprite();
-				
-				osuTexture.applyToSprite(sprite, screenPixelRatio);
+			this.spinnerMeter = createElement("spinnerMeter", new PIXI.Point(0.0, 0.0));
+			this.spinnerMeter.position.set(currentWindowDimensions.width/2 - 512 * screenPixelRatio, 46 * screenPixelRatio);
+			this.spinnerMeter.mask = this.spinnerMeterMask;
 
-				sprite.anchor.set(0.5, 0.5);
-	
-				this.spinnerCircle = sprite;
-			}
+			this.spinnerCircle = createElement("spinnerCircle", new PIXI.Point(0.5, 0.5));
 		}
 
-		// Add spinner RPM display
-		{
-			let osuTexture = skin.textures["spinnerRpm"];
-			let sprite = new PIXI.Sprite();
-				
-			osuTexture.applyToSprite(sprite, screenPixelRatio);
+		// Update spinner RPM display
+		let rpmOsuTexture = skin.textures["spinnerRpm"];
+		rpmOsuTexture.applyToSprite(this.spinnerRpm, screenPixelRatio);
+		this.spinnerRpm.position.set(currentWindowDimensions.width/2 - 139 * screenPixelRatio, currentWindowDimensions.height - 56 * screenPixelRatio);
 
-			sprite.anchor.set(0.0, 0.0);
-			sprite.position.set(currentWindowDimensions.width/2 - 139 * screenPixelRatio, currentWindowDimensions.height - 56 * screenPixelRatio);
+		this.spinnerRpmNumber.container.position.set(currentWindowDimensions.width/2 + 122 * screenPixelRatio, currentWindowDimensions.height - 50 * screenPixelRatio);
+		this.spinnerRpmNumber.options.textures = skin.scoreNumberTextures;
+		this.spinnerRpmNumber.options.scaleFactor = screenPixelRatio * 0.85;
+		this.spinnerRpmNumber.options.overlap = skin.config.fonts.scoreOverlap;
+		this.spinnerRpmNumber.refresh();
 
-			this.spinnerRpm = sprite;
-		}
+		// Update spinner bonus number
+		this.spinnerBonus.container.y = 128 * screenPixelRatio;
+		this.spinnerBonus.options.textures = skin.scoreNumberTextures;
+		this.spinnerBonus.options.scaleFactor = screenPixelRatio * 2;
+		this.spinnerBonus.options.overlap = skin.config.fonts.scoreOverlap;
+		this.spinnerBonus.refresh();
 
-		// Add RPM number
-		let spinnerRpmNumber = new SpriteNumber({
-			textures: skin.scoreNumberTextures,
-			scaleFactor: screenPixelRatio * 0.85,
-			horizontalAlign: "right",
-			verticalAlign: "top",
-			overlap: skin.config.fonts.scoreOverlap,
-			overlapAtEnd: false
-		});
-		spinnerRpmNumber.container.position.set(currentWindowDimensions.width/2 + 122 * screenPixelRatio, currentWindowDimensions.height - 50 * screenPixelRatio);
-		spinnerRpmNumber.container.visible = false;
-		spinnerRpmNumber.setValue(0);
-		this.spinnerRpmNumber = spinnerRpmNumber;
+		// Update "spin" text
+		let spinOsuTexture = skin.textures["spinnerSpin"];
+		spinOsuTexture.applyToSprite(this.spinnerSpin, screenPixelRatio);
+		this.spinnerSpin.y = 198 * screenPixelRatio;
 
-		// Add "spin" text
-		{
-			let osuTexture = skin.textures["spinnerSpin"];
-			let sprite = new PIXI.Sprite();
-				
-			osuTexture.applyToSprite(sprite, screenPixelRatio);
-
-			sprite.anchor.set(0.5, 0.5);
-			sprite.y = 198 * screenPixelRatio;
-
-			this.spinnerSpin = sprite;
-		}
-
-		// Add "clear" text
-		{
-			let osuTexture = skin.textures["spinnerClear"];
-			let sprite = new PIXI.Sprite();
-				
-			osuTexture.applyToSprite(sprite, screenPixelRatio);
-
-			sprite.anchor.set(0.5, 0.5);
-
-			let wrapper = new PIXI.Container();
-			wrapper.addChild(sprite);
-			wrapper.y = -164 * screenPixelRatio;
-
-			this.spinnerClear = wrapper;
-		}
-
-		// Add spinner bonus popup
-		let spinnerBonus = new SpriteNumber({
-			textures: skin.scoreNumberTextures,
-			scaleFactor: screenPixelRatio * 2,
-			horizontalAlign: "center",
-			verticalAlign: "middle",
-			overlap: skin.config.fonts.scoreOverlap
-		});
-		spinnerBonus.container.y = 128 * screenPixelRatio;
-		this.spinnerBonus = spinnerBonus;
+		// Update "clear" text
+		let clearSprite = this.spinnerClear.children[0] as PIXI.Sprite;
+		let clearOsuTexture = skin.textures["spinnerClear"];
+		clearOsuTexture.applyToSprite(clearSprite, screenPixelRatio);
+		this.spinnerClear.y = -164 * screenPixelRatio;
 
 		/** Add all elements */
-
+		this.container.removeChildren();
+		this.componentContainer.removeChildren();
+		this.componentContainer2.removeChildren();
+		
 		this.container.addChild(this.componentContainer);
 
 		if (this.isNewStyle) {
@@ -364,14 +214,79 @@ export class DrawableSpinner extends DrawableHitObject {
 		this.container.addChild(this.spinnerRpm);
 		this.container.addChild(this.componentContainer2);
 		this.container.addChild(this.spinnerRpmNumber.container); // Above all other elements
+
+		// Update spinning sound effect
+		if (updateSkin) {
+			let spinner = this.parent.hitObject;
+			let currentTimingPoint = this.parent.timingInfo.timingPoint;
+			let volume = spinner.extras.sampleVolume || currentTimingPoint.volume,
+				index = spinner.extras.customIndex || currentTimingPoint.sampleIndex || 1;
+
+			let emitter = this.drawableBeatmap.play.skin.sounds[OsuSoundType.SpinnerSpin].getEmitter(volume, index);
+			if (emitter && !emitter.isReallyShort()) {
+				this.stopSpinningSound();
+
+				emitter.setLoopState(true);
+				this.spinSoundEmitter = emitter;
+			}
+
+			this.bonusSoundVolume = volume;
+		}
+	}
+
+	draw() {
+		this.renderStartTime = this.parent.startTime - SPINNER_FADE_IN_TIME;
+
+		this.container = new PIXI.Container();
+		this.container.zIndex = -1e10; // Sliders are always behind everything
+
+		this.componentContainer = new PIXI.Container();
+		this.componentContainer2 = new PIXI.Container();
+		this.clearTextInterpolator = new Interpolator({
+			ease: EaseType.Linear,
+			duration: 333
+		});
+		this.bonusSpinsInterpolator = new Interpolator({
+			ease: EaseType.EaseOutQuad,
+			duration: 750,
+			defaultToFinished: true
+		});
+		this.glowInterpolator = new Interpolator({
+			ease: EaseType.Linear,
+			duration: 333,
+			defaultToFinished: true
+		});
+
+		this.spinnerRpm = new PIXI.Sprite();
+
+		// Add RPM number
+		this.spinnerRpmNumber = new SpriteNumber({
+			horizontalAlign: "right",
+			verticalAlign: "top",
+			overlapAtEnd: false
+		});
+		this.spinnerRpmNumber.setValue(0);
+
+		// Add spinner bonus popup
+		let spinnerBonus = new SpriteNumber({
+			horizontalAlign: "center",
+			verticalAlign: "middle"
+		});
+		this.spinnerBonus = spinnerBonus;
+
+		this.spinnerSpin = new PIXI.Sprite();
+		this.spinnerSpin.anchor.set(0.5, 0.5);
+
+		let spinnerClearSprite = new PIXI.Sprite();
+		spinnerClearSprite.anchor.set(0.5, 0.5);
+		this.spinnerClear = new PIXI.Container();
+		this.spinnerClear.addChild(spinnerClearSprite);
 	}
 
 	show() {
 		let controller = this.drawableBeatmap.play.controller;
 
 		controller.hitObjectContainer.addChild(this.container);
-
-		this.position();
 	}
 
 	position() {
@@ -389,6 +304,8 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.renderFinished = true;
 			return;
 		}
+
+		super.update(currentTime);
 
 		if (currentTime < this.parent.startTime) {
 			let fadeInCompletion = (currentTime - (this.parent.startTime - SPINNER_FADE_IN_TIME)) / SPINNER_FADE_IN_TIME;
@@ -417,7 +334,6 @@ export class DrawableSpinner extends DrawableHitObject {
 
 			this.spinnerSpin.alpha = spinnerSpinAlpha;
 
-			this.spinnerRpmNumber.container.visible = true;
 			this.spinnerRpm.y = currentWindowDimensions.height - 56 * screenPixelRatio;
 		}
 	

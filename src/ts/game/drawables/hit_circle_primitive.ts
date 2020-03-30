@@ -49,7 +49,7 @@ export class HitCirclePrimitive {
 	private base: PIXI.Container;
 	private overlay: PIXI.Container;
 	private overlayAnimator: AnimatedOsuSprite = null;
-	private number: PIXI.Container;
+	private number: SpriteNumber = null;
 	public approachCircle: PIXI.Container;
 	public reverseArrow: PIXI.Container;
 	private shakeStartTime: number;
@@ -60,152 +60,143 @@ export class HitCirclePrimitive {
 		this.approachCircle = null;
 		this.reverseArrow = null;
 
-		this.init();
+		this.container = new PIXI.Container();
+
+		let baseSprite = new PIXI.Sprite();
+		baseSprite.anchor.set(0.5, 0.5);
+		this.base = new PIXI.Container();
+		this.base.addChild(baseSprite);
+
+		this.overlayAnimator = new AnimatedOsuSprite();
+		this.overlayAnimator.setFps(2); // From the website: "Animation rate: 2 FPS (4 FPS max)." "This rate is affected by the half time and double time/nightcore the game modifiers."
+		this.overlay = new PIXI.Container();
+		this.overlay.addChild(this.overlayAnimator.sprite);
+
+		if (this.options.hasNumber) {
+			this.number = new SpriteNumber({
+				horizontalAlign: "center",
+				verticalAlign: "middle"
+			});
+			this.number.setValue(this.options.hitObject.parent.comboInfo.n);
+		}
+
+		if (this.options.reverseArrowAngle !== undefined) {
+			let sprite = new PIXI.Sprite();
+			sprite.anchor.set(0.5, 0.5);
+			sprite.rotation = this.options.reverseArrowAngle;
+
+			let wrapper = new PIXI.Container();
+			wrapper.addChild(sprite);
+
+			this.reverseArrow = wrapper;
+		}
+
+		if (this.options.hasApproachCircle) {
+			let sprite = new PIXI.Sprite();
+			sprite.anchor.set(0.5, 0.5);
+
+			let wrapper = new PIXI.Container();
+			wrapper.addChild(sprite);
+
+			this.approachCircle = wrapper;
+		}
+
 		this.reset();
 	}
 
-	private init() {
-		this.initBase();
-		this.initOverlay();
-		if (this.options.hasNumber) this.initNumber();
-		if (this.options.reverseArrowAngle !== undefined) this.initReverseArrow();
-		if (this.options.hasApproachCircle) this.initApproachCircle();
+	/** Updates textures and sizing. */
+	compose() {
+		let { headedHitObjectTextureFactor, skin, processedBeatmap } = this.options.hitObject.drawableBeatmap.play;
+		let beatmap = processedBeatmap.beatmap;
 
-		let container = new PIXI.Container();
-		container.addChild(this.base);
+		// Base //
 
-		let skin = this.options.hitObject.drawableBeatmap.play.skin;
-		let beatmap = this.options.hitObject.drawableBeatmap.processedBeatmap.beatmap;
-
-		let overlayAboveNumber: boolean;
-		if (beatmap.overlayPosition === 'NoChange') overlayAboveNumber = skin.config.general.hitCircleOverlayAboveNumber;
-		else overlayAboveNumber = beatmap.overlayPosition === 'Above';
-
-		if (overlayAboveNumber) {
-			if (this.number) container.addChild(this.number);
-			container.addChild(this.overlay);
-		} else {
-			container.addChild(this.overlay);
-			if (this.number) container.addChild(this.number);
-		}
-
-		this.container = container;
-	}
-
-	private initBase() {
-		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
-		let osuTexture = skin.textures["hitCircle"];
+		let baseOsuTexture = skin.textures["hitCircle"];
 
 		if (this.options.type === HitCirclePrimitiveType.SliderHead) {
 			let startTex = skin.textures["sliderStartCircle"];
-			if (!startTex.isEmpty()) osuTexture = startTex;
+			if (!startTex.isEmpty()) baseOsuTexture = startTex;
 		} else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
 			let endTex = skin.textures["sliderEndCircle"];
-			if (!endTex.isEmpty()) osuTexture = endTex;
+			if (!endTex.isEmpty()) baseOsuTexture = endTex;
 		}
 
-		let sprite = new PIXI.Sprite();
-		osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+		let baseSprite = this.base.children[0] as PIXI.Sprite;
+		baseSprite.tint = colorToHexNumber(this.options.hitObject.color);
+		baseOsuTexture.applyToSprite(baseSprite, headedHitObjectTextureFactor);
 
-		sprite.tint = colorToHexNumber(this.options.hitObject.color);
-		sprite.anchor.set(0.5, 0.5);
+		// Overlay //
 
-		let wrapper = new PIXI.Container();
-		wrapper.addChild(sprite);
-
-		this.base = wrapper;
-	}
-
-	private initOverlay() {
-		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
-		let osuTexture: OsuTexture = null;
+		let overlayOsuTexture: OsuTexture = null;
 
 		if (this.options.type === HitCirclePrimitiveType.HitCircle) {
-			osuTexture = skin.textures["hitCircleOverlay"];
+			overlayOsuTexture = skin.textures["hitCircleOverlay"];
 		} else if (this.options.type === HitCirclePrimitiveType.SliderHead) {
 			let baseTex = skin.textures["sliderStartCircle"];
 
 			if (!baseTex.isEmpty()) {
 				let overlayTex = skin.textures["sliderStartCircleOverlay"];
-				if (!overlayTex.isEmpty()) osuTexture = overlayTex;
+				if (!overlayTex.isEmpty()) overlayOsuTexture = overlayTex;
 			} else {
-				osuTexture = skin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+				overlayOsuTexture = skin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
 			}
 		} else if (this.options.type === HitCirclePrimitiveType.SliderEnd) {
 			let baseTex = skin.textures["sliderEndCircle"];
 
 			if (!baseTex.isEmpty()) {
 				let overlayTex = skin.textures["sliderEndCircleOverlay"];
-				if (!overlayTex.isEmpty()) osuTexture = overlayTex;
+				if (!overlayTex.isEmpty()) overlayOsuTexture = overlayTex;
 			} else {
-				osuTexture = skin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
+				overlayOsuTexture = skin.textures["hitCircleOverlay"]; // Fall back to regular hitcircle's overlay
 			}
 		}
+		
+		if (overlayOsuTexture) this.overlayAnimator.setTexture(overlayOsuTexture, headedHitObjectTextureFactor);
+		else this.overlayAnimator.removeTexture();
 
-		let sprite: PIXI.Sprite;
+		// Number //
 
-		if (osuTexture) {
-			let animator = new AnimatedOsuSprite(osuTexture, headedHitObjectTextureFactor);
-			animator.setFps(2); // From the website: "Animation rate: 2 FPS (4 FPS max)." "This rate is affected by the half time and double time/nightcore the game modifiers."
-			animator.play(this.options.fadeInStart);
-			sprite = animator.sprite;
+		if (this.options.hasNumber) {
+			this.number.options.textures = skin.hitCircleNumberTextures;
+			this.number.options.overlap = skin.config.fonts.hitCircleOverlap;
+			this.number.options.scaleFactor = headedHitObjectTextureFactor * 0.8; // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
 
-			this.overlayAnimator = animator;
-		} else {
-			sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+			this.number.refresh();
 		}
 
-		let wrapper = new PIXI.Container();
-		wrapper.addChild(sprite);
+		// Reverse arrow //
 
-		this.overlay = wrapper;
-	}
+		if (this.options.reverseArrowAngle !== undefined) {
+			let osuTexture = skin.textures["reverseArrow"];
+			let sprite = this.reverseArrow.children[0] as PIXI.Sprite;
 
-	private initNumber() {
-		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
+			osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+		}
 
-		let text = new SpriteNumber({
-			textures: skin.hitCircleNumberTextures,
-			horizontalAlign: "center",
-			verticalAlign: "middle",
-			overlap: skin.config.fonts.hitCircleOverlap,
-			scaleFactor: headedHitObjectTextureFactor * 0.8 // "This element is downscaled by 0.8x" https://osu.ppy.sh/help/wiki/Skinning/osu!
-		});
-		text.setValue(this.options.hitObject.parent.comboInfo.n);
+		// Approach circle //
 
-		this.number = text.container;
-	}
+		if (this.options.hasApproachCircle) {
+			let osuTexture = skin.textures["approachCircle"];
+			let sprite = this.approachCircle.children[0] as PIXI.Sprite;
 
-	private initReverseArrow() {
-		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
+			osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+			sprite.tint = colorToHexNumber(this.options.hitObject.color);
+		}
 
-		let osuTexture = skin.textures["reverseArrow"];
-		let sprite = new PIXI.Sprite();
-		osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
+		this.container.removeChildren();
+		this.container.addChild(this.base);
 
-		sprite.anchor.set(0.5, 0.5);
-		sprite.rotation = this.options.reverseArrowAngle;
+		let overlayAboveNumber: boolean;
+		if (beatmap.overlayPosition === 'NoChange') overlayAboveNumber = skin.config.general.hitCircleOverlayAboveNumber;
+		else overlayAboveNumber = beatmap.overlayPosition === 'Above';
 
-		let wrapper = new PIXI.Container();
-		wrapper.addChild(sprite);
-
-		this.reverseArrow = wrapper;
-	}
-
-	private initApproachCircle() {
-		let { headedHitObjectTextureFactor, skin } = this.options.hitObject.drawableBeatmap.play;
-
-		let osuTexture = skin.textures["approachCircle"];
-		let sprite = new PIXI.Sprite();
-		osuTexture.applyToSprite(sprite, headedHitObjectTextureFactor);
-
-		sprite.anchor.set(0.5, 0.5);
-		sprite.tint = colorToHexNumber(this.options.hitObject.color);
-
-		let wrapper = new PIXI.Container();
-		wrapper.addChild(sprite);
-
-		this.approachCircle = wrapper;
+		if (overlayAboveNumber) {
+			if (this.number) this.container.addChild(this.number.container);
+			this.container.addChild(this.overlay);
+		} else {
+			this.container.addChild(this.overlay);
+			if (this.number) this.container.addChild(this.number.container);
+		}
 	}
 
 	reset() {
@@ -267,7 +258,7 @@ export class HitCirclePrimitive {
 				this.reverseArrow.scale.set(scale);
 			}
 
-			if (this.number) this.number.alpha = 1;
+			if (this.number) this.number.container.alpha = 1;
 			
 			// Dirty?
 			if (this.fadeOut) {
@@ -303,7 +294,7 @@ export class HitCirclePrimitive {
 			if (this.number) {
 				let numberFadeOutCompletion = (currentTime - this.fadeOut.time) / HIT_CIRCLE_NUMBER_FADE_OUT_TIME;
 				numberFadeOutCompletion = MathUtil.clamp(numberFadeOutCompletion, 0, 1);
-				this.number.alpha = 1 - numberFadeOutCompletion;
+				this.number.container.alpha = 1 - numberFadeOutCompletion;
 			}
 
 			this.renderFinished = (!this.approachCircle || this.approachCircle.visible === false) && (this.container.alpha === 0 || this.container.visible === false);

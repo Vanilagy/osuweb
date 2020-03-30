@@ -98,29 +98,42 @@ export class ScorePopup {
 		secondSprite.alpha = 0.6; // To not be too extreme
 		this.secondContainer = secondWrapper;
 		this.secondSprite = secondSprite;
-		
-		let screenCoordinates = this.scoreCounter.play.toScreenCoordinates(osuPosition);
-		this.container.position.set(screenCoordinates.x, screenCoordinates.y);
 
 		if (type === ScorePopupType.Miss) {
 			this.container.rotation = (2 * (Math.random() - 0.5)) * Math.PI * 0.05; // Random tilt for miss popup
 		}
-
-		transferBasicProperties(this.container, this.secondContainer);
-		transferBasicSpriteProperties(this.animatedSprite.sprite, this.secondSprite);
 
 		if (this.hasParticles()) {
 			let emitter = new ParticleEmitter([this.particleTexture]);
 			emitter.setTravelBehavior(0, 72, EaseType.Linear, DistanceDistribution.Normal);
 			emitter.setLongevityBehavior(400, SCORE_POPUP_FADE_OUT_TIME);
 			emitter.setAlphaBehavior(1, 0, EaseType.EaseInQuad);
-			emitter.setScale(headedHitObjectTextureFactor);
 			emitter.setBlendMode(PIXI.BLEND_MODES.ADD);
-			emitter.container.position.copyFrom(this.container.position);
+			emitter.setScale(headedHitObjectTextureFactor);
 
 			emitter.emit(startTime, 170, 170);
 
 			this.particleEmitter = emitter;
+		}
+
+		this.compose();
+	}
+
+	compose() {
+		if (!this.container) return;
+		let { headedHitObjectTextureFactor } = this.scoreCounter.play;
+
+		this.animatedSprite.setTexture(this.animatedSprite.getTexture(), headedHitObjectTextureFactor);
+
+		let screenCoordinates = this.scoreCounter.play.toScreenCoordinates(this.osuPosition);
+		this.container.position.set(screenCoordinates.x, screenCoordinates.y);
+
+		transferBasicProperties(this.container, this.secondContainer);
+		transferBasicSpriteProperties(this.animatedSprite.sprite, this.secondSprite);
+
+		if (this.particleEmitter) {
+			this.particleEmitter.container.position.copyFrom(this.container.position);
+			this.particleEmitter.setScale(headedHitObjectTextureFactor);
 		}
 	}
 

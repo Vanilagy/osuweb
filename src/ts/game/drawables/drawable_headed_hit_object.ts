@@ -59,8 +59,12 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 
 		controller.hitObjectContainer.addChild(this.head.container);
 		if (this.head.approachCircle) controller.approachCircleContainer.addChild(this.head.approachCircle);
+	}
 
-		this.position();
+	compose(updateSkin: boolean) {
+		super.compose(updateSkin);
+
+		this.head.compose();
 	}
 
 	position() {

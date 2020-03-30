@@ -5,27 +5,47 @@ export class AnimatedOsuSprite {
     public sprite: PIXI.Sprite;
     public loop: boolean = true;
     private fps: number = 1;
-    private osuTexture: OsuTexture;
-    private scalingFactor: number;
+    private osuTexture: OsuTexture = null;
+    private scalingFactor: number = null;
     private startTime: number = null;
     private currentFrame: number;
 
-    constructor(osuTexture: OsuTexture, scalingFactor: number) {
+	constructor()
+	constructor(osuTexture: OsuTexture, scalingFactor: number);
+    constructor(osuTexture?: OsuTexture, scalingFactor?: number) {
         this.osuTexture = osuTexture;
         this.scalingFactor = scalingFactor;
 
         this.sprite = new PIXI.Sprite();
         this.sprite.anchor.set(0.5, 0.5);
 
-        this.setFrame(0);
-    }
+		if (osuTexture) this.setTexture(osuTexture, scalingFactor);
+	}
+	
+	setTexture(osuTexture?: OsuTexture, scalingFactor?: number) {
+		this.osuTexture = osuTexture;
+		this.scalingFactor = scalingFactor;
+		
+		this.setFrame(0, true);
+	}
+
+	getTexture() {
+		return this.osuTexture;
+	}
+
+	removeTexture() {
+		this.osuTexture = null;
+		this.scalingFactor = null;
+
+		this.sprite.texture = PIXI.Texture.EMPTY;
+	}
 
     getFrameCount() {
         return this.osuTexture.getAnimationFrameCount();
     }
 
-    setFrame(frame: number) {
-        if (frame === this.currentFrame) return;
+    setFrame(frame: number, force = false) {
+        if (frame === this.currentFrame && !force) return;
         this.currentFrame = frame;
 
         let resolution = this.osuTexture.getOptimalResolution(this.osuTexture.getBiggestDimension(this.scalingFactor, frame), frame);
@@ -51,6 +71,8 @@ export class AnimatedOsuSprite {
     }
 
     update(time: number) {
+		if (!this.osuTexture) return;
+
         let frameCount = this.osuTexture.getAnimationFrameCount();
         if (this.startTime === null || frameCount === 0) return;
 
