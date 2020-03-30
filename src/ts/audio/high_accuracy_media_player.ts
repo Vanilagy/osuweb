@@ -212,7 +212,7 @@ export class HighAccuracyMediaPlayer {
 			let buffer: AudioBuffer;
 			
 			if (this.beginningSliceCache === null) {
-				this.beginningSliceCache = new Promise(async (resolve) => {
+				this.beginningSliceCache = new Promise(async (resolve, reject) => {
 					let useNativePlaybackRate = this.tempo === this.pitch;
 
 					let audioElem = new Audio();
@@ -225,7 +225,12 @@ export class HighAccuracyMediaPlayer {
 
 					let endIndex = Math.min(this.data.byteLength, Math.floor(projectedBytes) + this.calculateBeginningSliceSafetyMargin());
 					let slice = this.data.slice(0, endIndex);
-					let rawAudioBuffer = await audioContext.decodeAudioData(slice);
+					let rawAudioBuffer: AudioBuffer;
+					try {
+						rawAudioBuffer = await audioContext.decodeAudioData(slice);
+					} catch (e) {
+						reject(e);
+					}
 					let finalAudioBuffer: AudioBuffer;
 
 					if (useNativePlaybackRate) {
@@ -276,8 +281,14 @@ export class HighAccuracyMediaPlayer {
 			let permittedOffset = this.minimumBeginningSliceDuration;
 			if (this.beginningSliceCache instanceof AudioBuffer) permittedOffset += (this.beginningSliceCache.duration - this.minimumBeginningSliceDuration) / 2;
 
-			if (this.offset <= permittedOffset) await startBeginningSlice();			
-			else await this.entireAudioBuffer;
+			let playNormalBuffer = true;
+			if (this.offset <= permittedOffset) {
+				try {
+					await startBeginningSlice();
+					playNormalBuffer = false;
+				} catch (e) {console.error(e)};
+			}
+			if (playNormalBuffer) await this.entireAudioBuffer;
 		} else {
 			playBuffer(this.entireAudioBuffer as AudioBuffer);
 		}
@@ -326,7 +337,6 @@ export class HighAccuracyMediaPlayer {
 			let finalAudioBuffer: AudioBuffer;
 	
 			if (useNativePlaybackRate) {
-				bufferSource.playbackRate.value = this.tempo;
 				finalAudioBuffer = rawAudioBuffer;
 			} else {
 				let processedBuffer = await AudioUtil.changeTempoAndPitch(rawAudioBuffer, audioContext, this.tempo, this.pitch);
@@ -349,6 +359,7 @@ export class HighAccuracyMediaPlayer {
 
 		if (this.currentMasterNodeId !== masterNodeId) return; // Master node has changed while decoding! Abort!
 
+		if (useNativePlaybackRate) bufferSource.playbackRate.value = this.tempo;
 		bufferSource.buffer = newBufferInfo.buffer;
 
 		// This package here is a crossfader:
