@@ -10,7 +10,7 @@ import { ProcessedCircle } from "../datamodel/processed/processed_circle";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { ProcessedSpinner } from "../datamodel/processed/processed_spinner";
 import { Play } from "./play";
-import { PlayEvent } from "../datamodel/play_events";
+import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { Mod } from "../datamodel/mods";
 
 export class DrawableBeatmap {
@@ -263,5 +263,13 @@ export class DrawableBeatmap {
 				spinner.handleMouseMove(osuMouseCoordinates, currentTime);
 			}
 		}
+	}
+
+	heldSliderRightNow() {
+		for (let drawable of this.onscreenHitObjects) {
+			if (drawable instanceof DrawableSlider && drawable.isBeingHeld()) return true;
+		}
+
+		return false;
 	}
 }

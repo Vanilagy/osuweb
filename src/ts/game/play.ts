@@ -30,7 +30,6 @@ import { audioContext } from "../audio/audio";
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
-const DEFAULT_BACKGROUND_OPACITY = 0.333;
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
@@ -73,6 +72,7 @@ export class Play {
 	// AT stuffz:
 	private playthroughInstructions: AutoInstruction[];
 	private currentPlaythroughInstruction: number;
+	private lastAutoCursorPosition: Point = null;
 	public autohit: boolean;
 
 	constructor(controller: GameplayController, processedBeatmap: ProcessedBeatmap, mods: Set<Mod>) {
@@ -163,6 +163,9 @@ export class Play {
 
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
 
+		if (this.activeMods.has(Mod.Flashlight)) this.controller.flashlightOccluder.show();
+		else this.controller.flashlightOccluder.hide();
+
 		await this.compose(true, true);
 
 		this.initted = true;
@@ -218,7 +221,7 @@ export class Play {
 	}
 
 	render() {
-		if (!this.initted || !this.playing) return;
+		if (!this.initted) return;
 
 		let currentTime = this.getCurrentSongTime();
 		const hud = this.controller.hud;
@@ -232,7 +235,7 @@ export class Play {
 
 		hud.scorebar.update(currentTime);
 		hud.sectionStateDisplayer.update(currentTime);
-		hud.skipButton.update(currentTime);
+		if (this.playing) hud.skipButton.update(currentTime);
 		hud.accuracyMeter.update(currentTime);
 
 		// Update the progress indicator
@@ -292,6 +295,7 @@ export class Play {
 		}
 
 		// Handle breaks
+		let breakiness = 0;
 		while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
 			// Can't call this variable "break" because reserved keyword, retarded.
 			let breakEvent = this.processedBeatmap.breaks[this.currentBreakIndex];
@@ -301,7 +305,7 @@ export class Play {
 			}
 
 			/** How much "break-iness" we have. Idk how to name this. 0 means not in the break, 1 means completely in the break, and anything between means *technically in the break*, but we're currently fading shit in. Or out. */
-			let breakiness = 0;
+			breakiness = 0;
 
 			// Comment this.
 			// Nah so basically, this takes care of the edge case that a break is shorter than BREAK_FADE_TIME*2. Since we don't want the animation to "jump", we tell it to start the fade in the very middle of the break, rather than at endTime - BREAK_FADE_TIME. This might cause x to go, like, 0.0 -> 0.6 -> 0.0, instead of the usual 0.0 -> 1.0 -> 0.0.
@@ -321,8 +325,7 @@ export class Play {
 				}
 			}
 
-			// Go from 1.0 brightness to (1 - background dim) brightness
-			let brightness = MathUtil.ease(EaseType.EaseInOutQuad, breakiness) * DEFAULT_BACKGROUND_OPACITY + (1 - breakiness)*((1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY);
+			let brightness = MathUtil.lerp(1 - BACKGROUND_DIM, 1 - BACKGROUND_DIM/2, MathUtil.ease(EaseType.EaseInOutQuad, breakiness));
 			backgroundManager.setGameplayBrightness(brightness);
 
 			hud.setBreakiness(breakiness);
@@ -340,7 +343,18 @@ export class Play {
 		}
 
 		// Update the cursor position if rocking AT
-		if (this.activeMods.has(Mod.Auto)) this.handlePlaythroughInstructions(currentTime);
+		let gameCursorPosition: Point;
+		if (this.activeMods.has(Mod.Auto)) {
+			this.handlePlaythroughInstructions(currentTime);
+			this.controller.autoCursor.position.set(this.lastAutoCursorPosition.x, this.lastAutoCursorPosition.y);
+
+			gameCursorPosition = this.lastAutoCursorPosition;
+		}
+		
+		if (this.activeMods.has(Mod.Flashlight)) {
+			if (!gameCursorPosition) gameCursorPosition = this.toScreenCoordinates(this.getOsuMouseCoordinatesFromCurrentMousePosition());
+			this.controller.flashlightOccluder.update(gameCursorPosition, this.screenPixelRatio, breakiness, this.drawableBeatmap.heldSliderRightNow());
+		}
 	}
 
 	tick(currentTimeOverride?: number) {
@@ -484,7 +498,7 @@ export class Play {
 		return floor? (coord | 0) : coord;
 	}
 
-	toScreenCoordinates(osuCoordiate: Point, floor = true) {
+	toScreenCoordinates(osuCoordiate: Point, floor = true): Point {
 		return {
 			x: this.toScreenCoordinatesX(osuCoordiate.x, floor),
 			y: this.toScreenCoordinatesY(osuCoordiate.y, floor)
@@ -575,7 +589,7 @@ export class Play {
 		}
 
 		let currentInstruction = this.playthroughInstructions[this.currentPlaythroughInstruction];
-		if (currentInstruction.time > currentTime) return;
+		//if (currentInstruction.time > currentTime) return;
 
 		let cursorPlayfieldPos: Point = null;
 
@@ -625,6 +639,6 @@ export class Play {
 		}
 
 		let screenCoordinates = this.toScreenCoordinates(cursorPlayfieldPos, false);
-		this.controller.autoCursor.position.set(screenCoordinates.x, screenCoordinates.y);
+		this.lastAutoCursorPosition = screenCoordinates;
 	}
 }

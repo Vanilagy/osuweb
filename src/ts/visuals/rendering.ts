@@ -65,7 +65,7 @@ function mainRenderingLoop() {
 	}
 
 	requestAnimationFrame(mainRenderingLoop);
-	
+
 	let dt = 1/60;
 	if (lastFrameTime !== null) dt = startTime - lastFrameTime;
 	inbetweenFrameTimes.push(dt);

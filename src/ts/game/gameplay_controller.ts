@@ -15,11 +15,13 @@ import { ModHelper } from "./mods/mod_helper";
 import { assert } from "../util/misc_util";
 import { currentWindowDimensions } from "../visuals/ui";
 import { GameplayInputController } from "../input/gameplay_input_controller";
+import { FlashlightOccluder } from "./mods/flashlight_occluder";
 
 export class GameplayController {
 	public container: PIXI.Container;
 	public hud: Hud;
 	public pauseScreen: PauseScreen;
+	public flashlightOccluder: FlashlightOccluder;
 
 	public interactionGroup: InteractionGroup;
 	public interactionTarget: PIXI.Container;
@@ -43,6 +45,7 @@ export class GameplayController {
 		this.interactionGroup = new InteractionGroup();
 		this.hud = new Hud(this);
 		this.pauseScreen = new PauseScreen(this);
+		this.flashlightOccluder = new FlashlightOccluder();
 
         this.hitObjectContainer = new PIXI.Container();
         this.hitObjectContainer.sortableChildren = true;
@@ -62,6 +65,7 @@ export class GameplayController {
         this.container.addChild(this.hitObjectContainer);
         this.container.addChild(this.approachCircleContainer);
 		this.container.addChild(this.upperScorePopupContainer);
+		this.container.addChild(this.flashlightOccluder.container);
 		this.container.addChild(this.autoCursor);
 		this.container.addChild(this.hud.container);
 		this.container.addChild(this.pauseScreen.container);
@@ -215,6 +219,7 @@ export class GameplayController {
 		this.hud.resize();
 		this.pauseScreen.resize();
 		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
+		this.flashlightOccluder.resize();
 	}
 
 	pause() {

@@ -665,6 +665,10 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.currentlyHolding = holding;
 	}
 
+	isBeingHeld() {
+		return this.currentlyHolding;
+	}
+
 	holdFollowCircle(time: number) {
 		this.followCircleHoldStartTime = Math.max(this.parent.startTime, time);
 		this.followCircleReleaseStartTime = null;
@@ -752,10 +756,15 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number) {
 		super.handlePlayEvent(event, osuMouseCoordinates, buttonPressed, currentTime);
-
 		let play = this.drawableBeatmap.play;
-		let distance = event.position && pointDistance(osuMouseCoordinates, event.position);
-		let followCircleHit = (buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || play.autohit;
+
+		const followCircleHits = (pos: Point) => {
+			if (!pos) return false;
+
+			let distance = pointDistance(osuMouseCoordinates, pos);
+			return (buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || play.autohit;
+		};
+		let followCircleHit = followCircleHits(event.position);
 
 		switch (event.type) {
 			case PlayEventType.PerfectHeadHit: {
@@ -850,7 +859,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 					emitter.setPan(pan);
 				}
 
-				this.setHoldingState(followCircleHit, currentTime);
+				this.setHoldingState(followCircleHits(currentPosition), currentTime);
 			}; break;
 		}
 	}
