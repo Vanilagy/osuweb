@@ -195,13 +195,13 @@ export class GameplayController {
 		let fadeValue = this.fadeInterpolator.getCurrentValue(now);
 		this.container.alpha = fadeValue;
 		this.container.visible = fadeValue !== 0;
+		if (!this.container.visible) return;
 
 		if (this.currentPlay) {
 			this.currentPlay.render();
 			this.pauseScreen.update(now);
+			this.hud.update(now);
 		}
-
-		this.hud.update(now);
 	}
 
 	tick() {

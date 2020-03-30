@@ -789,6 +789,9 @@ export class Play {
 	}
 
 	getCurrentSongTime() {
+		if (!this.initted) return null;
+
+		if (globalState.gameplayMediaPlayer.isPlaying() === false) return -this.preludeTime;
 		return globalState.gameplayMediaPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
 	}
 
