@@ -298,6 +298,15 @@ export class DrawableSpinner extends DrawableHitObject {
 		this.componentContainer2.position.copyFrom(this.componentContainer.position);
 	}
 
+	remove() {
+		const controller = this.drawableBeatmap.play.controller;
+		controller.hitObjectContainer.removeChild(this.container);
+	}
+
+	dispose() {
+		if (this.spinnerMeterMask) this.spinnerMeterMask.destroy();
+	}
+
 	update(currentTime: number) {
 		let { screenPixelRatio, skin } = this.drawableBeatmap.play;
 
@@ -552,11 +561,6 @@ export class DrawableSpinner extends DrawableHitObject {
 
 	stopSpinningSound() {
 		if (this.spinSoundEmitter) this.spinSoundEmitter.stop();
-	}
-
-	remove() {
-		const controller = this.drawableBeatmap.play.controller;
-		controller.hitObjectContainer.removeChild(this.container);
 	}
 
 	handleButtonDown() {

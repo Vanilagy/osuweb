@@ -69,6 +69,10 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.initSounds(processedSlider.hitObject, processedSlider.timingInfo);
 	}
 
+	private getSliderBodyDefaultSnake() {
+		return SLIDER_SETTINGS.snaking? 0.0 : 1.0;
+	}
+
 	protected initSounds(slider: Slider, timingInfo: CurrentTimingPointInfo) {
 		let currentTimingPoint = timingInfo.timingPoint;
 
@@ -86,7 +90,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		}
 		this.hitSounds = hitSounds;
 
-		// TODO: Different tick sounds based on the timing point at that time.
 		// Tick sound
 		let tickSounds: HitSoundInfo[] = [];
 		for (let i = 0; i < this.parent.tickCompletions.length; i++) {
@@ -254,6 +257,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	compose(updateSkin: boolean) {
+		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
 		super.compose(updateSkin);
 		let { skin, headedHitObjectTextureFactor, hitObjectPixelRatio } = this.drawableBeatmap.play;
 
@@ -269,7 +274,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		renderTexFramebuffer.enableDepth();
 		renderTexFramebuffer.addDepthTexture();
 
-		this.baseSprite.texture.destroy();
+		this.baseSprite.texture.destroy(true);
 		this.baseSprite.texture = renderTex;
 		
 		this.updateTransformationMatrix();
@@ -370,6 +375,27 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		}
 	}
 
+	remove() {
+		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
+		let controller = this.drawableBeatmap.play.controller;
+
+		super.remove();
+
+		controller.hitObjectContainer.removeChild(this.baseSprite);
+		controller.hitObjectContainer.removeChild(this.container);
+		for (let i = 0; i < this.sliderEnds.length; i++) {
+			controller.hitObjectContainer.removeChild(this.sliderEnds[i].container);
+		}
+	}
+
+	dispose() {
+		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
+
+		this.baseSprite.texture.destroy(true);
+		this.sliderBodyMesh.geometry.dispose();
+		this.sliderBodyMesh.destroy();
+	}
+
 	update(currentTime: number) {
 		let { approachTime, activeMods } = this.drawableBeatmap.play;
 
@@ -408,27 +434,198 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.updateSubelements(currentTime);
 	}
 
-	remove() {
-		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
-		let controller = this.drawableBeatmap.play.controller;
+	private updateTransformationMatrix(boundsOverride?: SliderBounds) {
+		let transformationMatrix = createSliderBodyTransformationMatrix(this, boundsOverride || this.bounds);
+		this.sliderBodyMesh.shader.uniforms.matrix = transformationMatrix; // Update the matrix uniform
+	}
 
-		super.remove();
+	private updateSliderBody(currentTime: number) {
+		let { approachTime } = this.drawableBeatmap.play;
 
-		controller.hitObjectContainer.removeChild(this.baseSprite);
-		controller.hitObjectContainer.removeChild(this.container);
-		for (let i = 0; i < this.sliderEnds.length; i++) {
-			controller.hitObjectContainer.removeChild(this.sliderEnds[i].container);
+		let snakeCompletion: number;
+		if (SLIDER_SETTINGS.snaking) {
+			snakeCompletion = (currentTime - (this.parent.startTime - approachTime)) / (approachTime/3); // Snaking takes 1/3 the approach time
+			snakeCompletion = MathUtil.clamp(snakeCompletion, 0, 1);
+		} else {
+			snakeCompletion = 1.0;
 		}
 
-		// TODO: Clean all this stuff when exiting a play
-		/*
+		let doRender = this.forceSliderBodyRender;
+		let renderTex = this.baseSprite.texture as PIXI.RenderTexture;
+		let gl = renderer.state.gl;
 
-		// CLEAN UP THAT DARN VRAM! GIMME VRAM!
-		this.baseSprite.texture.destroy(true);
-		this.sliderBodyMesh.geometry.dispose();
-		this.sliderBodyMesh.destroy();
+		if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
+			let newBounds = this.drawablePath.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion, this.hasFullscreenBaseSprite);
+			this.sliderBodyMesh.size = this.drawablePath.currentVertexCount;
 
-		*/
+			if (this.hasFullscreenBaseSprite) this.updateTransformationMatrix(newBounds);
+
+			doRender = true;
+			this.lastGeneratedSnakingCompletion = snakeCompletion;
+		}
+
+		if (!doRender) return;
+
+		// Blending here needs to be done manually 'cause, well, reasons. lmao
+		// INSANE hack:
+		gl.disable(gl.BLEND);
+		renderer.render(this.sliderBodyMesh, renderTex);
+		gl.enable(gl.BLEND);
+
+		this.forceSliderBodyRender = false;
+	}
+
+	private calculateCompletionAtTime(time: number) {
+		let sliderTime = time - this.parent.hitObject.time;
+		let completion = (this.parent.velocity * sliderTime) / this.parent.length;
+		completion = MathUtil.clamp(completion, 0, this.parent.repeat);
+
+		return completion;
+	}
+
+	private updateSubelements(currentTime: number) {
+		let completion = this.calculateCompletionAtTime(currentTime);
+		let currentSliderTime = currentTime - this.parent.hitObject.time;
+		let sliderBallPos = this.drawableBeatmap.play.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
+
+		this.updateSliderEnds(currentTime);
+		this.updateSliderBall(completion, currentTime, sliderBallPos);
+		this.updateFollowCircle(currentTime, sliderBallPos);
+		if (this.parent.tickCompletions.length > 0) this.updateSliderTicks(completion, currentSliderTime);
+	}
+
+	private updateSliderEnds(currentTime: number) {
+		for (let i = 0; i < this.sliderEnds.length; i++) {
+			let sliderEnd = this.sliderEnds[i];
+			sliderEnd.update(currentTime);
+		}
+	}
+
+	private updateSliderBall(completion: number, currentTime: number, sliderBallPos: Point) {
+		if (currentTime < this.parent.endTime) {
+			this.sliderBall.update(completion, currentTime, sliderBallPos);
+		} else {
+			// The slider ball disappears upon slider completion
+			this.sliderBall.container.visible = false;
+		}
+	}
+
+	private updateFollowCircle(currentTime: number, sliderBallPos: Point) {
+		this.followCircle.visible = true;
+		this.followCircle.position.set(sliderBallPos.x, sliderBallPos.y);
+
+		let followCircleSizeFactor = 0.0;
+		let followCircleAlpha = 1.0;
+
+		if (this.followCircleReleaseStartTime !== null) {
+			let releaseCompletion = (currentTime - this.followCircleReleaseStartTime) / FOLLOW_CIRCLE_RELEASE_DURATION;
+			releaseCompletion = MathUtil.clamp(releaseCompletion, 0, 1);
+
+			// This condition is false when the slider was released right when it began, aka wasn't held when it began. In that case, the follow circle stays hidden :thinking:
+			if (this.followCircleReleaseStartTime > this.parent.startTime) {
+				followCircleSizeFactor = MathUtil.lerp(1, 2, releaseCompletion);
+			}
+			followCircleAlpha = 1 - releaseCompletion;
+		} else if (this.followCircleHoldStartTime !== null) {
+			let enlargeCompletion = (currentTime - this.followCircleHoldStartTime) / FOLLOW_CIRCLE_SCALE_IN_DURATION;
+			enlargeCompletion = MathUtil.clamp(enlargeCompletion, 0, 1);
+			enlargeCompletion = MathUtil.ease(EaseType.EaseOutQuad, enlargeCompletion);
+
+			followCircleSizeFactor += MathUtil.lerp(0.5, 1.0, enlargeCompletion);
+			followCircleAlpha = enlargeCompletion;
+
+			if (this.followCirclePulseStartTime !== null) {
+				let pulseFactor = (currentTime - this.followCirclePulseStartTime) / FOLLOW_CIRCLE_PULSE_DURATION;
+				pulseFactor = MathUtil.clamp(pulseFactor, 0, 1);
+				pulseFactor = 1 - MathUtil.ease(EaseType.EaseOutQuad, pulseFactor);
+				pulseFactor *= 0.10;
+
+				followCircleSizeFactor += pulseFactor;
+			}
+
+			let shrinkCompletion = (currentTime - this.parent.endTime) / FOLLOW_CIRCLE_SCALE_OUT_DURATION;
+			shrinkCompletion = MathUtil.clamp(shrinkCompletion, 0, 1);
+			shrinkCompletion = MathUtil.ease(EaseType.EaseOutQuad, shrinkCompletion);
+
+			followCircleSizeFactor *= MathUtil.lerp(1, 0.75, shrinkCompletion); // Shrink on end, to 0.75x
+		}
+
+		this.followCircle.scale.set(followCircleSizeFactor);
+		this.followCircle.alpha = followCircleAlpha;
+		this.followCircleAnimator.update(currentTime);
+	}
+
+	private getLowestTickCompletionFromCurrentRepeat(completion: number) {
+		let currentRepeat = Math.floor(completion);
+		for (let i = 0; i < this.parent.tickCompletions.length; i++) {
+			if (this.parent.tickCompletions[i] > currentRepeat) {
+				return this.parent.tickCompletions[i];
+			}
+		}
+	}
+
+	private updateSliderTicks(completion: number, currentSliderTime: number) {
+		let { approachTime, activeMods } = this.drawableBeatmap.play;
+
+		let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
+		let currentCycle = Math.floor(completion);
+		let hasHidden = activeMods.has(Mod.Hidden);
+
+		for (let i = 0; i < this.tickElements.length; i++) {
+			let tickElement = this.tickElements[i];
+			if (tickElement === null) continue; // Meaning: The tick is hidden
+
+			let tickCompletionIndex = this.tickElements.length * currentCycle;
+			if (currentCycle % 2 === 0) {
+				tickCompletionIndex += i;
+			} else {
+				tickCompletionIndex += this.tickElements.length - 1 - i;
+			}
+			let tickCompletion = this.parent.tickCompletions[tickCompletionIndex];
+			if (tickCompletion === undefined) continue;
+
+			if (tickCompletion <= completion) {
+				tickElement.visible = false;
+				continue;
+			} else {
+				tickElement.visible = true;
+			}
+			
+			// The currentSliderTime at the beginning of the current repeat cycle
+			let msPerRepeatCycle = this.parent.duration / this.parent.repeat;
+			let currentRepeatTime = currentCycle * msPerRepeatCycle;
+			// The time the tick should have fully appeared (animation complete), relative to the current repeat cycle
+			// Slider velocity here is doubled, meaning the ticks appear twice as fast as the slider ball moves.
+			let relativeTickTime = ((tickCompletion - lowestTickCompletionFromCurrentRepeat) * this.parent.length / (this.parent.velocity * 2)) + SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
+			// Sum both up to get the timing of the tick relative to the beginning of the whole slider:
+			let tickTime = currentRepeatTime + relativeTickTime;
+			
+			// If we're in the first cycle, slider ticks appear a certain duration earlier. Experiments have lead to the value being subtracted here:
+			if (currentCycle === 0) {
+				tickTime -= approachTime * 2/3 - 100;
+			}
+
+			let animationStart = tickTime - SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
+			let animationCompletion = (currentSliderTime - animationStart) / SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
+			animationCompletion = MathUtil.clamp(animationCompletion, 0, 1);
+
+			// Creates a bouncing scaling effect.
+			let parabola = (-1.875 * animationCompletion*animationCompletion + 2.875 * animationCompletion);
+
+			if (animationCompletion === 0) parabola = 0;
+			if (animationCompletion >= 1) parabola = 1;
+
+			tickElement.scale.set(parabola);
+
+			// With HD, ticks start fading out shortly before they're supposed to be picked up. By the time they are picked up, they will have reached opacity 0.
+			if (hasHidden) {
+				let tickPickUpTime = tickCompletion * this.parent.length / this.parent.velocity;
+				let fadeOutCompletion = (currentSliderTime - (tickPickUpTime - HIDDEN_TICK_FADE_OUT_DURATION)) / HIDDEN_TICK_FADE_OUT_DURATION;
+				fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
+
+				tickElement.alpha = 1 - fadeOutCompletion;
+			}
+		}
 	}
 
 	private beginSliderSlideSound() {
@@ -551,204 +748,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		}
 		// The if here is because not all sliders have heads, like edge-case invisible sliders.
 		if (this.head) HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
-	}
-
-	private getLowestTickCompletionFromCurrentRepeat(completion: number) {
-		let currentRepeat = Math.floor(completion);
-		for (let i = 0; i < this.parent.tickCompletions.length; i++) {
-			if (this.parent.tickCompletions[i] > currentRepeat) {
-				return this.parent.tickCompletions[i];
-			}
-		}
-	}
-
-	private updateSliderBody(currentTime: number) {
-		let { approachTime } = this.drawableBeatmap.play;
-
-		let snakeCompletion: number;
-		if (SLIDER_SETTINGS.snaking) {
-			snakeCompletion = (currentTime - (this.parent.startTime - approachTime)) / (approachTime/3); // Snaking takes 1/3 the approach time
-			snakeCompletion = MathUtil.clamp(snakeCompletion, 0, 1);
-		} else {
-			snakeCompletion = 1.0;
-		}
-
-		let doRender = this.forceSliderBodyRender;
-		let renderTex = this.baseSprite.texture as PIXI.RenderTexture;
-		let gl = renderer.state.gl;
-
-		if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
-			let newBounds = this.drawablePath.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion, this.hasFullscreenBaseSprite);
-			this.sliderBodyMesh.size = this.drawablePath.currentVertexCount;
-
-			if (this.hasFullscreenBaseSprite) this.updateTransformationMatrix(newBounds);
-
-			doRender = true;
-			this.lastGeneratedSnakingCompletion = snakeCompletion;
-		}
-
-		if (!doRender) return;
-
-		// Blending here needs to be done manually 'cause, well, reasons. lmao
-		// INSANE hack:
-		gl.disable(gl.BLEND);
-		renderer.render(this.sliderBodyMesh, renderTex);
-		gl.enable(gl.BLEND);
-
-		this.forceSliderBodyRender = false;
-	}
-	
-	private updateTransformationMatrix(boundsOverride?: SliderBounds) {
-		let transformationMatrix = createSliderBodyTransformationMatrix(this, boundsOverride || this.bounds);
-		this.sliderBodyMesh.shader.uniforms.matrix = transformationMatrix; // Update the matrix uniform
-	}
-
-	calculateCompletionAtTime(time: number) {
-		let sliderTime = time - this.parent.hitObject.time;
-		let completion = (this.parent.velocity * sliderTime) / this.parent.length;
-		completion = MathUtil.clamp(completion, 0, this.parent.repeat);
-
-		return completion;
-	}
-
-	private updateSubelements(currentTime: number) {
-		let completion = this.calculateCompletionAtTime(currentTime);
-		let currentSliderTime = currentTime - this.parent.hitObject.time;
-		let sliderBallPos = this.drawableBeatmap.play.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
-
-		this.updateSliderEnds(currentTime);
-		this.updateSliderBall(completion, currentTime, sliderBallPos);
-		this.updateFollowCircle(currentTime, sliderBallPos);
-		if (this.parent.tickCompletions.length > 0) this.updateSliderTicks(completion, currentSliderTime);
-	}
-
-	private updateSliderEnds(currentTime: number) {
-		for (let i = 0; i < this.sliderEnds.length; i++) {
-			let sliderEnd = this.sliderEnds[i];
-			sliderEnd.update(currentTime);
-		}
-	}
-
-	private updateSliderBall(completion: number, currentTime: number, sliderBallPos: Point) {
-		if (currentTime < this.parent.endTime) {
-			this.sliderBall.update(completion, currentTime, sliderBallPos);
-		} else {
-			// The slider ball disappears upon slider completion
-			this.sliderBall.container.visible = false;
-		}
-	}
-
-	private updateFollowCircle(currentTime: number, sliderBallPos: Point) {
-		this.followCircle.visible = true;
-		this.followCircle.position.set(sliderBallPos.x, sliderBallPos.y);
-
-		let followCircleSizeFactor = 0.0;
-		let followCircleAlpha = 1.0;
-
-		if (this.followCircleReleaseStartTime !== null) {
-			let releaseCompletion = (currentTime - this.followCircleReleaseStartTime) / FOLLOW_CIRCLE_RELEASE_DURATION;
-			releaseCompletion = MathUtil.clamp(releaseCompletion, 0, 1);
-
-			// This condition is false when the slider was released right when it began, aka wasn't held when it began. In that case, the follow circle stays hidden :thinking:
-			if (this.followCircleReleaseStartTime > this.parent.startTime) {
-				followCircleSizeFactor = MathUtil.lerp(1, 2, releaseCompletion);
-			}
-			followCircleAlpha = 1 - releaseCompletion;
-		} else if (this.followCircleHoldStartTime !== null) {
-			let enlargeCompletion = (currentTime - this.followCircleHoldStartTime) / FOLLOW_CIRCLE_SCALE_IN_DURATION;
-			enlargeCompletion = MathUtil.clamp(enlargeCompletion, 0, 1);
-			enlargeCompletion = MathUtil.ease(EaseType.EaseOutQuad, enlargeCompletion);
-
-			followCircleSizeFactor += MathUtil.lerp(0.5, 1.0, enlargeCompletion);
-			followCircleAlpha = enlargeCompletion;
-
-			if (this.followCirclePulseStartTime !== null) {
-				let pulseFactor = (currentTime - this.followCirclePulseStartTime) / FOLLOW_CIRCLE_PULSE_DURATION;
-				pulseFactor = MathUtil.clamp(pulseFactor, 0, 1);
-				pulseFactor = 1 - MathUtil.ease(EaseType.EaseOutQuad, pulseFactor);
-				pulseFactor *= 0.10;
-
-				followCircleSizeFactor += pulseFactor;
-			}
-
-			let shrinkCompletion = (currentTime - this.parent.endTime) / FOLLOW_CIRCLE_SCALE_OUT_DURATION;
-			shrinkCompletion = MathUtil.clamp(shrinkCompletion, 0, 1);
-			shrinkCompletion = MathUtil.ease(EaseType.EaseOutQuad, shrinkCompletion);
-
-			followCircleSizeFactor *= MathUtil.lerp(1, 0.75, shrinkCompletion); // Shrink on end, to 0.75x
-		}
-
-		this.followCircle.scale.set(followCircleSizeFactor);
-		this.followCircle.alpha = followCircleAlpha;
-		this.followCircleAnimator.update(currentTime);
-	}
-
-	private updateSliderTicks(completion: number, currentSliderTime: number) {
-		let { approachTime, activeMods } = this.drawableBeatmap.play;
-
-		let lowestTickCompletionFromCurrentRepeat = this.getLowestTickCompletionFromCurrentRepeat(completion);
-		let currentCycle = Math.floor(completion);
-		let hasHidden = activeMods.has(Mod.Hidden);
-
-		for (let i = 0; i < this.tickElements.length; i++) {
-			let tickElement = this.tickElements[i];
-			if (tickElement === null) continue; // Meaning: The tick is hidden
-
-			let tickCompletionIndex = this.tickElements.length * currentCycle;
-			if (currentCycle % 2 === 0) {
-				tickCompletionIndex += i;
-			} else {
-				tickCompletionIndex += this.tickElements.length - 1 - i;
-			}
-			let tickCompletion = this.parent.tickCompletions[tickCompletionIndex];
-			if (tickCompletion === undefined) continue;
-
-			if (tickCompletion <= completion) {
-				tickElement.visible = false;
-				continue;
-			} else {
-				tickElement.visible = true;
-			}
-			
-			// The currentSliderTime at the beginning of the current repeat cycle
-			let msPerRepeatCycle = this.parent.duration / this.parent.repeat;
-			let currentRepeatTime = currentCycle * msPerRepeatCycle;
-			// The time the tick should have fully appeared (animation complete), relative to the current repeat cycle
-			// Slider velocity here is doubled, meaning the ticks appear twice as fast as the slider ball moves.
-			let relativeTickTime = ((tickCompletion - lowestTickCompletionFromCurrentRepeat) * this.parent.length / (this.parent.velocity * 2)) + SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
-			// Sum both up to get the timing of the tick relative to the beginning of the whole slider:
-			let tickTime = currentRepeatTime + relativeTickTime;
-			
-			// If we're in the first cycle, slider ticks appear a certain duration earlier. Experiments have lead to the value being subtracted here:
-			if (currentCycle === 0) {
-				tickTime -= approachTime * 2/3 - 100;
-			}
-
-			let animationStart = tickTime - SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
-			let animationCompletion = (currentSliderTime - animationStart) / SLIDER_TICK_APPEARANCE_ANIMATION_DURATION;
-			animationCompletion = MathUtil.clamp(animationCompletion, 0, 1);
-
-			// Creates a bouncing scaling effect.
-			let parabola = (-1.875 * animationCompletion*animationCompletion + 2.875 * animationCompletion);
-
-			if (animationCompletion === 0) parabola = 0;
-			if (animationCompletion >= 1) parabola = 1;
-
-			tickElement.scale.set(parabola);
-
-			// With HD, ticks start fading out shortly before they're supposed to be picked up. By the time they are picked up, they will have reached opacity 0.
-			if (hasHidden) {
-				let tickPickUpTime = tickCompletion * this.parent.length / this.parent.velocity;
-				let fadeOutCompletion = (currentSliderTime - (tickPickUpTime - HIDDEN_TICK_FADE_OUT_DURATION)) / HIDDEN_TICK_FADE_OUT_DURATION;
-				fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
-
-				tickElement.alpha = 1 - fadeOutCompletion;
-			}
-		}
-	}
-
-	private getSliderBodyDefaultSnake() {
-		return SLIDER_SETTINGS.snaking? 0.0 : 1.0;
 	}
 
 	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number) {
