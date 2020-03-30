@@ -3,6 +3,8 @@ import { Point, pointDistance } from "../../util/point";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
 import { ProcessedHeadedHitObject } from "../../datamodel/processed/processed_headed_hit_object";
 import { ScoringValue } from "../../datamodel/score";
+import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
+import { DrawableSlider } from "./drawable_slider";
 
 // This many millisecond before the perfect hit time will the object start to even
 // become clickable. Before that, it should do the little shaky-shake, implying it
@@ -109,5 +111,20 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 	reset() {
 		super.reset();
 		if (this.head) this.head.reset();
+	}
+
+	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number) {
+		let play = this.drawableBeatmap.play;
+
+		switch (event.type) {
+			case PlayEventType.PerfectHeadHit: {
+				if (!play.autohit) break;
+				this.hitHead(event.time);
+			}; break;
+			case PlayEventType.HeadHitWindowEnd: {
+				if (this.scoring.head.hit !== ScoringValue.NotHit) break;
+				this.hitHead(event.time, 0);
+			}; break;
+		}
 	}
 }

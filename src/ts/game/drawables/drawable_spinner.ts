@@ -14,6 +14,7 @@ import { Interpolator } from "../../util/interpolation";
 import { DrawableBeatmap } from "../drawable_beatmap";
 import { Mod } from "../../datamodel/mods";
 import { ScoringValue } from "../../datamodel/score";
+import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -560,5 +561,22 @@ export class DrawableSpinner extends DrawableHitObject {
 
 	handleButtonDown() {
 		return false;
+	}
+
+	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number, dt: number) {
+		let play = this.drawableBeatmap.play;
+
+		switch (event.type) {
+			case PlayEventType.SpinnerEnd: {
+				this.score();
+			}; break;
+			// Sustained event:
+			case PlayEventType.SpinnerSpin: {
+				this.tick(currentTime, dt);
+
+				// Spin counter-clockwise as fast as possible. Clockwise just looks shit.
+				if (play.autohit || play.activeMods.has(Mod.SpunOut)) this.spin(-1e9, currentTime, 1);
+			}; break;
+		}
 	}
 }

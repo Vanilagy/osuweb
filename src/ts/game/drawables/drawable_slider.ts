@@ -18,6 +18,7 @@ import { currentWindowDimensions } from "../../visuals/ui";
 import { DrawableBeatmap } from "../drawable_beatmap";
 import { ScoringValue } from "../../datamodel/score";
 import { Mod } from "../../datamodel/mods";
+import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -748,6 +749,111 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 	private getSliderBodyDefaultSnake() {
 		return SLIDER_SETTINGS.snaking? 0.0 : 1.0;
+	}
+
+	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number) {
+		super.handlePlayEvent(event, osuMouseCoordinates, buttonPressed, currentTime);
+
+		let play = this.drawableBeatmap.play;
+		let distance = event.position && pointDistance(osuMouseCoordinates, event.position);
+		let followCircleHit = (buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || play.autohit;
+
+		switch (event.type) {
+			case PlayEventType.PerfectHeadHit: {
+				if (!followCircleHit) {
+					this.releaseFollowCircle(event.time);
+				}
+			}; break;
+			case PlayEventType.SliderEndCheck: { // Checking if the player hit the slider end happens slightly before the end of the slider
+				if (followCircleHit) {
+					this.scoring.end = true;
+				} else {
+					this.scoring.end = false;
+					this.releaseFollowCircle(event.time);
+				}
+
+				if (this.scoring.head.hit === ScoringValue.NotHit) {
+					// If the slider ended before the player managed to click its head, the head is automatically "missed".
+					this.hitHead(event.time, 0);
+				}
+			}; break;
+			case PlayEventType.SliderEnd: {
+				this.setHoldingState(false, event.time);
+
+				// If the slider end was hit, score it now.
+				let endHit = this.scoring.end === true;
+				if (endHit) {
+					play.scoreCounter.add(ScoringValue.SliderEnd, true, true, false, this, event.time, event.position, true);
+					
+					// The hit sound is played in the .score method. (at least when this comment was written)
+				}
+
+				let primitive = last(this.sliderEnds);
+				// The if here ie because there is not always a slider end primitive (like for invisible sliders)
+				if (primitive) HitCirclePrimitive.fadeOutBasedOnHitState(primitive, event.time, endHit);
+
+				// Score the slider, no matter if the end was hit or not (obviously) 
+				this.score(event.time);
+			}; break;
+			case PlayEventType.SliderRepeat: {
+				let hit: boolean = null;
+				if (this.scoring.end !== null) {
+					// If the slider end has already been checked, 'hit' takes on the success state of the slider end scoring.
+					hit = this.scoring.end;
+				} else {
+					hit = followCircleHit;
+				}
+
+				if (hit) {
+					this.scoring.repeats++;
+					play.scoreCounter.add(ScoringValue.SliderRepeat, true, true, false, this, event.time, event.position);
+					this.pulseFollowCircle(event.time);
+					
+					let hitSound = this.hitSounds[event.index + 1];
+					play.playHitSound(hitSound);
+				} else {
+					play.scoreCounter.add(ScoringValue.Miss, true, true, true, this, event.time);
+					this.releaseFollowCircle(event.time);
+				}
+
+				let primitive = this.sliderEnds[event.index];
+				HitCirclePrimitive.fadeOutBasedOnHitState(primitive, event.time, hit);
+			}; break;
+			case PlayEventType.SliderTick: {
+				let hit: boolean = null;
+				if (this.scoring.end !== null) {
+					// If the slider end has already been checked, 'hit' takes on the success state of the slider end scoring.
+					hit = this.scoring.end;
+				} else {
+					hit = followCircleHit;
+				}
+
+				if (hit) {
+					this.scoring.ticks++;
+					play.scoreCounter.add(ScoringValue.SliderTick, true, true, false, this, event.time, event.position);
+					this.pulseFollowCircle(event.time);
+
+					let hitSound = this.tickSounds[event.index];
+					play.playHitSound(hitSound);
+				} else {
+					play.scoreCounter.add(ScoringValue.Miss, true, true, true, this, event.time);
+					this.releaseFollowCircle(event.time);
+				}
+			}; break;
+			// Sustained event:
+			case PlayEventType.SliderSlide: {
+				let currentPosition = this.drawablePath.getPosFromPercentage(MathUtil.mirror(this.calculateCompletionAtTime(currentTime)));
+				let pan = calculatePanFromOsuCoordinates(currentPosition);
+
+				// Update the pan on the slider slide emitters
+				for (let i = 0; i < this.slideEmitters.length; i++) {
+					let emitter = this.slideEmitters[i];
+					emitter.setPan(pan);
+				}
+
+				this.setHoldingState(followCircleHit, currentTime);
+			}; break;
+		}
 	}
 }
 

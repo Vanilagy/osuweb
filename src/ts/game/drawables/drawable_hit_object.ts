@@ -4,6 +4,7 @@ import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_obje
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { Color } from "../../util/graphics_util";
 import { DrawableBeatmap } from "../drawable_beatmap";
+import { PlayEvent } from "../../datamodel/play_events";
 
 export enum RecompositionType {
 	None,
@@ -61,4 +62,6 @@ export abstract class DrawableHitObject {
 
 	/** @returns A boolean, indicating whether or not the object was handled by the button press. It could be false, for example, if the mouse wasn't over it or the object was already hit. */
 	abstract handleButtonDown(osuMouseCoordinates: Point, currentTime: number): boolean;
+
+	abstract handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number, dt: number): void; 
 }

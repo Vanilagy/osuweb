@@ -83,7 +83,7 @@ export class Play {
 	// AT stuffz:
 	private playthroughInstructions: AutoInstruction[];
 	private currentPlaythroughInstruction: number;
-	private autohit: boolean;
+	public autohit: boolean;
 
 	constructor(controller: GameplayController, processedBeatmap: ProcessedBeatmap, mods: Set<Mod>) {
 		this.controller = controller;
@@ -470,6 +470,7 @@ export class Play {
 			this.showHitObjectsQueue.push(hitObject);
 		}
 		
+		// Call regular play event handlers
 		for (this.currentPlayEvent; this.currentPlayEvent < this.playEvents.length; this.currentPlayEvent++) {
 			let playEvent = this.playEvents[this.currentPlayEvent];
 			if (playEvent.time > currentTime) break;
@@ -480,128 +481,10 @@ export class Play {
 			}
 			
 			let drawable = this.drawableBeatmap.processedToDrawable.get(playEvent.hitObject);
-
-			switch (playEvent.type) {
-				case PlayEventType.HeadHitWindowEnd: {
-					let hitObject = drawable as DrawableHeadedHitObject;
-					if (hitObject.scoring.head.hit !== ScoringValue.NotHit) break;
-
-					hitObject.hitHead(playEvent.time, 0);
-				}; break;
-				case PlayEventType.PerfectHeadHit: {
-					if (drawable instanceof DrawableSlider) {
-						let slider = drawable;
-
-						let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-						let hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
-
-						if (!hit) {
-							slider.releaseFollowCircle(playEvent.time);
-						}
-					}
-
-					if (!this.autohit) break;
-
-					let hitObject = drawable as DrawableHeadedHitObject;
-					hitObject.hitHead(playEvent.time);
-				}; break;
-				case PlayEventType.SliderEndCheck: { // Checking if the player hit the slider end happens slightly before the end of the slider
-					let slider = drawable as DrawableSlider;
-
-					let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-					let hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
-
-					if (hit) {
-						slider.scoring.end = true;
-					} else {
-						slider.scoring.end = false;
-						slider.releaseFollowCircle(playEvent.time);
-					}
-
-					if (slider.scoring.head.hit === ScoringValue.NotHit) {
-						// If the slider ended before the player managed to click its head, the head is automatically "missed".
-						slider.hitHead(playEvent.time, 0);
-					}
-				}; break;
-				case PlayEventType.SliderEnd: {
-					let slider = drawable as DrawableSlider;
-
-					slider.setHoldingState(false, playEvent.time);
-
-					// If the slider end was hit, score it now.
-					let hit = slider.scoring.end === true;
-					if (hit) {
-						this.scoreCounter.add(ScoringValue.SliderEnd, true, true, false, slider, playEvent.time, playEvent.position, true);
-						
-						// The hit sound is played in the .score method. (at least when this comment was writtem)
-					}
-
-					let primitive = last(slider.sliderEnds);
-					// The if here ie because there is not always a slider end primitive (like for invisible sliders)
-					if (primitive) HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
-
-					// Score the slider, no matter if the end was hit or not (obviously) 
-					slider.score(playEvent.time);
-				}; break;
-				case PlayEventType.SliderRepeat: {
-					let slider = drawable as DrawableSlider;
-
-					let hit: boolean = null;
-					if (slider.scoring.end !== null) {
-						// If the slider end has already been checked, 'hit' takes on the success state of the slider end scoring.
-						hit = slider.scoring.end;
-					} else {
-						let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-						hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
-					}
-
-					if (hit) {
-						slider.scoring.repeats++;
-						this.scoreCounter.add(ScoringValue.SliderRepeat, true, true, false, slider, playEvent.time, playEvent.position);
-						slider.pulseFollowCircle(playEvent.time);
-						
-						let hitSound = slider.hitSounds[playEvent.index + 1];
-						this.playHitSound(hitSound);
-					} else {
-						this.scoreCounter.add(ScoringValue.Miss, true, true, true, slider, playEvent.time);
-						slider.releaseFollowCircle(playEvent.time);
-					}
-
-					let primitive = slider.sliderEnds[playEvent.index];
-					HitCirclePrimitive.fadeOutBasedOnHitState(primitive, playEvent.time, hit);
-				}; break;
-				case PlayEventType.SliderTick: {
-					let slider = drawable as DrawableSlider;
-
-					let hit: boolean = null;
-					if (slider.scoring.end !== null) {
-						// If the slider end has already been checked, 'hit' takes on the success state of the slider end scoring.
-						hit = slider.scoring.end;
-					} else {
-						let distance = pointDistance(osuMouseCoordinates, playEvent.position);
-						hit = (buttonPressed && distance <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit;
-					}
-
-					if (hit) {
-						slider.scoring.ticks++;
-						this.scoreCounter.add(ScoringValue.SliderTick, true, true, false, slider, playEvent.time, playEvent.position);
-						slider.pulseFollowCircle(playEvent.time);
-
-						let hitSound = slider.tickSounds[playEvent.index];
-						this.playHitSound(hitSound);
-					} else {
-						this.scoreCounter.add(ScoringValue.Miss, true, true, true, slider, playEvent.time);
-						slider.releaseFollowCircle(playEvent.time);
-					}
-				}; break;
-				case PlayEventType.SpinnerEnd: {
-					let spinner = drawable as DrawableSpinner;
-
-					spinner.score();
-				}; break;
-			}
+			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
 		}
 
+		// Call sustained play event handlers
 		for (let i = 0; i < this.currentSustainedEvents.length; i++) {
 			let playEvent = this.currentSustainedEvents[i];
 			if (currentTime >= playEvent.endTime) {
@@ -610,34 +493,7 @@ export class Play {
 			}
 			
 			let drawable = this.drawableBeatmap.processedToDrawable.get(playEvent.hitObject);
-
-			switch (playEvent.type) {
-				case PlayEventType.SliderSlide: {
-					let slider = drawable as DrawableSlider;
-					let currentPosition = slider.drawablePath.getPosFromPercentage(MathUtil.mirror(slider.calculateCompletionAtTime(currentTime)));
-					let pan = calculatePanFromOsuCoordinates(currentPosition);
-
-					// Update the pan on the slider slide emitters
-					for (let i = 0; i < slider.slideEmitters.length; i++) {
-						let emitter = slider.slideEmitters[i];
-						emitter.setPan(pan);
-					}
-					
-					let distanceToCursor = pointDistance(osuMouseCoordinates, currentPosition);
-					if ((buttonPressed && distanceToCursor <= this.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || this.autohit) {
-						slider.setHoldingState(true, currentTime);
-					} else {
-						slider.setHoldingState(false, currentTime);
-					}
-				}; break;
-				case PlayEventType.SpinnerSpin: {
-					let spinner = drawable as DrawableSpinner;
-					spinner.tick(currentTime, dt);
-
-					// Spin counter-clockwise as fast as possible. Clockwise just looks shit.
-					if (this.autohit || this.activeMods.has(Mod.SpunOut)) spinner.spin(-1e9, currentTime, 1);
-				}; break;
-			}
+			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
 		}
 
 		// Check if the map has been completed
