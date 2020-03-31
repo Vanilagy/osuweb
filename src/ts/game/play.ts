@@ -22,7 +22,7 @@ import { audioContext } from "../audio/audio";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1000; // In ms
-const BACKGROUND_DIM = 0.0001 || 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
+const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
@@ -446,7 +446,7 @@ export class Play {
 	}
 
 	handleButtonDown() {
-		if (!this.shouldHandleInputRightNow()) return;
+		if (!this.shouldHandleInputRightNow() || this.activeMods.has(Mod.Relax)) return;
 		this.drawableBeatmap.handleButtonDown();
 	}
 

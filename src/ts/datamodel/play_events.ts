@@ -21,6 +21,5 @@ export interface PlayEvent {
 	time: number,
 	endTime?: number, // If endTime is set, it's not a singular event, but a sustained event
 	position?: Point, // Where the event takes place, for example slider ticks.
-	// hitSound?: HitSoundInfo, // For slider ends
 	index?: number // An index for general use
 }

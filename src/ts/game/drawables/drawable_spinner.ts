@@ -436,10 +436,8 @@ export class DrawableSpinner extends DrawableHitObject {
 		return this.totalRadiansSpun / TAU;
 	}
 
-	handleMouseMove(osuMouseCoordinates: Point, currentTime: number) {
+	handleMouseMove(osuMouseCoordinates: Point, currentTime: number, pressed: boolean) {
 		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
-
-		let pressed = this.drawableBeatmap.play.controller.inputController.isAnyButtonPressed();
 
 		if (!pressed) {
 			if (this.lastSpinPosition !== null) {

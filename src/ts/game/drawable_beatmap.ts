@@ -11,7 +11,8 @@ import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { ProcessedSpinner } from "../datamodel/processed/processed_spinner";
 import { Play } from "./play";
 import { PlayEvent, PlayEventType } from "../datamodel/play_events";
-import { Mod } from "../datamodel/mods";
+import { Mod, RELAX_HIT_RELATIVE_TIME } from "../datamodel/mods";
+import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 
 export class DrawableBeatmap {
 	public play: Play;
@@ -120,8 +121,6 @@ export class DrawableBeatmap {
 		// Show new hit objects
 		for (let i = 0; i < this.showHitObjectsQueue.length; i++) {
 			let hitObject = this.showHitObjectsQueue[i];
-
-			this.onscreenHitObjects.push(hitObject);
 			hitObject.show(currentTime);
 		}
 		this.showHitObjectsQueue.length = 0;
@@ -167,13 +166,14 @@ export class DrawableBeatmap {
 
 	tick(currentTime: number, dt: number) {
 		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
-		let buttonPressed = this.play.controller.inputController.isAnyButtonPressed();
+		let buttonPressed = this.play.controller.inputController.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax);
 
 		// Add new hit objects to screen
 		for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableHitObjects.length; this.currentHitObjectIndex++) {
 			let hitObject = this.drawableHitObjects[this.currentHitObjectIndex];
 			if (currentTime < hitObject.renderStartTime) break;
 
+			this.onscreenHitObjects.push(hitObject);
 			this.showHitObjectsQueue.push(hitObject);
 		}
 		
@@ -201,6 +201,22 @@ export class DrawableBeatmap {
 			
 			let drawable = this.processedToDrawable.get(playEvent.hitObject);
 			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
+		}
+
+		if (this.play.activeMods.has(Mod.Relax)) {
+			// Handle automatically hitting hit objects when Relax is used
+
+			for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+				let hitObject = this.onscreenHitObjects[i];
+				if (!(hitObject instanceof DrawableHeadedHitObject)) continue;
+	
+				let relativeTime = currentTime - hitObject.parent.startTime;
+				if (relativeTime < RELAX_HIT_RELATIVE_TIME) continue;
+	
+				// If this variable is true, it means that just one tick ago, relax wasn't going to hit the object. In this case we assume that the mouse has been over the hit object at the exact time that relax would start hitting it.
+				let useExactTime = relativeTime - dt < RELAX_HIT_RELATIVE_TIME;
+				hitObject.handleButtonDown(osuMouseCoordinates, useExactTime? hitObject.parent.startTime - RELAX_HIT_RELATIVE_TIME : currentTime);
+			}
 		}
 	}
 
@@ -256,13 +272,14 @@ export class DrawableBeatmap {
 	handleMouseMove() {
 		let currentTime = this.play.getCurrentSongTime();
 		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
+		let pressed = this.play.controller.inputController.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax);
 
 		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
 			let hitObject = this.onscreenHitObjects[i];
 
 			if (hitObject instanceof DrawableSpinner && !this.play.activeMods.has(Mod.SpunOut)) {
 				let spinner = hitObject as DrawableSpinner;
-				spinner.handleMouseMove(osuMouseCoordinates, currentTime);
+				spinner.handleMouseMove(osuMouseCoordinates, currentTime, pressed);
 			}
 		}
 	}

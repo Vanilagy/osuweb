@@ -107,3 +107,5 @@ export const modIncompatibilities = [
 	[Mod.Relax, Mod.Autopilot, Mod.Auto],
 	[Mod.Autopilot, Mod.SpunOut, Mod.Auto]
 ];
+
+export const RELAX_HIT_RELATIVE_TIME = -10; // When, relative to the perfect hit time of a circle, relax should hit the circle.
