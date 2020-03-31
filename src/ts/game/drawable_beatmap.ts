@@ -119,7 +119,10 @@ export class DrawableBeatmap {
 	render(currentTime: number) {
 		// Show new hit objects
 		for (let i = 0; i < this.showHitObjectsQueue.length; i++) {
-			this.showHitObjectsQueue[i].show(currentTime);
+			let hitObject = this.showHitObjectsQueue[i];
+
+			this.onscreenHitObjects.push(hitObject);
+			hitObject.show(currentTime);
 		}
 		this.showHitObjectsQueue.length = 0;
 
@@ -171,7 +174,6 @@ export class DrawableBeatmap {
 			let hitObject = this.drawableHitObjects[this.currentHitObjectIndex];
 			if (currentTime < hitObject.renderStartTime) break;
 
-			this.onscreenHitObjects.push(hitObject);
 			this.showHitObjectsQueue.push(hitObject);
 		}
 		

@@ -48,15 +48,16 @@ export class FlashlightOccluder {
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
 		let outerRadius = MathUtil.lerp(275, 550, MathUtil.ease(EaseType.EaseInOutQuad, breakiness)) * scalingFactor;
-		let innerRadius = 0;
+		let innerRadius = outerRadius * 0.666;
 		
 		let gradient = this.ctx.createRadialGradient(pos.x, pos.y, innerRadius, pos.x, pos.y, outerRadius);
-		gradient.addColorStop(0, 'rgba(0,0,0,0.0)');
-		gradient.addColorStop(0.75, 'rgba(0,0,0,0.1)');
-		gradient.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-		gradient.addColorStop(0.90, 'rgba(0,0,0,0.5)');
-		gradient.addColorStop(0.96, 'rgba(0,0,0,0.9)');
-		gradient.addColorStop(1, 'rgba(0,0,0,1.0)');
+		// Draw an eased gradient progress (natively setting only color stops will result in a harsh cut-off due to its linearity)
+		for (let i = 0; i <= 25; i++) {
+			let completion = i / 25;
+			let alpha = MathUtil.ease(EaseType.EaseInOutQuad, completion);
+
+			gradient.addColorStop(completion, `rgba(0,0,0,${alpha})`);
+		}
 
 		this.ctx.fillStyle = gradient;
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);

@@ -1,27 +1,20 @@
-import { DrawableSlider, FOLLOW_CIRCLE_HITBOX_CS_RATIO } from "./drawables/drawable_slider";
-import { DrawableHitObject } from "./drawables/drawable_hit_object";
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
-import { DrawableSpinner } from "./drawables/drawable_spinner";
-import { Point, pointDistance, lerpPoints } from "../util/point";
-import { FollowPoint } from "./drawables/follow_point";
+import { Point, lerpPoints } from "../util/point";
 import { ScoreCounter } from "./score/score_counter";
 import { getCurrentMousePosition } from "../input/input";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
-import { HitCirclePrimitive } from "./drawables/hit_circle_primitive";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
 import { calculatePanFromOsuCoordinates, HitSoundInfo } from "./skin/sound";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
-import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { GameplayController } from "./gameplay_controller";
 import { globalState } from "../global_state";
-import { ScorePopup } from "./score/score_popup";
 import { ScoringValue } from "../datamodel/score";
 import { Mod } from "../datamodel/mods";
 import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
@@ -29,7 +22,7 @@ import { audioContext } from "../audio/audio";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1000; // In ms
-const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
+const BACKGROUND_DIM = 0.0001 || 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
