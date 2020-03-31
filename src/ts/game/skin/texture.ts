@@ -185,9 +185,9 @@ export class OsuTexture {
     static async fromFiles(directory: VirtualDirectory, name: string, extension: string, hd = false, animationName: string = null) {
         let newOsuTexture = new OsuTexture();
 
-        let sdBaseFile = await directory.getFileByName(`${name}.${extension}`);
+        let sdBaseFile = await directory.getFileByPath(`${name}.${extension}`);
         let hdBaseFile: VirtualFile;
-        if (hd) hdBaseFile = await directory.getFileByName(`${name}@2x.${extension}`);
+        if (hd) hdBaseFile = await directory.getFileByPath(`${name}@2x.${extension}`);
 
         if (sdBaseFile) newOsuTexture.sdBase = PIXI.Texture.from(await sdBaseFile.readAsResourceUrl());
         if (hdBaseFile) newOsuTexture.hdBase = PIXI.Texture.from(await hdBaseFile.readAsResourceUrl());
@@ -198,9 +198,9 @@ export class OsuTexture {
             while (true) {
                 let name = animationName.replace("{n}", i.toString());
 
-                let sdFile = await directory.getFileByName(`${name}.${extension}`);
+                let sdFile = await directory.getFileByPath(`${name}.${extension}`);
                 let hdFile: VirtualFile;
-                if (hd) hdFile = await directory.getFileByName(`${name}@2x.${extension}`);
+                if (hd) hdFile = await directory.getFileByPath(`${name}@2x.${extension}`);
 
                 if (!sdFile && !hdFile) break; // No more animation states
 

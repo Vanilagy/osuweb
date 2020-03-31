@@ -124,7 +124,7 @@ export class BeatmapInfoPanel {
 		let detailsTab = this.tabs[0] as BeatmapDetailsTab;
 		detailsTab.loadBeatmapData(extendedData);
 
-		let imageFile = await beatmapSet.directory.getFileByName(extendedData.imageName);
+		let imageFile = await beatmapSet.directory.getFileByPath(extendedData.imageName);
 		await this.loadImage(imageFile);
 	}
 

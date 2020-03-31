@@ -1,5 +1,6 @@
 import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
 import { VirtualFile } from "./virtual_file";
+import { splitPath } from "../util/file_util";
 
 export class VirtualDirectory extends VirtualFileSystemEntry {
 	private entries: Map<string, VirtualFileSystemEntry>;
@@ -29,11 +30,31 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		this.caseInsensitiveEntries.delete(entry.name.toLowerCase());
 	}
 
-	async getEntryByName(name: string, caseSensitive = false) {
-		if (name !== null && name !== undefined) {
-			let entry = caseSensitive? this.entries.get(name) : this.caseInsensitiveEntries.get(name.toLowerCase());
-			if (entry) return entry;
+	async getEntryByPath(name: string, caseSensitive = false) {
+		if (name === null || name === undefined) return null;
+
+		let parts = splitPath(name);
+		let currentDirectory: VirtualDirectory = this;
+
+		for (let i = 0; i < parts.length; i++) {
+			let part = parts[i];
+			let entry: VirtualFileSystemEntry;
+
+			if (part === '.') entry = currentDirectory;
+			else if (part === '..') entry = currentDirectory.parent;
+			else entry = caseSensitive? currentDirectory.entries.get(part) : currentDirectory.caseInsensitiveEntries.get(part.toLowerCase());
+			
+			if (entry) {
+				if (i === parts.length-1) return entry;
+				else if (entry instanceof VirtualDirectory) currentDirectory = entry;
+				else break;
+			} else {
+				break;
+			}
 		}
+
+		let entry = caseSensitive? this.entries.get(name) : this.caseInsensitiveEntries.get(name.toLowerCase());
+		if (entry) return entry;
 
 		if (this.networkFallbackUrl) {
 			let url = this.networkFallbackUrl + '/' + name; // We ignore case sensitivity here
@@ -54,8 +75,8 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		return null;
 	}
 
-	async getFileByName(name: string, caseSensitive = false) {
-		let entry = await this.getEntryByName(name, caseSensitive);
+	async getFileByPath(name: string, caseSensitive = false) {
+		let entry = await this.getEntryByPath(name, caseSensitive);
 
 		if (entry instanceof VirtualFile) return entry as VirtualFile;
 		return null;

@@ -40,7 +40,7 @@ export class Skin {
     async init(readyAssets = true) {
         console.time("Skin init");
 
-        let skinConfigurationFile = await this.directory.getFileByName("skin.ini") || await this.directory.getFileByName("Skin.ini");
+        let skinConfigurationFile = await this.directory.getFileByPath("skin.ini") || await this.directory.getFileByPath("Skin.ini");
         if (skinConfigurationFile) {
             this.config = parseSkinConfiguration(await skinConfigurationFile.readAsText());
             this.hasDefaultConfig = false;
@@ -171,8 +171,8 @@ export class Skin {
             let fileName = osuSoundFileNames.get(type);
 
             if (this.directory.networkFallbackUrl) {
-                await this.directory.getFileByName(fileName + '.wav');
-                await this.directory.getFileByName(fileName + '.mp3');
+                await this.directory.getFileByPath(fileName + '.wav');
+                await this.directory.getFileByPath(fileName + '.mp3');
             }
 
             let osuSound = new OsuSound(this.directory, fileName);
