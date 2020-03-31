@@ -12,6 +12,11 @@ import { SkipButton } from "./skip_button";
 import { InteractionGroup } from "../../input/interactivity";
 import { MathUtil, EaseType } from "../../util/math_util";
 
+export enum HudMode {
+	Normal,
+	Relax
+}
+
 export class Hud {
 	public controller: GameplayController;
 	public container: PIXI.Container;
@@ -99,6 +104,27 @@ export class Hud {
 		this.container.addChild(this.accuracyDisplay.container);
 		this.container.addChild(this.progressIndicator.container);
 		this.container.addChild(this.skipButton.container);
+	}
+
+	setMode(mode: HudMode) {
+		switch (mode) {
+			case HudMode.Normal: {
+				this.accuracyMeter.container.visible = true;
+				this.scorebar.container.visible = true;
+				this.scoreDisplay.container.visible = true;
+				this.comboContainer.visible = true;
+				this.accuracyDisplay.container.visible = true;
+				this.progressIndicator.container.visible = true;
+			}; break;
+			case HudMode.Relax: {
+				this.accuracyMeter.container.visible = true; // accuracy meter still visible
+				this.scorebar.container.visible = false;
+				this.scoreDisplay.container.visible = false;
+				this.comboContainer.visible = false;
+				this.accuracyDisplay.container.visible = false;
+				this.progressIndicator.container.visible = false;
+			}; break;
+		}
 	}
 
 	updateSkin() {

@@ -19,6 +19,7 @@ import { ScoringValue } from "../datamodel/score";
 import { Mod } from "../datamodel/mods";
 import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
 import { audioContext } from "../audio/audio";
+import { HudMode } from "./hud/hud";
 
 const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1000; // In ms
@@ -158,6 +159,8 @@ export class Play {
 
 		if (this.activeMods.has(Mod.Flashlight)) this.controller.flashlightOccluder.show();
 		else this.controller.flashlightOccluder.hide();
+
+		this.controller.hud.setMode(this.activeMods.has(Mod.Relax)? HudMode.Relax : HudMode.Normal);
 
 		await this.compose(true, true);
 
