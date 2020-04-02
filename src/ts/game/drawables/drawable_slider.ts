@@ -274,7 +274,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		renderTexFramebuffer.enableDepth();
 		renderTexFramebuffer.addDepthTexture();
 
-		this.baseSprite.texture.destroy(true);
+		this.baseSprite.texture.baseTexture.destroy();
 		this.baseSprite.texture = renderTex;
 		
 		this.updateTransformationMatrix();
@@ -391,7 +391,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	dispose() {
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-		this.baseSprite.texture.destroy(true);
+		this.baseSprite.texture.baseTexture.destroy();
 		this.sliderBodyMesh.geometry.dispose();
 		this.sliderBodyMesh.destroy();
 	}
@@ -758,11 +758,13 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		super.handlePlayEvent(event, osuMouseCoordinates, buttonPressed, currentTime);
 		let play = this.drawableBeatmap.play;
 
+		// This should be read as "(follow circle) hits", not "follow (circle hits)", and "hits" is a verb, not a noun. Aka "Does the follow circle hit?", aka "Are we in reach of the follow circle?"
 		const followCircleHits = (pos: Point) => {
 			if (!pos) return false;
+			if (play.isDead()) return false;
 
 			let distance = pointDistance(osuMouseCoordinates, pos);
-			return (buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || play.autohit;
+			return (buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || play.hasAutohit();
 		};
 		let followCircleHit = followCircleHits(event.position);
 

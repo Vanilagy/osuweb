@@ -20,8 +20,8 @@ import { Mod } from "../datamodel/mods";
 import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
 import { audioContext } from "../audio/audio";
 import { HudMode } from "./hud/hud";
+import { PauseScreenMode } from "../menu/gameplay/pause_screen";
 
-const AUTOHIT_OVERRIDE = false; // Just hits everything perfectly, regardless of using AT or not. This is NOT auto, it doesn't do fancy cursor stuff. Furthermore, having this one does NOT disable manual user input.
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
@@ -29,6 +29,7 @@ const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
 const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relative to the end of the break
 const GAMEPLAY_WARNING_ARROWS_FLICKER_END = 400;
+const DEATH_ANIMATION_DURATION = 2000;
 
 export class Play {
 	public controller: GameplayController;
@@ -67,7 +68,10 @@ export class Play {
 	private playthroughInstructions: AutoInstruction[];
 	private currentPlaythroughInstruction: number;
 	private lastAutoCursorPosition: Point = null;
-	public autohit: boolean;
+
+	public deathTime: number = null;
+	private currentTimeAtDeath: number = null;
+	private deathEndTriggered = false;
 
 	constructor(controller: GameplayController, processedBeatmap: ProcessedBeatmap, mods: Set<Mod>) {
 		this.controller = controller;
@@ -104,10 +108,8 @@ export class Play {
 
 		this.scoreCounter.init();
 
-		this.autohit = AUTOHIT_OVERRIDE;
 		if (this.activeMods.has(Mod.Auto)) {
 			this.playthroughInstructions = ModHelper.generateAutoPlaythroughInstructions(this);
-			this.autohit = true;
 			this.controller.autoCursor.visible = true;
 		}
 
@@ -388,15 +390,34 @@ export class Play {
 		if (this.drawableBeatmap.playEventsCompleted()) {
 			this.controller.completePlay();
 		}
+
+		if (this.currentHealth === 0) this.die();
+
+		let deathCompletion = 0;
+		if (this.isDead()) {
+			deathCompletion = MathUtil.clamp((performance.now() - this.deathTime) / DEATH_ANIMATION_DURATION, 0, 1);
+			globalState.gameplayMediaPlayer.setPlaybackRate(1 - deathCompletion);
+
+			if (deathCompletion === 1 && !this.deathEndTriggered) {
+				this.controller.pauseScreen.show(PauseScreenMode.Failed);
+				globalState.gameplayMediaPlayer.pause();
+				globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
+
+				this.deathEndTriggered = true;
+			}
+		}
+		
+		this.drawableBeatmap.setDeathCompletion(deathCompletion);
+		this.controller.setDeathCompletion(deathCompletion);
 	}
 
 	complete() {
-		if (this.completed) return;
+		if (this.completed || this.isDead()) return;
 		this.completed = true;
 	}
 
 	pause() {
-		if (this.paused) return;
+		if (this.paused || this.isDead()) return;
 
 		this.render();
 
@@ -427,6 +448,11 @@ export class Play {
 		this.paused = false;
 		this.playing = false;
 		this.completed = false;
+		this.deathTime = null;
+		this.currentTimeAtDeath = null;
+		this.deathEndTriggered = false;
+		globalState.gameplayMediaPlayer.pause();
+		globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
 
 		if (this.activeMods.has(Mod.Auto)) {
 			this.currentPlaythroughInstruction = 0;
@@ -444,6 +470,7 @@ export class Play {
 		this.drawableBeatmap.dispose();
 
 		globalState.gameplayMediaPlayer.stop();
+		globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
 		this.drawableBeatmap.stopHitObjectSounds();
 		if (this.hasVideo) globalState.backgroundManager.removeVideo();
 	}
@@ -458,11 +485,17 @@ export class Play {
 		this.drawableBeatmap.handleMouseMove();
 	}
 
+	hasAutohit() {
+		return this.activeMods.has(Mod.Auto) && !this.isDead();
+	}
+
 	private shouldHandleInputRightNow() {
-		return this.initted && !this.paused && !this.completed && !this.activeMods.has(Mod.Auto);
+		return this.initted && !this.paused && !this.completed && !this.activeMods.has(Mod.Auto) && !this.isDead();
 	}
 
 	async skipBreak() {
+		if (this.isDead() || !this.playing) return;
+
 		let currentTime = this.getCurrentSongTime();
 		let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];
 
@@ -471,12 +504,20 @@ export class Play {
 
 			if (currentTime < skipToTime) {
 				await globalState.gameplayMediaPlayer.start(skipToTime / 1000);
+				this.controller.hud.skipButton.doFlash();
 			}
 		}
 	}
 
 	getCurrentSongTime() {
 		if (!this.initted) return null;
+
+		if (this.isDead()) {
+			let elapsed = MathUtil.clamp(performance.now() - this.deathTime, 0, DEATH_ANIMATION_DURATION);
+			let currentSongTime = this.currentTimeAtDeath + elapsed - elapsed**2 / (2 * DEATH_ANIMATION_DURATION);
+
+			return currentSongTime;
+		}
 
 		if (globalState.gameplayMediaPlayer.isPlaying() === false) return -this.preludeTime;
 		return globalState.gameplayMediaPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
@@ -636,5 +677,26 @@ export class Play {
 
 		let screenCoordinates = this.toScreenCoordinates(cursorPlayfieldPos, false);
 		this.lastAutoCursorPosition = screenCoordinates;
+	}
+
+	die() {
+		if (this.completed) return;
+		if (this.isDead()) return; // https://www.youtube.com/watch?v=6sWll2mqPD0
+		if (this.isImmortal()) return;
+
+		this.currentTimeAtDeath = this.getCurrentSongTime();
+		this.deathTime = performance.now();
+
+		globalState.gameplayMediaPlayer.enablePlaybackRateChangerNode();
+
+		this.drawableBeatmap.stopHitObjectSounds();
+	}
+
+	isDead() {
+		return this.deathTime !== null;
+	}
+
+	isImmortal() {
+		return this.activeMods.has(Mod.Auto) || this.activeMods.has(Mod.Relax) || this.activeMods.has(Mod.Autopilot) || this.activeMods.has(Mod.NoFail);
 	}
 }

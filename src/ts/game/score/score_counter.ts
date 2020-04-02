@@ -109,7 +109,8 @@ export class ScoreCounter {
 		this.score.accuracy = this.calculateAccuracy();
 		this.accuracyInterpolator.setGoal(this.score.accuracy, time);
 
-		this.play.gainHealth(rawAmount/300 * 0.2, time);
+		if (rawAmount > 0 ) this.play.gainHealth(rawAmount/300 * 0.2, time);
+		else this.play.gainHealth(-0.1, time);
 
 		let popupPosition = positionOverride || hitObject.parent.endPoint;
 

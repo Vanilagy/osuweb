@@ -29,6 +29,7 @@ export class BackgroundManager {
 		beginReversed: true,
 		defaultToFinished: true
 	});
+	private deathCompletion = 0.0;
 
 	constructor() {
 		this.videoElement = backgroundVideoElement;
@@ -127,9 +128,12 @@ export class BackgroundManager {
 
 	update(now: number) {
 		let t = this.gameplayInterpolator.getCurrentValue(now);
-		let brightness = MathUtil.lerp(0.7, this.currentGameplayBrightness, t);
+		let effectiveDeathCompletion = MathUtil.lerp(0, this.deathCompletion, t);
+
+		let brightness = MathUtil.lerp(0.7, this.currentGameplayBrightness * MathUtil.lerp(1.0, 0.7, effectiveDeathCompletion), t);
 
 		this.colorMatrixFilter.brightness(brightness, false);
+		this.colorMatrixFilter.saturate(MathUtil.lerp(0, -0.8, effectiveDeathCompletion), true);
 		this.videoElement.style.opacity = brightness.toString();
 		this.imageCrossfader.container.alpha = MathUtil.lerp(1.0, 1 - this.videoOpacity, t);
 
@@ -137,7 +141,7 @@ export class BackgroundManager {
 
 		let blurValue = this.blurInterpolator.getCurrentValue(now);
 
-		this.container.scale.set(MathUtil.lerp(1.0, 1.08, blurValue));
+		this.container.scale.set(MathUtil.lerp(1.0, 1.08, blurValue) * MathUtil.lerp(1.0, 1.15, MathUtil.ease(EaseType.EaseInOutQuad, effectiveDeathCompletion)));
 		this.blurFilter.blur = 5 * getGlobalScalingFactor() * blurValue;
 		this.blurFilter.enabled = this.blurFilter.blur !== 0;
 	}
@@ -148,5 +152,9 @@ export class BackgroundManager {
 		this.container.position.copyFrom(this.container.pivot);
 
 		this.imageCrossfader.resize(currentWindowDimensions.width, currentWindowDimensions.height);
+	}
+
+	setDeathCompletion(completion: number) {
+		this.deathCompletion = completion;
 	}
 }

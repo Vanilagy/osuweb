@@ -1,14 +1,20 @@
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { InteractionGroup } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { THEME_COLORS } from "../../util/constants";
 import { GameplayController } from "../../game/gameplay_controller";
 import { Button, ButtonPivot } from "../components/button";
+import { KeyCode } from "../../input/input";
 
 const BUTTON_WIDTH = 336;
 const BUTTON_HEIGHT = 52;
+
+export enum PauseScreenMode {
+	Paused,
+	Failed
+}
 
 export class PauseScreen {
 	public controller: GameplayController;
@@ -16,16 +22,21 @@ export class PauseScreen {
 	public interactionGroup: InteractionGroup;
 	public scalingFactor: number;
 
+	private currentMode: PauseScreenMode = PauseScreenMode.Paused;
 	private background: PIXI.Sprite;
 	private centerContainer: PIXI.Container;
 	private heading: PIXI.Text;
+	
+	private continueButton: Button;
+	private retryButton: Button;
+	private quitButton: Button;
 	private buttons: Button[];
+
 	private fadeInterpolator: Interpolator;
 
     constructor(controller: GameplayController) {
 		this.controller = controller;
 		this.container = new PIXI.Container();
-		this.container.alpha = 0; // kinda temp? hack? cheap hack?
 		
 		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.background.tint = 0x000000;
@@ -35,7 +46,7 @@ export class PauseScreen {
 		this.centerContainer = new PIXI.Container();
 		this.container.addChild(this.centerContainer);
 
-		this.heading = new PIXI.Text("paused");
+		this.heading = new PIXI.Text("");
 		this.heading.style = {
 			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff,
@@ -45,21 +56,23 @@ export class PauseScreen {
 		};
 		this.centerContainer.addChild(this.heading);
 
-		let continueButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "continue", colorToHexNumber(THEME_COLORS.PrimaryBlue));
-		let retryButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "retry", colorToHexNumber(THEME_COLORS.PrimaryYellow));
-		let quitButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "quit", colorToHexNumber(THEME_COLORS.PrimaryPink));
-		this.buttons = [continueButton, retryButton, quitButton];
+		this.continueButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "continue", colorToHexNumber(THEME_COLORS.PrimaryBlue));
+		this.retryButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "retry", colorToHexNumber(THEME_COLORS.PrimaryYellow));
+		this.quitButton = new Button(BUTTON_WIDTH, BUTTON_HEIGHT, 17, ButtonPivot.Center, "quit", colorToHexNumber(THEME_COLORS.PrimaryPink));
+		this.buttons = [this.continueButton, this.retryButton, this.quitButton];
 		for (let button of this.buttons) this.centerContainer.addChild(button.container);
 
 		this.interactionGroup = new InteractionGroup();
-		this.interactionGroup.disable();
-		continueButton.setupInteraction(this.interactionGroup, () => {
+		let backgroundRegistration = new InteractionRegistration(this.background);
+		backgroundRegistration.enableEmptyListeners();
+		this.interactionGroup.add(backgroundRegistration);
+		this.continueButton.setupInteraction(this.interactionGroup, () => {
 			this.controller.unpause();
 		});
-		retryButton.setupInteraction(this.interactionGroup, () => {
+		this.retryButton.setupInteraction(this.interactionGroup, () => {
 			this.controller.restart();
 		});
-		quitButton.setupInteraction(this.interactionGroup, () => {
+		this.quitButton.setupInteraction(this.interactionGroup, () => {
 			this.controller.endPlay();
 		});
 
@@ -70,9 +83,29 @@ export class PauseScreen {
 			beginReversed: true,
 			defaultToFinished: true
 		});
+
+		this.reset();
 	}
 
-    show() {
+	private updateHeadingText(str: string) {
+		this.heading.text = str;
+		this.heading.pivot.x = Math.floor(this.heading.width / 2);
+	}
+
+    show(mode: PauseScreenMode) {
+		if (this.interactionGroup.enabled) return;
+
+		this.currentMode = mode;
+		if (this.currentMode === PauseScreenMode.Paused) {
+			this.updateHeadingText('paused');
+			this.continueButton.container.visible = true;
+			this.continueButton.enable();
+		} else if (this.currentMode === PauseScreenMode.Failed) {
+			this.updateHeadingText('failed');
+			this.continueButton.container.visible = false;
+			this.continueButton.disable();
+		}
+
 		this.fadeInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.enable();
     }
@@ -80,6 +113,10 @@ export class PauseScreen {
     hide() {
 		this.fadeInterpolator.setReversedState(true, performance.now());
 		this.interactionGroup.disable();
+	}
+
+	shown() {
+		return this.interactionGroup.enabled;
 	}
 
 	reset() {

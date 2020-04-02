@@ -13,7 +13,13 @@ async function tester() {
 	player.setMinimumBeginningSliceDuration(10);
 	await player.start(8);
 
+	setTimeout(() => {
+		//player.doThing();
+	}, 2000);
 
+	setInterval(() => {
+		player.getCurrentTime();
+	}, 0);
 
 	return;
 

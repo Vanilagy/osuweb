@@ -305,6 +305,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 	dispose() {
 		if (this.spinnerMeterMask) this.spinnerMeterMask.destroy();
+		this.spinnerMeter.mask = null;
 	}
 
 	update(currentTime: number) {
@@ -406,6 +407,9 @@ export class DrawableSpinner extends DrawableHitObject {
 		let bonusSpinsCompletion = this.bonusSpinsInterpolator.getCurrentValue(currentTime);
 		this.spinnerBonus.container.scale.set(MathUtil.lerp(1.0, 0.666, bonusSpinsCompletion));
 		this.spinnerBonus.container.alpha = 1 - bonusSpinsCompletion;
+
+		this.componentContainer.pivot.y = MathUtil.ease(EaseType.EaseInQuad, this.deathCompletion) * -150 * screenPixelRatio;
+		this.componentContainer2.pivot.y = this.componentContainer.pivot.y;
 	}
 
 	score() {
@@ -577,7 +581,7 @@ export class DrawableSpinner extends DrawableHitObject {
 				this.tick(currentTime, dt);
 
 				// Spin counter-clockwise as fast as possible. Clockwise just looks shit.
-				if (play.autohit || play.activeMods.has(Mod.SpunOut)) this.spin(-1e9, currentTime, 1);
+				if (play.hasAutohit() || play.activeMods.has(Mod.SpunOut)) this.spin(-1e9, currentTime, 1);
 			}; break;
 		}
 	}

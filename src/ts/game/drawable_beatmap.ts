@@ -166,7 +166,7 @@ export class DrawableBeatmap {
 
 	tick(currentTime: number, dt: number) {
 		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
-		let buttonPressed = this.play.controller.inputController.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax);
+		let buttonPressed = (this.play.controller.inputController.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax)) && !this.play.isDead();
 
 		// Add new hit objects to screen
 		for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableHitObjects.length; this.currentHitObjectIndex++) {
@@ -290,5 +290,11 @@ export class DrawableBeatmap {
 		}
 
 		return false;
+	}
+
+	setDeathCompletion(completion: number) {
+		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
+			this.onscreenHitObjects[i].setDeathCompletion(completion);
+		}
 	}
 }

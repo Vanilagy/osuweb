@@ -5,6 +5,7 @@ import { ProcessedHeadedHitObject } from "../../datamodel/processed/processed_he
 import { ScoringValue } from "../../datamodel/score";
 import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 import { DrawableSlider } from "./drawable_slider";
+import { MathUtil, EaseType } from "../../util/math_util";
 
 // This many millisecond before the perfect hit time will the object start to even
 // become clickable. Before that, it should do the little shaky-shake, implying it
@@ -83,6 +84,14 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 		controller.approachCircleContainer.removeChild(this.head.approachCircle);
 	}
 
+	update(currentTime: number) {
+		super.update(currentTime);
+
+		let { screenPixelRatio } = this.drawableBeatmap.play;
+		this.head.container.pivot.y = MathUtil.ease(EaseType.EaseInQuad, this.deathCompletion) * -150 * screenPixelRatio;
+		if (this.head.approachCircle) this.head.approachCircle.pivot.y = this.head.container.pivot.y / this.head.approachCircle.scale.x;
+	}
+
 	abstract hitHead(time: number, judgementOverride?: number): void;
 	
 	handleButtonDown(osuMouseCoordinates: Point, currentTime: number) {
@@ -118,7 +127,7 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 
 		switch (event.type) {
 			case PlayEventType.PerfectHeadHit: {
-				if (!play.autohit) break;
+				if (!play.hasAutohit()) break;
 				this.hitHead(event.time);
 			}; break;
 			case PlayEventType.HeadHitWindowEnd: {

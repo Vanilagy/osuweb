@@ -92,7 +92,7 @@ export class Button {
 		this.background.height = Math.floor(this.height * scalingFactor);
 
 		this.topHighlight.width = this.background.width;
-		this.topHighlight.height = Math.floor(2 * scalingFactor);
+		this.topHighlight.height = Math.ceil(2 * scalingFactor);
 
 		this.label.style.fontSize = Math.floor(this.fontSize * scalingFactor);
 		this.label.pivot.x = Math.floor(this.label.width / 2);

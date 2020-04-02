@@ -96,8 +96,10 @@ export class SkipButton {
 
 	trigger() {
 		if (this.currentVisibility === 0) return;
-
 		this.hud.controller.currentPlay.skipBreak();
+	}
+
+	doFlash() {
 		this.flashInterpolator.start(performance.now());
 	}
 }

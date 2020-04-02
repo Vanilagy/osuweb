@@ -3,12 +3,12 @@ import { Beatmap } from "../datamodel/beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { IGNORE_BEATMAP_SKIN } from "./skin/skin";
 import { Play } from "./play";
-import { PauseScreen } from "../menu/gameplay/pause_screen";
+import { PauseScreen, PauseScreenMode } from "../menu/gameplay/pause_screen";
 import { InteractionGroup, InteractionRegistration } from "../input/interactivity";
 import { enableRenderTimeInfoLog } from "../visuals/rendering";
 import { globalState } from "../global_state";
 import { Interpolator } from "../util/interpolation";
-import { EaseType } from "../util/math_util";
+import { EaseType, MathUtil } from "../util/math_util";
 import { KeyCode } from "../input/input";
 import { Mod } from "../datamodel/mods";
 import { ModHelper } from "./mods/mod_helper";
@@ -28,6 +28,9 @@ export class GameplayController {
 	public interactionRegistration: InteractionRegistration;
 	public inputController: GameplayInputController;
 
+	public gameplayContainer: PIXI.Container;
+	private desaturationFilter: PIXI.filters.ColorMatrixFilter;
+
     public hitObjectContainer: PIXI.Container;  
     public approachCircleContainer: PIXI.Container;
     public followPointContainer: PIXI.Container;
@@ -40,12 +43,18 @@ export class GameplayController {
 	private fadeInterpolator: Interpolator;
 	private preScoreScreenTimeout: ReturnType<typeof setTimeout> = null;
 
+	private deathCompletion = 0.0;
+
     constructor() {
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
 		this.hud = new Hud(this);
 		this.pauseScreen = new PauseScreen(this);
 		this.flashlightOccluder = new FlashlightOccluder();
+
+		this.gameplayContainer = new PIXI.Container();
+		this.desaturationFilter = new PIXI.filters.ColorMatrixFilter();
+		this.gameplayContainer.filters = [this.desaturationFilter];
 
         this.hitObjectContainer = new PIXI.Container();
         this.hitObjectContainer.sortableChildren = true;
@@ -60,11 +69,13 @@ export class GameplayController {
 		this.autoCursor.visible = false;
 
         // The order of these is important, 'cause z-index 'n' stuff.
-        this.container.addChild(this.lowerScorePopupContainer);
-        this.container.addChild(this.followPointContainer);
-        this.container.addChild(this.hitObjectContainer);
-        this.container.addChild(this.approachCircleContainer);
-		this.container.addChild(this.upperScorePopupContainer);
+        this.gameplayContainer.addChild(this.lowerScorePopupContainer);
+        this.gameplayContainer.addChild(this.followPointContainer);
+		this.gameplayContainer.addChild(this.hitObjectContainer);
+        this.gameplayContainer.addChild(this.approachCircleContainer);
+		this.gameplayContainer.addChild(this.upperScorePopupContainer);
+
+		this.container.addChild(this.gameplayContainer);
 		this.container.addChild(this.flashlightOccluder.container);
 		this.container.addChild(this.autoCursor);
 		this.container.addChild(this.hud.container);
@@ -92,13 +103,17 @@ export class GameplayController {
 					if (!this.currentPlay) break;
 
 					if (this.currentPlay.completed) {
-						console.log("BRUH *WHAT*", this.preScoreScreenTimeout)
 						if (this.preScoreScreenTimeout !== null) this.showScoreScreen(true);
 						break;
 					}
 
-					if (this.currentPlay.paused) this.unpause();
-					else this.pause();
+					if (this.pauseScreen.shown()) {
+						if (this.currentPlay.isDead()) this.endPlay();
+						else this.unpause();
+					} else {
+						if (this.currentPlay.isDead()) this.pauseScreen.show(PauseScreenMode.Failed);
+						else this.pause();
+					}
 				}; break;
 				case KeyCode.Space: {
 					if (!this.currentPlay) break;
@@ -206,6 +221,17 @@ export class GameplayController {
 			this.pauseScreen.update(now);
 			this.hud.update(now);
 		}
+
+		let easedDeathCompletion = MathUtil.ease(EaseType.EaseInOutQuad, this.deathCompletion);
+
+		this.gameplayContainer.scale.set(MathUtil.lerp(1.0, 1.13, easedDeathCompletion));
+		this.gameplayContainer.rotation = MathUtil.lerp(0, -0.35, easedDeathCompletion);
+		this.gameplayContainer.alpha = 1 - MathUtil.ease(EaseType.EaseInQuad, this.deathCompletion);
+
+		globalState.backgroundManager.setDeathCompletion(this.deathCompletion);
+
+		this.desaturationFilter.enabled = this.deathCompletion > 0;
+		this.desaturationFilter.saturate(MathUtil.lerp(0, -0.7, this.deathCompletion), false);
 	}
 
 	tick() {
@@ -214,6 +240,10 @@ export class GameplayController {
 
 	resize(recompose = true) {
 		if (!this.currentPlay) return;
+
+		this.gameplayContainer.pivot.x = currentWindowDimensions.width / 2;
+		this.gameplayContainer.pivot.y = currentWindowDimensions.height / 2;
+		this.gameplayContainer.position.copyFrom(this.gameplayContainer.pivot);
 
 		if (recompose) this.currentPlay.compose(false);
 		this.hud.resize();
@@ -225,7 +255,7 @@ export class GameplayController {
 	pause() {
 		if (!this.currentPlay || this.currentPlay.paused) return;
 
-		this.pauseScreen.show();
+		this.pauseScreen.show(PauseScreenMode.Paused);
 		this.currentPlay.pause();
 		this.hud.interactionGroup.disable();
 	}
@@ -258,4 +288,8 @@ export class GameplayController {
 		this.fadeInterpolator.setReversedState(true, performance.now());
 		this.interactionGroup.disable();
 	}
-}
+
+	setDeathCompletion(completion: number) {
+		this.deathCompletion = completion;
+	}
+ }

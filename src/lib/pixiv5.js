@@ -19813,7 +19813,7 @@ var PIXI = (function (exports) {
 	     */
 	    ShaderSystem.prototype.syncUniforms = function syncUniforms (group, glProgram)
 	    {
-			var syncFunc = group.syncUniforms[this.shader.program.id] || this.createSyncGroups(group);
+	        var syncFunc = group.syncUniforms[this.shader.program.id] || this.createSyncGroups(group);
 
 	        syncFunc(glProgram.uniformData, group.uniforms, this.renderer);
 	    };

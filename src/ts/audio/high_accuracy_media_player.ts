@@ -3,6 +3,8 @@ import { audioContext } from "./audio";
 import { addTickingTask, removeTickingTask } from "../util/ticker";
 import { VirtualFile } from "../file_system/virtual_file";
 import { MathUtil } from "../util/math_util";
+import { PlaybackRateChangerNode } from "./playback_rate_changer_node";
+import { SwitcherNode } from "./switcher_node";
 
 const SECTION_LENGTH = 5.0; // In seconds
 const NEXT_SECTION_MARGIN = 2.0; // How many seconds before the end of the current section the next section should start being prepared
@@ -26,6 +28,7 @@ export class HighAccuracyMediaPlayer {
 	private pitch: number = 1.0;
 
 	private destination: AudioNode;
+	private motherNode: AudioNode = null;
 	private currentMasterNode: AudioNode = null;
 	private currentMasterNodeId: number = 0;
 	private lastAudioNode: AudioBufferSourceNode = null;
@@ -54,11 +57,22 @@ export class HighAccuracyMediaPlayer {
 	private lastCurrentTimeValue: number = -Infinity;
 	private timingDeltas: number[] = [];
 	private lastDeltaAdjustmentTime: number = null;
+
+	private playbackRateChanger: PlaybackRateChangerNode = null;
+	private switcher: SwitcherNode;
 	
 	private tickingTask = () => { this.tick(); };
 
 	constructor(destination: AudioNode) {
 		this.destination = destination;
+
+		this.switcher = new SwitcherNode();
+		this.switcher.connect(this.destination);
+
+		this.motherNode = audioContext.createGain();
+		this.playbackRateChanger = new PlaybackRateChangerNode();
+
+		this.motherNode.connect(this.switcher.gain1);
 	}
 
 	loadBuffer(data: ArrayBuffer) {
@@ -133,7 +147,7 @@ export class HighAccuracyMediaPlayer {
 
 		// Init master node
 		this.currentMasterNode = audioContext.createGain();
-		this.currentMasterNode.connect(this.destination);
+		this.currentMasterNode.connect(this.motherNode);
 		this.currentMasterNodeId++;
 		this.lastAudioNode = null;
 		this.offset = offset;
@@ -539,5 +553,30 @@ export class HighAccuracyMediaPlayer {
 
 	setMinimumBeginningSliceDuration(duration: number) {
 		this.minimumBeginningSliceDuration = duration;
+	}
+
+	enablePlaybackRateChangerNode() {
+		if (this.switcher.currentSwitch === true) return;
+
+		this.switcher.setSwitch(true, 0.1);
+		this.motherNode.connect(this.playbackRateChanger.getNode());
+		this.playbackRateChanger.connect(this.switcher.gain2);
+	}
+
+	disablePlaybackRateChangerNode() {
+		if (this.switcher.currentSwitch === false) return;
+
+		this.switcher.setSwitch(false, 0.1);
+
+		setTimeout(() => {
+			this.motherNode.disconnect(this.playbackRateChanger.getNode());
+			this.playbackRateChanger.disconnect();
+			this.playbackRateChanger.reset();
+		}, 100);
+	}
+
+	setPlaybackRate(rate: number) {
+		if (!this.playbackRateChanger) throw new Error("Nah-uh. Can't change playback rate without playback rate changer node enabled.");
+		this.playbackRateChanger.playbackRate = rate;
 	}
 }
