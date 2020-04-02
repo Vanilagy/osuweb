@@ -231,7 +231,7 @@ export class GameplayController {
 		globalState.backgroundManager.setDeathCompletion(this.deathCompletion);
 
 		this.desaturationFilter.enabled = this.deathCompletion > 0;
-		this.desaturationFilter.saturate(MathUtil.lerp(0, -0.7, this.deathCompletion), false);
+		this.desaturationFilter.saturate(MathUtil.lerp(0, -0.9, this.deathCompletion), false);
 	}
 
 	tick() {

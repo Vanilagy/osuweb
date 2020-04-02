@@ -4,7 +4,6 @@ export class PlaybackRateChangerNode {
 	private node: ScriptProcessorNode;
 	private stored: number[][]; // One for each channel
 	private currentIndex: number;
-	private fader: GainNode;
 	/** The current playback rate. Must be <= 1.0! We can't see the future. */
 	public playbackRate: number = 1.0;
 
@@ -38,17 +37,14 @@ export class PlaybackRateChangerNode {
 
 			this.currentIndex += inputBuffer.length * this.playbackRate;
 		};
-
-		this.fader = audioContext.createGain();
-		this.node.connect(this.fader);
 	}
 
 	connect(node: AudioNode) {
-		this.fader.connect(node);
+		this.node.connect(node);
 	}
 	
 	disconnect() {
-		this.fader.disconnect();
+		this.node.disconnect();
 	}
 
 	reset() {

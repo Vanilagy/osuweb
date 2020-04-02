@@ -133,7 +133,7 @@ export class BackgroundManager {
 		let brightness = MathUtil.lerp(0.7, this.currentGameplayBrightness * MathUtil.lerp(1.0, 0.7, effectiveDeathCompletion), t);
 
 		this.colorMatrixFilter.brightness(brightness, false);
-		this.colorMatrixFilter.saturate(MathUtil.lerp(0, -0.8, effectiveDeathCompletion), true);
+		this.colorMatrixFilter.saturate(MathUtil.lerp(0, -0.9, effectiveDeathCompletion), true);
 		this.videoElement.style.opacity = brightness.toString();
 		this.imageCrossfader.container.alpha = MathUtil.lerp(1.0, 1 - this.videoOpacity, t);
 
