@@ -2,7 +2,7 @@ import { MathUtil } from "../util/math_util";
 import { Mod } from "./mods";
 
 export enum ScoringValue {
-	NotHit = null, // Maybe rename this. Because logically, not hit = missed. But I mean like "Not hit yet" or "Has not tried to hit"
+	None = null, // Hasn't been scored yet
 	Hit300 = 300,
 	Hit100 = 100,
 	Hit50 = 50,

@@ -721,7 +721,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	hitHead(time: number, judgementOverride?: number) {
-		if (this.scoring.head.hit !== ScoringValue.NotHit) return;
+		if (this.scoring.head.hit !== ScoringValue.None) return;
 		
 		let { scoreCounter } = this.drawableBeatmap.play;
 
@@ -782,7 +782,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 					this.releaseFollowCircle(event.time);
 				}
 
-				if (this.scoring.head.hit === ScoringValue.NotHit) {
+				if (this.scoring.head.hit === ScoringValue.None) {
 					// If the slider ended before the player managed to click its head, the head is automatically "missed".
 					this.hitHead(event.time, 0);
 				}

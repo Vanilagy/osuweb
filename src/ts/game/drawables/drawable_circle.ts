@@ -70,7 +70,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 	}
 
 	hitHead(time: number, judgementOverride?: number) {
-		if (this.scoring.head.hit !== ScoringValue.NotHit) return;
+		if (this.scoring.head.hit !== ScoringValue.None) return;
 
 		let { processedBeatmap, scoreCounter } = this.drawableBeatmap.play;
 

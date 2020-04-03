@@ -19,7 +19,7 @@ export interface HitObjectHeadScoring {
 
 export function getDefaultHitObjectHeadScoring(): HitObjectHeadScoring {
 	return {
-		hit: ScoringValue.NotHit,
+		hit: ScoringValue.None,
 		time: null
 	};
 }
@@ -99,7 +99,7 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 
 		let distance = pointDistance(osuMouseCoordinates, this.parent.startPoint);
 
-		if (distance <= circleRadiusOsuPx && this.scoring.head.hit === ScoringValue.NotHit) {
+		if (distance <= circleRadiusOsuPx && this.scoring.head.hit === ScoringValue.None) {
 			if (currentTime >= this.parent.startTime - CLICK_IMMUNITY_THRESHOLD && !this.drawableBeatmap.play.hitObjectIsInputLocked(this)) {
 				this.hitHead(currentTime);
 				return true;
@@ -131,7 +131,7 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 				this.hitHead(event.time);
 			}; break;
 			case PlayEventType.HeadHitWindowEnd: {
-				if (this.scoring.head.hit !== ScoringValue.NotHit) break;
+				if (this.scoring.head.hit !== ScoringValue.None) break;
 				this.hitHead(event.time, 0);
 			}; break;
 		}
