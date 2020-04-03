@@ -84,18 +84,16 @@ export class Play {
 	async init() {
 		if (this.initted) return;
 
-		if (this.activeMods.has(Mod.Easy)) ModHelper.applyEz(this.processedBeatmap);
-		if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrFirstPass(this.processedBeatmap);
-
-		this.approachTime = this.processedBeatmap.difficulty.getApproachTime();
-		this.circleDiameterOsuPx = this.processedBeatmap.difficulty.getCirclePixelSize();
-		this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
-
 		console.time("Beatmap process");
 		this.processedBeatmap.init();
 		console.timeEnd("Beatmap process");
 
-		if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHrSecondPass(this.processedBeatmap);
+		if (this.activeMods.has(Mod.Easy)) ModHelper.applyEz(this.processedBeatmap);
+		if (this.activeMods.has(Mod.HardRock)) ModHelper.applyHr(this.processedBeatmap);
+
+		this.approachTime = this.processedBeatmap.difficulty.getApproachTime();
+		this.circleDiameterOsuPx = this.processedBeatmap.difficulty.getCirclePixelSize();
+		this.circleRadiusOsuPx = this.circleDiameterOsuPx / 2;
 
 		console.time('Stack shift');
 		this.processedBeatmap.applyStackShift();
@@ -689,7 +687,7 @@ export class Play {
 
 	fail() {
 		if (this.completed) return;
-		if (this.hasFailed()) return; // https://www.youtube.com/watch?v=6sWll2mqPD0
+		if (this.hasFailed()) return;
 		if (this.cannotFail()) return;
 
 		this.currentTimeAtFail = this.getCurrentSongTime();
