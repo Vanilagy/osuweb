@@ -88,7 +88,7 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 		super.update(currentTime);
 
 		let { screenPixelRatio } = this.drawableBeatmap.play;
-		this.head.container.pivot.y = MathUtil.ease(EaseType.EaseInQuad, this.deathCompletion) * -150 * screenPixelRatio;
+		this.head.container.pivot.y = MathUtil.ease(EaseType.EaseInQuad, this.failAnimationCompletion) * -150 * screenPixelRatio;
 		if (this.head.approachCircle) this.head.approachCircle.pivot.y = this.head.container.pivot.y / this.head.approachCircle.scale.x;
 	}
 

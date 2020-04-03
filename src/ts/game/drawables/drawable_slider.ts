@@ -761,7 +761,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		// This should be read as "(follow circle) hits", not "follow (circle hits)", and "hits" is a verb, not a noun. Aka "Does the follow circle hit?", aka "Are we in reach of the follow circle?"
 		const followCircleHits = (pos: Point) => {
 			if (!pos) return false;
-			if (play.isDead()) return false;
+			if (play.hasFailed()) return false;
 
 			let distance = pointDistance(osuMouseCoordinates, pos);
 			return (buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || play.hasAutohit();

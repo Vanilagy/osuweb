@@ -24,7 +24,7 @@ export abstract class DrawableHitObject {
 	public renderFinished: boolean;
 	public recomposition: RecompositionType = RecompositionType.None;
 
-	protected deathCompletion: number = 0.0;
+	protected failAnimationCompletion: number = 0.0;
 	
 	constructor(drawableBeatmap: DrawableBeatmap, processedHitObject: ProcessedHitObject) {
 		this.drawableBeatmap = drawableBeatmap;
@@ -70,7 +70,7 @@ export abstract class DrawableHitObject {
 	/** Called when the hit object is about to be lost in the depths of garbage collection. */
 	dispose() {}
 
-	setDeathCompletion(completion: number) {
-		this.deathCompletion = completion;
+	setFailAnimationCompletion(completion: number) {
+		this.failAnimationCompletion = completion;
 	}
 }

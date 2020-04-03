@@ -29,7 +29,7 @@ const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
 const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relative to the end of the break
 const GAMEPLAY_WARNING_ARROWS_FLICKER_END = 400;
-const DEATH_ANIMATION_DURATION = 2000;
+const FAIL_ANIMATION_DURATION = 2000;
 
 export class Play {
 	public controller: GameplayController;
@@ -69,9 +69,9 @@ export class Play {
 	private currentPlaythroughInstruction: number;
 	private lastAutoCursorPosition: Point = null;
 
-	public deathTime: number = null;
-	private currentTimeAtDeath: number = null;
-	private deathEndTriggered = false;
+	public failTime: number = null;
+	private currentTimeAtFail: number = null;
+	private failAnimationEndTriggered = false;
 
 	constructor(controller: GameplayController, processedBeatmap: ProcessedBeatmap, mods: Set<Mod>) {
 		this.controller = controller;
@@ -287,8 +287,8 @@ export class Play {
 
 			// Start the video when it's due
 			if (currentTime >= 0 && backgroundManager.videoIsPaused()) backgroundManager.playVideo();
-			
-			let videoPlaybackRate = this.playbackRate * this.calculateDeathPlaybackRateFactor();
+
+			let videoPlaybackRate = this.playbackRate * this.calculateFailPlaybackRateFactor();
 			backgroundManager.setVideoPlaybackRate(MathUtil.clamp(videoPlaybackRate, 0.1, 10));
 		}
 
@@ -391,32 +391,32 @@ export class Play {
 			this.controller.completePlay();
 		}
 
-		if (this.currentHealth === 0) this.die();
+		if (this.currentHealth === 0) this.fail();
 
-		let deathCompletion = this.calculateDeathCompletion();
-		if (this.isDead()) {
-			globalState.gameplayMediaPlayer.setPlaybackRate(this.calculateDeathPlaybackRateFactor());
+		let failAnimationCompletion = this.calculateFailAnimationCompletion();
+		if (this.hasFailed()) {
+			globalState.gameplayMediaPlayer.setPlaybackRate(this.calculateFailPlaybackRateFactor());
 
-			if (deathCompletion === 1 && !this.deathEndTriggered) {
+			if (failAnimationCompletion === 1 && !this.failAnimationEndTriggered) {
 				this.controller.pauseScreen.show(PauseScreenMode.Failed);
 				globalState.gameplayMediaPlayer.pause();
 				globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
 
-				this.deathEndTriggered = true;
+				this.failAnimationEndTriggered = true;
 			}
 		}
 		
-		this.drawableBeatmap.setDeathCompletion(deathCompletion);
-		this.controller.setDeathCompletion(deathCompletion);
+		this.drawableBeatmap.setFailAnimationCompletion(failAnimationCompletion);
+		this.controller.setFailAnimationCompletion(failAnimationCompletion);
 	}
 
 	complete() {
-		if (this.completed || this.isDead()) return;
+		if (this.completed || this.hasFailed()) return;
 		this.completed = true;
 	}
 
 	pause() {
-		if (this.paused || this.isDead()) return;
+		if (this.paused || this.hasFailed()) return;
 
 		this.render();
 
@@ -447,9 +447,9 @@ export class Play {
 		this.paused = false;
 		this.playing = false;
 		this.completed = false;
-		this.deathTime = null;
-		this.currentTimeAtDeath = null;
-		this.deathEndTriggered = false;
+		this.failTime = null;
+		this.currentTimeAtFail = null;
+		this.failAnimationEndTriggered = false;
 		globalState.gameplayMediaPlayer.pause();
 		globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
 
@@ -485,15 +485,15 @@ export class Play {
 	}
 
 	hasAutohit() {
-		return this.activeMods.has(Mod.Auto) && !this.isDead();
+		return this.activeMods.has(Mod.Auto) && !this.hasFailed();
 	}
 
 	private shouldHandleInputRightNow() {
-		return this.initted && !this.paused && !this.completed && !this.activeMods.has(Mod.Auto) && !this.isDead();
+		return this.initted && !this.paused && !this.completed && !this.activeMods.has(Mod.Auto) && !this.hasFailed();
 	}
 
 	async skipBreak() {
-		if (this.isDead() || !this.playing) return;
+		if (this.hasFailed() || !this.playing) return;
 
 		let currentTime = this.getCurrentSongTime();
 		let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];
@@ -508,21 +508,21 @@ export class Play {
 		}
 	}
 
-	private calculateDeathCompletion() {
-		if (!this.isDead()) return 0.0;
-		return MathUtil.clamp((performance.now() - this.deathTime) / DEATH_ANIMATION_DURATION, 0, 1);
+	private calculateFailAnimationCompletion() {
+		if (!this.hasFailed()) return 0.0;
+		return MathUtil.clamp((performance.now() - this.failTime) / FAIL_ANIMATION_DURATION, 0, 1);
 	}
 
-	private calculateDeathPlaybackRateFactor() {
-		return 1 - this.calculateDeathCompletion();
+	private calculateFailPlaybackRateFactor() {
+		return 1 - this.calculateFailAnimationCompletion();
 	}
 
 	getCurrentSongTime() {
 		if (!this.initted) return null;
 
-		if (this.isDead()) {
-			let elapsed = MathUtil.clamp(performance.now() - this.deathTime, 0, DEATH_ANIMATION_DURATION);
-			let currentSongTime = this.currentTimeAtDeath + elapsed - elapsed**2 / (2 * DEATH_ANIMATION_DURATION);
+		if (this.hasFailed()) {
+			let elapsed = MathUtil.clamp(performance.now() - this.failTime, 0, FAIL_ANIMATION_DURATION);
+			let currentSongTime = this.currentTimeAtFail + elapsed - elapsed**2 / (2 * FAIL_ANIMATION_DURATION);
 
 			return currentSongTime;
 		}
@@ -687,24 +687,24 @@ export class Play {
 		this.lastAutoCursorPosition = screenCoordinates;
 	}
 
-	die() {
+	fail() {
 		if (this.completed) return;
-		if (this.isDead()) return; // https://www.youtube.com/watch?v=6sWll2mqPD0
-		if (this.isImmortal()) return;
+		if (this.hasFailed()) return; // https://www.youtube.com/watch?v=6sWll2mqPD0
+		if (this.cannotFail()) return;
 
-		this.currentTimeAtDeath = this.getCurrentSongTime();
-		this.deathTime = performance.now();
+		this.currentTimeAtFail = this.getCurrentSongTime();
+		this.failTime = performance.now();
 
 		globalState.gameplayMediaPlayer.enablePlaybackRateChangerNode();
 
 		this.drawableBeatmap.stopHitObjectSounds();
 	}
 
-	isDead() {
-		return this.deathTime !== null;
+	hasFailed() {
+		return this.failTime !== null;
 	}
 
-	isImmortal() {
+	cannotFail() {
 		return this.activeMods.has(Mod.Auto) || this.activeMods.has(Mod.Relax) || this.activeMods.has(Mod.Autopilot) || this.activeMods.has(Mod.NoFail);
 	}
 }

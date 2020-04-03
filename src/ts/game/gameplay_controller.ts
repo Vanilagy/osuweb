@@ -43,7 +43,7 @@ export class GameplayController {
 	private fadeInterpolator: Interpolator;
 	private preScoreScreenTimeout: ReturnType<typeof setTimeout> = null;
 
-	private deathCompletion = 0.0;
+	private failAnimationCompletion = 0.0;
 
     constructor() {
 		this.container = new PIXI.Container();
@@ -108,10 +108,10 @@ export class GameplayController {
 					}
 
 					if (this.pauseScreen.shown()) {
-						if (this.currentPlay.isDead()) this.endPlay();
+						if (this.currentPlay.hasFailed()) this.endPlay();
 						else this.unpause();
 					} else {
-						if (this.currentPlay.isDead()) this.pauseScreen.show(PauseScreenMode.Failed);
+						if (this.currentPlay.hasFailed()) this.pauseScreen.show(PauseScreenMode.Failed);
 						else this.pause();
 					}
 				}; break;
@@ -222,16 +222,16 @@ export class GameplayController {
 			this.hud.update(now);
 		}
 
-		let easedDeathCompletion = MathUtil.ease(EaseType.EaseInOutQuad, this.deathCompletion);
+		let easedFailAnimationCompletion = MathUtil.ease(EaseType.EaseInOutQuad, this.failAnimationCompletion);
 
-		this.gameplayContainer.scale.set(MathUtil.lerp(1.0, 1.13, easedDeathCompletion));
-		this.gameplayContainer.rotation = MathUtil.lerp(0, -0.35, easedDeathCompletion);
-		this.gameplayContainer.alpha = 1 - MathUtil.ease(EaseType.EaseInQuad, this.deathCompletion);
+		this.gameplayContainer.scale.set(MathUtil.lerp(1.0, 1.13, easedFailAnimationCompletion));
+		this.gameplayContainer.rotation = MathUtil.lerp(0, -0.35, easedFailAnimationCompletion);
+		this.gameplayContainer.alpha = 1 - MathUtil.ease(EaseType.EaseInQuad, this.failAnimationCompletion);
 
-		globalState.backgroundManager.setDeathCompletion(this.deathCompletion);
+		globalState.backgroundManager.setFailAnimationCompletion(this.failAnimationCompletion);
 
-		this.desaturationFilter.enabled = this.deathCompletion > 0;
-		this.desaturationFilter.saturate(MathUtil.lerp(0, -0.9, this.deathCompletion), false);
+		this.desaturationFilter.enabled = this.failAnimationCompletion > 0;
+		this.desaturationFilter.saturate(MathUtil.lerp(0, -0.9, this.failAnimationCompletion), false);
 	}
 
 	tick() {
@@ -289,7 +289,7 @@ export class GameplayController {
 		this.interactionGroup.disable();
 	}
 
-	setDeathCompletion(completion: number) {
-		this.deathCompletion = completion;
+	setFailAnimationCompletion(completion: number) {
+		this.failAnimationCompletion = completion;
 	}
  }

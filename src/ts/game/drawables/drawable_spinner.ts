@@ -408,7 +408,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		this.spinnerBonus.container.scale.set(MathUtil.lerp(1.0, 0.666, bonusSpinsCompletion));
 		this.spinnerBonus.container.alpha = 1 - bonusSpinsCompletion;
 
-		this.componentContainer.pivot.y = MathUtil.ease(EaseType.EaseInQuad, this.deathCompletion) * -150 * screenPixelRatio;
+		this.componentContainer.pivot.y = MathUtil.ease(EaseType.EaseInQuad, this.failAnimationCompletion) * -150 * screenPixelRatio;
 		this.componentContainer2.pivot.y = this.componentContainer.pivot.y;
 	}
 
