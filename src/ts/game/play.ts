@@ -286,10 +286,10 @@ export class Play {
 			}
 
 			// Start the video when it's due
-			if (currentTime >= 0 && backgroundManager.videoIsPaused()) {
-				backgroundManager.setVideoPlaybackRate(this.playbackRate);
-				backgroundManager.playVideo();
-			}
+			if (currentTime >= 0 && backgroundManager.videoIsPaused()) backgroundManager.playVideo();
+			
+			let videoPlaybackRate = this.playbackRate * this.calculateDeathPlaybackRateFactor();
+			backgroundManager.setVideoPlaybackRate(MathUtil.clamp(videoPlaybackRate, 0.1, 10));
 		}
 
 		// Handle breaks
@@ -393,10 +393,9 @@ export class Play {
 
 		if (this.currentHealth === 0) this.die();
 
-		let deathCompletion = 0;
+		let deathCompletion = this.calculateDeathCompletion();
 		if (this.isDead()) {
-			deathCompletion = MathUtil.clamp((performance.now() - this.deathTime) / DEATH_ANIMATION_DURATION, 0, 1);
-			globalState.gameplayMediaPlayer.setPlaybackRate(1 - deathCompletion);
+			globalState.gameplayMediaPlayer.setPlaybackRate(this.calculateDeathPlaybackRateFactor());
 
 			if (deathCompletion === 1 && !this.deathEndTriggered) {
 				this.controller.pauseScreen.show(PauseScreenMode.Failed);
@@ -509,6 +508,15 @@ export class Play {
 		}
 	}
 
+	private calculateDeathCompletion() {
+		if (!this.isDead()) return 0.0;
+		return MathUtil.clamp((performance.now() - this.deathTime) / DEATH_ANIMATION_DURATION, 0, 1);
+	}
+
+	private calculateDeathPlaybackRateFactor() {
+		return 1 - this.calculateDeathCompletion();
+	}
+
 	getCurrentSongTime() {
 		if (!this.initted) return null;
 
@@ -582,7 +590,7 @@ export class Play {
 		let objectBefore = this.drawableBeatmap.drawableHitObjects[hitObject.parent.index - 1];
 		if (!objectBefore || !(objectBefore instanceof DrawableHeadedHitObject)) return false;
 
-		return objectBefore.scoring.head.hit === ScoringValue.NotHit;
+		return objectBefore.scoring.head.hit === ScoringValue.None;
 	}
 
 	getCurrentBreak() {
