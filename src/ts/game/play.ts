@@ -377,7 +377,7 @@ export class Play {
 		this.drawableBeatmap.tick(currentTime, dt);
 
 		// Update health
-		this.healthProcessor.update(currentTime);
+		if (!this.hasFailed()) this.healthProcessor.update(currentTime);
 
 		// Show section pass/pass when necessary
 		let currentBreak = this.getCurrentBreak();
@@ -482,6 +482,16 @@ export class Play {
 	processJudgement(judgement: Judgement) {
 		this.healthProcessor.process(judgement);
 		this.scoreProcessor.process(judgement);
+
+		// Handle SD and PF insta-death on miss
+		if ((this.activeMods.has(Mod.SuddenDeath) || this.activeMods.has(Mod.Perfect)) && judgement.value === ScoringValue.Miss) {
+			this.fail();
+		}
+
+		// Handle PF insta-death on a non-perfect hit
+		if (this.activeMods.has(Mod.Perfect) && (judgement.value === ScoringValue.Hit100) || (judgement.value === ScoringValue.Hit50)) {
+			this.fail();
+		}
 	}
 
 	handleButtonDown() {
