@@ -79,6 +79,8 @@ export class DrawableBeatmap {
 				let distSquared = pointDistanceSquared(objA.endPoint, objB.startPoint);
 
 				if (distSquared < FOLLOW_POINT_DISTANCE_THRESHOLD_SQUARED) continue;
+				if (objA.endTime >= objB.startTime) continue; // For weird 2B stuff
+
 				this.followPoints.push(new FollowPoint(this, objA, objB));
 			}
 		}

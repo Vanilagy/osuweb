@@ -85,7 +85,7 @@ export class BeatmapDetailsTab implements BeatmapInfoPanelTab {
 		let now = performance.now();
 
 		this.lengthAttribute.setValue(extendedData.playableLength, now);
-		this.bpmAttribute.setValue(extendedData.bpmMax, now);
+		this.bpmAttribute.setValue(extendedData.bpmMain, now);
 		this.objectCountAttribute.setValue(extendedData.objectCount, now);
 		this.circleCountAttribute.setValue(extendedData.circleCount, now);
 		this.sliderCountAttribute.setValue(extendedData.sliderCount, now);

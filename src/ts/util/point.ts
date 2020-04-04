@@ -23,6 +23,8 @@ export function interpolatePointInPointArray(arr: Point[], t: number): Point {
 }
 
 export function lerpPoints(p1: Point, p2: Point, completion: number): Point {
+	if (!p1) debugger;
+
 	return {
 		x: p1.x * (1-completion) + p2.x * completion,
 		y: p1.y * (1-completion) + p2.y * completion

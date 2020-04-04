@@ -12,6 +12,8 @@ export interface ExtendedBeatmapData {
 	tags: string,
 	bpmMin: number,
 	bpmMax: number,
+	/** The most frequent BPM. */
+	bpmMain: number,
 	objectCount: number,
 	circleCount: number,
 	sliderCount: number,
@@ -33,7 +35,7 @@ export abstract class BeatmapUtil {
 			metadataOnly: false
 		});
 		let processedBeatmap = new ProcessedBeatmap(beatmap, true);
-		processedBeatmap.init();
+		processedBeatmap.init(false); // No need to generate breaks here
 		processedBeatmap.applyStackShift();
 
 		let difficultyAttributes = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
@@ -46,6 +48,8 @@ export abstract class BeatmapUtil {
 			msPerBeatTimings.push([timingPoint.offset, timingPoint.msPerBeat]);
 		}
 
+		processedBeatmap.getMostFrequentBpm();
+
 		return {
 			title: beatmap.title,
 			artist: beatmap.artist,
@@ -54,6 +58,7 @@ export abstract class BeatmapUtil {
 			tags: beatmap.tags,
 			bpmMin: beatmap.bpmMin,
 			bpmMax: beatmap.bpmMax,
+			bpmMain: processedBeatmap.getMostFrequentBpm(),
 			objectCount: beatmap.hitObjects.length,
 			circleCount: beatmap.circleCount,
 			sliderCount: beatmap.sliderCount,

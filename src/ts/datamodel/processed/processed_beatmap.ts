@@ -3,7 +3,7 @@ import { Circle } from "../circle";
 import { Slider } from "../slider";
 import { MathUtil } from "../../util/math_util";
 import { PlayEvent } from "../play_events";
-import { last, assert, shallowObjectClone } from "../../util/misc_util";
+import { last, assert, shallowObjectClone, binarySearchLessOrEqual } from "../../util/misc_util";
 import { Spinner } from "../spinner";
 import { ProcessedHitObject } from "./processed_hit_object";
 import { ProcessedCircle } from "./processed_circle";
@@ -54,12 +54,12 @@ export class ProcessedBeatmap {
 		this.allowColorSkipping = allowColorSkipping;
 	}
 
-	init() {
+	init(generateBreaks = true) {
 		assert(!this.initialized);
 		this.initialized = true;
 
 		this.generateHitObjects();
-		this.generateBreaks();
+		if (generateBreaks) this.generateBreaks();
 	}
 
 	private generateHitObjects() {
@@ -242,6 +242,17 @@ export class ProcessedBeatmap {
 		}
 	}
 
+	/** Returns the earliest time where all hit obejcts have been completed. */
+	getEndTime() {
+		let max = -Infinity;
+
+		for (let i = 0; i < this.hitObjects.length; i++) {
+			max = Math.max(max, this.hitObjects[i].endTime);
+		}
+
+		return max;
+	}
+
 	// The time to delay the song at the start to allow for player preparation, in milliseconds
 	getPreludeTime() {
 		let preludeTime = 0;
@@ -283,7 +294,6 @@ export class ProcessedBeatmap {
 
 		if (this.hitObjects.length > 0) {
 			let firstObject = this.hitObjects[0];
-			let lastObject = last(this.hitObjects);
 
 			// Add break before the first hit object
 			this.breaks.push({
@@ -291,38 +301,70 @@ export class ProcessedBeatmap {
 				endTime: firstObject.startTime
 			});
 
-			// Add break after the last hit object
+			// Add break after the last hit object ends
 			this.breaks.push({
-				startTime: lastObject.endTime,
+				startTime: this.getEndTime(),
 				endTime: Infinity
 			});
 
+			console.time("Implicit break generation");
+
 			// Generate implicit breaks
+			// We basically need to find timeframes of a certain minimum length in which there are no hitobjetcs - turns out that's actually not trivial. It would be, if we lived in a perfect world where only one hit object plays at a time, but 2B and Aspire maps need to work correctly too. The naive algorithm would be: For each pair of hit objects, check if there is enough space between their ends. If there is, iterate through all other hit objects and see if they happen to lie in tn that timespace. This would be O(n^3), though.
+
+			// Doing a presort to speed up lookup later
+			let hitObjectsEndTimeSorted = this.hitObjects.slice(0);
+			hitObjectsEndTimeSorted.sort((a, b) => a.endTime - b.endTime);
+
 			for (let i = 0; i < this.hitObjects.length-1; i++) {
-				let ho1 = this.hitObjects[i]; // hohoho! CHRISUMASU!
-				let ho2 = this.hitObjects[i+1];
+				let ho1 = this.hitObjects[i]; // hohoho! KURISUMASU!
 
-				if (!ho1 || !ho2) break;
+				// Now, since most maps aren't 2B and crazy stuff like that, we perform a simple check to see if there's enough room between this and the *next* hit object (by index). If there isn't, there's no way we'll fit a break in here, so we can terminate early.
+				let quickCheckHitObject = this.hitObjects[i+1];
+				if (quickCheckHitObject.startTime - ho1.endTime < IMPLICIT_BREAK_THRESHOLD) continue;
 
-				outer: if (ho2.startTime - ho1.endTime >= IMPLICIT_BREAK_THRESHOLD) {
-					// Check if there's already a break starting between the two hit object
+				// Find the hit object closest to the ho1's end time
+				let otherIndex = binarySearchLessOrEqual(this.hitObjects, ho1.endTime, x => x.startTime);
 
-					for (let j = 0; j < this.breaks.length; j++) {
-						let breakEvent = this.breaks[j];
+				outer: for (let j = otherIndex; j < this.hitObjects.length; j++) {
+					if (j === i) continue;
+					let ho2 = this.hitObjects[j];
 
-						if (breakEvent.startTime >= ho1.endTime && breakEvent.startTime <= ho2.startTime) {
+					let temporalDistance = ho2.startTime - ho1.endTime;
+					if (temporalDistance < 0) continue;
+					// There isn't enough space, so break out the loop. We won't be able to fit in a break.
+					if (temporalDistance < IMPLICIT_BREAK_THRESHOLD) break;
+
+					// At this point, there are no new hit objects starting in the timeframe right after ho1's end time. However, we still need to check if there are hit objects that *end* in that timeframe. For this, we perform another search.
+
+					for (let k = 0; k < this.hitObjects.length; k++) {
+						let ho3 = this.hitObjects[k];
+
+						if (ho3.startTime >= ho1.endTime) break;
+						if (ho3.endTime > ho1.endTime) break outer;
+					}
+
+					// At this point, we have found a large enough timeframe with no hit objects inside. Last thing to do is to check if there's already a break in this region.
+
+					for (let k = 0; k < this.breaks.length; k++) {
+						let breakEvent = this.breaks[k];
+
+						if (breakEvent.startTime >= ho1.endTime && breakEvent.startTime < ho2.startTime) {
 							break outer;
 						}
 					}
 
 					// No break there yet! Let's add one!
-
 					this.breaks.push({
 						startTime: ho1.endTime,
 						endTime: ho2.startTime
 					});
+
+					break;
 				}
 			}
+
+			console.timeEnd("Implicit break generation");
 		} else {
 			// Just a "break" that spans the whole song
 			this.breaks.push({
@@ -337,7 +379,7 @@ export class ProcessedBeatmap {
 	/** Returns the total length of the playable portion of the map. */
 	getPlayableLength() {
 		if (this.hitObjects.length === 0) return 0;
-		else return last(this.hitObjects).endTime - this.hitObjects[0].startTime;
+		else return this.getEndTime() - this.hitObjects[0].startTime;
 	}
 
 	getTotalBreakTime() {
@@ -358,6 +400,53 @@ export class ProcessedBeatmap {
 			if (time >= osuBreak.startTime && time < osuBreak.endTime) return true;
 		}
 		return false;
+	}
+
+	/** Returns the BPM that is present for the longest duration in the map. */
+	getMostFrequentBpm() {
+		let bpmDurations: [number /* bpm */, number /* duration */][] = [];
+
+		let i = 0;
+		while (true) {
+			let timingPoint = this.beatmap.timingPoints[i];
+			if (!timingPoint.inheritable) continue;
+
+			let nextInheritableIndex: number;
+			let duration: number;
+
+			// Find the index of the next timing point that is inheritable
+			for (let j = i+1; j < this.beatmap.timingPoints.length; j++) {
+				if (this.beatmap.timingPoints[j].inheritable) nextInheritableIndex = j;
+			}
+
+			if (nextInheritableIndex) {
+				// If there's such a timing point, the duration is simply the difference of their offsets
+				duration = this.beatmap.timingPoints[nextInheritableIndex].offset - timingPoint.offset;
+			} else {
+				// If there isn't, then the current timing point is the last inheritable one. The duration then is the duration 'til the end of the map.
+				duration = this.getEndTime() - timingPoint.offset;
+			}
+
+			if (duration < 0) break;
+
+			// See if we already have an entry for this bpm
+			let entryIndex = bpmDurations.findIndex(x => x[0] === timingPoint.bpm);
+			if (entryIndex === -1) {
+				// If not, create one!
+				bpmDurations.push([timingPoint.bpm, duration]);
+			} else {
+				// If yes, then add to the already saved duration
+				bpmDurations[entryIndex][1] += duration;
+			}
+
+			if (nextInheritableIndex) i = nextInheritableIndex;
+			else break;
+		}
+
+		if (bpmDurations.length === 0) return 120;
+
+		bpmDurations.sort((a, b) => b[1] - a[1]);
+		return bpmDurations[0][0];
 	}
 }
 
