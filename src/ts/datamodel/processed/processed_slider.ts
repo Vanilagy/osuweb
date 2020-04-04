@@ -32,10 +32,17 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 		let { path, length: pathLength } = SliderPath.fromSlider(slider);
 		this.path = path;
 
+		let combinedMsPerBeat = timingInfo.msPerBeat * timingInfo.msPerBeatMultiplier;
+		if (combinedMsPerBeat <= 0 && !MathUtil.isPositiveZero(combinedMsPerBeat)) combinedMsPerBeat = 1000; // This is the case for Aspire-like hacky maps. It's strange and kinda arbitrary, but observed.
+
 		if (slider.sections.length === 0 && slider.type !== SliderType.Bézier) {
 			this.specialBehavior = SpecialSliderBehavior.Invisible;
 		}
 		if (slider.sections.length > 0 && slider.length < 0) {
+			this.specialBehavior = SpecialSliderBehavior.Invisible;
+		}
+		// It can happen that the ms-per-beat is so insanely big (like, 1e298), that the slider would practically be infinitely long. Osu seems to hide those sliders.
+		if (!isFinite(toFloat32(combinedMsPerBeat))) {
 			this.specialBehavior = SpecialSliderBehavior.Invisible;
 		}
 
@@ -51,9 +58,6 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 		// TODO: More here?
 		this.length = length;
 
-		let combinedMsPerBeat = timingInfo.msPerBeat * timingInfo.msPerBeatMultiplier;
-		if (combinedMsPerBeat <= 0 && !MathUtil.isPositiveZero(combinedMsPerBeat)) combinedMsPerBeat = 1000; // This is the case for Aspire-like hacky maps. It's strange and kinda arbitrary, but observed.
-
 		let sliderVelocityInOsuPixelsPerBeat = 100 * processedBeatmap.difficulty.SV; // 1 SV is 100 osu!pixels per beat.
 		let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / combinedMsPerBeat;
 		this.velocity = sliderVelocityInOsuPixelsPerMillisecond;
@@ -62,8 +66,10 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 		this.endTime = toFloat32(this.endTime);
 		this.duration = this.endTime - this.startTime;
 		this.tailPoint = this.path.getPosFromPercentage(1.0);
+
+		if (this.duration === Infinity) debugger;
 	
-		if (this.repeat % 2 === 0) {
+ 		if (this.repeat % 2 === 0) {
 			this.endPoint = this.startPoint;
 		} else {
 			this.endPoint = this.tailPoint;
