@@ -34,8 +34,8 @@ export class GameplayController {
     public hitObjectContainer: PIXI.Container;  
     public approachCircleContainer: PIXI.Container;
     public followPointContainer: PIXI.Container;
-    public lowerScorePopupContainer: PIXI.Container; // The parts of score popups shown BELOW hit objects
-	public upperScorePopupContainer: PIXI.Container; // The parts of score popups shown ABOVE hit objects
+    public lowerDrawableJudgementContainer: PIXI.Container; // The parts of drawable judgements shown BELOW hit objects
+	public upperDrawableJudgementContainer: PIXI.Container; // The parts of drawable judgements shown ABOVE hit objects
 	public autoCursor: PIXI.Sprite;
 	
 	public currentPlay: Play = null;
@@ -60,8 +60,8 @@ export class GameplayController {
         this.hitObjectContainer.sortableChildren = true;
         this.approachCircleContainer = new PIXI.Container();
         this.followPointContainer = new PIXI.Container();
-        this.lowerScorePopupContainer = new PIXI.Container();
-		this.upperScorePopupContainer = new PIXI.Container();
+        this.lowerDrawableJudgementContainer = new PIXI.Container();
+		this.upperDrawableJudgementContainer = new PIXI.Container();
 
 		this.autoCursor = new PIXI.Sprite(PIXI.Texture.from("./assets/img/cursor.png"));
 		this.autoCursor.anchor.set(0.5, 0.5);
@@ -69,11 +69,11 @@ export class GameplayController {
 		this.autoCursor.visible = false;
 
         // The order of these is important, 'cause z-index 'n' stuff.
-        this.gameplayContainer.addChild(this.lowerScorePopupContainer);
+        this.gameplayContainer.addChild(this.lowerDrawableJudgementContainer);
         this.gameplayContainer.addChild(this.followPointContainer);
 		this.gameplayContainer.addChild(this.hitObjectContainer);
         this.gameplayContainer.addChild(this.approachCircleContainer);
-		this.gameplayContainer.addChild(this.upperScorePopupContainer);
+		this.gameplayContainer.addChild(this.upperDrawableJudgementContainer);
 
 		this.container.addChild(this.gameplayContainer);
 		this.container.addChild(this.flashlightOccluder.container);
@@ -141,8 +141,8 @@ export class GameplayController {
 		this.hitObjectContainer.removeChildren();
 		this.approachCircleContainer.removeChildren();
 		this.followPointContainer.removeChildren();
-		this.lowerScorePopupContainer.removeChildren();
-		this.upperScorePopupContainer.removeChildren();
+		this.lowerDrawableJudgementContainer.removeChildren();
+		this.upperDrawableJudgementContainer.removeChildren();
 		this.autoCursor.visible = false;
 		this.pauseScreen.reset();
 
@@ -200,7 +200,7 @@ export class GameplayController {
 		let beatmap = this.currentPlay.processedBeatmap.beatmap;
 		let imageFile = await beatmap.getBackgroundImageFile();
 
-		await globalState.scoreScreen.load(this.currentPlay.scoreCounter.score, beatmap, imageFile);
+		await globalState.scoreScreen.load(this.currentPlay.scoreProcessor.score, beatmap, imageFile);
 		globalState.scoreScreen.show();
 
 		this.hide();

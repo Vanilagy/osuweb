@@ -2,7 +2,7 @@ import { DrawableHitObject } from "./drawable_hit_object";
 import { Point, pointDistance } from "../../util/point";
 import { HitCirclePrimitive } from "./hit_circle_primitive";
 import { ProcessedHeadedHitObject } from "../../datamodel/processed/processed_headed_hit_object";
-import { ScoringValue } from "../../datamodel/score";
+import { ScoringValue } from "../../datamodel/scoring/score";
 import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 import { DrawableSlider } from "./drawable_slider";
 import { MathUtil, EaseType } from "../../util/math_util";
@@ -92,7 +92,7 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 		if (this.head.approachCircle) this.head.approachCircle.pivot.y = this.head.container.pivot.y / this.head.approachCircle.scale.x;
 	}
 
-	abstract hitHead(time: number, judgementOverride?: number): void;
+	abstract hitHead(time: number, scoringValueOverride?: number): void;
 	
 	handleButtonDown(osuMouseCoordinates: Point, currentTime: number) {
 		let { circleRadiusOsuPx } = this.drawableBeatmap.play;

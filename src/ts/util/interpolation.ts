@@ -29,8 +29,12 @@ export class InterpolatedValueChanger {
 	}
 
 	getDuration() {
-		if (typeof this.options.duration === 'number') return this.options.duration;
-		else return this.options.duration(this.end - this.start);
+		let val: number;
+
+		if (typeof this.options.duration === 'number') val = this.options.duration;
+		else val = this.options.duration(this.end - this.start);
+
+		return Math.max(val, Number.MIN_VALUE);
 	}
 
 	getCurrentValue(now: number) {

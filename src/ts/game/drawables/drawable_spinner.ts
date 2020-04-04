@@ -13,8 +13,9 @@ import { currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator } from "../../util/interpolation";
 import { DrawableBeatmap } from "../drawable_beatmap";
 import { Mod } from "../../datamodel/mods";
-import { ScoringValue } from "../../datamodel/score";
+import { ScoringValue } from "../../datamodel/scoring/score";
 import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
+import { Judgement } from "../../datamodel/scoring/judgement";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -417,7 +418,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		let spinsSpun = this.getSpinsSpun();
 		let progress = spinsSpun / this.parent.requiredSpins;
-		let judgement = (() => {
+		let scoringValue = (() => {
 			if (progress >= 1.0) {
 				return ScoringValue.Hit300;
 			} else if (progress > 0.9) {
@@ -428,8 +429,8 @@ export class DrawableSpinner extends DrawableHitObject {
 			return ScoringValue.Miss;
 		})();
 
-		play.scoreCounter.add(judgement, false, true, true, this, this.parent.endTime);
-		if (judgement !== 0) {
+		play.processJudgement(Judgement.createSpinnerTotalJudgement(this.parent, scoringValue));
+		if (scoringValue !== ScoringValue.Miss) {
 			play.playHitSound(this.hitSound);
 		}
 
@@ -511,14 +512,15 @@ export class DrawableSpinner extends DrawableHitObject {
 	tick(currentTime: number, dt: number) {
 		if (!dt) return;
 
-		let { scoreCounter, skin } = this.drawableBeatmap.play;
+		let play =  this.drawableBeatmap.play;
+		let { scoreProcessor, skin } = play;
 
 		this.tryDecelerate(currentTime, dt, 0);
 
 		let angle = this.angularVelocity * dt;
 		let spinsPerMinute = Math.abs(this.angularVelocity) * 1000 * 60 / TAU;
 		this.spinnerRpmNumber.setValue(Math.floor(spinsPerMinute));
-		scoreCounter.addSpinRpm(spinsPerMinute);
+		scoreProcessor.addSpinRpm(spinsPerMinute);
 
 		let prevSpinsSpun = this.getSpinsSpun();
 
@@ -529,7 +531,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		let wholeDif = Math.floor(spinsSpunNow) - Math.floor(prevSpinsSpun);
 		if (wholeDif > 0) {
 			// Give 100 raw score for every spin
-			scoreCounter.add(wholeDif * 100, true, false, false, this, currentTime);
+			play.processJudgement(Judgement.createSpinnerSpinBonus(this.parent, wholeDif * 100, currentTime));
 		}
 		if (spinsSpunNow >= this.parent.requiredSpins && !this.cleared) {
 			this.cleared = true;
@@ -538,7 +540,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		let bonusSpins = Math.floor(spinsSpunNow - this.parent.requiredSpins);
 		if (bonusSpins > 0 && bonusSpins > this.bonusSpins) {
 			let dif = bonusSpins - this.bonusSpins;
-			scoreCounter.add(dif * 1000, true, false, false, this, currentTime);
+			play.processJudgement(Judgement.createSpinnerSpinBonus(this.parent, dif * 1000, currentTime));
 
 			this.bonusSpins = bonusSpins;
 			this.spinnerBonus.setValue(this.bonusSpins * 1000);

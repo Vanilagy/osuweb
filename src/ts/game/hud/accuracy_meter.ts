@@ -2,6 +2,7 @@ import { MathUtil, EaseType } from "../../util/math_util";
 import { Hud } from "./hud";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { InterpolatedValueChanger } from "../../util/interpolation";
+import { ScoringValue } from "../../datamodel/scoring/score";
 
 const BLUE_STRIP_COLOR = 0x38b8e8;
 const GREEN_STRIP_COLOR = 0x57e11a;
@@ -58,9 +59,9 @@ export class AccuracyMeter {
 	init() {
 		let { processedBeatmap } = this.hud.controller.currentPlay;
 
-		this.time50 = processedBeatmap.difficulty.getHitDeltaForJudgement(50);
-		this.time100 = processedBeatmap.difficulty.getHitDeltaForJudgement(100);
-		this.time300 = processedBeatmap.difficulty.getHitDeltaForJudgement(300);
+		this.time50 = processedBeatmap.difficulty.getHitDeltaForScoringValue(ScoringValue.Hit50);
+		this.time100 = processedBeatmap.difficulty.getHitDeltaForScoringValue(ScoringValue.Hit100);
+		this.time300 = processedBeatmap.difficulty.getHitDeltaForScoringValue(ScoringValue.Hit300);
 
 		this.resize();
 	}
@@ -165,12 +166,12 @@ export class AccuracyMeter {
 	addAccuracyLine(inaccuracy: number, currentTime: number) {
 		let { processedBeatmap } = this.hud.controller.currentPlay;
 
-		let judgement = processedBeatmap.difficulty.getJudgementForHitDelta(Math.abs(inaccuracy));
-		if (judgement === 0) return;
+		let scoringValue = processedBeatmap.difficulty.getScoringValueForHitDelta(Math.abs(inaccuracy));
+		if (scoringValue === 0) return;
 
 		let color = (() => {
-			if (judgement === 300) return BLUE_STRIP_COLOR;
-			else if (judgement === 100) return GREEN_STRIP_COLOR;
+			if (scoringValue === 300) return BLUE_STRIP_COLOR;
+			else if (scoringValue === 100) return GREEN_STRIP_COLOR;
 			return ORANGE_STRIP_COLOR;
 		})();
 

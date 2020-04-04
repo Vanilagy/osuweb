@@ -1,5 +1,6 @@
 import { ProcessedHitObject } from "./processed_hit_object";
 import { PlayEvent, PlayEventType } from "../play_events";
+import { ScoringValue } from "../scoring/score";
 
 export abstract class ProcessedHeadedHitObject extends ProcessedHitObject {
 	public stackHeight: number = 0;
@@ -17,7 +18,7 @@ export abstract class ProcessedHeadedHitObject extends ProcessedHitObject {
 		playEventArray.push({
 			type: PlayEventType.HeadHitWindowEnd,
 			hitObject: this,
-			time: this.startTime + this.processedBeatmap.difficulty.getHitDeltaForJudgement(50)
+			time: this.startTime + this.processedBeatmap.difficulty.getHitDeltaForScoringValue(ScoringValue.Hit50)
 		});
 	}
 }

@@ -16,9 +16,10 @@ import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beat
 import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { DrawableBeatmap } from "../drawable_beatmap";
-import { ScoringValue } from "../../datamodel/score";
+import { ScoringValue } from "../../datamodel/scoring/score";
 import { Mod } from "../../datamodel/mods";
 import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
+import { Judgement } from "../../datamodel/scoring/judgement";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -689,7 +690,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	score(time: number) {
-		let resultingRawScore = 0;
+		let resultingRawScore: ScoringValue = ScoringValue.Miss;
 
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) {
 			if (this.scoring.head.hit) resultingRawScore = ScoringValue.Hit300;
@@ -717,41 +718,39 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		if (this.scoring.end || resultingRawScore === ScoringValue.Hit300) this.drawableBeatmap.play.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
 
-		this.drawableBeatmap.play.scoreCounter.add(resultingRawScore, false, false, true, this, time);
+		this.drawableBeatmap.play.processJudgement(Judgement.createSliderTotalJudgement(this.parent, resultingRawScore));
 	}
 
-	hitHead(time: number, judgementOverride?: number) {
+	hitHead(time: number, scoringValueOverride?: number) {
 		if (this.scoring.head.hit !== ScoringValue.None) return;
-		
-		let { scoreCounter } = this.drawableBeatmap.play;
 
 		let timeInaccuracy = time - this.parent.startTime;
-		let judgement: number;
+		let scoringValue: ScoringValue;
 
-		if (judgementOverride !== undefined) {
-			judgement = judgementOverride;
+		if (scoringValueOverride !== undefined) {
+			scoringValue = scoringValueOverride;
 		} else {
 			let hitDelta = Math.abs(timeInaccuracy);
-			judgement = this.parent.processedBeatmap.difficulty.getJudgementForHitDelta(hitDelta);
+			scoringValue = this.parent.processedBeatmap.difficulty.getScoringValueForHitDelta(hitDelta);
 		}
 
-		this.scoring.head.hit = judgement;
+		this.scoring.head.hit = scoringValue;
 		this.scoring.head.time = time;
 
-		let score = (judgement === ScoringValue.Miss)? ScoringValue.Miss : ScoringValue.SliderHead;
+		let score = (scoringValue === ScoringValue.Miss)? ScoringValue.Miss : ScoringValue.SliderHead;
 
-		scoreCounter.add(score, true, true, false, this, time, this.parent.startPoint);
+		this.drawableBeatmap.play.processJudgement(Judgement.createSliderHeadJudgement(this.parent, score, time));
 
-		if (judgement !== 0) {
+		if (score !== ScoringValue.Miss) {
 			const hud = this.drawableBeatmap.play.controller.hud;
 
 			this.drawableBeatmap.play.playHitSound(this.hitSounds[0]);
 			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
-			scoreCounter.addHitInaccuracy(timeInaccuracy);
+			this.drawableBeatmap.play.scoreProcessor.addHitInaccuracy(timeInaccuracy);
 			this.holdFollowCircle(time);
 		}
 		// The if here is because not all sliders have heads, like edge-case invisible sliders.
-		if (this.head) HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
+		if (this.head) HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, score !== 0);
 	}
 
 	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number) {
@@ -784,7 +783,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 				if (this.scoring.head.hit === ScoringValue.None) {
 					// If the slider ended before the player managed to click its head, the head is automatically "missed".
-					this.hitHead(event.time, 0);
+					this.hitHead(event.time, ScoringValue.Miss);
 				}
 			}; break;
 			case PlayEventType.SliderEnd: {
@@ -793,8 +792,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				// If the slider end was hit, score it now.
 				let endHit = this.scoring.end === true;
 				if (endHit) {
-					play.scoreCounter.add(ScoringValue.SliderEnd, true, true, false, this, event.time, event.position, true);
-					
+					play.processJudgement(Judgement.createSliderEventJudgement(event, true));					
 					// The hit sound is played in the .score method. (at least when this comment was written)
 				}
 
@@ -816,15 +814,14 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 				if (hit) {
 					this.scoring.repeats++;
-					play.scoreCounter.add(ScoringValue.SliderRepeat, true, true, false, this, event.time, event.position);
 					this.pulseFollowCircle(event.time);
 					
 					let hitSound = this.hitSounds[event.index + 1];
 					play.playHitSound(hitSound);
 				} else {
-					play.scoreCounter.add(ScoringValue.Miss, true, true, true, this, event.time);
 					this.releaseFollowCircle(event.time);
 				}
+				play.processJudgement(Judgement.createSliderEventJudgement(event, hit));
 
 				let primitive = this.sliderEnds[event.index];
 				HitCirclePrimitive.fadeOutBasedOnHitState(primitive, event.time, hit);
@@ -840,15 +837,14 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 				if (hit) {
 					this.scoring.ticks++;
-					play.scoreCounter.add(ScoringValue.SliderTick, true, true, false, this, event.time, event.position);
 					this.pulseFollowCircle(event.time);
 
 					let hitSound = this.tickSounds[event.index];
 					play.playHitSound(hitSound);
 				} else {
-					play.scoreCounter.add(ScoringValue.Miss, true, true, true, this, event.time);
 					this.releaseFollowCircle(event.time);
 				}
+				play.processJudgement(Judgement.createSliderEventJudgement(event, hit));
 			}; break;
 			// Sustained event:
 			case PlayEventType.SliderSlide: {

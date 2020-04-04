@@ -6,8 +6,9 @@ import { HitSoundInfo, generateHitSoundInfo } from "../skin/sound";
 import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { DrawableBeatmap } from "../drawable_beatmap";
-import { ScoringValue } from "../../datamodel/score";
+import { ScoringValue } from "../../datamodel/scoring/score";
 import { Mod } from "../../datamodel/mods";
+import { Judgement } from "../../datamodel/scoring/judgement";
 
 export class DrawableCircle extends DrawableHeadedHitObject {
 	public parent: ProcessedCircle;
@@ -54,14 +55,12 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 		this.updateHeadElements(currentTime);
 	}
 
-	score(time: number, judgement: number) {
-		let scoreCounter = this.drawableBeatmap.play.scoreCounter;
-
+	score(time: number, scoringValue: ScoringValue) {
 		this.scoring.head.time = time;
-		this.scoring.head.hit = judgement;
+		this.scoring.head.hit = scoringValue;
 
-		HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, judgement !== 0);
-		scoreCounter.add(judgement, false, true, true, this, time);
+		HitCirclePrimitive.fadeOutBasedOnHitState(this.head, time, scoringValue !== 0);
+		this.drawableBeatmap.play.processJudgement(Judgement.createCircleJudgement(this.parent, scoringValue, time));
 	}
 
 	reset() {
@@ -69,29 +68,29 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 		this.scoring = getDefaultCircleScoring();
 	}
 
-	hitHead(time: number, judgementOverride?: number) {
+	hitHead(time: number, scoringValueOverride?: number) {
 		if (this.scoring.head.hit !== ScoringValue.None) return;
 
-		let { processedBeatmap, scoreCounter } = this.drawableBeatmap.play;
+		let { processedBeatmap, scoreProcessor } = this.drawableBeatmap.play;
 
 		let timeInaccuracy = time - this.parent.startTime;
-		let judgement: number;
+		let scoringValue: ScoringValue;
 
-		if (judgementOverride !== undefined) {
-			judgement = judgementOverride;
+		if (scoringValueOverride !== undefined) {
+			scoringValue = scoringValueOverride;
 		} else {
 			let hitDelta = Math.abs(timeInaccuracy);
-			judgement = processedBeatmap.difficulty.getJudgementForHitDelta(hitDelta);
+			scoringValue = processedBeatmap.difficulty.getScoringValueForHitDelta(hitDelta);
 		}
 
-		this.score(time, judgement);
+		this.score(time, scoringValue);
 		
-		if (judgement !== 0) {
+		if (scoringValue !== ScoringValue.Miss) {
 			const hud = this.drawableBeatmap.play.controller.hud;
 
 			this.drawableBeatmap.play.playHitSound(this.hitSound);
 			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
-			scoreCounter.addHitInaccuracy(timeInaccuracy);
+			scoreProcessor.addHitInaccuracy(timeInaccuracy);
 		}
 	}
 }

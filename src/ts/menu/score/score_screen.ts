@@ -10,7 +10,7 @@ import { MathUtil, EaseType } from "../../util/math_util";
 import { BeatmapHeaderPanel } from "../components/beatmap_header_panel";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { padNumberWithZeroes, toPercentageString, EMPTY_FUNCTION } from "../../util/misc_util";
-import { ScoreGrade, Score } from "../../datamodel/score";
+import { ScoreGrade, Score } from "../../datamodel/scoring/score";
 import { Interpolator } from "../../util/interpolation";
 import { globalState } from "../../global_state";
 import { Button, ButtonPivot, DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT } from "../components/button";

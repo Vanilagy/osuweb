@@ -1,6 +1,6 @@
 import { Color, hexNumberToColor, colorToHexString } from "../../util/graphics_util";
 import { TAU } from "../../util/math_util";
-import { ScoreGrade } from "../../datamodel/score";
+import { ScoreGrade } from "../../datamodel/scoring/score";
 
 const SCORE_GRADE_RESOLUTION = 512;
 const SCORE_GRADE_BACKGROUND_COLOR: Color = {r: 31, g: 31, b: 31, a: 0.5};

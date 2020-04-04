@@ -25,7 +25,10 @@ export class Scorebar {
 
 		this.progressInterpolator = new InterpolatedValueChanger({
 			initial: 1.0,
-			duration: 200,
+			duration: (dif) => {
+				if (Math.abs(dif) < 0.005) return 0;
+				else return 200;
+			},
 			ease: EaseType.EaseOutQuad
 		});
 

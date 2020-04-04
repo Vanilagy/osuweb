@@ -1,5 +1,5 @@
-import { MathUtil } from "../util/math_util";
-import { Mod } from "./mods";
+import { MathUtil } from "../../util/math_util";
+import { Mod } from "../mods";
 
 export enum ScoringValue {
 	None = null, // Hasn't been scored yet
@@ -10,7 +10,8 @@ export enum ScoringValue {
 	SliderHead = 30,
 	SliderTick = 10,
 	SliderRepeat = 30,
-	SliderEnd = 30
+	SliderEnd = 30,
+	Custom = -1 // Can be overwritten in Judgement
 }
 
 export enum ScoreGrade {

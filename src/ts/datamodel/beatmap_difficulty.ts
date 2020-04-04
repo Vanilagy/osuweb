@@ -1,3 +1,5 @@
+import { ScoringValue } from "./scoring/score";
+
 export class BeatmapDifficulty {
 	public SL: number = 0.7; // Stack leniency taken from McOsu
 	public SV: number = 1; // Slider velocity TODO: is this the default?
@@ -21,32 +23,32 @@ export class BeatmapDifficulty {
 	}
 
 	// OD
-	static getHitDeltaForJudgement(OD: number, judgement: number) {
-		switch(judgement) {
-			case 300:
+	static getHitDeltaForScoringValue(OD: number, scoringValue: ScoringValue) {
+		switch(scoringValue) {
+			case ScoringValue.Hit300:
 				return Math.ceil(79.5 - 6 * OD);
-			case 100:
+			case ScoringValue.Hit100:
 				return Math.ceil(139.5 - 8 * OD);
-			case 50:
+			case ScoringValue.Hit50:
 				return Math.ceil(199.5 - 10 * OD);
 			default:
 				return Infinity; // Makes sense, right? No really, name a better value.
 		}
 	}
 
-	getHitDeltaForJudgement(judgement: number) {
-		return BeatmapDifficulty.getHitDeltaForJudgement(this.OD, judgement);
+	getHitDeltaForScoringValue(scoringValue: number) {
+		return BeatmapDifficulty.getHitDeltaForScoringValue(this.OD, scoringValue);
 	}
 
-	static getJudgementForHitDelta(OD: number, hitDelta: number) {
-		if (BeatmapDifficulty.getHitDeltaForJudgement(OD, 300) >= hitDelta) return 300;
-		if (BeatmapDifficulty.getHitDeltaForJudgement(OD, 100) >= hitDelta) return 100;
-		if (BeatmapDifficulty.getHitDeltaForJudgement(OD, 50) >= hitDelta) return 50;
-		return 0;
+	static getScoringValueForHitDelta(OD: number, hitDelta: number) {
+		if (BeatmapDifficulty.getHitDeltaForScoringValue(OD, ScoringValue.Hit300) >= hitDelta) return ScoringValue.Hit300;
+		if (BeatmapDifficulty.getHitDeltaForScoringValue(OD, ScoringValue.Hit100) >= hitDelta) return ScoringValue.Hit100;
+		if (BeatmapDifficulty.getHitDeltaForScoringValue(OD, ScoringValue.Hit50) >= hitDelta) return ScoringValue.Hit50;
+		return ScoringValue.Miss;
 	}
 
-	getJudgementForHitDelta(hitDelta: number) {
-		return BeatmapDifficulty.getJudgementForHitDelta(this.OD, hitDelta);
+	getScoringValueForHitDelta(hitDelta: number) {
+		return BeatmapDifficulty.getScoringValueForHitDelta(this.OD, hitDelta);
 	}
 
 	// CS

@@ -27,7 +27,7 @@ export class DrawableBeatmap {
 	private currentFollowPointIndex = 0;
 	private onscreenFollowPoints: FollowPoint[];
 
-	private playEvents: PlayEvent[] = [];
+	public playEvents: PlayEvent[] = [];
 	private currentSustainedEvents: PlayEvent[];
 	private currentPlayEvent: number = 0;
 
@@ -55,7 +55,7 @@ export class DrawableBeatmap {
 		
 		console.time("Play event generation");
 		this.playEvents = this.processedBeatmap.getAllPlayEvents();
-		console.timeEnd("Play event generation");
+		console.timeEnd("Play event generation");	
 
 		this.generateFollowPoints();
 	}

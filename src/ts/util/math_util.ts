@@ -444,6 +444,16 @@ export abstract class MathUtil {
 	static calculateStandardDeviation(data: number[], precalculatedMean?: number) {
 		return Math.sqrt(MathUtil.calculateVariance(data, precalculatedMean));
 	}
+
+	/** Calculates the size of the overlap of two closed intervals (intervals that include both their end points). */
+	static calculateIntervalOverlap(start1: number, end1: number, start2: number, end2: number) {
+		// If they don't overlap at all, return 0.
+		if (end1 <= start2 || end2 <= start1) return 0;
+
+		let start = Math.max(start1, start2);
+		let end = Math.min(end1, end2);
+		return end - start;
+	}
 }
 
 let valueNoiseRng = MathUtil.createSeededRng(1337);

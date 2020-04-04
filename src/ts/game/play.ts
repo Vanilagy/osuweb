@@ -1,6 +1,5 @@
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { Point, lerpPoints } from "../util/point";
-import { ScoreCounter } from "./score/score_counter";
 import { getCurrentMousePosition } from "../input/input";
 import { MathUtil, EaseType } from "../util/math_util";
 import { last } from "../util/misc_util";
@@ -15,12 +14,15 @@ import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { GameplayController } from "./gameplay_controller";
 import { globalState } from "../global_state";
-import { ScoringValue } from "../datamodel/score";
+import { ScoringValue } from "../datamodel/scoring/score";
 import { Mod } from "../datamodel/mods";
 import { SKIP_BUTTON_MIN_BREAK_LENGTH, SKIP_BUTTON_FADE_TIME, SKIP_BUTTON_END_TIME } from "./hud/skip_button";
 import { audioContext } from "../audio/audio";
 import { HudMode } from "./hud/hud";
 import { PauseScreenMode } from "../menu/gameplay/pause_screen";
+import { HealthProcessor } from "../datamodel/scoring/health_processor";
+import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
+import { Judgement } from "../datamodel/scoring/judgement";
 
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
@@ -43,9 +45,8 @@ export class Play {
 	private initted: boolean = false;
 	public completed: boolean = false;
 
-	private passiveHealthDrain: number = 0.00005; // In health/ms
-	public currentHealth: number;
-	public scoreCounter: ScoreCounter;
+	public scoreProcessor: DrawableScoreProcessor;
+	public healthProcessor: HealthProcessor;
 	public activeMods: Set<Mod>;
 	public colorArray: Color[];
 
@@ -77,7 +78,7 @@ export class Play {
 		this.controller = controller;
 		this.processedBeatmap = processedBeatmap;
 		this.drawableBeatmap = new DrawableBeatmap(this, this.processedBeatmap);
-		this.scoreCounter = new ScoreCounter(this, this.processedBeatmap);
+		this.scoreProcessor = new DrawableScoreProcessor(this);
 		this.activeMods = mods;
 	}
 	
@@ -104,7 +105,12 @@ export class Play {
 		this.drawableBeatmap.draw();
 		console.timeEnd("Beatmap draw");
 
-		this.scoreCounter.init();
+		this.scoreProcessor.hookBeatmap(this.processedBeatmap, this.activeMods);
+
+		this.healthProcessor = new HealthProcessor();
+		this.healthProcessor.simulateAutoplay(this.drawableBeatmap.playEvents);
+		this.healthProcessor.hookBeatmap(this.processedBeatmap);
+		this.healthProcessor.calculateDrainRate();
 
 		if (this.activeMods.has(Mod.Auto)) {
 			this.playthroughInstructions = ModHelper.generateAutoPlaythroughInstructions(this);
@@ -197,7 +203,7 @@ export class Play {
 		}
 
 		this.drawableBeatmap.compose(updateSkin, triggerInstantly);
-		this.scoreCounter.compose();
+		this.scoreProcessor.compose();
 	}
 
 	async start(when?: number) {
@@ -227,8 +233,9 @@ export class Play {
 		this.tick(currentTime);
 
 		this.drawableBeatmap.render(currentTime);
-		this.scoreCounter.update(currentTime);
+		this.scoreProcessor.update(currentTime);
 
+		hud.scorebar.setAmount(this.healthProcessor.health, currentTime);
 		hud.scorebar.update(currentTime);
 		hud.sectionStateDisplayer.update(currentTime);
 		if (this.playing) hud.skipButton.update(currentTime);
@@ -370,7 +377,7 @@ export class Play {
 		this.drawableBeatmap.tick(currentTime, dt);
 
 		// Update health
-		if (!this.processedBeatmap.isInBreak(currentTime)) this.gainHealth(-this.passiveHealthDrain * dt, currentTime); // "Gain" negative health
+		this.healthProcessor.update(currentTime);
 
 		// Show section pass/pass when necessary
 		let currentBreak = this.getCurrentBreak();
@@ -379,7 +386,7 @@ export class Play {
 			let length = getBreakLength(currentBreak);
 
 			if (isFinite(midpoint) && length >= 3000 && currentTime >= midpoint && hud.sectionStateDisplayer.getLastPopUpTime() < midpoint) {
-				let isPass = this.currentHealth >= 0.5;
+				let isPass = this.healthProcessor.health >= 0.5;
 				hud.sectionStateDisplayer.popUp(isPass, midpoint);
 			}
 		}
@@ -389,7 +396,7 @@ export class Play {
 			this.controller.completePlay();
 		}
 
-		if (this.currentHealth === 0) this.fail();
+		if (this.healthProcessor.health <= 0) this.fail();
 
 		let failAnimationCompletion = this.calculateFailAnimationCompletion();
 		if (this.hasFailed()) {
@@ -437,9 +444,9 @@ export class Play {
 
 	reset() {
 		this.drawableBeatmap.reset();
-		this.scoreCounter.reset();
+		this.scoreProcessor.reset();
+		this.healthProcessor.reset();
 
-		this.currentHealth = 1.0;
 		this.lastTickTime = null;
 		this.currentBreakIndex = 0;
 		this.paused = false;
@@ -470,6 +477,11 @@ export class Play {
 		globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
 		this.drawableBeatmap.stopHitObjectSounds();
 		if (this.hasVideo) globalState.backgroundManager.removeVideo();
+	}
+
+	processJudgement(judgement: Judgement) {
+		this.healthProcessor.process(judgement);
+		this.scoreProcessor.process(judgement);
 	}
 
 	handleButtonDown() {
@@ -574,16 +586,7 @@ export class Play {
 		};
 	}
 
-	gainHealth(gain: number, currentTime: number) {
-		this.setHealth(this.currentHealth + gain, currentTime);
-	}
-
-	setHealth(to: number, currentTime: number) {
-		this.currentHealth = MathUtil.clamp(to, 0, 1);
-		this.controller.hud.scorebar.setAmount(this.currentHealth, currentTime);
-	}
-
-	/** Headed hit objects can only be hit when the previous one has already been assigned a judgement. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
+	/** Headed hit objects can only be hit when the previous one has already been assigned a scoring value. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
 	hitObjectIsInputLocked(hitObject: DrawableHeadedHitObject) {
 		let objectBefore = this.drawableBeatmap.drawableHitObjects[hitObject.parent.index - 1];
 		if (!objectBefore || !(objectBefore instanceof DrawableHeadedHitObject)) return false;
