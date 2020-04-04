@@ -307,64 +307,27 @@ export class ProcessedBeatmap {
 				endTime: Infinity
 			});
 
-			console.time("Implicit break generation");
-
 			// Generate implicit breaks
-			// We basically need to find timeframes of a certain minimum length in which there are no hitobjetcs - turns out that's actually not trivial. It would be, if we lived in a perfect world where only one hit object plays at a time, but 2B and Aspire maps need to work correctly too. The naive algorithm would be: For each pair of hit objects, check if there is enough space between their ends. If there is, iterate through all other hit objects and see if they happen to lie in tn that timespace. This would be O(n^3), though.
+			let currentBiggestEndTime = this.hitObjects[0].endTime;
+			for (let i = 1; i < this.hitObjects.length; i++) {
+				let hitObject = this.hitObjects[i];
 
-			// Doing a presort to speed up lookup later
-			let hitObjectsEndTimeSorted = this.hitObjects.slice(0);
-			hitObjectsEndTimeSorted.sort((a, b) => a.endTime - b.endTime);
-
-			for (let i = 0; i < this.hitObjects.length-1; i++) {
-				let ho1 = this.hitObjects[i]; // hohoho! KURISUMASU!
-
-				// Now, since most maps aren't 2B and crazy stuff like that, we perform a simple check to see if there's enough room between this and the *next* hit object (by index). If there isn't, there's no way we'll fit a break in here, so we can terminate early.
-				let quickCheckHitObject = this.hitObjects[i+1];
-				if (quickCheckHitObject.startTime - ho1.endTime < IMPLICIT_BREAK_THRESHOLD) continue;
-
-				// Find the hit object closest to the ho1's end time
-				let otherIndex = binarySearchLessOrEqual(this.hitObjects, ho1.endTime, x => x.startTime);
-
-				outer: for (let j = otherIndex; j < this.hitObjects.length; j++) {
-					if (j === i) continue;
-					let ho2 = this.hitObjects[j];
-
-					let temporalDistance = ho2.startTime - ho1.endTime;
-					if (temporalDistance < 0) continue;
-					// There isn't enough space, so break out the loop. We won't be able to fit in a break.
-					if (temporalDistance < IMPLICIT_BREAK_THRESHOLD) break;
-
-					// At this point, there are no new hit objects starting in the timeframe right after ho1's end time. However, we still need to check if there are hit objects that *end* in that timeframe. For this, we perform another search.
-
-					for (let k = 0; k < this.hitObjects.length; k++) {
-						let ho3 = this.hitObjects[k];
-
-						if (ho3.startTime >= ho1.endTime) break;
-						if (ho3.endTime > ho1.endTime) break outer;
-					}
-
-					// At this point, we have found a large enough timeframe with no hit objects inside. Last thing to do is to check if there's already a break in this region.
-
+				outer: if (hitObject.startTime - currentBiggestEndTime >= IMPLICIT_BREAK_THRESHOLD) {
+					// Check if there's already a break in this interval
 					for (let k = 0; k < this.breaks.length; k++) {
 						let breakEvent = this.breaks[k];
-
-						if (breakEvent.startTime >= ho1.endTime && breakEvent.startTime < ho2.startTime) {
-							break outer;
-						}
+						if (MathUtil.calculateIntervalOverlap(currentBiggestEndTime, hitObject.startTime, breakEvent.startTime, breakEvent.endTime) !== 0) break outer;
 					}
 
 					// No break there yet! Let's add one!
 					this.breaks.push({
-						startTime: ho1.endTime,
-						endTime: ho2.startTime
+						startTime: currentBiggestEndTime,
+						endTime: hitObject.startTime
 					});
-
-					break;
 				}
-			}
 
-			console.timeEnd("Implicit break generation");
+				currentBiggestEndTime = Math.max(currentBiggestEndTime, hitObject.endTime);
+			}
 		} else {
 			// Just a "break" that spans the whole song
 			this.breaks.push({
