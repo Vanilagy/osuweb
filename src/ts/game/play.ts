@@ -489,7 +489,7 @@ export class Play {
 		}
 
 		// Handle PF insta-death on a non-perfect hit
-		if (this.activeMods.has(Mod.Perfect) && (judgement.value === ScoringValue.Hit100) || (judgement.value === ScoringValue.Hit50)) {
+		if (this.activeMods.has(Mod.Perfect) && (judgement.value === ScoringValue.Hit100 || judgement.value === ScoringValue.Hit50)) {
 			this.fail();
 		}
 	}
