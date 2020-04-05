@@ -107,13 +107,7 @@ export class GameplayController {
 						break;
 					}
 
-					if (this.pauseScreen.shown()) {
-						if (this.currentPlay.hasFailed()) this.endPlay();
-						else this.unpause();
-					} else {
-						if (this.currentPlay.hasFailed()) this.pauseScreen.show(PauseScreenMode.Failed);
-						else this.pause();
-					}
+					this.pauseScreen.trigger();
 				}; break;
 				case KeyCode.Space: {
 					if (!this.currentPlay) break;

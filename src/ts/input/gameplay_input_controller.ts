@@ -2,9 +2,10 @@ import { CustomEventEmitter } from "../util/custom_event_emitter";
 import { InteractionRegistration } from "./interactivity";
 import { KeyCode, MouseButton } from "./input";
 
+export const GAME_KEYS: [number, number] = [KeyCode.X, KeyCode.Y];
+
 export class GameplayInputController extends CustomEventEmitter<{gameButtonDown: void}> {
 	private registration: InteractionRegistration;
-	private gameKeys: [number, number] = [KeyCode.X, KeyCode.Y];
 	private keyButtonState: [boolean, boolean] = [false, false];
 	private mouseButtonState: [boolean, boolean] = [false, false];
 
@@ -15,7 +16,7 @@ export class GameplayInputController extends CustomEventEmitter<{gameButtonDown:
 		this.registration.allowAllMouseButtons();
 
 		this.registration.addListener('keyDown', (e) => {
-			let index = this.gameKeys.indexOf(e.keyCode);
+			let index = GAME_KEYS.indexOf(e.keyCode);
 			if (index === -1) return;
 
 			if (!this.keyButtonState[index]) {
@@ -24,7 +25,7 @@ export class GameplayInputController extends CustomEventEmitter<{gameButtonDown:
 			}
 		});
 		this.registration.addListener('keyUp', (e) => {
-			let index = this.gameKeys.indexOf(e.keyCode);
+			let index = GAME_KEYS.indexOf(e.keyCode);
 			if (index === -1) return;
 
 			this.keyButtonState[index] = false;

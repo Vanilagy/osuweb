@@ -53,6 +53,8 @@ export class Play {
 	private lastTickTime: number = null;
 	private currentBreakIndex = 0;
 	private breakEndWarningTimes: number[] = [];
+	/** ...in osu coordinates. */
+	public lastCursorPosition: Point = {x: PLAYFIELD_DIMENSIONS.width/2, y: PLAYFIELD_DIMENSIONS.height/2};
 	
 	// Draw stuffz:
 	public skin: Skin;
@@ -68,7 +70,6 @@ export class Play {
 	// AT stuffz:
 	private playthroughInstructions: AutoInstruction[];
 	private currentPlaythroughInstruction: number;
-	private lastAutoCursorPosition: Point = null;
 
 	public failTime: number = null;
 	private currentTimeAtFail: number = null;
@@ -346,17 +347,16 @@ export class Play {
 		}
 
 		// Update the cursor position if rocking AT
-		let gameCursorPosition: Point;
 		if (this.activeMods.has(Mod.Auto)) {
 			this.handlePlaythroughInstructions(currentTime);
-			this.controller.autoCursor.position.set(this.lastAutoCursorPosition.x, this.lastAutoCursorPosition.y);
 
-			gameCursorPosition = this.lastAutoCursorPosition;
+			let screenCoordinates = this.toScreenCoordinates(this.lastCursorPosition);
+			this.controller.autoCursor.position.set(screenCoordinates.x, screenCoordinates.y);
 		}
 		
 		if (this.activeMods.has(Mod.Flashlight)) {
-			if (!gameCursorPosition) gameCursorPosition = this.toScreenCoordinates(this.getOsuMouseCoordinatesFromCurrentMousePosition());
-			this.controller.flashlightOccluder.update(gameCursorPosition, this.screenPixelRatio, breakiness, this.drawableBeatmap.heldSliderRightNow());
+			let screenCoordinates = this.toScreenCoordinates(this.lastCursorPosition);
+			this.controller.flashlightOccluder.update(screenCoordinates, this.screenPixelRatio, breakiness, this.drawableBeatmap.heldSliderRightNow());
 		}
 	}
 
@@ -501,6 +501,7 @@ export class Play {
 
 	handleMouseMove() {
 		if (!this.shouldHandleInputRightNow()) return;
+		this.lastCursorPosition = this.toOsuCoordinates(getCurrentMousePosition());
 		this.drawableBeatmap.handleMouseMove();
 	}
 
@@ -694,8 +695,7 @@ export class Play {
 			}
 		}
 
-		let screenCoordinates = this.toScreenCoordinates(cursorPlayfieldPos, false);
-		this.lastAutoCursorPosition = screenCoordinates;
+		this.lastCursorPosition = cursorPlayfieldPos;
 	}
 
 	fail() {
@@ -716,6 +716,6 @@ export class Play {
 	}
 
 	cannotFail() {
-		return this.activeMods.has(Mod.Auto) || this.activeMods.has(Mod.Relax) || this.activeMods.has(Mod.Autopilot) || this.activeMods.has(Mod.NoFail);
+		return this.activeMods.has(Mod.Auto) || this.activeMods.has(Mod.Cinema) || this.activeMods.has(Mod.Relax) || this.activeMods.has(Mod.Autopilot) || this.activeMods.has(Mod.NoFail);
 	}
 }

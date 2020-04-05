@@ -19851,7 +19851,7 @@ declare namespace PIXI {
      * @memberof PIXI
      */
     class Text extends PIXI.Sprite {
-        constructor(text: string, style?: any | PIXI.TextStyle, canvas?: HTMLCanvasElement);
+        constructor(text: string, style?: Partial<PIXI.TextStyle>, canvas?: HTMLCanvasElement);
         /**
          * The canvas element that everything is drawn to
          *
