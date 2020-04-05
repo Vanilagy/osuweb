@@ -52,7 +52,7 @@ export class ProgressIndicator {
 			startAngle = endAngle;
 			endAngle = temp;
 
-			ctx.strokeStyle = '#7ba632'; // Some green
+			ctx.strokeStyle = '#9CBB3C'; // Some green
 		}
 
 		ctx.lineWidth = radius - lineWidth / 2;
