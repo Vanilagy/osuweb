@@ -9,17 +9,17 @@ import { stage, addRenderingTask } from './visuals/rendering';
 import { rootInteractionGroup } from './input/interactivity';
 import { globalState } from './global_state';
 import { uiEventEmitter } from './visuals/ui';
-import { MediaPlayer } from './audio/media_player';
 import { mediaAudioNode } from './audio/audio';
-import { HighAccuracyMediaPlayer } from './audio/high_accuracy_media_player';
+import { HighAccuracyAudioPlayer } from './audio/high_accuracy_audio_player';
 import { GameplayController } from './game/gameplay_controller';
 import { addTickingTask } from './util/ticker';
 import { BackgroundManager } from './visuals/background';
 import { VirtualDirectory } from './file_system/virtual_directory';
 import { ScoreScreen } from './menu/score/score_screen';
 import { initScoreGrades } from './menu/components/score_grade_icon';
+import { AudioMediaPlayer } from './audio/audio_media_player';
 //import './tests/interactivity_playground';
-//import './tests/high_accuracy_media_player_tester';
+//import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
 //import './tests/animation_tests';
 
@@ -77,9 +77,9 @@ function initSongSelect() {
 }
 
 function initAudio() {
-	globalState.basicMediaPlayer = new MediaPlayer(mediaAudioNode);
-	globalState.gameplayMediaPlayer = new HighAccuracyMediaPlayer(mediaAudioNode);
-	globalState.gameplayMediaPlayer.disableTimeCap(); // For beatmap where the last object is RIGHT when the song file ends, this is handy to have, because then, animations can keep playing.
+	globalState.basicSongPlayer = new AudioMediaPlayer(mediaAudioNode);
+	globalState.gameplayAudioPlayer = new HighAccuracyAudioPlayer(mediaAudioNode);
+	globalState.gameplayAudioPlayer.disableTimeCap(); // For beatmap where the last object is RIGHT when the song file ends, this is handy to have, because then, animations can keep playing.
 }
 
 function initBackground() {

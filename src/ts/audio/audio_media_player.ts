@@ -1,15 +1,16 @@
-import { audioContext, mediaAudioNode } from "./audio";
+import { audioContext } from "./audio";
 import { MathUtil } from "../util/math_util";
 import { VirtualFile } from "../file_system/virtual_file";
 import { TickingTask, addTickingTask, removeTickingTask } from "../util/ticker";
 import { AnalyserNodeWrapper } from "./analyser_node_wrapper";
 import { EMPTY_FUNCTION } from "../util/misc_util";
+import { AudioPlayer } from "./audio_player";
 
 const MEDIA_NUDGE_INTERVAL = 333; // In ms
 const OBSERVED_AUDIO_MEDIA_OFFSET = 12; // In ms. Seemed like the HTMLAudioElement.currentTime was a few AHEAD of the actual sound being heard, causing the visuals to be shifted forwards in time. By subtracting these milliseconds from the returned currentTime, we compensate for that and further synchronize the visuals and gameplay with the audio.
 
 /** A basic, fast media player, that is however not fully precise. */
-export class MediaPlayer {
+export class AudioMediaPlayer extends AudioPlayer {
 	private audioElement: HTMLAudioElement = null;
 	private audioNode: MediaElementAudioSourceNode = null;
 	private startTime: number = null;
@@ -20,6 +21,7 @@ export class MediaPlayer {
 	private timeout: any; // any 'cause it, for some reason, doesn't work with 'number'
 	private pausedTime: number = null;
 	private volume: number = 1;
+	private pannerNode: StereoPannerNode;
 	private gainNode: GainNode;
 	private playbackRate = 1.0;
 	private lastCurrentTime: number = null;
@@ -30,10 +32,14 @@ export class MediaPlayer {
 	private analysers: AnalyserNodeWrapper[] = [];
 
 	constructor(destination: AudioNode) {
+		super(destination);
+
+		this.pannerNode = audioContext.createStereoPanner();
+		this.pannerNode.connect(this.destination);
+
 		this.gainNode = audioContext.createGain();
 		this.setVolume(this.volume);
-
-		this.gainNode.connect(destination);
+		this.gainNode.connect(this.pannerNode);
 		
 		this.tickingTask = () => {
 			// Handle loop end behavior
@@ -46,20 +52,6 @@ export class MediaPlayer {
 				this.start(this.loopStart);
 			}
 		};
-	}
-
-	setVolume(newVolume: number) {
-		this.volume = newVolume;
-		this.gainNode.gain.value = this.volume;
-	}
-
-	setPlaybackRate(rate: number) {
-		this.playbackRate = rate;
-		if (this.audioElement) this.audioElement.playbackRate = rate;
-	}
-
-	getPlaybackRate() {
-		return this.playbackRate;
 	}
 
 	private resetAudioElement() {
@@ -78,10 +70,15 @@ export class MediaPlayer {
 		this.startTime = null;
 		this.audioElement.onended = () => this.onPlaybackEnd();
 	}
-	
-	async loadFromVirtualFile(file: VirtualFile) {
-		let url = await file.readAsResourceUrl();
-		return this.loadUrl(url);
+
+	private onPlaybackEnd() {
+		if (this.doLoop) {
+			this.start(this.loopStart);
+		}
+	}
+
+	async loadFile(file: VirtualFile) {
+		return this.loadUrl(await file.readAsResourceUrl());
 	}
 
 	loadBuffer(buffer: ArrayBuffer) {
@@ -105,14 +102,13 @@ export class MediaPlayer {
 		});
 	}
 
-	// Offset in seconds: Positive = Start the sound at that time, Negative = Start in the song in -offset seconds
+	isEmpty() {
+		return !this.audioElement || !this.audioElement.src;
+	}
+
 	start(offset: number = 0) {
 		audioContext.resume();
-
-		if (!this.audioElement) {
-			console.error("Cannot start MediaPlayer as it has no media to play.");
-			return;
-		}
+		if (!this.audioElement) return;
 
 		if (!this.audioElement.paused) this.pause();
 
@@ -141,6 +137,11 @@ export class MediaPlayer {
 		this.playing = true;
 	}
 
+	stop() {
+		this.pause();
+		this.pausedTime = null;
+	}
+
 	pause() {
 		if (!this.playing) return;
 
@@ -162,8 +163,58 @@ export class MediaPlayer {
 		this.start(this.pausedTime);
 	}
 
-	stop() {
-		this.resetAudioElement();
+	isPlaying() {
+		return this.playing;
+	}
+
+	isPaused() {
+		return !this.isPlaying() && this.pausedTime !== undefined;
+	}
+
+	setVolume(newVolume: number) {
+		this.volume = newVolume;
+		this.gainNode.gain.value = this.volume;
+	}
+
+	setPan(pan: number) {
+		this.pannerNode.pan.value = pan;
+	}
+
+	setLoopBehavior(doLoop: boolean, loopStart = 0, loopEnd = -1) {
+		this.doLoop = doLoop;
+		this.loopStart = loopStart;
+		this.loopEnd = loopEnd;
+
+		if (doLoop) {
+			addTickingTask(this.tickingTask);
+		} else {
+			removeTickingTask(this.tickingTask);
+		}
+	}
+
+	setLoopState(loop: boolean) {
+		this.setLoopState(loop);
+	}
+
+	setPlaybackRate(rate: number) {
+		this.playbackRate = rate;
+		if (this.audioElement) this.audioElement.playbackRate = rate;
+	}
+
+	getVolume() {
+		return this.volume;
+	}
+
+	getPan() {
+		return this.pannerNode.pan.value;
+	}
+
+	getLoopState() {
+		return this.doLoop;
+	}
+
+	getPlaybackRate() {
+		return this.playbackRate;
 	}
 
 	getCurrentTime() {
@@ -206,32 +257,6 @@ export class MediaPlayer {
 		return returnValue;
 	}
 
-	isPlaying() {
-		return this.playing;
-	}
-
-	isPaused() {
-		return !this.isPlaying() && this.pausedTime !== undefined;
-	}
-	
-	setLoopBehavior(doLoop: boolean, loopStart = 0, loopEnd = -1) {
-		this.doLoop = doLoop;
-		this.loopStart = loopStart;
-		this.loopEnd = loopEnd;
-
-		if (doLoop) {
-			addTickingTask(this.tickingTask);
-		} else {
-			removeTickingTask(this.tickingTask);
-		}
-	}
-
-	private onPlaybackEnd() {
-		if (this.doLoop) {
-			this.start(this.loopStart);
-		}
-	}
-
 	createAnalyser(fftSize: number) {
 		let analyserWrapper = new AnalyserNodeWrapper(fftSize);
 		if (this.audioNode) analyserWrapper.hook(this.audioNode);
@@ -239,5 +264,22 @@ export class MediaPlayer {
 		this.analysers.push(analyserWrapper);
 
 		return analyserWrapper;
+	}
+
+	getDuration() {
+		return this.audioElement && this.audioElement.duration;
+	}
+
+	clone() {
+		let player = new AudioMediaPlayer(this.destination);
+
+		if (this.audioElement && this.audioElement.src) player.loadUrl(this.audioElement.src);
+
+		player.setVolume(this.getVolume());
+		player.setPan(this.getPan());
+		player.setPlaybackRate(this.getPlaybackRate());
+		player.setLoopBehavior(this.doLoop, this.loopStart, this.loopEnd);
+		
+		return player;
 	}
 }

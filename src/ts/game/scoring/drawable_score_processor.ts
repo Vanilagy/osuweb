@@ -4,8 +4,8 @@ import { InterpolatedValueChanger, Interpolator } from "../../util/interpolation
 import { EaseType, MathUtil } from "../../util/math_util";
 import { Judgement } from "../../datamodel/scoring/judgement";
 import { ScoringValue } from "../../datamodel/scoring/score";
-import { OsuSoundType } from "../skin/sound";
 import { DrawableJudgement } from "./drawable_judgement";
+import { SkinSoundType } from "../skin/skin";
 
 interface DelayedVisualComboIncrease {
 	time: number,
@@ -78,7 +78,7 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 		if (this.currentCombo === 0) return;
 
 		if (this.currentCombo >= 50) {
-			this.play.skin.sounds[OsuSoundType.ComboBreak].play(100);
+			this.play.skin.sounds[SkinSoundType.ComboBreak].start(0);
 		}
 
 		this.currentCombo = 0;

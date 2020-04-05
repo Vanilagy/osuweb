@@ -10,6 +10,8 @@ import { Mod } from "../../datamodel/mods";
 import { Point, pointDistance } from "../../util/point";
 import { GAME_KEYS } from "../../input/gameplay_input_controller";
 import { getCurrentMousePosition } from "../../input/input";
+import { globalState } from "../../global_state";
+import { SkinSoundType } from "../../game/skin/skin";
 
 const BUTTON_WIDTH = 336;
 const BUTTON_HEIGHT = 52;
@@ -189,9 +191,11 @@ export class PauseScreen {
 
 			this.cursorAlignmentRegistration.enable();
 			this.buttonsGroup.disable();
+			globalState.baseSkin.sounds[SkinSoundType.PauseLoop].stop();
 		} else {
 			this.cursorAlignmentRegistration.disable();
 			this.buttonsGroup.enable();
+			if (this.currentMode === PauseScreenMode.Paused) globalState.baseSkin.sounds[SkinSoundType.PauseLoop].start(0);
 		}
 	}
 
@@ -207,6 +211,8 @@ export class PauseScreen {
 			this.updateHeadingText('failed');
 			this.continueButton.container.visible = false;
 			this.continueButton.disable();
+
+			globalState.baseSkin.sounds[SkinSoundType.FailSound].start(0);
 		}
 
 		this.fadeInterpolator.setReversedState(false, performance.now());
@@ -225,6 +231,12 @@ export class PauseScreen {
 		this.centerContainerInterpolator.setReversedState(true, now);
 
 		this.interactionGroup.disable();
+		this.turnOffSound();
+	}
+
+	turnOffSound() {
+		globalState.baseSkin.sounds[SkinSoundType.PauseLoop].stop();
+		globalState.baseSkin.sounds[SkinSoundType.FailSound].stop();
 	}
 
 	shown() {

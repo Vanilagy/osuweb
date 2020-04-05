@@ -1,4 +1,4 @@
-import { HighAccuracyMediaPlayer } from "../audio/high_accuracy_media_player";
+import { HighAccuracyAudioPlayer } from "../audio/high_accuracy_audio_player";
 import { mediaAudioNode, audioContext } from "../audio/audio";
 import { AudioUtil } from "../util/audio_util";
 
@@ -6,7 +6,7 @@ async function tester() {
 	let request = await fetch('./assets/test_maps/SeashoreOnTheMoon/audio.mp3');
 	let arrayBuffer = await request.arrayBuffer();
 
-	let player = new HighAccuracyMediaPlayer(mediaAudioNode);
+	let player = new HighAccuracyAudioPlayer(mediaAudioNode);
 	player.loadBuffer(arrayBuffer);
 	player.setTempo(1.0);
 	player.setPitch(1.0);

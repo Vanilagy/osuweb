@@ -1,4 +1,9 @@
 import { bytesToString } from "./misc_util";
+import { VirtualDirectory } from "../file_system/virtual_directory";
+import { AudioPlayer } from "../audio/audio_player";
+import { VirtualFile } from "../file_system/virtual_file";
+import { AudioBufferPlayer } from "../audio/audio_buffer_player";
+import { AudioMediaPlayer } from "../audio/audio_media_player";
 
 // All bitrate values are in 1000 bits per second
 const MPEGV1_BITRATES: { [layer: number]: { [bitrateIndex: number]: number } } = {
@@ -330,5 +335,29 @@ export class AudioUtil {
 		shifter.connect(offlineContext.destination);
 
 		return offlineContext.startRendering();
+	}
+
+	static async createSoundPlayerFromFileName(directory: VirtualDirectory, fileName: string, playerType: 'audioBufferPlayer' | 'audioPlayer', destination: AudioNode) {
+		let foundFile: VirtualFile;
+
+		if (directory.networkFallbackUrl) {
+			await directory.getFileByPath(fileName + '.wav');
+            await directory.getFileByPath(fileName + '.mp3');
+		}
+
+		directory.forEachFile((e) => {
+			if (foundFile) return;
+			if (!e.name.startsWith(fileName)) return;
+
+			foundFile = e;
+		});
+
+		let player: AudioPlayer;
+		if (playerType === 'audioBufferPlayer') player = new AudioBufferPlayer(destination);
+		else player = new AudioMediaPlayer(destination);
+
+		if (foundFile) await player.loadFile(foundFile);
+
+		return player;
 	}
 }

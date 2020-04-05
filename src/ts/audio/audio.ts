@@ -8,7 +8,7 @@ masterGain.gain.value = DEFAULT_MASTER_GAIN_VOLUME;
 masterGain.connect(audioContext.destination);
 
 export let mediaAudioNode = audioContext.createGain();
-mediaAudioNode.gain.value = 0.75;
+mediaAudioNode.gain.value = 0.000000001 || 0.75;
 mediaAudioNode.connect(masterGain);
 
 export let soundEffectsNode = audioContext.createGain();

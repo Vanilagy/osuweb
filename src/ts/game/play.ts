@@ -6,7 +6,6 @@ import { last } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
-import { calculatePanFromOsuCoordinates, HitSoundInfo } from "./skin/sound";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
@@ -23,6 +22,7 @@ import { PauseScreenMode } from "../menu/gameplay/pause_screen";
 import { HealthProcessor } from "../datamodel/scoring/health_processor";
 import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
 import { Judgement } from "../datamodel/scoring/judgement";
+import { HitSoundInfo, calculatePanFromOsuCoordinates } from "./skin/hit_sound";
 
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
@@ -130,7 +130,7 @@ export class Play {
 
 		this.reset();
 
-		let mediaPlayer = globalState.gameplayMediaPlayer,
+		let mediaPlayer = globalState.gameplayAudioPlayer,
 		    backgroundManager = globalState.backgroundManager;
 
 		console.time("Audio load");
@@ -215,10 +215,10 @@ export class Play {
 		if (this.processedBeatmap.hitObjects.length > 0) {
 			minimumStartDuration = this.processedBeatmap.hitObjects[0].startTime / 1000; // When the first hit object starts. This way, we can be sure that we can skip the intro of the song without further audio decoding delay.
 		}
-		globalState.gameplayMediaPlayer.setMinimumBeginningSliceDuration(minimumStartDuration);
+		globalState.gameplayAudioPlayer.setMinimumBeginningSliceDuration(minimumStartDuration);
 
 		if (when === undefined) when = 0 || -this.preludeTime / 1000;
-		await globalState.gameplayMediaPlayer.start(when);
+		await globalState.gameplayAudioPlayer.start(when);
 
 		this.playing = true;
 		this.tick();
@@ -401,12 +401,12 @@ export class Play {
 
 		let failAnimationCompletion = this.calculateFailAnimationCompletion();
 		if (this.hasFailed()) {
-			globalState.gameplayMediaPlayer.setPlaybackRate(this.calculateFailPlaybackRateFactor());
+			globalState.gameplayAudioPlayer.setPlaybackRate(this.calculateFailPlaybackRateFactor());
 
 			if (failAnimationCompletion === 1 && !this.failAnimationEndTriggered) {
 				this.controller.pauseScreen.show(PauseScreenMode.Failed);
-				globalState.gameplayMediaPlayer.pause();
-				globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
+				globalState.gameplayAudioPlayer.pause();
+				globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 
 				this.failAnimationEndTriggered = true;
 			}
@@ -429,7 +429,7 @@ export class Play {
 		this.paused = true;
 		this.playing = false;
 
-		globalState.gameplayMediaPlayer.pause();
+		globalState.gameplayAudioPlayer.pause();
 		this.drawableBeatmap.stopHitObjectSounds();
 		if (this.hasVideo) globalState.backgroundManager.pauseVideo();
 	}
@@ -440,7 +440,7 @@ export class Play {
 		this.paused = false;
 		this.playing = true;
 
-		globalState.gameplayMediaPlayer.unpause();
+		globalState.gameplayAudioPlayer.unpause();
 	}
 
 	reset() {
@@ -457,8 +457,8 @@ export class Play {
 		this.failTime = null;
 		this.currentTimeAtFail = null;
 		this.failAnimationEndTriggered = false;
-		globalState.gameplayMediaPlayer.pause();
-		globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
+		globalState.gameplayAudioPlayer.pause();
+		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 
 		if (this.activeMods.has(Mod.Auto)) {
 			this.currentPlaythroughInstruction = 0;
@@ -475,8 +475,8 @@ export class Play {
 		this.playing = false;
 		this.drawableBeatmap.dispose();
 
-		globalState.gameplayMediaPlayer.stop();
-		globalState.gameplayMediaPlayer.disablePlaybackRateChangerNode();
+		globalState.gameplayAudioPlayer.stop();
+		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 		this.drawableBeatmap.stopHitObjectSounds();
 		if (this.hasVideo) globalState.backgroundManager.removeVideo();
 	}
@@ -525,7 +525,7 @@ export class Play {
 			let skipToTime = currentBreak.endTime - SKIP_BUTTON_END_TIME;
 
 			if (currentTime < skipToTime) {
-				await globalState.gameplayMediaPlayer.start(skipToTime / 1000);
+				await globalState.gameplayAudioPlayer.start(skipToTime / 1000);
 				this.controller.hud.skipButton.doFlash();
 			}
 		}
@@ -554,8 +554,8 @@ export class Play {
 			return currentSongTime;
 		}
 
-		if (globalState.gameplayMediaPlayer.isPlaying() === false) return -this.preludeTime;
-		return globalState.gameplayMediaPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
+		if (globalState.gameplayAudioPlayer.isPlaying() === false) return -this.preludeTime;
+		return globalState.gameplayAudioPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
 	}
 
 	toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
@@ -626,12 +626,12 @@ export class Play {
 		let pan = calculatePanFromOsuCoordinates(info.position);
 		let playbackRate = this.getHitSoundPlaybackRate();
 
-		let baseSound = skin.sounds[info.base];
+		let baseSound = skin.hitSounds[info.base];
         baseSound.play(info.volume, info.sampleIndex, pan, playbackRate);
 
         if (info.additions) {
             for (let i = 0; i < info.additions.length; i++) {
-                let additionSound = skin.sounds[info.additions[i]];
+                let additionSound = skin.hitSounds[info.additions[i]];
                 additionSound.play(info.volume, info.sampleIndex, pan, playbackRate);
             }
         }
@@ -719,7 +719,7 @@ export class Play {
 		this.currentTimeAtFail = this.getCurrentSongTime();
 		this.failTime = performance.now();
 
-		globalState.gameplayMediaPlayer.enablePlaybackRateChangerNode();
+		globalState.gameplayAudioPlayer.enablePlaybackRateChangerNode();
 
 		this.drawableBeatmap.stopHitObjectSounds();
 	}

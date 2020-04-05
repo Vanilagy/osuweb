@@ -18,7 +18,7 @@ interface AudioBufferInfo {
 	eofReached: boolean // If the audio buffer reaches into the end of file
 }
 
-export class HighAccuracyMediaPlayer {
+export class HighAccuracyAudioPlayer {
 	private file: VirtualFile;
 	private data: ArrayBuffer;
 	private dataView: DataView;

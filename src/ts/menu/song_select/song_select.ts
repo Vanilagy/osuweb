@@ -138,7 +138,7 @@ export class SongSelect {
 		if (!this.selectedBeatmapFile) return;
 		
 		this.hide();
-		globalState.basicMediaPlayer.pause();
+		globalState.basicSongPlayer.pause();
 	
 		this.selectedBeatmapFile.readAsText().then((text) => {
 			let map = new Beatmap({
@@ -157,13 +157,13 @@ export class SongSelect {
 		if (!audioFile) return;
 
 		this.currentAudioBeatmap = audioBeatmap;
-		let mediaPlayer = globalState.basicMediaPlayer;
+		let songPlayer = globalState.basicSongPlayer;
 
-		await mediaPlayer.loadFromVirtualFile(audioFile);
+		await songPlayer.loadFile(audioFile);
 
 		let startTime = audioBeatmap.getAudioPreviewTimeInSeconds();
-		mediaPlayer.start(startTime)
-		mediaPlayer.setLoopBehavior(true, startTime);
+		songPlayer.start(startTime)
+		songPlayer.setLoopBehavior(true, startTime);
 		this.sideControlPanel.resetLastBeatTime();
 	}
 

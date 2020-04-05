@@ -1,8 +1,9 @@
 import { OsuTexture } from "../skin/texture";
-import { OsuSound, OsuSoundType } from "../skin/sound";
 import { TAU, MathUtil } from "../../util/math_util";
 import { currentWindowDimensions } from "../../visuals/ui";
 import { Hud } from "./hud";
+import { AudioPlayer } from "../../audio/audio_player";
+import { SkinSoundType } from "../skin/skin";
 
 const SECTION_STATE_DISPLAY_FLICKER_DURATION = 250; // In ms
 const SECTION_STATE_DISPLAY_FLICKER_AMOUNT = 2;
@@ -36,18 +37,18 @@ export class SectionStateDisplayer {
 		this.lastPopUpTime = currentTime;
 
 		let { screenPixelRatio, skin } = this.hud.controller.currentPlay;
-		let osuTexture: OsuTexture, osuSound: OsuSound;
+		let osuTexture: OsuTexture, soundPlayer: AudioPlayer;
 
 		if (pass) {
 			osuTexture = skin.textures["sectionPass"];
-			osuSound = skin.sounds[OsuSoundType.SectionPass];
+			soundPlayer = skin.sounds[SkinSoundType.SectionPass];
 		} else {
 			osuTexture = skin.textures["sectionFail"];
-			osuSound = skin.sounds[OsuSoundType.SectionFail];
+			soundPlayer = skin.sounds[SkinSoundType.SectionFail];
 		}
 
 		osuTexture.applyToSprite(this.sprite, screenPixelRatio);
-		osuSound.play(100);        
+		soundPlayer.start(0);
 	}
 
 	update(currentTime: number) {

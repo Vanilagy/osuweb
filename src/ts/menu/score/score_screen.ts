@@ -17,6 +17,7 @@ import { Button, ButtonPivot, DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT } from
 import { AnimationParameterList, Animation, AnimationEvent, AnimationPlayer } from "../../util/animation";
 import { modComparator } from "../../datamodel/mods";
 import { KeyCode } from "../../input/input";
+import { SkinSoundType } from "../../game/skin/skin";
 
 const SCORE_SCREEN_WIDTH = 615;
 const SCORE_SCREEN_HEIGHT = 342;
@@ -216,6 +217,8 @@ export class ScoreScreen {
 	hide() {
 		this.fadeOutInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.disable();
+
+		globalState.baseSkin.sounds[SkinSoundType.Applause].stop();
 	}
 
 	show() {
@@ -224,6 +227,8 @@ export class ScoreScreen {
 		this.fadeOutInterpolator.setReversedState(true, performance.now());
 		this.fadeOutInterpolator.end();
 		this.animationPlayer.start(performance.now());
+
+		globalState.baseSkin.sounds[SkinSoundType.Applause].start(0);
 	}
 
 	private close() {

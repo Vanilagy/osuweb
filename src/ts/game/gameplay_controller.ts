@@ -176,6 +176,8 @@ export class GameplayController {
 		globalState.songSelect.show();
 		globalState.backgroundManager.setGameplayState(false, 500, EaseType.EaseInQuad);
 		globalState.backgroundManager.setBlurState(true, 400, EaseType.EaseOutQuart);
+
+		this.pauseScreen.turnOffSound();
 	}
 
 	async completePlay() {

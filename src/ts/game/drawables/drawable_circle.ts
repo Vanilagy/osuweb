@@ -2,13 +2,13 @@ import { Circle } from "../../datamodel/circle";
 import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../../util/constants";
 import { DrawableHeadedHitObject, CircleScoring, getDefaultCircleScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { HitSoundInfo, generateHitSoundInfo } from "../skin/sound";
 import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { DrawableBeatmap } from "../drawable_beatmap";
 import { ScoringValue } from "../../datamodel/scoring/score";
 import { Mod } from "../../datamodel/mods";
 import { Judgement } from "../../datamodel/scoring/judgement";
+import { HitSoundInfo, generateHitSoundInfo } from "../skin/hit_sound";
 
 export class DrawableCircle extends DrawableHeadedHitObject {
 	public parent: ProcessedCircle;

@@ -6,11 +6,9 @@ import { colorToHexNumber } from "../../util/graphics_util";
 import { assert, last } from "../../util/misc_util";
 import { DrawableHeadedHitObject, SliderScoring, getDefaultSliderScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
-import { SoundEmitter } from "../../audio/sound_emitter";
 import { renderer } from "../../visuals/rendering";
 import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix, updateSliderBodyShaderUniforms } from "./slider_body_shader";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
-import { HitSoundInfo, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates, determineSampleSet, determineVolume, determineSampleIndex } from "../skin/sound";
 import { ProcessedSlider, SpecialSliderBehavior } from "../../datamodel/processed/processed_slider";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { DrawableSliderPath, SliderBounds } from "./drawable_slider_path";
@@ -20,6 +18,8 @@ import { ScoringValue } from "../../datamodel/scoring/score";
 import { Mod } from "../../datamodel/mods";
 import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 import { Judgement } from "../../datamodel/scoring/judgement";
+import { HitSoundInfo, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, determineSampleSet, determineVolume, determineSampleIndex, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates } from "../skin/hit_sound";
+import { AudioBufferPlayer } from "../../audio/audio_buffer_player";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -56,7 +56,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	
 	public hitSounds: HitSoundInfo[];
 	public tickSounds: HitSoundInfo[];
-	public slideEmitters: SoundEmitter[];
+	public slidePlayers: AudioBufferPlayer[];
 	private sliderSlideSoundPlaying = false;
 	private currentlyHolding = false;
 
@@ -313,17 +313,17 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	
 			// Slider slide sound
 			let sliderSlideTypes = getSliderSlideTypesFromSampleSet(sampleSet, slider.hitSound);
-			let sliderSlideEmitters: SoundEmitter[] = [];
+			let sliderSlidePlayers: AudioBufferPlayer[] = [];
 			let sliderSlideStartPan = calculatePanFromOsuCoordinates(this.parent.startPoint);
 			for (let i = 0; i < sliderSlideTypes.length; i++) {
 				let type = sliderSlideTypes[i];
-				let emitter = this.drawableBeatmap.play.skin.sounds[type].getEmitter(volume, sampleIndex, sliderSlideStartPan);
-				if (!emitter || emitter.isReallyShort()) continue;
+				let player = this.drawableBeatmap.play.skin.hitSounds[type].getPlayer(volume, sampleIndex, sliderSlideStartPan);
+				if (!player || player.isReallyShort()) continue;
 	
-				emitter.setLoopState(true);
-				sliderSlideEmitters.push(emitter);
+				player.setLoopState(true);
+				sliderSlidePlayers.push(player);
 			}
-			this.slideEmitters = sliderSlideEmitters;
+			this.slidePlayers = sliderSlidePlayers;
 
 			if (this.currentlyHolding) this.beginSliderSlideSound();
 		}
@@ -631,11 +631,11 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 	private beginSliderSlideSound() {
 		if (this.sliderSlideSoundPlaying) return;
-		if (!this.slideEmitters) return;
+		if (!this.slidePlayers) return;
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-		for (let i = 0; i < this.slideEmitters.length; i++) {
-			this.slideEmitters[i].start();
+		for (let i = 0; i < this.slidePlayers.length; i++) {
+			this.slidePlayers[i].start();
 		}
 
 		this.sliderSlideSoundPlaying = true;
@@ -643,10 +643,10 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 	private stopSliderSlideSound() {
 		if (!this.sliderSlideSoundPlaying) return;
-		if (!this.slideEmitters) return;
+		if (!this.slidePlayers) return;
 
-		for (let i = 0; i < this.slideEmitters.length; i++) {
-			this.slideEmitters[i].stop();
+		for (let i = 0; i < this.slidePlayers.length; i++) {
+			this.slidePlayers[i].stop();
 		}
 
 		this.sliderSlideSoundPlaying = false;
@@ -851,10 +851,10 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				let currentPosition = this.drawablePath.getPosFromPercentage(MathUtil.mirror(this.calculateCompletionAtTime(currentTime)));
 				let pan = calculatePanFromOsuCoordinates(currentPosition);
 
-				// Update the pan on the slider slide emitters
-				for (let i = 0; i < this.slideEmitters.length; i++) {
-					let emitter = this.slideEmitters[i];
-					emitter.setPan(pan);
+				// Update the pan on the slider slide players
+				for (let i = 0; i < this.slidePlayers.length; i++) {
+					let player = this.slidePlayers[i];
+					player.setPan(pan);
 				}
 
 				this.setHoldingState(followCircleHits(currentPosition), currentTime);

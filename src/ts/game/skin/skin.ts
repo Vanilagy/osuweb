@@ -4,7 +4,10 @@ import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "
 import { Color } from "../../util/graphics_util";
 import { assert, jsonClone, shallowObjectClone, last } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
-import { OsuSoundType, OsuSound, osuSoundFileNames } from "./sound";
+import { HitSound, HitSoundType, hitSoundFileNames } from "./hit_sound";
+import { AudioPlayer } from "../../audio/audio_player";
+import { AudioUtil } from "../../util/audio_util";
+import { soundEffectsNode } from "../../audio/audio";
 
 export const IGNORE_BEATMAP_SKIN = false;
 export const IGNORE_BEATMAP_HIT_SOUNDS = true;
@@ -12,6 +15,17 @@ const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8",
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
 const CURRENT_LATEST_SKIN_VERSION = 2.5;
+
+export enum SkinSoundType {
+	SpinnerSpin,
+	SpinnerBonus,
+	ComboBreak,
+	SectionPass,
+	SectionFail,
+	PauseLoop,
+	Applause,
+	FailSound
+}
 
 export class Skin {
     private directory: VirtualDirectory;
@@ -21,8 +35,9 @@ export class Skin {
     public hitCircleNumberTextures: SpriteNumberTextures;
     public scoreNumberTextures: SpriteNumberTextures;
     public comboNumberTextures: SpriteNumberTextures;
-    public colors: Color[];
-	public sounds: { [key in keyof typeof OsuSoundType]?: OsuSound };
+	public colors: Color[];
+	public hitSounds: { [key in keyof typeof HitSoundType]?: HitSound };
+	public sounds: { [key in keyof typeof SkinSoundType]?: AudioPlayer };
 	/** Whether sliderBallBg and sliderBallSpec are shown. */
 	public allowSliderBallExtras: boolean;
 
@@ -33,6 +48,7 @@ export class Skin {
         this.scoreNumberTextures = null;
         this.comboNumberTextures = null;
         this.colors = [];
+		this.hitSounds = {};
 		this.sounds = {};
 		this.allowSliderBallExtras = true;
     }
@@ -164,20 +180,30 @@ export class Skin {
         
         /* Sounds */
         
-        for (let key in OsuSoundType) {
+        for (let key in HitSoundType) {
             if (isNaN(Number(key))) continue;
 
-            let type = Number(key) as OsuSoundType;
-            let fileName = osuSoundFileNames.get(type);
+            let type = Number(key) as HitSoundType;
+            let fileName = hitSoundFileNames.get(type);
 
             if (this.directory.networkFallbackUrl) {
                 await this.directory.getFileByPath(fileName + '.wav');
                 await this.directory.getFileByPath(fileName + '.mp3');
             }
 
-            let osuSound = new OsuSound(this.directory, fileName);
-            this.sounds[key] = osuSound;
+            let hitSound = HitSound.initFromFileName(this.directory, fileName);
+            this.hitSounds[key] = hitSound;
 		}
+
+		this.sounds[SkinSoundType.SpinnerSpin] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "spinnerspin", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.SpinnerBonus] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "spinnerbonus", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.ComboBreak] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "combobreak", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.SectionPass] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "sectionpass", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.SectionFail] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "sectionfail", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.PauseLoop] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "pause-loop", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.PauseLoop].setLoopState(true);
+		this.sounds[SkinSoundType.Applause] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "applause", "audioPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.FailSound] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "failsound", "audioPlayer", soundEffectsNode);
 		
 		if (readyAssets) await this.readyAssets();
 
@@ -187,14 +213,14 @@ export class Skin {
     async readyAssets() {
 		console.time("Hit sounds load");
 
-        let osuSoundReadyPromises: Promise<void>[] = [];
+        let hitSoundReadyPromises: Promise<void>[] = [];
 
-        for (let key in this.sounds) {
-			let osuSound = this.sounds[key];
-            osuSoundReadyPromises.push(osuSound.ready());
+        for (let key in this.hitSounds) {
+			let hitSound = this.hitSounds[key];
+            hitSoundReadyPromises.push(hitSound.ready());
         }
 
-        await Promise.all(osuSoundReadyPromises);
+        await Promise.all(hitSoundReadyPromises);
 
         console.timeEnd("Hit sounds load");
 
@@ -215,6 +241,7 @@ export class Skin {
         newSkin.scoreNumberTextures = shallowObjectClone(this.scoreNumberTextures);
         newSkin.comboNumberTextures = shallowObjectClone(this.comboNumberTextures);
         newSkin.colors = this.colors.slice(0);
+		newSkin.hitSounds = shallowObjectClone(this.hitSounds);
 		newSkin.sounds = shallowObjectClone(this.sounds);
 		newSkin.allowSliderBallExtras = this.allowSliderBallExtras;
 
@@ -227,7 +254,7 @@ export class Skin {
     }
 }
 
-export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = true, useLastConfig = false) {
+export function joinSkins(skins: Skin[], joinTextures = true, joinSounds = true, useLastConfig = false) {
     assert(skins.length > 0);
 
 	let baseSkin = skins[0].clone();
@@ -289,12 +316,17 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinHitSounds = tr
 			}
         }
 
-        if (joinHitSounds) {
-            for (let key in skin.sounds) {
-                let sound = skin.sounds[key];
-                if (sound.isEmpty()) continue;
+        if (joinSounds) {
+            for (let key in skin.hitSounds) {
+				let hitSound = skin.hitSounds[key];
+                baseSkin.hitSounds[key] = baseSkin.hitSounds[key].joinWith(hitSound);
+			}
+			
+			for (let key in skin.sounds) {
+                let sounds = skin.sounds[key];
+                if (sounds.isEmpty()) continue;
     
-                baseSkin.sounds[key] = sound;
+                baseSkin.sounds[key] = sounds;
             }
         }
     }

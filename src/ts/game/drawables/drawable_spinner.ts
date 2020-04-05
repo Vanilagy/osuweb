@@ -5,8 +5,6 @@ import { Point } from "../../util/point";
 import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../../util/constants";
 import { colorToHexNumber, lerpColors, Color, Colors } from "../../util/graphics_util";
 import { SpriteNumber } from "../../visuals/sprite_number";
-import { SoundEmitter } from "../../audio/sound_emitter";
-import { HitSoundInfo, generateHitSoundInfo, OsuSoundType } from "../skin/sound";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { currentWindowDimensions } from "../../visuals/ui";
@@ -16,6 +14,10 @@ import { Mod } from "../../datamodel/mods";
 import { ScoringValue } from "../../datamodel/scoring/score";
 import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 import { Judgement } from "../../datamodel/scoring/judgement";
+import { HitSoundInfo, generateHitSoundInfo, determineVolume, HitSoundType } from "../skin/hit_sound";
+import { AudioBufferPlayer } from "../../audio/audio_buffer_player";
+import { SkinSoundType } from "../skin/skin";
+import { AudioPlayer } from "../../audio/audio_player";
 
 const SPINNER_FADE_IN_TIME = DEFAULT_HIT_OBJECT_FADE_IN_TIME; // In ms
 const SPINNER_FADE_OUT_TIME = 200; // In ms
@@ -74,7 +76,7 @@ export class DrawableSpinner extends DrawableHitObject {
 	private bonusSpins: number;
 	private angularVelocity: number;
 
-	private spinSoundEmitter: SoundEmitter = null;
+	private spinSoundPlayer: AudioPlayer = null;
 	// TODO: Clean this up. Ergh. Disgusting.
 	private bonusSoundVolume: number;
 	
@@ -221,15 +223,15 @@ export class DrawableSpinner extends DrawableHitObject {
 		if (updateSkin) {
 			let spinner = this.parent.hitObject;
 			let currentTimingPoint = this.parent.timingInfo.timingPoint;
-			let volume = spinner.extras.sampleVolume || currentTimingPoint.volume,
-				index = spinner.extras.customIndex || currentTimingPoint.sampleIndex || 1;
+			let volume = determineVolume(spinner.extras.sampleVolume, currentTimingPoint);
 
-			let emitter = this.drawableBeatmap.play.skin.sounds[OsuSoundType.SpinnerSpin].getEmitter(volume, index);
-			if (emitter && !emitter.isReallyShort()) {
+			let soundPlayer = this.drawableBeatmap.play.skin.sounds[SkinSoundType.SpinnerSpin].clone();
+			if (soundPlayer && !soundPlayer.isReallyShort()) {
 				this.stopSpinningSound();
 
-				emitter.setLoopState(true);
-				this.spinSoundEmitter = emitter;
+				soundPlayer.setLoopState(true);
+				soundPlayer.setVolume(volume / 100);
+				this.spinSoundPlayer = soundPlayer;
 			}
 
 			this.bonusSoundVolume = volume;
@@ -546,8 +548,10 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.spinnerBonus.setValue(this.bonusSpins * 1000);
 			this.bonusSpinsInterpolator.start(currentTime);
 			this.glowInterpolator.start(currentTime);
-
-			skin.sounds[OsuSoundType.SpinnerBonus].play(this.bonusSoundVolume);
+			
+			let bonusPlayer = skin.sounds[SkinSoundType.SpinnerBonus].clone();
+			bonusPlayer.setVolume(this.bonusSoundVolume / 100);
+			bonusPlayer.start(0);
 		}
 
 		let spinCompletion = spinsSpunNow / this.parent.requiredSpins;
@@ -555,16 +559,16 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.spinnerSpinFadeOutStart = currentTime;
 		}
 
-		if (this.spinSoundEmitter) {
-			if (!this.spinSoundEmitter.isPlaying() && this.angularVelocity !== 0) this.spinSoundEmitter.start();
+		if (this.spinSoundPlayer) {
+			if (!this.spinSoundPlayer.isPlaying() && this.angularVelocity !== 0) this.spinSoundPlayer.start(0);
 			if (this.angularVelocity === 0) this.stopSpinningSound();
 
-			if (skin.config.general.spinnerFrequencyModulate) this.spinSoundEmitter.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
+			if (skin.config.general.spinnerFrequencyModulate) this.spinSoundPlayer.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
 		}
 	}
 
 	stopSpinningSound() {
-		if (this.spinSoundEmitter) this.spinSoundEmitter.stop();
+		if (this.spinSoundPlayer) this.spinSoundPlayer.stop();
 	}
 
 	handleButtonDown() {
