@@ -442,7 +442,7 @@ export class HighAccuracyMediaPlayer {
 
 	private stopAudio() {
 		if (this.currentMasterNode) {
-			// Since this class uses Web Audio API scheduling, adn scheduled events cannot be cancelled, we simply kill this master node to stop the sound.
+			// Since this class uses Web Audio API scheduling, and (not all) scheduled events cannot be cancelled, we simply kill this master node to stop the sound.
 			this.currentMasterNode.disconnect();
 			this.currentMasterNode = null;
 			this.currentMasterNodeId++;

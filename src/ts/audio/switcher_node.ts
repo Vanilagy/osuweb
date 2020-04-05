@@ -26,19 +26,18 @@ export class SwitcherNode {
 	setSwitch(b: boolean, duration: number) {
 		if (this.currentSwitch === b) return;
 
-		if (!b) {
-			this.gain1.gain.setValueAtTime(0, audioContext.currentTime);
-			this.gain2.gain.setValueAtTime(1, audioContext.currentTime);
+		this.gain1.gain.cancelScheduledValues(audioContext.currentTime);
+		this.gain2.gain.cancelScheduledValues(audioContext.currentTime);
 
-			this.gain1.gain.linearRampToValueAtTime(1, audioContext.currentTime + duration);
-			this.gain2.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
-		} else {
-			this.gain1.gain.setValueAtTime(1, audioContext.currentTime);
-			this.gain2.gain.setValueAtTime(0, audioContext.currentTime);
-
-			this.gain1.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
-			this.gain2.gain.linearRampToValueAtTime(1, audioContext.currentTime + duration);
-		}
+		let gain1Target = b? 0 : 1;
+		
+		this.gain1.gain.setValueAtTime(1 - gain1Target, audioContext.currentTime);
+		this.gain2.gain.setValueAtTime(gain1Target, audioContext.currentTime);
+		this.gain1.gain.linearRampToValueAtTime(gain1Target, audioContext.currentTime + duration);
+		this.gain2.gain.linearRampToValueAtTime(1 - gain1Target, audioContext.currentTime + duration);
+		// We set the values here again because there's some rare WebAudio bug happening sometimes? Idk...
+		this.gain1.gain.setValueAtTime(gain1Target, audioContext.currentTime + duration);
+		this.gain2.gain.setValueAtTime(1 - gain1Target, audioContext.currentTime + duration);
 
 		this.currentSwitch = b;
 	}
