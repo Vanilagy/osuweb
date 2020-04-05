@@ -645,7 +645,7 @@ export class Play {
 		}
 
 		let currentInstruction = this.playthroughInstructions[this.currentPlaythroughInstruction];
-		//if (currentInstruction.time > currentTime) return;
+		if (currentInstruction.time > currentTime) return;
 
 		let cursorPlayfieldPos: Point = null;
 
