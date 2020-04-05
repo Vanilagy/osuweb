@@ -49,6 +49,7 @@ export class Play {
 	public healthProcessor: HealthProcessor;
 	public activeMods: Set<Mod>;
 	public colorArray: Color[];
+	public remainingLives: number;
 
 	private lastTickTime: number = null;
 	private currentBreakIndex = 0;
@@ -446,6 +447,7 @@ export class Play {
 		this.drawableBeatmap.reset();
 		this.scoreProcessor.reset();
 		this.healthProcessor.reset();
+		this.remainingLives = this.getTotalLives();
 
 		this.lastTickTime = null;
 		this.currentBreakIndex = 0;
@@ -536,6 +538,10 @@ export class Play {
 
 	private calculateFailPlaybackRateFactor() {
 		return 1 - this.calculateFailAnimationCompletion();
+	}
+
+	private getTotalLives() {
+		return this.activeMods.has(Mod.Easy)? 3 : 1;
 	}
 
 	getCurrentSongTime() {
@@ -702,6 +708,13 @@ export class Play {
 		if (this.completed) return;
 		if (this.hasFailed()) return;
 		if (this.cannotFail()) return;
+
+		this.remainingLives--;
+		if (this.remainingLives > 0) {
+			// Heal back to full health
+			this.healthProcessor.health = 1.0;
+			return;
+		}
 
 		this.currentTimeAtFail = this.getCurrentSongTime();
 		this.failTime = performance.now();
