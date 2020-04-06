@@ -276,9 +276,9 @@ export class ScoreScreen {
 		let accuracyData = score.calculateAccuracyData();
 		this.accuracyInfoText.text = `error: ${accuracyData.lowError.toFixed(2)}ms - +${accuracyData.highError.toFixed(2)}ms\nunstable rate: ${accuracyData.unstableRate.toFixed(2)}`;
 
-		if (accuracyData.averageRpm !== null) {
+		if (accuracyData.averageSpm !== null) {
 			this.spinInfoText.visible = true;
-			this.spinInfoText.text = `spin: ${Math.floor(accuracyData.averageRpm)} (max: ${Math.floor(accuracyData.maxRpm)}rpm)\nunstable rate: ${accuracyData.rpmUnstableRate.toFixed(2)}`;
+			this.spinInfoText.text = `average spin: ${Math.floor(accuracyData.averageSpm)}rpm`;
 		} else {
 			this.spinInfoText.visible = false;
 		}

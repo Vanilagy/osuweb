@@ -27,9 +27,9 @@ interface ScoreAccuracyData {
 	lowError: number,
 	highError: number,
 	unstableRate: number,
-	averageRpm?: number,
-	maxRpm?: number,
-	rpmUnstableRate?: number
+	averageSpm?: number,
+	/** Due to how this value is being calculated right now, this is almost ALWAYS 477. Therefore it's just kind of... pointless. */
+	maxSpm?: number,
 }
 
 export class Score {
@@ -44,7 +44,8 @@ export class Score {
 	public maxCombo: number;
 	public mods: Set<Mod>;
 	public hitInaccuracies: number[];
-	public spinRpms: number[];
+	public spmAverages: number[];
+	public spmMaxima: number[];
 
 	reset() {
 		this.points = 0;
@@ -59,7 +60,8 @@ export class Score {
 		this.maxCombo = 0;
 
 		this.hitInaccuracies = [];
-		this.spinRpms = [];
+		this.spmAverages = [];
+		this.spmMaxima = [];
 	}
 
 	getTotalHits() {
@@ -90,9 +92,8 @@ export class Score {
 			lowError: 0,
 			highError: 0,
 			unstableRate: 0,
-			averageRpm: null,
-			maxRpm: null,
-			rpmUnstableRate: null
+			averageSpm: null,
+			maxSpm: null
 		};
 
 		if (this.hitInaccuracies.length > 0) {
@@ -121,13 +122,9 @@ export class Score {
 			returnValue.unstableRate = MathUtil.calculateStandardDeviation(this.hitInaccuracies, mean) * 10;
 		}
 
-		if (this.spinRpms.length > 0) {
-			let agregateValues = MathUtil.getAggregateValuesFromArray(this.spinRpms);
-			let standardDeviation = MathUtil.calculateStandardDeviation(this.spinRpms, agregateValues.avg);
-
-			returnValue.averageRpm = agregateValues.avg;
-			returnValue.maxRpm = agregateValues.max;
-			returnValue.rpmUnstableRate = standardDeviation;
+		if (this.spmAverages.length > 0) {
+			returnValue.averageSpm = MathUtil.calculateMean(this.spmAverages);
+			returnValue.maxSpm = MathUtil.getAggregateValuesFromArray(this.spmMaxima).max;
 		}
 
 		return returnValue;

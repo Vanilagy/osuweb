@@ -8,7 +8,7 @@ import { SpriteNumber } from "../../visuals/sprite_number";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
 import { currentWindowDimensions } from "../../visuals/ui";
-import { Interpolator } from "../../util/interpolation";
+import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
 import { DrawableBeatmap } from "../drawable_beatmap";
 import { Mod } from "../../datamodel/mods";
 import { ScoringValue } from "../../datamodel/scoring/score";
@@ -26,8 +26,13 @@ const SPIN_TEXT_FADE_OUT_TIME = 200; // In ms
 const SPINNER_GLOW_TINT: Color = {r: 2, g: 170, b: 255};
 const SPINNER_METER_STEPS = 10;
 const SPINNER_METER_STEP_HEIGHT = 69; // ( ͡° ͜ʖ ͡°)
-const SPINNER_ACCELERATION = 0.00039; // In radians/ms^2
-const DELAY_UNTIL_SPINNER_DECELERATION = 20; // In ms
+const SPM_SAMPLER_DURATION = 333;
+
+interface SpmRecord {
+	absoluteRotation: number,
+	time: number,
+	duration: number
+}
 
 export class DrawableSpinner extends DrawableHitObject {
 	public parent: ProcessedSpinner;
@@ -60,28 +65,35 @@ export class DrawableSpinner extends DrawableHitObject {
 	private spinnerApproachCircle: PIXI.Container;
 
 	// Informative elements for both styles
-	private spinnerRpm: PIXI.Sprite;
-	private spinnerRpmNumber: SpriteNumber;
+	private spinnerSpm: PIXI.Sprite;
+	private spinnerSpmNumber: SpriteNumber;
 	private spinnerSpin: PIXI.Sprite;
 	private spinnerClear: PIXI.Container;
 	private spinnerBonus: SpriteNumber;
 	private spinnerSpinFadeOutStart: number;
 
-	private lastSpinPosition: Point;
-	private lastInputTime: number;
-	private lastAccelerationTime: number;
-	private spinnerAngle: number;
-	private totalRadiansSpun: number; // The sum of all absolute angles this spinner has been spun (the total "angular distance")
+	private lastAngle: number;
+	private lastAngleTime: number;
+	private rotation: number;
+	private absoluteRotation: number;
+	private visualRotationInterpolator: InterpolatedValueChanger;
 	private cleared: boolean;
 	private bonusSpins: number;
 	private angularVelocity: number;
+	private spmRecords: SpmRecord[];
+	private maxSpm: number;
 
 	private spinSoundPlayer: AudioPlayer = null;
-	// TODO: Clean this up. Ergh. Disgusting.
 	private bonusSoundVolume: number;
 	
 	constructor(drawableBeatmap: DrawableBeatmap, processedSpinner: ProcessedSpinner) {
 		super(drawableBeatmap, processedSpinner);
+
+		this.visualRotationInterpolator = new InterpolatedValueChanger({
+			initial: 0,
+			duration: 50,
+			ease: EaseType.Linear
+		});
 
 		this.reset();
 		this.initSounds(processedSpinner.hitObject, processedSpinner.timingInfo);
@@ -101,14 +113,16 @@ export class DrawableSpinner extends DrawableHitObject {
 		if (this.glowInterpolator) this.glowInterpolator.reset();
 
 		this.spinnerSpinFadeOutStart = null;
-		this.lastSpinPosition = null;
-		this.lastInputTime = null;
-		this.lastAccelerationTime = null;
-		this.spinnerAngle = 0;
-		this.totalRadiansSpun = 0;
+		this.lastAngle = null;
+		this.lastAngleTime = null;
+		this.rotation = 0;
+		this.absoluteRotation = 0;
+		if (this.visualRotationInterpolator) this.visualRotationInterpolator.reset(0);
 		this.cleared = false;
 		this.bonusSpins = 0;
 		this.angularVelocity = 0;
+		this.spmRecords = [];
+		this.maxSpm = 0;
 
 		this.stopSpinningSound();
 	}
@@ -158,16 +172,16 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.spinnerCircle = createElement("spinnerCircle", new PIXI.Point(0.5, 0.5));
 		}
 
-		// Update spinner RPM display
-		let rpmOsuTexture = skin.textures["spinnerRpm"];
-		rpmOsuTexture.applyToSprite(this.spinnerRpm, screenPixelRatio);
-		this.spinnerRpm.position.set(currentWindowDimensions.width/2 - 139 * screenPixelRatio, currentWindowDimensions.height - 56 * screenPixelRatio);
+		// Update spinner SPM display
+		let spmOsuTexture = skin.textures["spinnerRpm"]; // Yeah,the texture is called RPM and not SPM. ¯\_(ツ)_/¯
+		spmOsuTexture.applyToSprite(this.spinnerSpm, screenPixelRatio);
+		this.spinnerSpm.position.set(currentWindowDimensions.width/2 - 139 * screenPixelRatio, currentWindowDimensions.height - 56 * screenPixelRatio);
 
-		this.spinnerRpmNumber.container.position.set(currentWindowDimensions.width/2 + 122 * screenPixelRatio, currentWindowDimensions.height - 50 * screenPixelRatio);
-		this.spinnerRpmNumber.options.textures = skin.scoreNumberTextures;
-		this.spinnerRpmNumber.options.scaleFactor = screenPixelRatio * 0.85;
-		this.spinnerRpmNumber.options.overlap = skin.config.fonts.scoreOverlap;
-		this.spinnerRpmNumber.refresh();
+		this.spinnerSpmNumber.container.position.set(currentWindowDimensions.width/2 + 122 * screenPixelRatio, currentWindowDimensions.height - 50 * screenPixelRatio);
+		this.spinnerSpmNumber.options.textures = skin.scoreNumberTextures;
+		this.spinnerSpmNumber.options.scaleFactor = screenPixelRatio * 0.85;
+		this.spinnerSpmNumber.options.overlap = skin.config.fonts.scoreOverlap;
+		this.spinnerSpmNumber.refresh();
 
 		// Update spinner bonus number
 		this.spinnerBonus.container.y = 128 * screenPixelRatio;
@@ -215,9 +229,9 @@ export class DrawableSpinner extends DrawableHitObject {
 		this.componentContainer2.addChild(this.spinnerClear);
 		this.componentContainer2.addChild(this.spinnerBonus.container);
 		
-		this.container.addChild(this.spinnerRpm);
+		this.container.addChild(this.spinnerSpm);
 		this.container.addChild(this.componentContainer2);
-		this.container.addChild(this.spinnerRpmNumber.container); // Above all other elements
+		this.container.addChild(this.spinnerSpmNumber.container); // Above all other elements
 
 		// Update spinning sound effect
 		if (updateSkin) {
@@ -261,15 +275,15 @@ export class DrawableSpinner extends DrawableHitObject {
 			defaultToFinished: true
 		});
 
-		this.spinnerRpm = new PIXI.Sprite();
+		this.spinnerSpm = new PIXI.Sprite();
 
-		// Add RPM number
-		this.spinnerRpmNumber = new SpriteNumber({
+		// Add SPM number
+		this.spinnerSpmNumber = new SpriteNumber({
 			horizontalAlign: "right",
 			verticalAlign: "top",
 			overlapAtEnd: false
 		});
-		this.spinnerRpmNumber.setValue(0);
+		this.spinnerSpmNumber.setValue(0);
 
 		// Add spinner bonus popup
 		let spinnerBonus = new SpriteNumber({
@@ -330,8 +344,10 @@ export class DrawableSpinner extends DrawableHitObject {
 			spinTextFadeInCompletion = MathUtil.clamp(spinTextFadeInCompletion, 0, 1);
 			this.spinnerSpin.alpha = spinTextFadeInCompletion;
 
-			this.spinnerRpm.y = MathUtil.lerp(currentWindowDimensions.height, currentWindowDimensions.height - 56 * screenPixelRatio, fadeInCompletion);
+			this.spinnerSpm.y = MathUtil.lerp(currentWindowDimensions.height, currentWindowDimensions.height - 56 * screenPixelRatio, fadeInCompletion);
 		} else {
+			this.visualRotationInterpolator.setGoal(this.rotation, currentTime);
+
 			this.container.alpha = 1;
 			if (currentTime >= this.parent.endTime) {
 				let fadeOutCompletion = (currentTime - this.parent.endTime) / SPINNER_FADE_OUT_TIME;
@@ -347,19 +363,22 @@ export class DrawableSpinner extends DrawableHitObject {
 			}
 
 			this.spinnerSpin.alpha = spinnerSpinAlpha;
-
-			this.spinnerRpm.y = currentWindowDimensions.height - 56 * screenPixelRatio;
+			this.spinnerSpm.y = currentWindowDimensions.height - 56 * screenPixelRatio;
 		}
+
+		this.spinnerSpmNumber.setValue(Math.floor(this.sampleSpm(currentTime)));
 	
 		let completion = (currentTime - this.parent.startTime) / this.parent.duration;
 		completion = MathUtil.clamp(completion, 0, 1);
 		let clearCompletion = this.getSpinsSpun() / this.parent.requiredSpins;
 		clearCompletion = MathUtil.clamp(clearCompletion, 0, 1);
 
+		let visualRotation = this.visualRotationInterpolator.getCurrentValue(currentTime);
+
 		if (this.isNewStyle) {
-			this.spinnerBottom.rotation = this.spinnerAngle * 0.2;
-			this.spinnerTop.rotation = this.spinnerAngle * 0.5;
-			this.spinnerMiddle2.rotation = this.spinnerAngle * 1.0;
+			this.spinnerBottom.rotation = visualRotation * 0.2;
+			this.spinnerTop.rotation = visualRotation * 0.5;
+			this.spinnerMiddle2.rotation = visualRotation * 1.0;
 
 			(this.spinnerMiddle as PIXI.Sprite).tint = colorToHexNumber(lerpColors(Colors.White, Colors.Red, completion));
 
@@ -373,7 +392,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		} else {
 			this.spinnerApproachCircle.scale.set(MathUtil.lerp(1.85, 0.1, completion)); // Quote Google docs: "starts at 200% of its size and shrinks down to 10%". Changed to 185% 'cause I have eyes.
 
-			this.spinnerCircle.rotation = this.spinnerAngle;
+			this.spinnerCircle.rotation = visualRotation;
 
 			// Do meter mask stuff:
 			{
@@ -436,98 +455,59 @@ export class DrawableSpinner extends DrawableHitObject {
 			play.playHitSound(this.hitSound);
 		}
 
+		play.scoreProcessor.addSpmValues(this.getAverageSpm(), this.getMaxSpm());
+
 		this.stopSpinningSound();
 	}
 
 	getSpinsSpun() {
-		return this.totalRadiansSpun / TAU;
+		return this.absoluteRotation / TAU;
 	}
 
 	handleMouseMove(osuMouseCoordinates: Point, currentTime: number, pressed: boolean) {
 		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
 
+		let angle = Math.atan2(osuMouseCoordinates.y - PLAYFIELD_DIMENSIONS.height/2, osuMouseCoordinates.x - PLAYFIELD_DIMENSIONS.width/2);
+
 		if (!pressed) {
-			if (this.lastSpinPosition !== null) {
-				this.lastSpinPosition = null;
-			}
-			
+			this.lastAngle = null;
+			this.lastAngleTime = null;
 			return;
 		}
-
-		if (this.lastSpinPosition === null) {
-			this.lastSpinPosition = osuMouseCoordinates;
-			this.lastInputTime = currentTime;
-			return;
-		}
-
-		let p1 = osuMouseCoordinates,
-			p2 = this.lastSpinPosition;
-		let angle1 = Math.atan2(p2.y - PLAYFIELD_DIMENSIONS.height/2, p2.x - PLAYFIELD_DIMENSIONS.width/2),
-			angle2 = Math.atan2(p1.y - PLAYFIELD_DIMENSIONS.height/2, p1.x - PLAYFIELD_DIMENSIONS.width/2);
-		let theta = MathUtil.getNormalizedAngleDelta(angle1, angle2);
 		
-		let timeDelta = currentTime - this.lastInputTime; // In ms
-		if (timeDelta <= 0) return;
+		if (this.lastAngle) {
+			let angleDelta = MathUtil.getNormalizedAngleDelta(this.lastAngle, angle);
+			let timeDelta = currentTime - this.lastAngleTime;
 
-		this.spin(theta, currentTime, timeDelta);
+			this.spin(angleDelta, currentTime, timeDelta);
+		}
 
-		this.lastSpinPosition = osuMouseCoordinates;
+		this.lastAngle = angle;
+		this.lastAngleTime = currentTime;
 	}
 
-	/** Spins the spinner by a certain amount in a certain timeframe. */
 	spin(radians: number, currentTime: number, dt: number) {
 		if (currentTime < this.parent.startTime || currentTime >= this.parent.endTime) return;
-		if (!dt) return;
-
-		const hud = this.drawableBeatmap.play.controller.hud;
-		hud.accuracyMeter.fadeOutNow(currentTime);
-
-		let radiansAbs = Math.abs(radians);
-		let velocityAbs = Math.abs(this.angularVelocity);
-		let radiansPerMs = radiansAbs/dt;
-
-		if (radiansPerMs >= velocityAbs && (Math.sign(radians) === Math.sign(this.angularVelocity) || this.angularVelocity === 0)) {
-			let vel = Math.min(radiansPerMs, velocityAbs + SPINNER_ACCELERATION * dt);
-			this.angularVelocity = vel * Math.sign(radians);
-			this.lastAccelerationTime = currentTime;
-		} else {
-			this.tryDecelerate(currentTime, dt, (Math.sign(radians) === Math.sign(this.angularVelocity))? radiansPerMs : 0);
-		}
-
-		// Limit angular velocity to 0.05 radians/ms, because of the 477 RPM limit!
-		this.angularVelocity = Math.sign(this.angularVelocity) * Math.min(Math.abs(this.angularVelocity), 0.05);
-
-		this.lastInputTime = currentTime;
-	}
-
-	private tryDecelerate(currentTime: number, dt: number, minVelocity: number) {
-		if (this.lastAccelerationTime !== null && currentTime - this.lastAccelerationTime >= DELAY_UNTIL_SPINNER_DECELERATION) {
-			let previousTime = currentTime-dt;
-			let adjustedDt = currentTime - Math.max(previousTime, this.lastAccelerationTime + DELAY_UNTIL_SPINNER_DECELERATION); // We need to adjust here to be tick-frequency independent
-
-			let abs = Math.abs(this.angularVelocity);
-			let thing = Math.max(0, abs - SPINNER_ACCELERATION * adjustedDt);
-			this.angularVelocity = Math.max(thing, minVelocity) * Math.sign(this.angularVelocity);
-		}
-	}
-
-	tick(currentTime: number, dt: number) {
-		if (!dt) return;
-
-		let play =  this.drawableBeatmap.play;
-		let { scoreProcessor, skin } = play;
-
-		this.tryDecelerate(currentTime, dt, 0);
-
-		let angle = this.angularVelocity * dt;
-		let spinsPerMinute = Math.abs(this.angularVelocity) * 1000 * 60 / TAU;
-		this.spinnerRpmNumber.setValue(Math.floor(spinsPerMinute));
-		scoreProcessor.addSpinRpm(spinsPerMinute);
+		if (dt === 0) return;
 
 		let prevSpinsSpun = this.getSpinsSpun();
 
-		this.spinnerAngle += angle;
-		this.totalRadiansSpun += Math.abs(angle);
+		// Cap the spinning at 0.05 radians per millisecond. This actually results in the 477 SPM limit!
+		let cappedRadians = Math.min(Math.abs(radians), dt * 0.05) * Math.sign(radians);
+		this.rotation += cappedRadians;
+		let absRotation = Math.abs(cappedRadians);
+		this.absoluteRotation += absRotation;
+
+		// Add the record for spm sampling
+		this.spmRecords.push({
+			absoluteRotation: absRotation,
+			time: currentTime - dt,
+			duration: dt
+		});
+		this.maxSpm = Math.max(this.maxSpm, this.calculateSpm(absRotation, dt));
+
+		let play =  this.drawableBeatmap.play;
+		let { skin } = play;
 
 		let spinsSpunNow = this.getSpinsSpun();
 		let wholeDif = Math.floor(spinsSpunNow) - Math.floor(prevSpinsSpun);
@@ -536,11 +516,13 @@ export class DrawableSpinner extends DrawableHitObject {
 			play.processJudgement(Judgement.createSpinnerSpinBonus(this.parent, wholeDif * 100, currentTime));
 		}
 		if (spinsSpunNow >= this.parent.requiredSpins && !this.cleared) {
+			// Show the "cleared" text
 			this.cleared = true;
 			this.clearTextInterpolator.start(currentTime);
 		}
 		let bonusSpins = Math.floor(spinsSpunNow - this.parent.requiredSpins);
 		if (bonusSpins > 0 && bonusSpins > this.bonusSpins) {
+			// Award 1000 raw score for each bonus spin
 			let dif = bonusSpins - this.bonusSpins;
 			play.processJudgement(Judgement.createSpinnerSpinBonus(this.parent, dif * 1000, currentTime));
 
@@ -556,15 +538,54 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		let spinCompletion = spinsSpunNow / this.parent.requiredSpins;
 		if (spinCompletion >= 0.25 && this.spinnerSpinFadeOutStart === null) {
+			// Fade out the "spin!" text once the player has spun the spinner far enough
 			this.spinnerSpinFadeOutStart = currentTime;
 		}
 
 		if (this.spinSoundPlayer) {
+			// Handle playback, stopping and playback rate of the spinning sounda
+
 			if (!this.spinSoundPlayer.isPlaying() && this.angularVelocity !== 0) this.spinSoundPlayer.start(0);
 			if (this.angularVelocity === 0) this.stopSpinningSound();
 
 			if (skin.config.general.spinnerFrequencyModulate) this.spinSoundPlayer.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
 		}
+	}
+
+	private calculateSpm(absoluteRadians: number, elapsedTime: number) {
+		let rotationPerMs = absoluteRadians / elapsedTime;
+		let revolutionsPerMs = rotationPerMs / TAU;
+		let revolutionsPerMinute = revolutionsPerMs * 1000 * 60;
+
+		return revolutionsPerMinute;
+	}
+
+	private sampleSpm(currentTime: number) {
+		let start = currentTime - SPM_SAMPLER_DURATION;
+		let end = currentTime;
+
+		let totalRotation = 0;
+		for (let i = 0; i < this.spmRecords.length; i++) {
+			let record = this.spmRecords[i];
+			if (record.time + record.duration < start) {
+				this.spmRecords.splice(i--, 1);
+				continue;
+			}
+			if (record.time > end) break;
+
+			let overlap = MathUtil.calculateIntervalOverlap(start, end, record.time, record.time + record.duration);
+			totalRotation += record.absoluteRotation * (overlap / record.duration);
+		}
+
+		return this.calculateSpm(totalRotation, SPM_SAMPLER_DURATION);
+	}
+
+	private getAverageSpm() {
+		return this.calculateSpm(this.absoluteRotation, this.parent.duration);
+	}
+
+	private getMaxSpm() {
+		return this.maxSpm;
 	}
 
 	stopSpinningSound() {
@@ -584,10 +605,8 @@ export class DrawableSpinner extends DrawableHitObject {
 			}; break;
 			// Sustained event:
 			case PlayEventType.SpinnerSpin: {
-				this.tick(currentTime, dt);
-
 				// Spin counter-clockwise as fast as possible. Clockwise just looks shit.
-				if (play.hasAutohit() || play.activeMods.has(Mod.SpunOut)) this.spin(-1e9, currentTime, 1);
+				if (play.hasAutohit() || play.activeMods.has(Mod.SpunOut)) this.spin(-1e9, currentTime, dt);
 			}; break;
 		}
 	}

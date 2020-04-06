@@ -121,7 +121,8 @@ export class ScoreProcessor extends JudgementProcessor {
 		this.score.hitInaccuracies.push(timeInaccuracy);
 	}
 
-	addSpinRpm(rpm: number) {
-		this.score.spinRpms.push(rpm);
+	addSpmValues(average: number, max: number) {
+		this.score.spmAverages.push(average);
+		this.score.spmMaxima.push(max);
 	}
 }
