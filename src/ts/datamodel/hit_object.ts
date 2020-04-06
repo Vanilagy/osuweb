@@ -3,7 +3,7 @@ interface Extras {
 	additionSet: number,
 	customIndex: number,
 	sampleVolume: number,
-	fileName: string
+	filename: string
 }
 
 const DEFAULT_EXTRAS: Extras = {
@@ -11,7 +11,7 @@ const DEFAULT_EXTRAS: Extras = {
 	additionSet: 0,
 	customIndex: 0,
 	sampleVolume: 0,
-	fileName: ""
+	filename: ""
 };
 
 export abstract class HitObject {
@@ -39,7 +39,7 @@ export abstract class HitObject {
 				additionSet: parseInt(values[1]),
 				customIndex: parseInt(values[2]),
 				sampleVolume: parseInt(values[3]),
-				fileName: values[4]
+				filename: values[4]
 			};
 		} else {
 			this.extras = DEFAULT_EXTRAS;

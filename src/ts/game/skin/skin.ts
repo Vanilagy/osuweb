@@ -4,7 +4,7 @@ import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "
 import { Color } from "../../util/graphics_util";
 import { assert, jsonClone, shallowObjectClone, last } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
-import { HitSound, HitSoundType, hitSoundFileNames } from "./hit_sound";
+import { HitSound, HitSoundType, hitSoundFilenames } from "./hit_sound";
 import { AudioPlayer } from "../../audio/audio_player";
 import { AudioUtil } from "../../util/audio_util";
 import { soundEffectsNode } from "../../audio/audio";
@@ -184,26 +184,26 @@ export class Skin {
             if (isNaN(Number(key))) continue;
 
             let type = Number(key) as HitSoundType;
-            let fileName = hitSoundFileNames.get(type);
+            let filename = hitSoundFilenames.get(type);
 
             if (this.directory.networkFallbackUrl) {
-                await this.directory.getFileByPath(fileName + '.wav');
-                await this.directory.getFileByPath(fileName + '.mp3');
+                await this.directory.getFileByPath(filename + '.wav');
+                await this.directory.getFileByPath(filename + '.mp3');
             }
 
-            let hitSound = HitSound.initFromFileName(this.directory, fileName);
+            let hitSound = HitSound.initFromFilename(this.directory, filename);
             this.hitSounds[key] = hitSound;
 		}
 
-		this.sounds[SkinSoundType.SpinnerSpin] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "spinnerspin", "audioBufferPlayer", soundEffectsNode);
-		this.sounds[SkinSoundType.SpinnerBonus] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "spinnerbonus", "audioBufferPlayer", soundEffectsNode);
-		this.sounds[SkinSoundType.ComboBreak] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "combobreak", "audioBufferPlayer", soundEffectsNode);
-		this.sounds[SkinSoundType.SectionPass] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "sectionpass", "audioBufferPlayer", soundEffectsNode);
-		this.sounds[SkinSoundType.SectionFail] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "sectionfail", "audioBufferPlayer", soundEffectsNode);
-		this.sounds[SkinSoundType.PauseLoop] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "pause-loop", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.SpinnerSpin] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "spinnerspin", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.SpinnerBonus] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "spinnerbonus", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.ComboBreak] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "combobreak", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.SectionPass] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "sectionpass", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.SectionFail] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "sectionfail", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.PauseLoop] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "pause-loop", "audioBufferPlayer", soundEffectsNode);
 		this.sounds[SkinSoundType.PauseLoop].setLoopState(true);
-		this.sounds[SkinSoundType.Applause] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "applause", "audioPlayer", soundEffectsNode);
-		this.sounds[SkinSoundType.FailSound] = await AudioUtil.createSoundPlayerFromFileName(this.directory, "failsound", "audioPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.Applause] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "applause", "audioPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.FailSound] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "failsound", "audioPlayer", soundEffectsNode);
 		
 		if (readyAssets) await this.readyAssets();
 

@@ -28,30 +28,30 @@ export function readFileAsLocalResourceUrl(file: File) {
 }
 
 // Including the dot. file.jpg => .jpg
-export function getFileExtension(fileName: string) {
-	let lastDotIndex = fileName.lastIndexOf('.');
-	if (lastDotIndex !== -1) return fileName.slice(lastDotIndex);
+export function getFileExtension(filename: string) {
+	let lastDotIndex = filename.lastIndexOf('.');
+	if (lastDotIndex !== -1) return filename.slice(lastDotIndex);
 	return '';
 }
 
-export function getFileNameWithoutExtension(fileName: string) {
-	let lastDotIndex = fileName.lastIndexOf('.');
-	if (lastDotIndex !== -1) return fileName.slice(0, lastDotIndex);
-	return fileName;
+export function getFilenameWithoutExtension(filename: string) {
+	let lastDotIndex = filename.lastIndexOf('.');
+	if (lastDotIndex !== -1) return filename.slice(0, lastDotIndex);
+	return filename;
 }
 
-export function isAudioFile(fileName: string) {
-	let extension = getFileExtension(fileName);
+export function isAudioFile(filename: string) {
+	let extension = getFileExtension(filename);
 	return AUDIO_FILE_EXTENSIONS.includes(extension);
 }
 
-export function isImageFile(fileName: string) {
-	let extension = getFileExtension(fileName);
+export function isImageFile(filename: string) {
+	let extension = getFileExtension(filename);
 	return IMAGE_FILE_EXTENSIONS.includes(extension);
 }
 
-export function isOsuBeatmapFile(fileName: string) {
-	let extension = getFileExtension(fileName);
+export function isOsuBeatmapFile(filename: string) {
+	let extension = getFileExtension(filename);
 	return OSU_BEATMAP_FILE_EXTENSIONS.includes(extension);
 }
 

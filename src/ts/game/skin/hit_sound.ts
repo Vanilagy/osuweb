@@ -36,31 +36,31 @@ export enum HitSoundType {
     DrumSliderTick
 }
 
-export let hitSoundFileNames: Map<HitSoundType, string> = new Map();
+export let hitSoundFilenames: Map<HitSoundType, string> = new Map();
 // normal
-hitSoundFileNames.set(HitSoundType.NormalHitNormal, "normal-hitnormal");
-hitSoundFileNames.set(HitSoundType.NormalHitWhistle, "normal-hitwhistle");
-hitSoundFileNames.set(HitSoundType.NormalHitFinish, "normal-hitfinish");
-hitSoundFileNames.set(HitSoundType.NormalHitClap, "normal-hitclap");
-hitSoundFileNames.set(HitSoundType.NormalSliderSlide, "normal-sliderslide");
-hitSoundFileNames.set(HitSoundType.NormalSliderWhistle, "normal-sliderwhistle");
-hitSoundFileNames.set(HitSoundType.NormalSliderTick, "normal-slidertick");
+hitSoundFilenames.set(HitSoundType.NormalHitNormal, "normal-hitnormal");
+hitSoundFilenames.set(HitSoundType.NormalHitWhistle, "normal-hitwhistle");
+hitSoundFilenames.set(HitSoundType.NormalHitFinish, "normal-hitfinish");
+hitSoundFilenames.set(HitSoundType.NormalHitClap, "normal-hitclap");
+hitSoundFilenames.set(HitSoundType.NormalSliderSlide, "normal-sliderslide");
+hitSoundFilenames.set(HitSoundType.NormalSliderWhistle, "normal-sliderwhistle");
+hitSoundFilenames.set(HitSoundType.NormalSliderTick, "normal-slidertick");
 // soft
-hitSoundFileNames.set(HitSoundType.SoftHitNormal, "soft-hitnormal");
-hitSoundFileNames.set(HitSoundType.SoftHitWhistle, "soft-hitwhistle");
-hitSoundFileNames.set(HitSoundType.SoftHitFinish, "soft-hitfinish");
-hitSoundFileNames.set(HitSoundType.SoftHitClap, "soft-hitclap");
-hitSoundFileNames.set(HitSoundType.SoftSliderSlide, "soft-sliderslide");
-hitSoundFileNames.set(HitSoundType.SoftSliderWhistle, "soft-sliderwhistle");
-hitSoundFileNames.set(HitSoundType.SoftSliderTick, "soft-slidertick");
+hitSoundFilenames.set(HitSoundType.SoftHitNormal, "soft-hitnormal");
+hitSoundFilenames.set(HitSoundType.SoftHitWhistle, "soft-hitwhistle");
+hitSoundFilenames.set(HitSoundType.SoftHitFinish, "soft-hitfinish");
+hitSoundFilenames.set(HitSoundType.SoftHitClap, "soft-hitclap");
+hitSoundFilenames.set(HitSoundType.SoftSliderSlide, "soft-sliderslide");
+hitSoundFilenames.set(HitSoundType.SoftSliderWhistle, "soft-sliderwhistle");
+hitSoundFilenames.set(HitSoundType.SoftSliderTick, "soft-slidertick");
 // drum
-hitSoundFileNames.set(HitSoundType.DrumHitNormal, "drum-hitnormal");
-hitSoundFileNames.set(HitSoundType.DrumHitWhistle, "drum-hitwhistle");
-hitSoundFileNames.set(HitSoundType.DrumHitFinish, "drum-hitfinish");
-hitSoundFileNames.set(HitSoundType.DrumHitClap, "drum-hitclap");
-hitSoundFileNames.set(HitSoundType.DrumSliderSlide, "drum-sliderslide");
-hitSoundFileNames.set(HitSoundType.DrumSliderWhistle, "drum-sliderwhistle");
-hitSoundFileNames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
+hitSoundFilenames.set(HitSoundType.DrumHitNormal, "drum-hitnormal");
+hitSoundFilenames.set(HitSoundType.DrumHitWhistle, "drum-hitwhistle");
+hitSoundFilenames.set(HitSoundType.DrumHitFinish, "drum-hitfinish");
+hitSoundFilenames.set(HitSoundType.DrumHitClap, "drum-hitclap");
+hitSoundFilenames.set(HitSoundType.DrumSliderSlide, "drum-sliderslide");
+hitSoundFilenames.set(HitSoundType.DrumSliderWhistle, "drum-sliderwhistle");
+hitSoundFilenames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
 
 export interface HitSoundInfo {
     base: HitSoundType,
@@ -232,11 +232,11 @@ export class HitSound {
 		return clone;
 	}
 
-	static initFromFileName(directory: VirtualDirectory, fileName: string) {
+	static initFromFilename(directory: VirtualDirectory, filename: string) {
 		let hitSound = new HitSound();
 
 		directory.forEachFile((file) => {
-            if (!file.name.startsWith(fileName)) return;
+            if (!file.name.startsWith(filename)) return;
 
             let rawName = file.getNameWithoutExtension();
             let endIndex = rawName.length;

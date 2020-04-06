@@ -337,17 +337,17 @@ export class AudioUtil {
 		return offlineContext.startRendering();
 	}
 
-	static async createSoundPlayerFromFileName(directory: VirtualDirectory, fileName: string, playerType: 'audioBufferPlayer' | 'audioPlayer', destination: AudioNode) {
+	static async createSoundPlayerFromFilename(directory: VirtualDirectory, filename: string, playerType: 'audioBufferPlayer' | 'audioPlayer', destination: AudioNode) {
 		let foundFile: VirtualFile;
 
 		if (directory.networkFallbackUrl) {
-			await directory.getFileByPath(fileName + '.wav');
-            await directory.getFileByPath(fileName + '.mp3');
+			await directory.getFileByPath(filename + '.wav');
+            await directory.getFileByPath(filename + '.mp3');
 		}
 
 		directory.forEachFile((e) => {
 			if (foundFile) return;
-			if (!e.name.startsWith(fileName)) return;
+			if (!e.name.startsWith(filename)) return;
 
 			foundFile = e;
 		});

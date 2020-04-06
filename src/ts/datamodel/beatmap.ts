@@ -97,7 +97,7 @@ export class Beatmap {
 	public spinnerCount: number = 0;
 	public bpmMin: number = 120;
 	public bpmMax: number = 120; 
-	public ARFound: boolean = false;
+	public approachRateFound: boolean = false;
 	
 	// General // 
 
@@ -188,13 +188,13 @@ export class Beatmap {
 	}
 
 	getBackgroundImageFile() {
-		let fileName = this.getBackgroundImageName();
-		return this.beatmapSet.directory.getFileByPath(fileName);
+		let filename = this.getBackgroundImageName();
+		return this.beatmapSet.directory.getFileByPath(filename);
 	}
 
 	getBackgroundVideoFile() {
-		let fileName = this.getBackgroundVideoName();
-		return this.beatmapSet.directory.getFileByPath(fileName);
+		let filename = this.getBackgroundVideoName();
+		return this.beatmapSet.directory.getFileByPath(filename);
 	}
 
 	getAudioPreviewTimeInSeconds() {
@@ -265,13 +265,13 @@ export class Beatmap {
 				else if (line.startsWith("HPDrainRate")) this.difficulty.HP = parseFloat(value);
 				else if (line.startsWith("CircleSize")) this.difficulty.CS = parseFloat(value);
 				else if (line.startsWith("OverallDifficulty")) this.difficulty.OD = parseFloat(value);
-				else if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(value); this.ARFound = true;}
+				else if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(value); this.approachRateFound = true;}
 				else if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(value);
 				else if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(value);
 			}
 		}
 
-		if (!this.ARFound) this.difficulty.AR = this.difficulty.OD;
+		if (!this.approachRateFound) this.difficulty.AR = this.difficulty.OD;
 
 		// Sicne the beatmap colors could be given in arbitrary order, including skipping over a color, like Combo1 -> Combo3, we have to remove all holes in the array
 		unholeArray(this.colors.comboColors);

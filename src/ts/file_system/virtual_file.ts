@@ -1,5 +1,5 @@
 import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
-import { getFileNameWithoutExtension } from "../util/file_util";
+import { getFilenameWithoutExtension } from "../util/file_util";
 
 export class VirtualFile extends VirtualFileSystemEntry {
 	private resource: Blob | File | string;
@@ -60,7 +60,7 @@ export class VirtualFile extends VirtualFileSystemEntry {
 	}
 
 	getNameWithoutExtension() {
-		return getFileNameWithoutExtension(this.name);
+		return getFilenameWithoutExtension(this.name);
 	}
 
 	revokeResourceUrl() {
