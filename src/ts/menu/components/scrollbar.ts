@@ -31,7 +31,7 @@ export class Scrollbar {
 		this.scaledHeight = scaledHeight;
 		this.scalingFactor = scalingFactor;
 
-		this.background.width = this.thumb.width = Math.floor(SCROLLBAR_WIDTH * scalingFactor);
+		this.background.width = this.thumb.width = Math.ceil(SCROLLBAR_WIDTH * scalingFactor);
 	}
 
 	setScrollHeight(newScrollHeight: number) {
