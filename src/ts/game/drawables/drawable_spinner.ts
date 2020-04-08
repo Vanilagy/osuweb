@@ -27,6 +27,7 @@ const SPINNER_GLOW_TINT: Color = {r: 2, g: 170, b: 255};
 const SPINNER_METER_STEPS = 10;
 const SPINNER_METER_STEP_HEIGHT = 69; // ( ͡° ͜ʖ ͡°)
 const SPM_SAMPLER_DURATION = 333;
+const MAX_SPINS_PER_MINUTE = 50 * 60 / TAU; // 50 radians per second, results in ~477 SPM
 
 interface SpmRecord {
 	absoluteRotation: number,
@@ -557,12 +558,12 @@ export class DrawableSpinner extends DrawableHitObject {
 		let revolutionsPerMs = rotationPerMs / TAU;
 		let revolutionsPerMinute = revolutionsPerMs * 1000 * 60;
 
-		return revolutionsPerMinute;
+		return Math.min(MAX_SPINS_PER_MINUTE, revolutionsPerMinute);
 	}
 
 	private sampleSpm(currentTime: number) {
 		let start = currentTime - SPM_SAMPLER_DURATION;
-		let end = currentTime;
+		let end = currentTime - 10; // Shorten the sampler at the end by a small amount, so that we have a big enough timeframe to wait for the next record to come in, instead of prematurely filling the far right end of the sampler with "no input". This reduces SPM fluctuation.
 
 		let totalRotation = 0;
 		for (let i = 0; i < this.spmRecords.length; i++) {
@@ -577,11 +578,11 @@ export class DrawableSpinner extends DrawableHitObject {
 			totalRotation += record.absoluteRotation * (overlap / record.duration);
 		}
 
-		return this.calculateSpm(totalRotation, SPM_SAMPLER_DURATION);
+		return this.calculateSpm(totalRotation, end - start);
 	}
 
 	private getAverageSpm() {
-		return this.calculateSpm(this.absoluteRotation, this.parent.duration);
+		return this.calculateSpm(this.absoluteRotation, Math.max(Number.MIN_VALUE, this.parent.duration - 10)); // The duration is shorted for the same reason given in SPM sampling.
 	}
 
 	private getMaxSpm() {
@@ -602,11 +603,6 @@ export class DrawableSpinner extends DrawableHitObject {
 		switch (event.type) {
 			case PlayEventType.SpinnerEnd: {
 				this.score();
-			}; break;
-			// Sustained event:
-			case PlayEventType.SpinnerSpin: {
-				// Spin counter-clockwise as fast as possible. Clockwise just looks shit.
-				if (play.hasAutohit() || play.activeMods.has(Mod.SpunOut)) this.spin(-1e9, currentTime, dt);
 			}; break;
 		}
 	}
