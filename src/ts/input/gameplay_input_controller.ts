@@ -1,66 +1,62 @@
 import { CustomEventEmitter } from "../util/custom_event_emitter";
 import { InteractionRegistration } from "./interactivity";
-import { KeyCode, MouseButton } from "./input";
+import { KeyCode, MouseButton, getCurrentMousePosition } from "./input";
+import { InputStateHookable } from "../game/input_state_hookable";
+import { GameButton } from "./gameplay_input_state";
+import { GameplayController } from "../game/gameplay_controller";
 
 export const GAME_KEYS: [number, number] = [KeyCode.X, KeyCode.Y];
 
-export class GameplayInputController extends CustomEventEmitter<{gameButtonDown: void}> {
+export class GameplayInputListener extends InputStateHookable {
+	private controller: GameplayController;
 	private registration: InteractionRegistration;
-	private keyButtonState: [boolean, boolean] = [false, false];
-	private mouseButtonState: [boolean, boolean] = [false, false];
 
-	constructor(registration: InteractionRegistration) {
+	constructor(controller: GameplayController, registration: InteractionRegistration) {
 		super();
 
+		this.controller = controller;
 		this.registration = registration;
 		this.registration.allowAllMouseButtons();
 
 		this.registration.addListener('keyDown', (e) => {
+			if (!this.inputState) return;
+
 			let index = GAME_KEYS.indexOf(e.keyCode);
 			if (index === -1) return;
 
-			if (!this.keyButtonState[index]) {
-				this.keyButtonState[index] = true;
-				if (!this.mouseButtonState[index]) this.trigger();
-			}
+			let button = (index === 0)? GameButton.A1 : GameButton.B1;
+			this.inputState.setButton(button, true);
 		});
 		this.registration.addListener('keyUp', (e) => {
+			if (!this.inputState) return;
+
 			let index = GAME_KEYS.indexOf(e.keyCode);
 			if (index === -1) return;
 
-			this.keyButtonState[index] = false;
+			let button = (index === 0)? GameButton.A1 : GameButton.B1;
+			this.inputState.setButton(button, false);
 		});
 		this.registration.addListener('mouseDown', (e) => {
-			let index: number;
-			if (e.button === MouseButton.Left) index = 0;
-			else if (e.button === MouseButton.Right) index = 1;
-			else return;
+			if (!this.inputState) return;
 
-			if (!this.mouseButtonState[index]) {
-				this.mouseButtonState[index] = true;
-				if (!this.keyButtonState[index]) this.trigger();
-			}
+			if (e.button !== MouseButton.Left && e.button !== MouseButton.Right) return;
+
+			let button = (e.button === MouseButton.Left)? GameButton.A2 : GameButton.B2;
+			this.inputState.setButton(button, true);
 		});
 		this.registration.addListener('mouseUp', (e) => {
-			let index: number;
-			if (e.button === MouseButton.Left) index = 0;
-			else if (e.button === MouseButton.Right) index = 1;
-			else return;
+			if (!this.inputState) return;
 
-			this.mouseButtonState[index] = false;
+			if (e.button !== MouseButton.Left && e.button !== MouseButton.Right) return;
+
+			let button = (e.button === MouseButton.Left)? GameButton.A2 : GameButton.B2;
+			this.inputState.setButton(button, false);
 		});
-	}
+		this.registration.addListener('mouseMove', (e) => {
+			if (!this.inputState) return;
 
-	trigger() {
-		this.emit('gameButtonDown');
-	}
-
-	isAnyButtonPressed() {
-		return this.keyButtonState.includes(true) || this.mouseButtonState.includes(true);
-	}
-
-	reset() {
-		this.keyButtonState = [false, false];
-		this.mouseButtonState = [false, false];
+			let osuPosition = this.controller.currentPlay.toOsuCoordinates(getCurrentMousePosition());
+			this.inputState.setMousePosition(osuPosition);
+		});
 	}
 }

@@ -1,8 +1,7 @@
-import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
+import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
 import { Point, lerpPoints } from "../util/point";
-import { getCurrentMousePosition } from "../input/input";
 import { MathUtil, EaseType } from "../util/math_util";
-import { last } from "../util/misc_util";
+import { last, assert } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
 import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
@@ -54,8 +53,6 @@ export class Play {
 	private lastTickTime: number = null;
 	private currentBreakIndex = 0;
 	private breakEndWarningTimes: number[] = [];
-	/** ...in osu coordinates. */
-	public lastCursorPosition: Point = {x: PLAYFIELD_DIMENSIONS.width/2, y: PLAYFIELD_DIMENSIONS.height/2};
 	
 	// Draw stuffz:
 	public skin: Skin;
@@ -68,10 +65,7 @@ export class Play {
 	public headedHitObjectTextureFactor: number;
 	public approachTime: number;
 
-	// AT stuffz:
-	private playthroughInstructions: AutoInstruction[];
-	private currentPlaythroughInstruction: number;
-
+	// Fail stuffz:
 	public failTime: number = null;
 	private currentTimeAtFail: number = null;
 	private failAnimationEndTriggered = false;
@@ -113,11 +107,6 @@ export class Play {
 		this.healthProcessor.simulateAutoplay(this.drawableBeatmap.playEvents);
 		this.healthProcessor.hookBeatmap(this.processedBeatmap);
 		this.healthProcessor.calculateDrainRate();
-
-		if (this.activeMods.has(Mod.Auto)) {
-			this.playthroughInstructions = ModHelper.generateAutoPlaythroughInstructions(this);
-			this.controller.autoCursor.visible = true;
-		}
 
 		// Compute break end warning times
 		for (let i = 0; i < this.processedBeatmap.breaks.length; i++) {
@@ -244,11 +233,10 @@ export class Play {
 		hud.accuracyMeter.update(currentTime);
 
 		// Update the progress indicator
-		let firstHitObject = this.processedBeatmap.hitObjects[0],
-			lastHitObject = last(this.processedBeatmap.hitObjects);
-		if (firstHitObject && lastHitObject) {
+		let firstHitObject = this.processedBeatmap.hitObjects[0];
+		if (firstHitObject) {
 			let start = firstHitObject.startTime,
-				end = lastHitObject.endTime;
+				end = this.processedBeatmap.getEndTime();
 			let diff = currentTime - start;
 
 			if (diff < 0) {
@@ -347,21 +335,19 @@ export class Play {
 			break;
 		}
 
-		// Update the cursor position if rocking AT
-		if (this.activeMods.has(Mod.Auto)) {
-			this.handlePlaythroughInstructions(currentTime);
-
-			let screenCoordinates = this.toScreenCoordinates(this.lastCursorPosition);
+		if (this.controller.replay) {
+			let screenCoordinates = this.toScreenCoordinates(this.controller.inputState.getMousePosition());
 			this.controller.autoCursor.position.set(screenCoordinates.x, screenCoordinates.y);
 		}
 		
 		if (this.activeMods.has(Mod.Flashlight)) {
-			let screenCoordinates = this.toScreenCoordinates(this.lastCursorPosition);
+			let screenCoordinates = this.toScreenCoordinates(this.controller.inputState.getMousePosition());
 			this.controller.flashlightOccluder.update(screenCoordinates, this.screenPixelRatio, breakiness, this.drawableBeatmap.heldSliderRightNow());
 		}
 	}
 
 	tick(currentTimeOverride?: number) {
+		//console.log(this.completed);
 		if (!this.playing || !this.initted || this.completed) return;
 
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
@@ -379,6 +365,7 @@ export class Play {
 
 		// Update health
 		if (!this.hasFailed()) this.healthProcessor.update(currentTime);
+		if (this.healthProcessor.health <= 0) this.fail();
 
 		// Show section pass/pass when necessary
 		let currentBreak = this.getCurrentBreak();
@@ -393,11 +380,9 @@ export class Play {
 		}
 
 		// Check if the map has been completed
-		if (this.drawableBeatmap.playEventsCompleted()) {
+		if (this.drawableBeatmap.playEventsCompleted() && !this.hasFailed()) {
 			this.controller.completePlay();
 		}
-
-		if (this.healthProcessor.health <= 0) this.fail();
 
 		let failAnimationCompletion = this.calculateFailAnimationCompletion();
 		if (this.hasFailed()) {
@@ -417,7 +402,9 @@ export class Play {
 	}
 
 	complete() {
-		if (this.completed || this.hasFailed()) return;
+		assert(!this.hasFailed());
+		if (this.completed) return;
+
 		this.completed = true;
 	}
 
@@ -460,9 +447,7 @@ export class Play {
 		globalState.gameplayAudioPlayer.pause();
 		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 
-		if (this.activeMods.has(Mod.Auto)) {
-			this.currentPlaythroughInstruction = 0;
-		}
+		if (this.controller.replay) this.controller.replay.resetPlayback();
 	}
 
 	async restart() {
@@ -496,15 +481,18 @@ export class Play {
 		}
 	}
 
-	handleButtonDown() {
+	handleButtonDown(currentTime?: number) {
 		if (!this.shouldHandleInputRightNow() || this.activeMods.has(Mod.Relax)) return;
-		this.drawableBeatmap.handleButtonDown();
+
+		if (currentTime === undefined) currentTime = this.getCurrentSongTime();
+		this.drawableBeatmap.handleButtonDown(currentTime);
 	}
 
-	handleMouseMove() {
+	handleMouseMove(osuPosition: Point, currentTime?: number) {
 		if (!this.shouldHandleInputRightNow()) return;
-		this.lastCursorPosition = this.toOsuCoordinates(getCurrentMousePosition());
-		this.drawableBeatmap.handleMouseMove();
+
+		if (currentTime === undefined) currentTime = this.getCurrentSongTime();
+		this.drawableBeatmap.handleMouseMove(currentTime);
 	}
 
 	hasAutohit() {
@@ -512,7 +500,7 @@ export class Play {
 	}
 
 	private shouldHandleInputRightNow() {
-		return this.initted && !this.paused && !this.completed && !this.activeMods.has(Mod.Auto) && !this.hasFailed();
+		return this.initted && !this.paused && !this.completed && !this.hasFailed();
 	}
 
 	async skipBreak() {
@@ -594,15 +582,6 @@ export class Play {
 		};
 	}
 
-	getOsuMouseCoordinatesFromCurrentMousePosition(): Point {
-		let currentMousePosition = getCurrentMousePosition();
-
-		return {
-			x: this.toOsuCoordinatesX(currentMousePosition.x),
-			y: this.toOsuCoordinatesY(currentMousePosition.y)
-		};
-	}
-
 	/** Headed hit objects can only be hit when the previous one has already been assigned a scoring value. If it has not, the hit object remains 'locked' and doesn't allow input, also known as note locking. */
 	hitObjectIsInputLocked(hitObject: DrawableHeadedHitObject) {
 		let objectBefore = this.drawableBeatmap.drawableHitObjects[hitObject.parent.index - 1];
@@ -636,73 +615,6 @@ export class Play {
             }
         }
     }
-
- 	/** Handles playthrough instructions for AT. */
-	private handlePlaythroughInstructions(currentTime: number) {
-		if (this.currentPlaythroughInstruction >= this.playthroughInstructions.length) return;
-
-		if (this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
-			while (this.playthroughInstructions[this.currentPlaythroughInstruction + 1].time <= currentTime) {
-				this.currentPlaythroughInstruction++;
-
-				if (!this.playthroughInstructions[this.currentPlaythroughInstruction + 1]) {
-					break;
-				}
-			}
-		}
-
-		let currentInstruction = this.playthroughInstructions[this.currentPlaythroughInstruction];
-		if (currentInstruction.time > currentTime) return;
-
-		let cursorPlayfieldPos: Point = null;
-
-		outer:
-		if (currentInstruction.type === AutoInstructionType.Blink) {
-			cursorPlayfieldPos = currentInstruction.to;
-
-			this.currentPlaythroughInstruction++;
-		} else if (currentInstruction.type === AutoInstructionType.Move) {
-			// Decides on the easing type
-			let timeDifference = (currentInstruction.endTime - currentInstruction.time);
-			let easingType: EaseType;
-
-			if (timeDifference <= 60000 / STREAM_BEAT_THRESHHOLD / 4) { // Length of 1/4 beats at set BPM
-				easingType = EaseType.Linear;
-			} else {
-				easingType = EaseType.EaseOutQuad;
-			}
-
-			let completion = (currentTime - currentInstruction.time) / (currentInstruction.endTime - currentInstruction.time);
-			completion = MathUtil.clamp(completion, 0, 1);
-			completion = MathUtil.ease(easingType, completion);
-
-			cursorPlayfieldPos = lerpPoints(currentInstruction.startPos, currentInstruction.endPos, completion);
-
-			if (completion === 1) this.currentPlaythroughInstruction++;
-		} else if (currentInstruction.type === AutoInstructionType.Follow) {
-			let slider = currentInstruction.hitObject as ProcessedSlider;
-
-			if (currentTime >= slider.endTime) {
-				this.currentPlaythroughInstruction++;
-				cursorPlayfieldPos = slider.endPoint;
-				break outer;
-			}
-
-			let completion = (slider.velocity * (currentTime - slider.startTime)) / slider.length;
-			completion = MathUtil.clamp(completion, 0, slider.repeat);
-
-			cursorPlayfieldPos = slider.path.getPosFromPercentage(MathUtil.mirror(completion));
-		} else if (currentInstruction.type === AutoInstructionType.Spin) {
-			cursorPlayfieldPos = ModHelper.getSpinPositionFromSpinInstruction(currentInstruction, Math.min(currentInstruction.endTime, currentTime));
-
-			if (currentTime >= currentInstruction.endTime) {
-				this.currentPlaythroughInstruction++;
-				break outer;
-			}
-		}
-
-		this.lastCursorPosition = cursorPlayfieldPos;
-	}
 
 	fail() {
 		if (this.completed) return;

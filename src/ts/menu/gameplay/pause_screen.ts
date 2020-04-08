@@ -150,16 +150,17 @@ export class PauseScreen {
 		this.heading.pivot.x = Math.floor(this.heading.width / 2);
 	}
 
+	private requireCursorAlignment() {
+		let play = this.controller.currentPlay;
+		return !(this.controller.replay || play.activeMods.has(Mod.Auto) || play.activeMods.has(Mod.Cinema) || play.activeMods.has(Mod.Relax) || play.activeMods.has(Mod.Autopilot) || play.processedBeatmap.isInBreak(play.getCurrentSongTime()));
+	}
+
 	trigger() {
 		if (this.shown()) {
 			if (this.controller.currentPlay.hasFailed()) {
 				this.controller.endPlay();
 			} else {
-				let requireCursorAlignment = true;
-				let play = this.controller.currentPlay;
-				if (play.activeMods.has(Mod.Auto) || play.activeMods.has(Mod.Cinema) || play.activeMods.has(Mod.Relax) || play.activeMods.has(Mod.Autopilot) || play.processedBeatmap.isInBreak(play.getCurrentSongTime())) requireCursorAlignment = false;
-
-				if (requireCursorAlignment) {
+				if (this.requireCursorAlignment()) {
 					this.toggleCursorAligning();
 				} else {
 					this.controller.unpause();
@@ -184,7 +185,7 @@ export class PauseScreen {
 		this.cursorAlignmentInterpolator.setReversedState(!this.cursorAligning, now);
 
 		if (this.cursorAligning) {
-			this.currentCursorAlignmentPosition = this.controller.currentPlay.lastCursorPosition;
+			this.currentCursorAlignmentPosition = this.controller.inputState.getMousePosition();
 			this.cursorAlignmentCircle.pos = this.currentCursorAlignmentPosition;
 			this.cursorAlignmentCircle.reset();
 			this.positionCursorAlignment();

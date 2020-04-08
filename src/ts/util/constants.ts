@@ -1,10 +1,11 @@
-import { hexNumberToColor, Color } from "./graphics_util";
+import { hexNumberToColor,  Dimensions } from "./graphics_util";
+import { Point } from "./point";
 
-export const PLAYFIELD_DIMENSIONS = { // In osu!pixels
+export const PLAYFIELD_DIMENSIONS: Dimensions = { // In osu!pixels
 	width: 512,
 	height: 384
 };
-export const STANDARD_SCREEN_DIMENSIONS = {
+export const STANDARD_SCREEN_DIMENSIONS: Dimensions = {
 	width: 640,
 	height: 480
 };
@@ -45,3 +46,4 @@ export const THEME_COLORS = {
 } as const;
 
 export const NO_IMAGE_TINT = 0x1c1c1c;
+export const INITIAL_MOUSE_OSU_POSITION: Point = {x: PLAYFIELD_DIMENSIONS.width/2, y: PLAYFIELD_DIMENSIONS.height/2};

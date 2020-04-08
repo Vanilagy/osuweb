@@ -1,25 +1,26 @@
 import { Play } from "../play";
 import { Point } from "../../util/point";
-import { MathUtil, EaseType } from "../../util/math_util";
+import { EaseType } from "../../util/math_util";
 import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
 import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
 import { ProcessedBeatmap } from "../../datamodel/processed/processed_beatmap";
 import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
 import { ProcessedSlider } from "../../datamodel/processed/processed_slider";
 import { ProcessedSpinner } from "../../datamodel/processed/processed_spinner";
-import { Color, hexNumberToColor } from "../../util/graphics_util";
 import { Mod, modMultipliers, modIncompatibilities } from "../../datamodel/mods";
+import { Replay, ReplayEventType } from "../replay";
+import { GameButton } from "../../input/gameplay_input_state";
+import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 
-const DEFAULT_SPIN_RADIUS = 45;
-const RADIUS_LERP_DURATION = 480;
 const SPINNER_END_REDUCTION = 1; // For edge cases where objects might start immediately after spinner. Done so movement will be correct.
+const STREAM_BPM_THRESHOLD = 155; // Starting at this BPM, consecutive quarter notes count as a stream.
+const STREAM_TIME_THRESHOLD = 60000 / STREAM_BPM_THRESHOLD / 4;
+
 export const HALF_TIME_PLAYBACK_RATE = 2/3;
 export const DOUBLE_TIME_PLAYBACK_RATE = 3/2;
 
 enum WaypointType {
-	HitCircle,
-	SliderHead,
-	SliderTick,
+	Positional,
 	SpinnerStart,
 	SpinnerEnd
 }
@@ -131,51 +132,35 @@ export class ModHelper {
 		return multiplier;
 	}
 
-	static generateAutoPlaythroughInstructions(play: Play) {
-		console.time("Auto playthrough instruction generation");
+	static createAutoReplay(play: Play) {
+		console.time("Auto replay generation");
 
-		/* Generates waypoints from start and end positions aswell as slider ticks and spinners.
-		Will be used to construct movement instructions.
-		*/
+		// Generates waypoints from start and end positions aswell as slider ticks and spinners.
+		// Will be used to construct mouse and button instructions.
 		let waypoints: Waypoint[] = [];
 		for (let i = 0; i < play.processedBeatmap.hitObjects.length; i++) {
 			let hitObject = play.processedBeatmap.hitObjects[i];
 
 			if (hitObject instanceof ProcessedCircle) {
 				waypoints.push({
-					type: WaypointType.HitCircle,
+					type: WaypointType.Positional,
 					time: hitObject.startTime,
 					pos: hitObject.startPoint,
 					hitObject: hitObject
 				});
 			} else if (hitObject instanceof ProcessedSlider) {
-				waypoints.push({
-					type: WaypointType.SliderHead,
-					time: hitObject.startTime,
-					pos: hitObject.startPoint,
-					hitObject: hitObject
-				});
+				let sliderEvents: PlayEvent[] = [];
+				hitObject.addPlayEvents(sliderEvents);
 
-				for (let j = 0; j < hitObject.tickCompletions.length; j++) {
-					let tickMs = hitObject.startTime + hitObject.tickCompletions[j] * hitObject.length / hitObject.velocity;
-					let tickPosition = hitObject.path.getPosFromPercentage(MathUtil.mirror(hitObject.tickCompletions[j]));
+				// Simply add a positional waypoint for each slider event.
+				for (let j = 0; j < sliderEvents.length; j++) {
+					let event = sliderEvents[j];
+					if (event.type === PlayEventType.HeadHitWindowEnd || event.type === PlayEventType.SliderSlide) continue;
 
 					waypoints.push({
-						type: WaypointType.SliderTick,
-						time: tickMs,
-						pos: tickPosition,
-						hitObject: hitObject
-					});
-				}
-
-				for (let j = 1; j <= hitObject.repeat; j++) {
-					let repeatMs = hitObject.startTime + j * hitObject.length / hitObject.velocity;
-					let repeatPosition = (j % 2) ? hitObject.tailPoint : hitObject.startPoint;
-
-					waypoints.push({
-						type: WaypointType.SliderTick,
-						time: repeatMs,
-						pos: repeatPosition,
+						type: WaypointType.Positional,
+						time: event.time,
+						pos: event.position,
 						hitObject: hitObject
 					});
 				}
@@ -189,165 +174,121 @@ export class ModHelper {
 					type: WaypointType.SpinnerEnd,
 					time: hitObject.endTime - SPINNER_END_REDUCTION,
 					hitObject: hitObject
-				}); // Used to decrement active spinner count
+				});
 			}
 		}
-		waypoints.sort((a, b) => a.time - b.time); // TODO: Isn't it already sorted? :thinking:
+		waypoints.sort((a, b) => a.time - b.time);
 
-		//let instructionsStartTime = window.performance.now();
-		let instructions: AutoInstruction[] = [];
-		let activeSpinnerCount = 0; // All objects are ignored when spinning
+		let replay = new Replay();
+		let buttonAReleaseTime = -Infinity;
+		let buttonBReleaseTime = -Infinity;
+		let currentSpinnerCount = 0;
 
-		// Moves cursor to the center of the screen at the start
-		instructions.push({
-			type: AutoInstructionType.Blink,
-			time: -Infinity,
-			to: {
-				x: PLAYFIELD_DIMENSIONS.width/2,
-				y: PLAYFIELD_DIMENSIONS.height/2
-			}
-		});
+		/** Gets the next button to be pressed down. Makes sure to alternate buttons if buttons are being pressed down fast. */
+		function getNextButton(time: number) {
+			if (time - buttonAReleaseTime >= STREAM_TIME_THRESHOLD) return GameButton.A1;
 
-		// Generate instructions from waypoints
+			if (buttonAReleaseTime > buttonBReleaseTime) return GameButton.B1;
+			else return GameButton.A1;
+		}
+		function releaseButton(button: GameButton, time: number) {
+			if (button === GameButton.A1) buttonAReleaseTime = time;
+			else buttonBReleaseTime = time;
+		}
+
 		for (let i = 0; i < waypoints.length; i++) {
 			let waypoint = waypoints[i];
 
-			if (activeSpinnerCount <= 0) {
-				if (waypoint.type === WaypointType.HitCircle) {
-					let time = Math.max(getLastInstructionEndTime(), waypoint.time - play.approachTime);
+			if (waypoint.type === WaypointType.Positional) {
+				let lastWaypointTime = (i === 0)? -Infinity : waypoints[i-1].time;
+				// Switch to linear easing for streams and such, as they tend to be played more in a continuous movement as opposed to move-and-stop.
+				let ease = ((waypoint.time - lastWaypointTime) <= STREAM_TIME_THRESHOLD)? EaseType.Linear : EaseType.EaseOutQuad;
 
-					instructions.push({
-						type: AutoInstructionType.Move,
-						time: time,
-						endTime: waypoint.time,
-						startPos: getLastInstructionPosition(time),
-						endPos: waypoint.pos
-					});
-				} else if (waypoint.type === WaypointType.SliderHead) {
-					let time = Math.max(getLastInstructionEndTime(), waypoint.time - play.approachTime);
-
-					instructions.push({
-						type: AutoInstructionType.Move,
-						time: time,
-						endTime: waypoint.time,
-						startPos: getLastInstructionPosition(time),
-						endPos: waypoint.pos
-					});
-
-					instructions.push({
-						type: AutoInstructionType.Follow,
-						time: waypoint.time,
-						endTime: waypoint.time, // Kinda stupid, but this is necessary in order for 2B maps to look decent.
-						hitObject: waypoint.hitObject
-					});
-				} else if (waypoint.type === WaypointType.SliderTick) {
-					instructions.push({
-						type: AutoInstructionType.Follow,
-						time: getLastInstructionEndTime(),
-						endTime: waypoint.time,
-						hitObject: waypoint.hitObject
-					});
-				}
-			}
-
-			if (waypoint.type === WaypointType.SpinnerStart) {
-				activeSpinnerCount++;
-
-				instructions.push({
-					type: AutoInstructionType.Spin,
+				replay.addEvent({
+					type: ReplayEventType.Positional,
 					time: waypoint.time,
-					startPos: getLastInstructionPosition(waypoint.time),
-					endTime: waypoint.hitObject.endTime - SPINNER_END_REDUCTION
+					position: waypoint.pos,
+					ease: ease,
+					leadUpDuration: play.approachTime
 				});
+
+				let button = getNextButton(waypoint.time);
+				replay.addEvent({
+					type: ReplayEventType.Button,
+					time: waypoint.time,
+					button: button,
+					state: true
+				});
+
+				// This is <= instead of < so that we get an extra iteration when we're past all waypoints
+				for (let j = i+1; j <= waypoints.length; j++) {
+					let otherWaypoint = waypoints[j];
+
+					// We check if the next waypoint belongs to the current hit object (and thus is part of a slider)
+					if (otherWaypoint && otherWaypoint.hitObject === waypoint.hitObject && currentSpinnerCount === 0) {
+						// We can safely skip the next waypoint
+						i++;
+					} else {
+						// We'll always land in this "else" block if the current hit object isn't a slider
+
+						let prevWaypoint = waypoints[j-1];
+
+						if (prevWaypoint !== waypoint && currentSpinnerCount === 0) replay.addEvent({
+							type: ReplayEventType.Follow,
+							time: waypoint.time,
+							endTime: prevWaypoint.time,
+							slider: waypoint.hitObject as ProcessedSlider
+						});
+						replay.addEvent({
+							type: ReplayEventType.Button,
+							time: prevWaypoint.time,
+							button: button,
+							state: false
+						});
+						releaseButton(button, prevWaypoint.time);
+
+						break;
+					}
+				}
+
+				// If a spinner is currently in progress, start spinning again.
+				if (currentSpinnerCount > 0) insertSpinner(true);
+			} else if (waypoint.type === WaypointType.SpinnerStart) {
+				currentSpinnerCount++;
+				insertSpinner();
 			} else if (waypoint.type === WaypointType.SpinnerEnd) {
-				activeSpinnerCount--;
+				currentSpinnerCount--;
+				if (currentSpinnerCount > 0) insertSpinner(true);
+			}
+
+			function insertSpinner(continuation = false) {
+				let button = getNextButton(waypoint.time);
+				let endTime = waypoints[i+1].time; // We're guaranteed there's another waypoint because every SpinnerStart is followed by a SpinnerEnd
+
+				replay.addEvent({
+					type: ReplayEventType.Button,
+					time: waypoint.time - (continuation? 0 : 1e-6), // Start holding down just before the spinner begins so that we're guaranteed to be pressing the button as soon as the spinner handles the first mouse input.
+					button: button,
+					state: true
+				});
+				replay.addEvent({
+					type: ReplayEventType.Spin,
+					time: waypoint.time,
+					endTime: endTime
+				});
+				replay.addEvent({
+					type: ReplayEventType.Button,
+					time: endTime,
+					button: button,
+					state: false
+				});
+				releaseButton(button, endTime);
 			}
 		}
 
-		// Remove repeated followSlider instructions all linking to the same slider
-		for (let i = 0; i < instructions.length-1; i++) {
-			let thisInstruction = instructions[i];
-			if (thisInstruction.type !== AutoInstructionType.Follow) continue;
+		replay.finalize();
+		console.timeEnd("Auto replay generation");
 
-			while (instructions[i+1] && instructions[i+1].type === AutoInstructionType.Follow && instructions[i+1].hitObject === thisInstruction.hitObject) {
-				instructions.splice(i+1, 1);
-			}
-		}
-
-		// Merge simulatenous spinners into one instruction
-		for (let i = 0; i < instructions.length-1; i++) {
-			let thisInstruction = instructions[i];
-			if (thisInstruction.type !== AutoInstructionType.Spin) continue;
-
-			let nextInstruction = instructions[i+1];
-			if (!nextInstruction || nextInstruction.type !== AutoInstructionType.Spin) continue;
-			if (nextInstruction.time > thisInstruction.endTime) continue;
-
-			thisInstruction.endTime = Math.max(thisInstruction.endTime, nextInstruction.endTime);
-			instructions.splice(i+1, 1);
-			i--; // Check the same spinner again as there might be another spinner that we need to merge with
-		}
-
-		// Remove unnecessary instructions with same starting time
-		for (let i = 0; i < instructions.length-1; i++) {
-			let thisInstruction = instructions[i];
-			
-			while (instructions[i+1] && instructions[i+1].time === thisInstruction.time) {
-				instructions.splice(i+1, 1);
-			}
-		}
-
-		function getLastInstructionPosition(time: number) {
-			let lastInstruction = instructions[instructions.length - 1];
-
-			if (lastInstruction.type === AutoInstructionType.Blink) {
-				return lastInstruction.to;
-			} else if (lastInstruction.type === AutoInstructionType.Move) {
-				return lastInstruction.endPos;
-			} else if (lastInstruction.type === AutoInstructionType.Follow) {
-				let slider = lastInstruction.hitObject as ProcessedSlider;
-
-				let completion = ((slider.velocity * (time - slider.startTime)) / slider.length) || 0; // || 0 to catch NaN
-				completion = MathUtil.clamp(completion, 0, slider.repeat);
-				let pos = slider.path.getPosFromPercentage(MathUtil.mirror(completion));
-
-				return pos;
-			} else if (lastInstruction.type === AutoInstructionType.Spin) {
-				// we won't spin more than we have to, duh
-				var time = Math.min(lastInstruction.endTime, time); // apparently let doesn't work here. It won't let me!
-
-				return ModHelper.getSpinPositionFromSpinInstruction(lastInstruction, time);
-			}
-		}
-
-		function getLastInstructionEndTime() {
-			let lastInstruction = instructions[instructions.length - 1];
-
-			if (lastInstruction.type === AutoInstructionType.Blink) {
-				return lastInstruction.time;
-			} else {
-				return lastInstruction.endTime;
-			}
-		}
-
-		console.timeEnd("Auto playthrough instruction generation");
-
-		return instructions;
-	}
-
-	static getSpinPositionFromSpinInstruction(instruction: AutoInstruction, time: number): Point {
-		let middleX = PLAYFIELD_DIMENSIONS.width/2,
-			middleY = PLAYFIELD_DIMENSIONS.height/2;
-
-		let radiusLerpCompletion = (time - instruction.time) / RADIUS_LERP_DURATION;
-		radiusLerpCompletion = MathUtil.clamp(radiusLerpCompletion, 0, 1);
-		radiusLerpCompletion = MathUtil.ease(EaseType.EaseInOutQuad, radiusLerpCompletion);
-		let spinRadius = MathUtil.fastHypot(instruction.startPos.x - middleX, instruction.startPos.y - middleY) * (1 - radiusLerpCompletion) + DEFAULT_SPIN_RADIUS * radiusLerpCompletion;
-		let angle = Math.atan2(instruction.startPos.y - middleY, instruction.startPos.x - middleX) + 0.05 * (time - instruction.time);
-
-		return {
-			x: middleX + Math.cos(-angle) * spinRadius, // Minus, because spinning counter-clockwise looks so much better.
-			y: middleY + Math.sin(-angle) * spinRadius
-		};
+		return replay;
 	}
 }

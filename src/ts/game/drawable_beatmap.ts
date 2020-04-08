@@ -167,8 +167,9 @@ export class DrawableBeatmap {
 	}
 
 	tick(currentTime: number, dt: number) {
-		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
-		let buttonPressed = (this.play.controller.inputController.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax)) && !this.play.hasFailed();
+		let osuMouseCoordinates = this.play.controller.inputState.getMousePosition();
+		let buttonPressed = (this.play.controller.inputState.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax)) && !this.play.hasFailed();
+		let replay = this.play.controller.replay;
 
 		// Add new hit objects to screen
 		for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableHitObjects.length; this.currentHitObjectIndex++) {
@@ -188,10 +189,14 @@ export class DrawableBeatmap {
 				this.currentSustainedEvents.push(playEvent);
 				continue;
 			}
+
+			if (replay) replay.tickPlayback(playEvent.time);
 			
 			let drawable = this.processedToDrawable.get(playEvent.hitObject);
-			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, currentTime, dt);
+			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, playEvent.time, dt);
 		}
+
+		if (replay) replay.tickPlayback(currentTime);
 
 		// Call sustained play event handlers
 		for (let i = 0; i < this.currentSustainedEvents.length; i++) {
@@ -259,9 +264,8 @@ export class DrawableBeatmap {
 		}
 	}
 	
-	handleButtonDown() {
-		let currentTime = this.play.getCurrentSongTime();
-		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
+	handleButtonDown(currentTime: number) {
+		let osuMouseCoordinates = this.play.controller.inputState.getMousePosition();
 
 		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
 			let hitObject = this.onscreenHitObjects[i];
@@ -271,10 +275,9 @@ export class DrawableBeatmap {
 		}
 	}
 
-	handleMouseMove() {
-		let currentTime = this.play.getCurrentSongTime();
-		let osuMouseCoordinates = this.play.getOsuMouseCoordinatesFromCurrentMousePosition();
-		let pressed = this.play.controller.inputController.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax);
+	handleMouseMove(currentTime: number) {
+		let osuMouseCoordinates = this.play.controller.inputState.getMousePosition();
+		let pressed = this.play.controller.inputState.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax);
 
 		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
 			let hitObject = this.onscreenHitObjects[i];

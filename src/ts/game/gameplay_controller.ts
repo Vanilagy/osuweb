@@ -14,8 +14,10 @@ import { Mod } from "../datamodel/mods";
 import { ModHelper } from "./mods/mod_helper";
 import { assert } from "../util/misc_util";
 import { currentWindowDimensions } from "../visuals/ui";
-import { GameplayInputController } from "../input/gameplay_input_controller";
 import { FlashlightOccluder } from "./mods/flashlight_occluder";
+import { GameplayInputState } from "../input/gameplay_input_state";
+import { GameplayInputListener } from "../input/gameplay_input_controller";
+import { Replay } from "./replay";
 
 export class GameplayController {
 	public container: PIXI.Container;
@@ -26,7 +28,8 @@ export class GameplayController {
 	public interactionGroup: InteractionGroup;
 	public interactionTarget: PIXI.Container;
 	public interactionRegistration: InteractionRegistration;
-	public inputController: GameplayInputController;
+	public inputState: GameplayInputState;
+	public userInputListener: GameplayInputListener;
 
 	public gameplayContainer: PIXI.Container;
 	private desaturationFilter: PIXI.filters.ColorMatrixFilter;
@@ -39,6 +42,7 @@ export class GameplayController {
 	public autoCursor: PIXI.Sprite;
 	
 	public currentPlay: Play = null;
+	public replay: Replay = null;
 
 	private fadeInterpolator: Interpolator;
 	private preScoreScreenTimeout: ReturnType<typeof setTimeout> = null;
@@ -117,13 +121,8 @@ export class GameplayController {
 			}
 		});
 
-		this.interactionRegistration.addListener('mouseMove', () => {
-			if (!this.currentPlay) return;
-			this.currentPlay.handleMouseMove();
-		});
-
-		this.inputController = new GameplayInputController(this.interactionRegistration);
-		this.inputController.addListener('gameButtonDown', () => this.currentPlay && this.currentPlay.handleButtonDown());
+		this.inputState = new GameplayInputState(this);
+		this.userInputListener = new GameplayInputListener(this, this.interactionRegistration);
 		
 		this.resize();
 		this.hide();
@@ -149,11 +148,32 @@ export class GameplayController {
 		this.hud.init();
 		this.onPlayBegin();
 		enableRenderTimeInfoLog();
-		
+
+		if (mods.has(Mod.Auto)) {
+			let autoReplay = ModHelper.createAutoReplay(newPlay);
+			this.setReplay(autoReplay);
+		} else {
+			this.setReplay(null);
+		}
+
 		await newPlay.start();
 
 		this.resize(false);
 		this.show();
+	}
+
+	setReplay(replay: Replay) {
+		if (replay === null) {
+			if (this.replay) this.replay.unhook();
+			this.replay = null;
+			this.userInputListener.hook(this.inputState);
+			this.autoCursor.visible = false;
+		} else {
+			this.replay = replay;
+			this.replay.hook(this.inputState);
+			this.userInputListener.unhook();
+			this.autoCursor.visible = true;
+		}
 	}
 
 	private onPlayBegin() {
@@ -163,7 +183,7 @@ export class GameplayController {
 		this.hud.setFade(true, 0);
 		this.hud.interactionGroup.enable();
 
-		this.inputController.reset(); // eh for safety?
+		this.inputState.reset(); // eh for safety?
 	}
 
 	endPlay() {
@@ -181,7 +201,7 @@ export class GameplayController {
 	}
 
 	async completePlay() {
-		if (!this.currentPlay) return;
+		if (!this.currentPlay || this.currentPlay.completed) return;
 
 		this.currentPlay.complete();
 		this.hud.setFade(false, 300);
