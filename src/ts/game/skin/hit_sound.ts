@@ -7,6 +7,7 @@ import { charIsDigit, promiseAllSettled } from "../../util/misc_util";
 import { soundEffectsNode, audioContext } from "../../audio/audio";
 import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
 import { AudioBufferPlayer } from "../../audio/audio_buffer_player";
+import { EMPTY_AUDIO_BUFFER } from "../../util/audio_util";
 
 const HIT_SOUND_PAN_DIVISOR = 800; // How many osu!pixels from the center of the screen one has to move for the hit sound to be fully on either the left or right audio channel
 
@@ -186,7 +187,8 @@ export class HitSound {
             if (elem.status === "fulfilled") {
                 this.audioBuffers.set(key, elem.value);
             } else {
-                // Audio wasn't able to be decoded. Add no buffer.
+				this.audioBuffers.set(key, EMPTY_AUDIO_BUFFER);
+                // Audio wasn't able to be decoded. Add an empty buffer.
             }
         }
     }

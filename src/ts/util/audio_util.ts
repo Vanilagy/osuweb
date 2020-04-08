@@ -4,6 +4,9 @@ import { AudioPlayer } from "../audio/audio_player";
 import { VirtualFile } from "../file_system/virtual_file";
 import { AudioBufferPlayer } from "../audio/audio_buffer_player";
 import { AudioMediaPlayer } from "../audio/audio_media_player";
+import { audioContext } from "../audio/audio";
+
+export const EMPTY_AUDIO_BUFFER = audioContext.createBuffer(2, audioContext.sampleRate, audioContext.sampleRate); // A one-second audio buffer of nothing
 
 // All bitrate values are in 1000 bits per second
 const MPEGV1_BITRATES: { [layer: number]: { [bitrateIndex: number]: number } } = {

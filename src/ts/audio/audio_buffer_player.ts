@@ -2,6 +2,7 @@ import { audioContext } from "./audio";
 import { AudioPlayer } from "./audio_player";
 import { VirtualFile } from "../file_system/virtual_file";
 import { fetchAsArrayBuffer } from "../util/network_util";
+import { EMPTY_AUDIO_BUFFER } from "../util/audio_util";
 
 export class AudioBufferPlayer extends AudioPlayer {
 	private sourceNode: AudioBufferSourceNode = null;
@@ -31,7 +32,12 @@ export class AudioBufferPlayer extends AudioPlayer {
 	}
 
 	async loadBuffer(buffer: ArrayBuffer) {
-		this.audioBuffer = await audioContext.decodeAudioData(buffer);
+		try {
+			this.audioBuffer = await audioContext.decodeAudioData(buffer);
+		} catch (e) {
+			console.error(e);
+			this.audioBuffer = EMPTY_AUDIO_BUFFER;
+		}
 	}
 
 	async loadUrl(url: string) {
