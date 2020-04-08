@@ -80,7 +80,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		// Init hit sounds for slider head, repeats and end
 		let hitSounds: HitSoundInfo[] = [];
 		for (let i = 0; i < slider.edgeHitSounds.length; i++) {
-			let time = slider.time + this.parent.length/this.parent.velocity * i;
+			let time = slider.time + this.parent.getRelativeTimeFromCompletion(i);
 			let timingPoint = this.parent.processedBeatmap.beatmap.getClosestTimingPointTo(time, currentTimingPoint.index);
 			let hitSound = slider.edgeHitSounds[i];
 			let sampling = slider.edgeSamplings[i];
@@ -95,7 +95,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let tickSounds: HitSoundInfo[] = [];
 		for (let i = 0; i < this.parent.tickCompletions.length; i++) {
 			let completion = this.parent.tickCompletions[i];
-			let time = slider.time + this.parent.length/this.parent.velocity * completion;
+			let time = slider.time + this.parent.getRelativeTimeFromCompletion(completion);
 			let timingPoint = this.parent.processedBeatmap.beatmap.getClosestTimingPointTo(time, currentTimingPoint.index);
 			let position = this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion));
 
@@ -476,16 +476,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.forceSliderBodyRender = false;
 	}
 
-	private calculateCompletionAtTime(time: number) {
-		let sliderTime = time - this.parent.hitObject.time;
-		let completion = (this.parent.velocity * sliderTime) / this.parent.length;
-		completion = MathUtil.clamp(completion, 0, this.parent.repeat);
-
-		return completion;
-	}
-
 	private updateSubelements(currentTime: number) {
-		let completion = this.calculateCompletionAtTime(currentTime);
+		let completion = this.parent.getCompletionAtTime(currentTime);
 		let currentSliderTime = currentTime - this.parent.hitObject.time;
 		let sliderBallPos = this.drawableBeatmap.play.toScreenCoordinates(this.drawablePath.getPosFromPercentage(MathUtil.mirror(completion)), false);
 
@@ -620,7 +612,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 			// With HD, ticks start fading out shortly before they're supposed to be picked up. By the time they are picked up, they will have reached opacity 0.
 			if (hasHidden) {
-				let tickPickUpTime = tickCompletion * this.parent.length / this.parent.velocity;
+				let tickPickUpTime = this.parent.getRelativeTimeFromCompletion(tickCompletion);
 				let fadeOutCompletion = (currentSliderTime - (tickPickUpTime - HIDDEN_TICK_FADE_OUT_DURATION)) / HIDDEN_TICK_FADE_OUT_DURATION;
 				fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
 
@@ -848,7 +840,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			}; break;
 			// Sustained event:
 			case PlayEventType.SliderSlide: {
-				let currentPosition = this.drawablePath.getPosFromPercentage(MathUtil.mirror(this.calculateCompletionAtTime(currentTime)));
+				let currentPosition = this.drawablePath.getPosFromPercentage(MathUtil.mirror(this.parent.getCompletionAtTime(currentTime)));
 				let pan = calculatePanFromOsuCoordinates(currentPosition);
 
 				// Update the pan on the slider slide players

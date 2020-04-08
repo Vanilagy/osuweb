@@ -62,7 +62,7 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 		let sliderVelocityInOsuPixelsPerMillisecond = sliderVelocityInOsuPixelsPerBeat / combinedMsPerBeat;
 		this.velocity = sliderVelocityInOsuPixelsPerMillisecond;
 
-		this.endTime = this.startTime + this.repeat * this.length / this.velocity;
+		this.endTime = this.startTime + this.getRelativeTimeFromCompletion(this.repeat);
 		this.endTime = toFloat32(this.endTime);
 		this.duration = this.endTime - this.startTime;
 		this.tailPoint = this.path.getPosFromPercentage(1.0);
@@ -76,6 +76,17 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 		}
 
 		this.initTicks(timingInfo);
+	}
+
+	/** Returns the completion of the slider at a point in absolute time (relative to the whole beatmap). */
+	getCompletionAtTime(time: number) {
+		// || 0 to catch NaN for zero-length slider
+		return MathUtil.clamp(((this.velocity * (time - this.startTime)) / this.length) || 0, 0, this.repeat);
+	}
+
+	/** Returns the relative time (time relative to the slider start) where the slider will reach a given completion. */
+	getRelativeTimeFromCompletion(completion: number) {
+		return completion * this.length / this.velocity;
 	}
 	
 	private initTicks(timingInfo: CurrentTimingPointInfo) {
@@ -95,8 +106,8 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 		// O----T----T-O
 		// where O represents the ends, and T is a slider tick, then repeating that slider does NOT change the position of the Ts. It follows that slider ticks don't always "tick" in constant time intervals.
 		for (let tickCompletion = tickCompletionIncrement; tickCompletion > 0 && tickCompletion < 1; tickCompletion += tickCompletionIncrement) {
-			let timeToStart = tickCompletion * this.length / this.velocity;
-			let timeToEnd = (1 - tickCompletion) * this.length / this.velocity;
+			let timeToStart = this.getRelativeTimeFromCompletion(tickCompletion);
+			let timeToEnd = this.getRelativeTimeFromCompletion(1- tickCompletion);
 
 			if (timeToStart < 6 || timeToEnd < 6) continue; // Ignore slider ticks temporally close to either slider end
 
@@ -137,7 +148,7 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 
 		if (this.specialBehavior !== SpecialSliderBehavior.Invisible && !tooShort) {
 			let sliderEndCheckTime = this.startTime + Math.max(this.duration - 36, this.duration/2); // "Slider ends are a special case and checked exactly 36ms before the end of the slider (unless the slider is <72ms in duration, then it checks exactly halfway time wise)." https://www.reddit.com/r/osugame/comments/9rki8o/how_are_slider_judgements_calculated/
-			let sliderEndCheckCompletion = ((this.velocity * (sliderEndCheckTime - this.startTime)) / this.length) || 0; // || 0 to catch NaN for zero-length slider
+			let sliderEndCheckCompletion = this.getCompletionAtTime(sliderEndCheckTime);
 			sliderEndCheckCompletion = MathUtil.mirror(sliderEndCheckCompletion);
 			let sliderEndCheckPosition = this.path.getPosFromPercentage(sliderEndCheckCompletion);
 	
@@ -189,7 +200,7 @@ export class ProcessedSlider extends ProcessedHeadedHitObject {
 			let tickCompletion = this.tickCompletions[i];
 
 			// Time that the tick should be hit, relative to the slider start time
-			let time = tickCompletion * this.length / this.velocity;
+			let time = this.getRelativeTimeFromCompletion(tickCompletion);
 			let position = this.path.getPosFromPercentage(MathUtil.mirror(tickCompletion));
 
 			playEventArray.push({
