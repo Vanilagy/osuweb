@@ -13,7 +13,7 @@ import { GameButton } from "../../input/gameplay_input_state";
 import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 
 const SPINNER_END_REDUCTION = 1; // For edge cases where objects might start immediately after spinner. Done so movement will be correct.
-const STREAM_BPM_THRESHOLD = 155; // Starting at this BPM, consecutive quarter notes count as a stream.
+const STREAM_BPM_THRESHOLD = 140; // Starting at this BPM, consecutive quarter notes count as a stream.
 const STREAM_TIME_THRESHOLD = 60000 / STREAM_BPM_THRESHOLD / 4;
 
 export const HALF_TIME_PLAYBACK_RATE = 2/3;
@@ -186,7 +186,7 @@ export class ModHelper {
 
 		/** Gets the next button to be pressed down. Makes sure to alternate buttons if buttons are being pressed down fast. */
 		function getNextButton(time: number) {
-			if (time - buttonAReleaseTime >= STREAM_TIME_THRESHOLD) return GameButton.A1;
+			if (time - buttonAReleaseTime >= STREAM_TIME_THRESHOLD * play.playbackRate) return GameButton.A1;
 
 			if (buttonAReleaseTime > buttonBReleaseTime) return GameButton.B1;
 			else return GameButton.A1;
@@ -202,7 +202,7 @@ export class ModHelper {
 			if (waypoint.type === WaypointType.Positional) {
 				let lastWaypointTime = (i === 0)? -Infinity : waypoints[i-1].time;
 				// Switch to linear easing for streams and such, as they tend to be played more in a continuous movement as opposed to move-and-stop.
-				let ease = ((waypoint.time - lastWaypointTime) <= STREAM_TIME_THRESHOLD)? EaseType.Linear : EaseType.EaseOutQuad;
+				let ease = ((waypoint.time - lastWaypointTime) <= STREAM_TIME_THRESHOLD * play.playbackRate)? EaseType.Linear : EaseType.EaseOutQuad;
 				if (autopilot) ease = EaseType.EaseInOutQuint; // This ease will spend the least amount of time "travelling", therefore giving the player the greatest hit window
 
 				replay.addEvent({
