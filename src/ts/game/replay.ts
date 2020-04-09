@@ -46,11 +46,12 @@ export interface SpinReplayEvent extends ReplayEvent {
 }
 
 export class Replay extends InputStateHookable {
-	private mouseEvents: (PositionalReplayEvent | FollowReplayEvent | SpinReplayEvent)[] = [];
-	private buttonEvents: ButtonReplayEvent[] = [];
+	// Note that all the events are stored in one array, but there are separate index-keepers for mouse and button events, as these are advanced independently.
+	private events: (PositionalReplayEvent | FollowReplayEvent | SpinReplayEvent | ButtonReplayEvent)[] = [];
 
 	private currentMouseEvent: number;
 	private currentButtonEvent: number;
+	/** Stores the last time a "spin" event caused an input. We need to remember this so that we can ensure deterministic playback. */
 	private spinEventLastTimes: Map<SpinReplayEvent, number>;
 
 	private finalized = false;
@@ -62,20 +63,17 @@ export class Replay extends InputStateHookable {
 
 	addEvent(event: ButtonReplayEvent | PositionalReplayEvent | FollowReplayEvent | SpinReplayEvent) {
 		if (this.finalized) return;
-
-		if (event.type === ReplayEventType.Button) this.buttonEvents.push(event);
-		else this.mouseEvents.push(event);
+		this.events.push(event);
 	}
 
 	clearEventsAndUnfinalize() {
-		this.mouseEvents.length = this.buttonEvents.length = 0;
+		this.events.length = 0;
 		this.finalized = false;
 	}
 
 	/** Sorts all the replay events. Needs to be called before playback can be ticked. */
 	finalize() {
-		this.mouseEvents.sort((a, b) => a.time - b.time);
-		this.buttonEvents.sort((a, b) => a.time - b.time);
+		this.events.sort((a, b) => a.time - b.time);
 
 		this.finalized = true;
 	}
@@ -96,15 +94,23 @@ export class Replay extends InputStateHookable {
 		this.tickMouseEvents(currentTime);
 	}
 
-	private tickMouseEvents(currentTime: number) {
+	/** @param indexCap Only tick mouse events before index (the cap itself is exclusive) */
+	private tickMouseEvents(currentTime: number, indexCap = Infinity) {
 		if (!this.inputStateMouseHook) return;
 
 		while (true) {
-			let event = this.mouseEvents[this.currentMouseEvent];
+			if (this.currentMouseEvent >= indexCap) break;
+
+			let event = this.events[this.currentMouseEvent];
 			if (!event) break;
+			if (event.type === ReplayEventType.Button) {
+				// Skip button events
+				this.currentMouseEvent++;
+				continue;
+			}
 
 			if (event.type === ReplayEventType.Positional && event.time > currentTime) {
-				if (!event.leadUpDuration || currentTime < event.time - event.leadUpDuration) break;
+				if (!event.leadUpDuration || currentTime < event.time - this.getPositionalEventActualDuration(this.currentMouseEvent)) break;
 				// Lets through positional events that are currently in their lead up, but breaks out of the loop for everything else.
 			}
 			if (event.type === ReplayEventType.Follow || event.type === ReplayEventType.Spin) {
@@ -113,14 +119,15 @@ export class Replay extends InputStateHookable {
 
 			if (event.type === ReplayEventType.Positional) {
 				let pos: Point;
+				let duration = this.getPositionalEventActualDuration(this.currentMouseEvent);
 
-				if (!event.leadUpDuration) {
+				if (duration === 0) {
+					// Jump straight to the position since we want to avoid /0 errors.
 					pos = event.position;
 				} else {
-					let lastEndPos = this.getMouseEventEndPosition(this.currentMouseEvent - 1);
-					let lastTime = this.getMouseEventEndTime(this.currentMouseEvent - 1);
+					let beforeIndex = this.getIndexOfLastMouseEventBefore(this.currentMouseEvent);
+					let lastEndPos = this.getMouseEventEndPosition(beforeIndex);
 
-					let duration = Math.min(event.leadUpDuration, event.time - lastTime);
 					let completion = (currentTime - (event.time - duration)) / duration;
 					completion = MathUtil.clamp(completion, 0, 1);
 					completion = MathUtil.ease(event.ease, completion);
@@ -135,7 +142,8 @@ export class Replay extends InputStateHookable {
 				let pos = event.slider.path.getPosFromPercentage(MathUtil.mirror(completion));
 				this.inputStateMouseHook.setMousePosition(pos, currentTime);
 			} else if (event.type === ReplayEventType.Spin) {
-				let lastEndPos = this.getMouseEventEndPosition(this.currentMouseEvent - 1);
+				let beforeIndex = this.getIndexOfLastMouseEventBefore(this.currentMouseEvent);
+				let lastEndPos = this.getMouseEventEndPosition(beforeIndex);
 				let lastEvaulatedTime = this.spinEventLastTimes.get(event);
 				if (lastEvaulatedTime === undefined) lastEvaulatedTime = -Infinity;
 
@@ -155,17 +163,10 @@ export class Replay extends InputStateHookable {
 					newLastEvaluatedTime = time;
 				}
 
-				if (lastEvaulatedTime < event.endTime && currentTime >= event.endTime) {
-					let spinnerEndPos = this.getMouseEventEndPosition(this.currentMouseEvent);
-					this.inputStateMouseHook.setMousePosition(spinnerEndPos, event.endTime);
-
-					newLastEvaluatedTime = event.endTime;
-				}
+				// Note that we don't do an input for the very end of the slider, because the spinner would trash that input
 
 				this.spinEventLastTimes.set(event, newLastEvaluatedTime);
 			}
-
-			if (this.currentMouseEvent === this.mouseEvents.length-1) break;
 
 			let skipToNext = false;
 			if (event.type === ReplayEventType.Positional && currentTime >= event.time) {
@@ -188,19 +189,34 @@ export class Replay extends InputStateHookable {
 		if (!this.inputStateButtonHook) return;
 
 		while (true) {
-			let event = this.buttonEvents[this.currentButtonEvent];
+			let event = this.events[this.currentButtonEvent];
 			if (!event) break;
 			if (event.time > currentTime) break;
+			if (event.type !== ReplayEventType.Button) {
+				// Skip mouse events
+				this.currentButtonEvent++;
+				continue;
+			}
 
- 			this.tickMouseEvents(event.time);
+			// Before we apply the button event, apply all mouse events to this time and index
+ 			this.tickMouseEvents(event.time, this.currentButtonEvent);
 			this.inputStateButtonHook.setButton(event.button, event.state, event.time);
 
 			this.currentButtonEvent++;
 		}
 	}
 
+	private getIndexOfLastMouseEventBefore(index: number) {
+		for (let i = index-1; i >= 0; i--) {
+			if (this.events[i].type !== ReplayEventType.Button) return i;
+		}
+
+		return -1;
+	}
+
+	/** Returns the last mouse position of a given mouse event. */
 	private getMouseEventEndPosition(index: number): Point {
-		let event = this.mouseEvents[index];
+		let event = this.events[index];
 
 		if (!event) return INITIAL_MOUSE_OSU_POSITION;
 		else if (event.type === ReplayEventType.Positional) return event.position;
@@ -210,7 +226,7 @@ export class Replay extends InputStateHookable {
 
 			return event.slider.path.getPosFromPercentage(mirroredCompletion);
 		} else if (event.type === ReplayEventType.Spin) {
-			let lastEndPos = this.getMouseEventEndPosition(index-1);
+			let lastEndPos = this.getMouseEventEndPosition(this.getIndexOfLastMouseEventBefore(index));
 			return Replay.getSpinningPositionOverTime(lastEndPos, event.endTime - event.time);
 		}
 	
@@ -218,13 +234,23 @@ export class Replay extends InputStateHookable {
 	}
 
 	private getMouseEventEndTime(index: number) {
-		let event = this.mouseEvents[index];
-
+		let event = this.events[index];
 		if (!event) return -Infinity;
+		if (event.type === ReplayEventType.Button) return null;
+		
 		else if (event.type === ReplayEventType.Positional) return event.time;
 		else return event.endTime;
-	} 
+	}
 
+	private getPositionalEventActualDuration(index: number) {
+		let event = this.events[index] as PositionalReplayEvent;
+		if (!event.leadUpDuration) return 0;
+
+		let lastTime = this.getMouseEventEndTime(this.getIndexOfLastMouseEventBefore(index));
+		return Math.min(event.leadUpDuration, event.time - lastTime);
+	}
+
+	/** Calculates from given starting position the mouse position after a certain elapsed time of spinning. */
 	static getSpinningPositionOverTime(startingPosition: Point, elapsedTime: number): Point {
 		let middleX = PLAYFIELD_DIMENSIONS.width/2,
 			middleY = PLAYFIELD_DIMENSIONS.height/2;

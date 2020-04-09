@@ -233,6 +233,7 @@ export class ModHelper {
 						// We'll always land in this "else" block if the current hit object isn't a slider
 
 						let prevWaypoint = waypoints[j-1];
+						let nextWaypointTime = otherWaypoint? otherWaypoint.time : Infinity;
 
 						if (prevWaypoint !== waypoint && currentSpinnerCount === 0) replay.addEvent({
 							type: ReplayEventType.Follow,
@@ -240,13 +241,15 @@ export class ModHelper {
 							endTime: prevWaypoint.time,
 							slider: waypoint.hitObject as ProcessedSlider
 						});
+
+						let buttonReleaseTime = prevWaypoint.time + Math.min(nextWaypointTime - prevWaypoint.time, 1e-6); // Try releasing the button a tad later. This way, slider ticks can be registered.
 						replay.addEvent({
 							type: ReplayEventType.Button,
-							time: prevWaypoint.time,
+							time: buttonReleaseTime,
 							button: button,
 							state: false
 						});
-						releaseButton(button, prevWaypoint.time);
+						releaseButton(button, buttonReleaseTime);
 
 						break;
 					}
