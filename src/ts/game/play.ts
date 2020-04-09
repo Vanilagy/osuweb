@@ -217,6 +217,7 @@ export class Play {
 		if (!this.initted) return;
 
 		let currentTime = this.getCurrentSongTime();
+		let hudTime = this.toPlaybackRateIndependentTime(currentTime);
 		const hud = this.controller.hud;
 		const backgroundManager = globalState.backgroundManager;
 
@@ -230,7 +231,8 @@ export class Play {
 		hud.scorebar.update(currentTime);
 		hud.sectionStateDisplayer.update(currentTime);
 		if (this.playing) hud.skipButton.update(currentTime);
-		hud.accuracyMeter.update(currentTime);
+		hud.accuracyMeter.update(hudTime);
+		hud.keyCounter.update(hudTime);
 
 		// Update the progress indicator
 		let firstHitObject = this.processedBeatmap.hitObjects[0];
@@ -545,6 +547,10 @@ export class Play {
 
 		if (globalState.gameplayAudioPlayer.isPlaying() === false) return -this.preludeTime;
 		return globalState.gameplayAudioPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
+	}
+
+	toPlaybackRateIndependentTime(time: number) {
+		return time / this.playbackRate;
 	}
 
 	toScreenCoordinatesX(osuCoordinateX: number, floor = true) {

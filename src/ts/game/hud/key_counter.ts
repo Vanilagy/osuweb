@@ -60,9 +60,9 @@ export class KeyCounter {
 		for (let b of this.buttons) b.update(now);
 	}
 
-	setButtonState(button: GameButton, state: boolean) {
+	setButtonState(button: GameButton, state: boolean, time: number) {
 		let index = [GameButton.A1, GameButton.B1, GameButton.A2, GameButton.B2].indexOf(button);
-		this.buttons[index].setState(state);
+		this.buttons[index].setState(state, time);
 	}
 
 	reset() {
@@ -133,11 +133,9 @@ class KeyCounterButton {
 		g.endFill();
 	}
 
-	setState(state: boolean) {
-		let now = performance.now();
-
-		this.pressInterpolator.setReversedState(!state, now);
-		this.pressInterpolator.start(now);
+	setState(state: boolean, time: number) {
+		this.pressInterpolator.setReversedState(!state, time);
+		this.pressInterpolator.start(time);
 	}
 
 	reset() {

@@ -57,13 +57,15 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 	process(judgement: Judgement, record = false) {
 		super.process(judgement, record);
 
-		if (judgement.affectsCombo && judgement.value !== ScoringValue.Miss) {
-			this.phantomComboAnimationInterpolator.start(judgement.time);
-			this.delayedVisualComboIncreases.push({time: judgement.time, value: this.currentCombo});
-		}
+		let adjustedTime = this.play.toPlaybackRateIndependentTime(judgement.time);
 
-		this.scoreInterpolator.setGoal(this.score.points, judgement.time);
-		this.accuracyInterpolator.setGoal(this.score.accuracy, judgement.time);
+		if (judgement.affectsCombo && judgement.value !== ScoringValue.Miss) {
+			this.phantomComboAnimationInterpolator.start(adjustedTime);
+			this.delayedVisualComboIncreases.push({time: adjustedTime, value: this.currentCombo});
+		}
+		
+		this.scoreInterpolator.setGoal(this.score.points, adjustedTime);
+		this.accuracyInterpolator.setGoal(this.score.accuracy, adjustedTime);
 
 		if (judgement.isDrawable()) this.addDrawableJudgement(new DrawableJudgement(this, judgement));
 	}
@@ -81,9 +83,11 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 			this.play.skin.sounds[SkinSoundType.ComboBreak].start(0);
 		}
 
+		let adjustedTime = this.play.toPlaybackRateIndependentTime(time);
+
 		this.currentCombo = 0;
-		this.phantomComboAnimationInterpolator.start(time);
-		this.delayedVisualComboIncreases.push({time: time, value: this.currentCombo});
+		this.phantomComboAnimationInterpolator.start(adjustedTime);
+		this.delayedVisualComboIncreases.push({time: adjustedTime, value: this.currentCombo});
 	}
 
 	compose() {
@@ -108,20 +112,22 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 			}
 		}
 
-		hud.scoreDisplay.setValue(Math.floor(this.scoreInterpolator.getCurrentValue(currentTime)));
+		let adjustedTime = this.play.toPlaybackRateIndependentTime(currentTime);
+
+		hud.scoreDisplay.setValue(Math.floor(this.scoreInterpolator.getCurrentValue(adjustedTime)));
 
 		hud.phantomComboDisplay.setValue(this.currentCombo);
-		let phantomComboAnimCompletion = this.phantomComboAnimationInterpolator.getCurrentValue(currentTime);
+		let phantomComboAnimCompletion = this.phantomComboAnimationInterpolator.getCurrentValue(adjustedTime);
 		let phantomComboScale = MathUtil.lerp(1.5, 1, MathUtil.ease(EaseType.EaseOutCubic, phantomComboAnimCompletion));
 		hud.phantomComboDisplay.container.scale.set(phantomComboScale);
 		hud.phantomComboDisplay.container.alpha = 0.666 * (1 - phantomComboAnimCompletion);
 
-		let comboAnimCompletion = this.comboAnimationInterpolator.getCurrentValue(currentTime);
+		let comboAnimCompletion = this.comboAnimationInterpolator.getCurrentValue(adjustedTime);
 		let parabola = -4 * comboAnimCompletion**2 + 4 * comboAnimCompletion;
 		hud.comboDisplay.container.scale.set(1 + parabola * 0.08);
 
 		let nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
-		while (nextDelayedComboIncrease && currentTime >= nextDelayedComboIncrease.time + 150) {
+		while (nextDelayedComboIncrease && adjustedTime >= nextDelayedComboIncrease.time + 150) {
 			this.comboAnimationInterpolator.start(nextDelayedComboIncrease.time);
 			hud.comboDisplay.setValue(nextDelayedComboIncrease.value);
 
@@ -129,7 +135,7 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 			nextDelayedComboIncrease = this.delayedVisualComboIncreases[0];
 		}
 
-		hud.accuracyDisplay.setValue(this.accuracyInterpolator.getCurrentValue(currentTime) * 100);
+		hud.accuracyDisplay.setValue(this.accuracyInterpolator.getCurrentValue(adjustedTime) * 100);
 	}
 
 	reset() {

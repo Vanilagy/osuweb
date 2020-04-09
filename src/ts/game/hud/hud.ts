@@ -233,8 +233,6 @@ export class Hud {
 
 		this.scorebar.container.pivot.y = 50 * getGlobalScalingFactor() * breakiness;
 		this.scorebar.container.alpha = 1 - breakiness;
-
-		this.keyCounter.update(now);
 	}
 
 	setFade(visible: boolean, duration: number) {

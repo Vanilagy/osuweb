@@ -165,6 +165,7 @@ export class AccuracyMeter {
 
 	addAccuracyLine(inaccuracy: number, currentTime: number) {
 		let { processedBeatmap } = this.hud.controller.currentPlay;
+		let adjustedTime = this.hud.controller.currentPlay.toPlaybackRateIndependentTime(currentTime);
 
 		let scoringValue = processedBeatmap.difficulty.getScoringValueForHitDelta(Math.abs(inaccuracy));
 		if (scoringValue === 0) return;
@@ -184,17 +185,17 @@ export class AccuracyMeter {
 
 		this.overlay.addChild(line);
 		this.accuracyLines.push(line);
-		this.accuracyLineSpawnTimes.set(line, currentTime);
+		this.accuracyLineSpawnTimes.set(line, adjustedTime);
 		this.accuracyLineInaccuracies.set(line, inaccuracy);
 
-		this.fadeOutStart = currentTime + ACCURACY_METER_FADE_OUT_DELAY;
+		this.fadeOutStart = adjustedTime + ACCURACY_METER_FADE_OUT_DELAY;
 
 		let total = 0;
 		for (let i = 0; i < this.accuracyLines.length; i++) {
 			total += this.accuracyLineInaccuracies.get(this.accuracyLines[i]);
 		}
 		let averageInaccuracy = total / this.accuracyLines.length;
-		this.averagePointerInterpolator.setGoal(averageInaccuracy, currentTime);
+		this.averagePointerInterpolator.setGoal(averageInaccuracy, adjustedTime);
 	}
 
 	private drawLine(graphics: PIXI.Graphics) {

@@ -52,7 +52,8 @@ export class GameplayInputState {
 			state: state
 		});
 
-		this.controller.hud.keyCounter.setButtonState(button, state);
+		let adjustedTime = this.controller.currentPlay.toPlaybackRateIndependentTime(time);
+		this.controller.hud.keyCounter.setButtonState(button, state, adjustedTime);
 	}
 
 	setMousePosition(osuPosition: Point, time: number) {
