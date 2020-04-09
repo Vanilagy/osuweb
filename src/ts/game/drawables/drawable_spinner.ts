@@ -493,6 +493,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		let prevSpinsSpun = this.getSpinsSpun();
 
+		radians *= this.drawableBeatmap.play.playbackRate; // Spinners should be easier in DT, and harder in HT!
 		// Cap the spinning at 0.05 radians per millisecond. This actually results in the 477 SPM limit!
 		let cappedRadians = Math.min(Math.abs(radians), dt * 0.05) * Math.sign(radians);
 		this.rotation += cappedRadians;
