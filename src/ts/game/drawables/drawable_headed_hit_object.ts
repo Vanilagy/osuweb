@@ -123,13 +123,7 @@ export abstract class DrawableHeadedHitObject extends DrawableHitObject {
 	}
 
 	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number) {
-		let play = this.drawableBeatmap.play;
-
 		switch (event.type) {
-			case PlayEventType.PerfectHeadHit: {
-				if (!play.hasAutohit()) break;
-				this.hitHead(event.time);
-			}; break;
 			case PlayEventType.HeadHitWindowEnd: {
 				if (this.scoring.head.hit !== ScoringValue.None) break;
 				this.hitHead(event.time, 0);

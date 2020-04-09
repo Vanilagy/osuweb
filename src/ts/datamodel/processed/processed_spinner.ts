@@ -25,13 +25,6 @@ export class ProcessedSpinner extends ProcessedHitObject {
 	
 	addPlayEvents(playEventArray: PlayEvent[]) {
 		playEventArray.push({
-			type: PlayEventType.SpinnerSpin,
-			hitObject: this,
-			time: this.startTime,
-			endTime: this.endTime
-		});
-
-		playEventArray.push({
 			type: PlayEventType.SpinnerEnd,
 			hitObject: this,
 			time: this.endTime
