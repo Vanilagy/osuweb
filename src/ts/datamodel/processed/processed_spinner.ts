@@ -29,5 +29,11 @@ export class ProcessedSpinner extends ProcessedHitObject {
 			hitObject: this,
 			time: this.endTime
 		});
+		playEventArray.push({
+			type: PlayEventType.SpinnerSpin,
+			hitObject: this,
+			time: this.startTime,
+			endTime: this.endTime
+		});
 	}
 }

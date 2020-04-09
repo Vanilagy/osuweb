@@ -132,7 +132,7 @@ export function determineSampleSet(sampleSet: number, timingPoint: TimingPoint) 
 }
 
 export function determineVolume(volume: number, timingPoint: TimingPoint) {
-    return volume || timingPoint.volume;
+    return MathUtil.clamp(volume || timingPoint.volume, 5, 10000); // TODO: How correct is this clamp? Eeeeeeh
 }
 
 export function determineSampleIndex(sampleIndex: number, timingPoint: TimingPoint) {
@@ -197,9 +197,6 @@ export class HitSound {
         let buffer = this.audioBuffers.get(index);
         if (!buffer) buffer = this.audioBuffers.get(1); // Default to the standard one. YES IT'S NOT 0 FOR A REASON.
 		if (!buffer) return null;
-
-        // TODO: How correct is this? Eeeeeeh
-        volume = MathUtil.clamp(volume, 5, 10000);
 
         let player = new AudioBufferPlayer(soundEffectsNode);
         player.loadAudioBuffer(buffer);

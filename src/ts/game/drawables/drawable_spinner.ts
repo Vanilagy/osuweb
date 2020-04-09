@@ -80,7 +80,6 @@ export class DrawableSpinner extends DrawableHitObject {
 	private visualRotationInterpolator: InterpolatedValueChanger;
 	private cleared: boolean;
 	private bonusSpins: number;
-	private angularVelocity: number;
 	private spmRecords: SpmRecord[];
 	private maxSpm: number;
 
@@ -121,7 +120,6 @@ export class DrawableSpinner extends DrawableHitObject {
 		if (this.visualRotationInterpolator) this.visualRotationInterpolator.reset(0);
 		this.cleared = false;
 		this.bonusSpins = 0;
-		this.angularVelocity = 0;
 		this.spmRecords = [];
 		this.maxSpm = 0;
 
@@ -543,12 +541,19 @@ export class DrawableSpinner extends DrawableHitObject {
 			// Fade out the "spin!" text once the player has spun the spinner far enough
 			this.spinnerSpinFadeOutStart = currentTime;
 		}
+	}
 
+	tick(currentTime: number) {
+		let skin = this.drawableBeatmap.play.skin;
+
+		// Handle playback, stopping and playback rate of the spinning sounds
 		if (this.spinSoundPlayer) {
-			// Handle playback, stopping and playback rate of the spinning sounda
+			let spm = this.sampleSpm(currentTime);
+			let playSound = spm >= 10;
+			let spinCompletion = this.getSpinsSpun() / this.parent.requiredSpins;
 
-			if (!this.spinSoundPlayer.isPlaying() && this.angularVelocity !== 0) this.spinSoundPlayer.start(0);
-			if (this.angularVelocity === 0) this.stopSpinningSound();
+			if (!this.spinSoundPlayer.isPlaying() && playSound) this.spinSoundPlayer.start(0);
+			if (!playSound) this.stopSpinningSound();
 
 			if (skin.config.general.spinnerFrequencyModulate) this.spinSoundPlayer.setPlaybackRate(Math.min(2, spinCompletion*0.85 + 0.5));
 		}
@@ -599,11 +604,12 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	handlePlayEvent(event: PlayEvent, osuMouseCoordinates: Point, buttonPressed: boolean, currentTime: number, dt: number) {
-		let play = this.drawableBeatmap.play;
-
 		switch (event.type) {
 			case PlayEventType.SpinnerEnd: {
 				this.score();
+			}; break;
+			case PlayEventType.SpinnerSpin: {
+				this.tick(currentTime);
 			}; break;
 		}
 	}
