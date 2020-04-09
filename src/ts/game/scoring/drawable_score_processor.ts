@@ -74,8 +74,8 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 	}
 
 	break(time: number) {
-		super.break(time);
 		if (this.currentCombo === 0) return;
+		super.break(time);
 
 		if (this.currentCombo >= 50) {
 			this.play.skin.sounds[SkinSoundType.ComboBreak].start(0);
