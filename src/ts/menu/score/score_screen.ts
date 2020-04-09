@@ -18,6 +18,7 @@ import { AnimationParameterList, Animation, AnimationEvent, AnimationPlayer } fr
 import { modComparator } from "../../datamodel/mods";
 import { KeyCode } from "../../input/input";
 import { SkinSoundType } from "../../game/skin/skin";
+import { Replay } from "../../game/replay";
 
 const SCORE_SCREEN_WIDTH = 615;
 const SCORE_SCREEN_HEIGHT = 342;
@@ -76,6 +77,7 @@ export class ScoreScreen {
 	public scalingFactor: number = 1.0;
 
 	private currentScore: Score;
+	private currentReplay: Replay;
 
 	private header: BeatmapHeaderPanel;
 
@@ -104,7 +106,10 @@ export class ScoreScreen {
 	private playedByText: PIXI.Text;
 
 	private buttonContainer: PIXI.Container;
-	private buttons: Button[];
+	public closeButton: Button;
+	public retryButton: Button;
+	public watchReplayButton: Button;
+	private activeButtons: Button[];
 
 	private animationPlayer: AnimationPlayer;
 	private fadeOutInterpolator: Interpolator;
@@ -187,18 +192,29 @@ export class ScoreScreen {
 		this.buttonContainer = new PIXI.Container();
 		this.centerContainer.addChild(this.buttonContainer);
 
-		let closeButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "go to menu", colorToHexNumber(THEME_COLORS.PrimaryBlue));
-		let retryButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "play again", colorToHexNumber(THEME_COLORS.SecondaryActionGray));
-		let watchReplayButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "watch replay", colorToHexNumber(THEME_COLORS.SecondaryActionGray));
-		this.buttons = [closeButton, retryButton, watchReplayButton];
-		for (let b of this.buttons) this.buttonContainer.addChild(b.container);
+		this.closeButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "go to menu", colorToHexNumber(THEME_COLORS.PrimaryBlue));
+		this.retryButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "play again", colorToHexNumber(THEME_COLORS.SecondaryActionGray));
+		this.watchReplayButton = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, "watch replay", colorToHexNumber(THEME_COLORS.SecondaryActionGray));
+		this.activeButtons = [];
 
-		closeButton.setupInteraction(this.interactionGroup, () => this.close());
-		retryButton.setupInteraction(this.interactionGroup, () => {
+		this.closeButton.setupInteraction(this.interactionGroup, () => {
+			if (!this.activeButtons.includes(this.closeButton)) return;
+			
+			this.close()
+		});
+		this.retryButton.setupInteraction(this.interactionGroup, () => {
+			if (!this.activeButtons.includes(this.retryButton)) return;
+
 			globalState.gameplayController.restart();
 			this.hide();
 		});
-		watchReplayButton.setupInteraction(this.interactionGroup, EMPTY_FUNCTION);
+		this.watchReplayButton.setupInteraction(this.interactionGroup, () => {
+			if (!this.activeButtons.includes(this.watchReplayButton)) return;
+
+			globalState.gameplayController.restart();
+			globalState.gameplayController.setReplay(this.currentReplay);
+			this.hide();
+		});
 
 		this.animationPlayer = new AnimationPlayer(buildUpAnimation);
 		this.fadeOutInterpolator = new Interpolator({
@@ -245,8 +261,9 @@ export class ScoreScreen {
 		this.animationPlayer.start(performance.now() - BUTTON_FADE_IN_START);
 	}
 
-	async load(score: Score, beatmap: Beatmap | ExtendedBeatmapData, imageFile: VirtualFile) {
+	async load(score: Score, beatmap: Beatmap | ExtendedBeatmapData, imageFile: VirtualFile, replay: Replay) {
 		this.currentScore = score;
+		this.currentReplay = replay;
 
 		await this.header.loadImage(imageFile);
 		this.header.updateText(beatmap, true, true);
@@ -284,6 +301,16 @@ export class ScoreScreen {
 		}
 
 		this.resize();
+	}
+
+	setActiveButtons(buttons: Button[]) {
+		this.buttonContainer.removeChildren();
+
+		this.activeButtons = buttons;
+		for (let b of this.activeButtons) {
+			b.resize(this.scalingFactor);
+			this.buttonContainer.addChild(b.container);
+		}
 	}
 	
 	resize() {
@@ -367,7 +394,7 @@ export class ScoreScreen {
 		this.mainContainer.y = Math.floor((SCORE_SCREEN_HEADER_HEIGHT + SCORE_SCREEN_HEADER_MARGIN) * this.scalingFactor);
 
 		this.buttonContainer.y = Math.floor((SCORE_SCREEN_HEADER_HEIGHT + SCORE_SCREEN_HEIGHT + 2*SCORE_SCREEN_HEADER_MARGIN) * this.scalingFactor);
-		for (let b of this.buttons) b.resize(this.scalingFactor);
+		for (let b of this.activeButtons) b.resize(this.scalingFactor);
 
 		this.centerContainer.x = Math.floor(currentWindowDimensions.width / 2);
 		this.centerContainer.y = Math.floor(currentWindowDimensions.height / 2);
@@ -465,8 +492,8 @@ export class ScoreScreen {
 		this.gradeContainer.alpha = gradeFadeIn;
 
 		let buttonElapsedTime = this.animationPlayer.getParameter('buttonElapsedTime');
-		for (let i = 0; i < this.buttons.length; i++) {
-			let button = this.buttons[i];
+		for (let i = 0; i < this.activeButtons.length; i++) {
+			let button = this.activeButtons[i];
 			button.update(now);
 
 			let startTime = i * 100;

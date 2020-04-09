@@ -755,7 +755,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			if (play.hasFailed()) return false;
 
 			let distance = pointDistance(osuMouseCoordinates, pos);
-			return (buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO) || play.hasAutohit();
+			return buttonPressed && distance <= play.circleRadiusOsuPx * FOLLOW_CIRCLE_HITBOX_CS_RATIO;
 		};
 		let followCircleHit = followCircleHits(event.position);
 

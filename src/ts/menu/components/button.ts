@@ -80,6 +80,11 @@ export class Button {
 		});
 	}
 
+	setLabel(newLabel: string) {
+		this.label.text = newLabel;
+		this.resize(this.lastScalingFactor);
+	}
+
 	resize(scalingFactor: number) {
 		this.lastScalingFactor = scalingFactor;
 		let slantWidth = this.height/5;

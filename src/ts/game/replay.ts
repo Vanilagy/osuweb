@@ -2,7 +2,7 @@ import { Point, lerpPoints } from "../util/point";
 import { EaseType, MathUtil } from "../util/math_util";
 import { Play } from "./play";
 import { GameButton } from "../input/gameplay_input_state";
-import { InputStateHookable } from "./input_state_hookable";
+import { InputStateHookable } from "../input/input_state_hookable";
 import { INITIAL_MOUSE_OSU_POSITION, PLAYFIELD_DIMENSIONS } from "../util/constants";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 
@@ -67,6 +67,11 @@ export class Replay extends InputStateHookable {
 		else this.mouseEvents.push(event);
 	}
 
+	clearEventsAndUnfinalize() {
+		this.mouseEvents.length = this.buttonEvents.length = 0;
+		this.finalized = false;
+	}
+
 	/** Sorts all the replay events. Needs to be called before playback can be ticked. */
 	finalize() {
 		this.mouseEvents.sort((a, b) => a.time - b.time);
@@ -82,13 +87,18 @@ export class Replay extends InputStateHookable {
 	}
 
 	tickPlayback(currentTime: number) {
-		if (!this.inputState || !this.finalized) return;
+		if (!this.finalized) {
+			console.error("Cannot tick a Replay that hasn't been finalized!");
+			return;
+		}
 
 		this.tickButtonEvents(currentTime);
 		this.tickMouseEvents(currentTime);
 	}
 
 	private tickMouseEvents(currentTime: number) {
+		if (!this.inputStateMouseHook) return;
+
 		while (true) {
 			let event = this.mouseEvents[this.currentMouseEvent];
 			if (!event) break;
@@ -117,13 +127,13 @@ export class Replay extends InputStateHookable {
 
 					pos = lerpPoints(lastEndPos, event.position, completion);
 				}
-				this.inputState.setMousePosition(pos, event.time);
+				this.inputStateMouseHook.setMousePosition(pos, Math.min(event.time, currentTime));
 			} else if (event.type === ReplayEventType.Follow) {
 				let completion = event.slider.getCompletionAtTime(Math.min(currentTime, event.endTime));
 				completion = MathUtil.clamp(completion, 0, event.slider.repeat);
 
 				let pos = event.slider.path.getPosFromPercentage(MathUtil.mirror(completion));
-				this.inputState.setMousePosition(pos, currentTime);
+				this.inputStateMouseHook.setMousePosition(pos, currentTime);
 			} else if (event.type === ReplayEventType.Spin) {
 				let lastEndPos = this.getMouseEventEndPosition(this.currentMouseEvent - 1);
 				let lastEvaulatedTime = this.spinEventLastTimes.get(event);
@@ -140,14 +150,14 @@ export class Replay extends InputStateHookable {
 					if (time >= event.endTime) break;
 
 					let pos = Replay.getSpinningPositionOverTime(lastEndPos, time - event.time);
-					this.inputState.setMousePosition(pos, time);
+					this.inputStateMouseHook.setMousePosition(pos, time);
 
 					newLastEvaluatedTime = time;
 				}
 
 				if (lastEvaulatedTime < event.endTime && currentTime >= event.endTime) {
 					let spinnerEndPos = this.getMouseEventEndPosition(this.currentMouseEvent);
-					this.inputState.setMousePosition(spinnerEndPos, event.endTime);
+					this.inputStateMouseHook.setMousePosition(spinnerEndPos, event.endTime);
 
 					newLastEvaluatedTime = event.endTime;
 				}
@@ -175,13 +185,15 @@ export class Replay extends InputStateHookable {
 	}
 
 	private tickButtonEvents(currentTime: number) {
+		if (!this.inputStateButtonHook) return;
+
 		while (true) {
 			let event = this.buttonEvents[this.currentButtonEvent];
 			if (!event) break;
 			if (event.time > currentTime) break;
 
  			this.tickMouseEvents(event.time);
-			this.inputState.setButton(event.button, event.state, event.time);
+			this.inputStateButtonHook.setButton(event.button, event.state, event.time);
 
 			this.currentButtonEvent++;
 		}

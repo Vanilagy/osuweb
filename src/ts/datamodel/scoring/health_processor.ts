@@ -31,8 +31,8 @@ export class HealthProcessor extends JudgementProcessor {
 		if (!this.beatmap) return;
 
 		this.update(judgement.time);
+		
 		this.health += judgement.getHealthIncrease();
-
 		if (this.health > 1) this.health = 1;
 	}
 

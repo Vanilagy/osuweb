@@ -169,7 +169,7 @@ export class DrawableBeatmap {
 	tick(currentTime: number, dt: number) {
 		let osuMouseCoordinates = this.play.controller.inputState.getMousePosition();
 		let buttonPressed = (this.play.controller.inputState.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax)) && !this.play.hasFailed();
-		let replay = this.play.controller.replay;
+		let replay = this.play.controller.playbackReplay;
 
 		// Add new hit objects to screen
 		for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableHitObjects.length; this.currentHitObjectIndex++) {

@@ -22,10 +22,10 @@ import { HealthProcessor } from "../datamodel/scoring/health_processor";
 import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
 import { Judgement } from "../datamodel/scoring/judgement";
 import { HitSoundInfo, calculatePanFromOsuCoordinates } from "./skin/hit_sound";
+import { Replay } from "./replay";
 
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
-const STREAM_BEAT_THRESHHOLD = 155; // For ease types in AT instruction
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
 const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relative to the end of the break
@@ -37,7 +37,7 @@ export class Play {
 	public processedBeatmap: ProcessedBeatmap;
 	public drawableBeatmap: DrawableBeatmap;
 	public preludeTime: number;
-	private playbackRate: number = 1.0;
+	public playbackRate: number = 1.0;
 	private hasVideo: boolean = false;
 	public paused: boolean = false;
 	private playing: boolean = false;
@@ -335,7 +335,7 @@ export class Play {
 			break;
 		}
 
-		if (this.controller.replay) {
+		if (this.controller.playbackReplay) {
 			let screenCoordinates = this.toScreenCoordinates(this.controller.inputState.getMousePosition());
 			this.controller.autoCursor.position.set(screenCoordinates.x, screenCoordinates.y);
 		}
@@ -447,7 +447,7 @@ export class Play {
 		globalState.gameplayAudioPlayer.pause();
 		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 
-		if (this.controller.replay) this.controller.replay.resetPlayback();
+		if (this.controller.playbackReplay) this.controller.playbackReplay.resetPlayback();
 	}
 
 	async restart() {
@@ -467,6 +467,11 @@ export class Play {
 	}
 
 	processJudgement(judgement: Judgement) {
+		if (this.hasFailed()) return;
+
+		this.healthProcessor.update(judgement.time);
+		if (this.healthProcessor.health <= 0 && !this.cannotFail()) return; // Don't process the judgement; the player is dead.
+
 		this.healthProcessor.process(judgement);
 		this.scoreProcessor.process(judgement);
 
@@ -482,24 +487,20 @@ export class Play {
 	}
 
 	handleButtonDown(currentTime?: number) {
-		if (!this.shouldHandleInputRightNow() || this.activeMods.has(Mod.Relax)) return;
+		if (!this.handlesInputRightNow() || this.activeMods.has(Mod.Relax)) return;
 
 		if (currentTime === undefined) currentTime = this.getCurrentSongTime();
 		this.drawableBeatmap.handleButtonDown(currentTime);
 	}
 
 	handleMouseMove(osuPosition: Point, currentTime?: number) {
-		if (!this.shouldHandleInputRightNow()) return;
+		if (!this.handlesInputRightNow()) return;
 
 		if (currentTime === undefined) currentTime = this.getCurrentSongTime();
 		this.drawableBeatmap.handleMouseMove(currentTime);
 	}
 
-	hasAutohit() {
-		return this.activeMods.has(Mod.Auto) && !this.hasFailed();
-	}
-
-	private shouldHandleInputRightNow() {
+	handlesInputRightNow() {
 		return this.initted && !this.paused && !this.completed && !this.hasFailed();
 	}
 

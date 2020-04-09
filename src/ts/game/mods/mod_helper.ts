@@ -132,7 +132,7 @@ export class ModHelper {
 		return multiplier;
 	}
 
-	static createAutoReplay(play: Play) {
+	static createAutoReplay(play: Play, autopilot = false) {
 		console.time("Auto replay generation");
 
 		// Generates waypoints from start and end positions aswell as slider ticks and spinners.
@@ -203,6 +203,7 @@ export class ModHelper {
 				let lastWaypointTime = (i === 0)? -Infinity : waypoints[i-1].time;
 				// Switch to linear easing for streams and such, as they tend to be played more in a continuous movement as opposed to move-and-stop.
 				let ease = ((waypoint.time - lastWaypointTime) <= STREAM_TIME_THRESHOLD)? EaseType.Linear : EaseType.EaseOutQuad;
+				if (autopilot) ease = EaseType.EaseInOutQuint; // This ease will spend the least amount of time "travelling", therefore giving the player the greatest hit window
 
 				replay.addEvent({
 					type: ReplayEventType.Positional,

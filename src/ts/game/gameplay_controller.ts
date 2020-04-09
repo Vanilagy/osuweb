@@ -16,7 +16,7 @@ import { assert } from "../util/misc_util";
 import { currentWindowDimensions } from "../visuals/ui";
 import { FlashlightOccluder } from "./mods/flashlight_occluder";
 import { GameplayInputState } from "../input/gameplay_input_state";
-import { GameplayInputListener } from "../input/gameplay_input_controller";
+import { GameplayInputListener } from "../input/gameplay_input_listener";
 import { Replay } from "./replay";
 
 export class GameplayController {
@@ -42,7 +42,9 @@ export class GameplayController {
 	public autoCursor: PIXI.Sprite;
 	
 	public currentPlay: Play = null;
-	public replay: Replay = null;
+	public playbackReplay: Replay = null;
+	public playbackReplayIsAutopilot = false;
+	public recordingReplay: Replay = null;
 
 	private fadeInterpolator: Interpolator;
 	private preScoreScreenTimeout: ReturnType<typeof setTimeout> = null;
@@ -149,9 +151,9 @@ export class GameplayController {
 		this.onPlayBegin();
 		enableRenderTimeInfoLog();
 
-		if (mods.has(Mod.Auto)) {
-			let autoReplay = ModHelper.createAutoReplay(newPlay);
-			this.setReplay(autoReplay);
+		if (mods.has(Mod.Auto) || mods.has(Mod.Autopilot)) {
+			let autoReplay = ModHelper.createAutoReplay(newPlay, mods.has(Mod.Autopilot));
+			this.setReplay(autoReplay, mods.has(Mod.Autopilot));
 		} else {
 			this.setReplay(null);
 		}
@@ -162,17 +164,38 @@ export class GameplayController {
 		this.show();
 	}
 
-	setReplay(replay: Replay) {
+	setReplay(replay: Replay, isAutopilotReplay = false) {
+		this.playbackReplayIsAutopilot = false;
+
 		if (replay === null) {
-			if (this.replay) this.replay.unhook();
-			this.replay = null;
-			this.userInputListener.hook(this.inputState);
+			if (this.playbackReplay) this.playbackReplay.unhook();
+			this.playbackReplay = null;
+			this.userInputListener.hookMouse(this.inputState);
+			this.userInputListener.hookButtons(this.inputState);
+			
 			this.autoCursor.visible = false;
 		} else {
-			this.replay = replay;
-			this.replay.hook(this.inputState);
+			this.playbackReplay = replay;
+			this.playbackReplay.hook(this.inputState);
 			this.userInputListener.unhook();
+
+			if (isAutopilotReplay) {
+				// Make the player "take over" button input
+				this.playbackReplay.unhookButtons();
+				this.userInputListener.hookButtons(this.inputState);
+
+				this.playbackReplayIsAutopilot = true;
+			}
+			
 			this.autoCursor.visible = true;
+		}
+
+		if (!replay || isAutopilotReplay) {
+			this.recordingReplay = new Replay();
+			this.inputState.bindReplayRecording(this.recordingReplay);
+		} else {
+			this.recordingReplay = null;
+			this.inputState.unbindReplayRecording();
 		}
 	}
 
@@ -183,7 +206,7 @@ export class GameplayController {
 		this.hud.setFade(true, 0);
 		this.hud.interactionGroup.enable();
 
-		this.inputState.reset(); // eh for safety?
+		this.inputState.reset();
 	}
 
 	endPlay() {
@@ -207,17 +230,26 @@ export class GameplayController {
 		this.hud.setFade(false, 300);
 
 		this.preScoreScreenTimeout = setTimeout(() => this.showScoreScreen(), 600);
+
+		this.inputState.unbindReplayRecording();
+		if (this.recordingReplay) this.recordingReplay.finalize();
 	}
 
 	async showScoreScreen(spedUp = false) {
+		let scr = globalState.scoreScreen;
+
 		clearTimeout(this.preScoreScreenTimeout);
 		this.preScoreScreenTimeout = null;
 
 		let beatmap = this.currentPlay.processedBeatmap.beatmap;
 		let imageFile = await beatmap.getBackgroundImageFile();
+		let replay = (this.playbackReplay && !this.playbackReplayIsAutopilot)? this.playbackReplay : this.recordingReplay;
 
-		await globalState.scoreScreen.load(this.currentPlay.scoreProcessor.score, beatmap, imageFile);
-		globalState.scoreScreen.show();
+		await scr.load(this.currentPlay.scoreProcessor.score, beatmap, imageFile, replay);
+		scr.show();
+		
+		let activeButtons = (replay === this.playbackReplay)? [scr.closeButton, scr.watchReplayButton] : [scr.closeButton, scr.retryButton, scr.watchReplayButton];
+		scr.setActiveButtons(activeButtons);
 
 		this.hide();
 		globalState.backgroundManager.setGameplayState(false, 1500, EaseType.Linear);
@@ -271,7 +303,7 @@ export class GameplayController {
 	pause() {
 		if (!this.currentPlay || this.currentPlay.paused) return;
 
-		this.pauseScreen.show(PauseScreenMode.Paused);
+		this.pauseScreen.show((this.playbackReplay && !this.playbackReplayIsAutopilot)? PauseScreenMode.PausedReplay : PauseScreenMode.Paused);
 		this.currentPlay.pause();
 		this.hud.interactionGroup.disable();
 	}

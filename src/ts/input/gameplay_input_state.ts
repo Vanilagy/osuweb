@@ -1,6 +1,7 @@
 import { GameplayController } from "../game/gameplay_controller";
 import { Point, clonePoint } from "../util/point";
 import { INITIAL_MOUSE_OSU_POSITION } from "../util/constants";
+import { Replay, ReplayEventType } from "../game/replay";
 
 export enum GameButton {
 	A1,
@@ -15,6 +16,7 @@ export class GameplayInputState {
 	private buttonA: [boolean, boolean];
 	private buttonB: [boolean, boolean];
 	private currentMousePosition: Point;
+	private recordingReplay: Replay = null;
 
 	constructor(controller: GameplayController) {
 		this.controller = controller;
@@ -24,6 +26,7 @@ export class GameplayInputState {
 		this.buttonA = [false, false];
 		this.buttonB = [false, false];
 		this.currentMousePosition = clonePoint(INITIAL_MOUSE_OSU_POSITION);
+		if (this.recordingReplay) this.recordingReplay.clearEventsAndUnfinalize();
 	}
 
 	private getButtonTuple(button: GameButton) {
@@ -31,7 +34,7 @@ export class GameplayInputState {
 		else return this.buttonB;
 	}
 
-	setButton(button: GameButton, state: boolean, time?: number) {
+	setButton(button: GameButton, state: boolean, time: number) {
 		let tuple = this.getButtonTuple(button);
 		let offThen = !tuple.includes(true);
 
@@ -41,13 +44,26 @@ export class GameplayInputState {
 		let onNow = tuple.includes(true);
 
 		if (offThen && onNow) this.controller.currentPlay.handleButtonDown(time);
+
+		if (this.recordingReplay && this.controller.currentPlay.handlesInputRightNow()) this.recordingReplay.addEvent({
+			type: ReplayEventType.Button,
+			time: time,
+			button: button,
+			state: state
+		});
 	}
 
-	setMousePosition(osuPosition: Point, time?: number) {
+	setMousePosition(osuPosition: Point, time: number) {
 		if (osuPosition === this.currentMousePosition) return; // If nothing changed
 
 		this.currentMousePosition = osuPosition;
 		this.controller.currentPlay.handleMouseMove(osuPosition, time);
+
+		if (this.recordingReplay && this.controller.currentPlay.handlesInputRightNow()) this.recordingReplay.addEvent({
+			type: ReplayEventType.Positional,
+			time: time,
+			position: osuPosition
+		});
 	}
 
 	getMousePosition() {
@@ -56,5 +72,13 @@ export class GameplayInputState {
 
 	isAnyButtonPressed() {
 		return this.buttonA.includes(true) || this.buttonB.includes(true);
+	}
+
+	bindReplayRecording(replay: Replay) {
+		this.recordingReplay = replay;
+	}
+
+	unbindReplayRecording() {
+		this.recordingReplay = null;
 	}
 }

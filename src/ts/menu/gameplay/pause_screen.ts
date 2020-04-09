@@ -8,7 +8,7 @@ import { GameplayController } from "../../game/gameplay_controller";
 import { Button, ButtonPivot } from "../components/button";
 import { Mod } from "../../datamodel/mods";
 import { Point, pointDistance } from "../../util/point";
-import { GAME_KEYS } from "../../input/gameplay_input_controller";
+import { GAME_KEYS } from "../../input/gameplay_input_listener";
 import { getCurrentMousePosition } from "../../input/input";
 import { globalState } from "../../global_state";
 import { SkinSoundType } from "../../game/skin/skin";
@@ -19,6 +19,7 @@ const REQUIRED_CURSOR_ALIGNMENT_PROXIMITY = 20; // In osupixels
 
 export enum PauseScreenMode {
 	Paused,
+	PausedReplay,
 	Failed
 }
 
@@ -152,7 +153,7 @@ export class PauseScreen {
 
 	private requireCursorAlignment() {
 		let play = this.controller.currentPlay;
-		return !(this.controller.replay || play.activeMods.has(Mod.Auto) || play.activeMods.has(Mod.Cinema) || play.activeMods.has(Mod.Relax) || play.activeMods.has(Mod.Autopilot) || play.processedBeatmap.isInBreak(play.getCurrentSongTime()));
+		return !(this.controller.playbackReplay || play.activeMods.has(Mod.Relax) || play.activeMods.has(Mod.Autopilot) || play.processedBeatmap.isInBreak(play.getCurrentSongTime()));
 	}
 
 	trigger() {
@@ -196,7 +197,7 @@ export class PauseScreen {
 		} else {
 			this.cursorAlignmentRegistration.disable();
 			this.buttonsGroup.enable();
-			if (this.currentMode === PauseScreenMode.Paused) globalState.baseSkin.sounds[SkinSoundType.PauseLoop].start(0);
+			if (this.currentMode === PauseScreenMode.Paused || this.currentMode === PauseScreenMode.PausedReplay) globalState.baseSkin.sounds[SkinSoundType.PauseLoop].start(0);
 		}
 	}
 
@@ -204,10 +205,12 @@ export class PauseScreen {
 		if (this.interactionGroup.enabled) return;
 
 		this.currentMode = mode;
-		if (this.currentMode === PauseScreenMode.Paused) {
+		if (this.currentMode === PauseScreenMode.Paused || this.currentMode === PauseScreenMode.PausedReplay) {
 			this.updateHeadingText('paused');
 			this.continueButton.container.visible = true;
 			this.continueButton.enable();
+
+			this.retryButton.setLabel((this.currentMode === PauseScreenMode.PausedReplay)? 'restart replay' : 'retry');
 		} else if (this.currentMode === PauseScreenMode.Failed) {
 			this.updateHeadingText('failed');
 			this.continueButton.container.visible = false;
