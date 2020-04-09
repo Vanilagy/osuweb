@@ -21,6 +21,7 @@ export class DrawableBeatmap {
 	public followPoints: FollowPoint[] = [];
 	public processedToDrawable: Map<ProcessedHitObject, DrawableHitObject> = new Map();
 
+	private renderStartTimeSortedHitObjects: DrawableHitObject[];
 	private currentHitObjectIndex: number;
 	private onscreenHitObjects: DrawableHitObject[] = [];
 	private showHitObjectsQueue: DrawableHitObject[] = [];
@@ -65,6 +66,8 @@ export class DrawableBeatmap {
 			let drawable = this.drawableHitObjects[i];
 			drawable.draw();
 		}
+
+		this.renderStartTimeSortedHitObjects = this.drawableHitObjects.slice(0).sort((a, b) => a.renderStartTime - b.renderStartTime);
 	}
 	
 	generateFollowPoints() {
@@ -167,13 +170,16 @@ export class DrawableBeatmap {
 	}
 
 	tick(currentTime: number, dt: number) {
-		let osuMouseCoordinates = this.play.controller.inputState.getMousePosition();
-		let buttonPressed = (this.play.controller.inputState.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax)) && !this.play.hasFailed();
 		let replay = this.play.controller.playbackReplay;
 
+		const isButtonPressed = () => {
+			return (this.play.controller.inputState.isAnyButtonPressed() || this.play.activeMods.has(Mod.Relax)) && !this.play.hasFailed();
+		};
+
 		// Add new hit objects to screen
-		for (this.currentHitObjectIndex; this.currentHitObjectIndex < this.drawableHitObjects.length; this.currentHitObjectIndex++) {
-			let hitObject = this.drawableHitObjects[this.currentHitObjectIndex];
+		let arr = this.renderStartTimeSortedHitObjects;
+		for (this.currentHitObjectIndex; this.currentHitObjectIndex < arr.length; this.currentHitObjectIndex++) {
+			let hitObject = arr[this.currentHitObjectIndex];
 			if (currentTime < hitObject.renderStartTime) break;
 
 			this.onscreenHitObjects.push(hitObject);
@@ -191,12 +197,17 @@ export class DrawableBeatmap {
 			}
 
 			if (replay) replay.tickPlayback(playEvent.time);
+
+			let osuMouseCoordinates = this.play.controller.inputState.getMousePosition();
+			let buttonPressed = isButtonPressed();
 			
 			let drawable = this.processedToDrawable.get(playEvent.hitObject);
 			drawable.handlePlayEvent(playEvent, osuMouseCoordinates, buttonPressed, playEvent.time, dt);
 		}
 
 		if (replay) replay.tickPlayback(currentTime);
+		let osuMouseCoordinates = this.play.controller.inputState.getMousePosition();
+		let buttonPressed = isButtonPressed();
 
 		// Call sustained play event handlers
 		for (let i = 0; i < this.currentSustainedEvents.length; i++) {
