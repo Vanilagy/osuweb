@@ -11,6 +11,7 @@ import { Interpolator } from "../../util/interpolation";
 import { SkipButton } from "./skip_button";
 import { InteractionGroup } from "../../input/interactivity";
 import { MathUtil, EaseType } from "../../util/math_util";
+import { KeyCounter } from "./key_counter";
 
 export enum HudMode {
 	Normal,
@@ -33,6 +34,7 @@ export class Hud {
 	public sectionStateDisplayer: SectionStateDisplayer;
 	public gameplayWarningArrows: GameplayWarningArrows;
 	public skipButton: SkipButton;
+	public keyCounter: KeyCounter;
 
 	private fadeInterpolator: Interpolator;
 	private currentBreakiness = 1.0;
@@ -89,6 +91,7 @@ export class Hud {
 		this.sectionStateDisplayer = new SectionStateDisplayer(this);
 		this.gameplayWarningArrows = new GameplayWarningArrows(this);
 		this.skipButton = new SkipButton(this);
+		this.keyCounter = new KeyCounter();
 
 		this.fadeInterpolator = new Interpolator({
 			beginReversed: true,
@@ -98,6 +101,7 @@ export class Hud {
 		this.container.addChild(this.sectionStateDisplayer.container);
 		this.container.addChild(this.accuracyMeter.container);
 		this.container.addChild(this.scorebar.container);
+		this.container.addChild(this.keyCounter.container);
 		this.container.addChild(this.gameplayWarningArrows.container);
 		this.container.addChild(this.scoreDisplay.container);
 		this.container.addChild(this.comboContainer);
@@ -111,6 +115,7 @@ export class Hud {
 			case HudMode.Normal: {
 				this.accuracyMeter.container.visible = true;
 				this.scorebar.container.visible = true;
+				this.keyCounter.container.visible = true;
 				this.scoreDisplay.container.visible = true;
 				this.comboContainer.visible = true;
 				this.accuracyDisplay.container.visible = true;
@@ -119,6 +124,7 @@ export class Hud {
 			case HudMode.Relax: {
 				this.accuracyMeter.container.visible = true; // accuracy meter still visible
 				this.scorebar.container.visible = false;
+				this.keyCounter.container.visible = false;
 				this.scoreDisplay.container.visible = false;
 				this.comboContainer.visible = false;
 				this.accuracyDisplay.container.visible = false;
@@ -165,6 +171,7 @@ export class Hud {
 		this.accuracyMeter.reset();
 		this.sectionStateDisplayer.reset();
 		this.skipButton.init();
+		this.keyCounter.reset();
 		
 		this.currentBreakiness = 1.0;
 	}
@@ -210,6 +217,10 @@ export class Hud {
 		this.skipButton.resize();
 
 		this.scorebar.init();
+
+		this.keyCounter.resize();
+		this.keyCounter.container.x = currentWindowDimensions.width;
+		this.keyCounter.container.y = Math.floor(currentWindowDimensions.height / 2);
 	}
 
 	update(now: number) {
@@ -222,6 +233,8 @@ export class Hud {
 
 		this.scorebar.container.pivot.y = 50 * getGlobalScalingFactor() * breakiness;
 		this.scorebar.container.alpha = 1 - breakiness;
+
+		this.keyCounter.update(now);
 	}
 
 	setFade(visible: boolean, duration: number) {

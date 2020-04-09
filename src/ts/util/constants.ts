@@ -34,6 +34,7 @@ export const THEME_COLORS = {
 	PrimaryBlue: hexNumberToColor(0x6FC2FF),
 	PrimaryYellow: hexNumberToColor(0xFFD84B),
 	PrimaryPink: hexNumberToColor(0xFA557D),
+	PrimaryViolet: hexNumberToColor(0x9D6FFF),
 
 	AccentGold: hexNumberToColor(0xFFC700),
 

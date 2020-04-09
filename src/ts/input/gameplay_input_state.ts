@@ -36,14 +36,14 @@ export class GameplayInputState {
 
 	setButton(button: GameButton, state: boolean, time: number) {
 		let tuple = this.getButtonTuple(button);
+
+		let index = (button === GameButton.A1 || button === GameButton.B1)? 0 : 1;
+		if (tuple[index] === state) return; // Nothing's changed, don't do anything
+
 		let offThen = !tuple.includes(true);
+		tuple[index] = state;
 
-		if (button === GameButton.A1 || button === GameButton.B1) tuple[0] = state;
-		else tuple[1] = state;
-
-		let onNow = tuple.includes(true);
-
-		if (offThen && onNow) this.controller.currentPlay.handleButtonDown(time);
+		if (offThen && state === true) this.controller.currentPlay.handleButtonDown(time);
 
 		if (this.recordingReplay && this.controller.currentPlay.handlesInputRightNow()) this.recordingReplay.addEvent({
 			type: ReplayEventType.Button,
@@ -51,6 +51,8 @@ export class GameplayInputState {
 			button: button,
 			state: state
 		});
+
+		this.controller.hud.keyCounter.setButtonState(button, state);
 	}
 
 	setMousePosition(osuPosition: Point, time: number) {
