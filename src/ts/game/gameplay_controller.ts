@@ -151,7 +151,7 @@ export class GameplayController {
 		this.onPlayBegin();
 		enableRenderTimeInfoLog();
 
-		if (mods.has(Mod.Auto) || mods.has(Mod.Autopilot)) {
+		if (mods.has(Mod.Auto) || mods.has(Mod.Cinema) || mods.has(Mod.Autopilot)) {
 			let autoReplay = ModHelper.createAutoReplay(newPlay, mods.has(Mod.Autopilot));
 			this.setReplay(autoReplay, mods.has(Mod.Autopilot));
 		} else {
@@ -187,7 +187,7 @@ export class GameplayController {
 				this.playbackReplayIsAutopilot = true;
 			}
 			
-			this.autoCursor.visible = true;
+			this.autoCursor.visible = !this.currentPlay.activeMods.has(Mod.Cinema);
 		}
 
 		if (!replay || isAutopilotReplay) {
@@ -239,6 +239,12 @@ export class GameplayController {
 	}
 
 	async showScoreScreen(spedUp = false) {
+		if (this.currentPlay.activeMods.has(Mod.Cinema)) {
+			// Don't show a score screen with cinema
+			this.endPlay();
+			return;
+		}
+
 		let scr = globalState.scoreScreen;
 
 		clearTimeout(this.preScoreScreenTimeout);
@@ -266,18 +272,18 @@ export class GameplayController {
 		this.container.alpha = fadeValue;
 		this.container.visible = fadeValue !== 0;
 		if (!this.container.visible) return;
+		if (!this.currentPlay) return;
 
-		if (this.currentPlay) {
-			this.currentPlay.render();
-			this.pauseScreen.update(now);
-			this.hud.update(now);
-		}
+		this.currentPlay.render();
+		this.pauseScreen.update(now);
+		this.hud.update(now);
 
 		let easedFailAnimationCompletion = MathUtil.ease(EaseType.EaseInOutQuad, this.failAnimationCompletion);
+		let defaultGameplayContainerAlpha = this.currentPlay.activeMods.has(Mod.Cinema)? 0.01 : 1.0; // Gameplay elements are BARELY visible with Cinema
 
 		this.gameplayContainer.scale.set(MathUtil.lerp(1.0, 1.13, easedFailAnimationCompletion));
 		this.gameplayContainer.rotation = MathUtil.lerp(0, -0.35, easedFailAnimationCompletion);
-		this.gameplayContainer.alpha = 1 - MathUtil.ease(EaseType.EaseInQuad, this.failAnimationCompletion);
+		this.gameplayContainer.alpha = MathUtil.lerp(defaultGameplayContainerAlpha, 0, MathUtil.ease(EaseType.EaseInQuad, this.failAnimationCompletion));
 
 		globalState.backgroundManager.setFailAnimationCompletion(this.failAnimationCompletion);
 

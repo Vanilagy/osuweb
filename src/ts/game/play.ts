@@ -38,6 +38,7 @@ export class Play {
 	public drawableBeatmap: DrawableBeatmap;
 	public preludeTime: number;
 	public playbackRate: number = 1.0;
+	public effectiveBackgroundDim: number;
 	private hasVideo: boolean = false;
 	public paused: boolean = false;
 	private playing: boolean = false;
@@ -157,7 +158,14 @@ export class Play {
 		if (this.activeMods.has(Mod.Flashlight)) this.controller.flashlightOccluder.show();
 		else this.controller.flashlightOccluder.hide();
 
-		this.controller.hud.setMode(this.activeMods.has(Mod.Relax)? HudMode.Relax : this.activeMods.has(Mod.Autopilot)? HudMode.Autopilot : HudMode.Normal);
+		this.controller.hud.setMode((() => {
+			if (this.activeMods.has(Mod.Relax)) return HudMode.Relax;
+			if (this.activeMods.has(Mod.Autopilot)) return HudMode.Autopilot;
+			if (this.activeMods.has(Mod.Cinema)) return HudMode.Cinema;
+			return HudMode.Normal;
+		})());
+
+		this.effectiveBackgroundDim = this.activeMods.has(Mod.Cinema)? 0.0 : BACKGROUND_DIM;
 
 		await this.compose(true, true);
 
@@ -320,7 +328,7 @@ export class Play {
 				}
 			}
 
-			let brightness = MathUtil.lerp(1 - BACKGROUND_DIM, 1 - BACKGROUND_DIM/2, MathUtil.ease(EaseType.EaseInOutQuad, breakiness));
+			let brightness = MathUtil.lerp(1 - this.effectiveBackgroundDim, 1 - this.effectiveBackgroundDim/2, MathUtil.ease(EaseType.EaseInOutQuad, breakiness));
 			backgroundManager.setGameplayBrightness(brightness);
 
 			hud.setBreakiness(breakiness);
@@ -507,7 +515,7 @@ export class Play {
 	}
 
 	async skipBreak() {
-		if (this.hasFailed() || !this.playing) return;
+		if (this.hasFailed() || !this.playing || this.activeMods.has(Mod.Cinema)) return;
 
 		let currentTime = this.getCurrentSongTime();
 		let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];

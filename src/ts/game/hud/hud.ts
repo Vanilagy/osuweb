@@ -16,7 +16,8 @@ import { KeyCounter } from "./key_counter";
 export enum HudMode {
 	Normal,
 	Relax,
-	Autopilot
+	Autopilot,
+	Cinema
 }
 
 export class Hud {
@@ -135,6 +136,16 @@ export class Hud {
 				this.accuracyMeter.container.visible = true; // accuracy meter still visible
 				this.scorebar.container.visible = false;
 				this.keyCounter.container.visible = true; // key counter visible since that's kind of a autopilot-y thing
+				this.scoreDisplay.container.visible = false;
+				this.comboContainer.visible = false;
+				this.accuracyDisplay.container.visible = false;
+				this.progressIndicator.container.visible = false;
+			}; break;
+			case HudMode.Cinema: {
+				// Hide everything
+				this.accuracyMeter.container.visible = false;
+				this.scorebar.container.visible = false;
+				this.keyCounter.container.visible = false;
 				this.scoreDisplay.container.visible = false;
 				this.comboContainer.visible = false;
 				this.accuracyDisplay.container.visible = false;

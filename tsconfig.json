@@ -5,7 +5,7 @@
         "outDir": "./js",
         "module": "es6",
         "moduleResolution": "Node",
-        "target": "esnext",
+        "target": "es2019",
         "strict": true,
 		"strictNullChecks": false,
 		"lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"]
