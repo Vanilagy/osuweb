@@ -27,7 +27,8 @@ const SPINNER_GLOW_TINT: Color = {r: 2, g: 170, b: 255};
 const SPINNER_METER_STEPS = 10;
 const SPINNER_METER_STEP_HEIGHT = 69; // ( ͡° ͜ʖ ͡°)
 const SPM_SAMPLER_DURATION = 333;
-const MAX_SPINS_PER_MINUTE = 50 * 60 / TAU; // 50 radians per second, results in ~477 SPM
+export const MAX_RADIANS_PER_MILLISECOND = 0.05;
+const MAX_SPINS_PER_MINUTE = MAX_RADIANS_PER_MILLISECOND * 1000 * 60 / TAU; // 0.05 radians per millisecond results in ~477 SPM
 
 interface SpmRecord {
 	absoluteRotation: number,
@@ -492,8 +493,7 @@ export class DrawableSpinner extends DrawableHitObject {
 		let prevSpinsSpun = this.getSpinsSpun();
 
 		radians *= this.drawableBeatmap.play.playbackRate; // Spinners should be easier in DT, and harder in HT!
-		// Cap the spinning at 0.05 radians per millisecond. This actually results in the 477 SPM limit!
-		let cappedRadians = Math.min(Math.abs(radians), dt * 0.05) * Math.sign(radians);
+		let cappedRadians = Math.min(Math.abs(radians), dt * MAX_RADIANS_PER_MILLISECOND) * Math.sign(radians);
 		this.rotation += cappedRadians;
 		let absRotation = Math.abs(cappedRadians);
 		this.absoluteRotation += absRotation;
@@ -545,8 +545,10 @@ export class DrawableSpinner extends DrawableHitObject {
 
 	tick(currentTime: number, dt: number) {
 		if (this.drawableBeatmap.play.activeMods.has(Mod.SpunOut)) {
+			// Spin only for the time of the tick that actually overlaps with the spinning window
 			let overlap = MathUtil.calculateIntervalOverlap(currentTime - dt, currentTime, this.parent.startTime, this.parent.endTime);
-			this.spin(-overlap * 0.05, Math.min(this.parent.endTime - 1e-6, currentTime), overlap);
+			// Spin at max speed
+			this.spin(-overlap * MAX_RADIANS_PER_MILLISECOND, Math.min(this.parent.endTime - 1e-6, currentTime), overlap);
 		}
 
 		let skin = this.drawableBeatmap.play.skin;

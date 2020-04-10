@@ -5,6 +5,7 @@ import { GameButton } from "../input/gameplay_input_state";
 import { InputStateHookable } from "../input/input_state_hookable";
 import { INITIAL_MOUSE_OSU_POSITION, PLAYFIELD_DIMENSIONS } from "../util/constants";
 import { ProcessedSlider } from "../datamodel/processed/processed_slider";
+import { MAX_RADIANS_PER_MILLISECOND } from "./drawables/drawable_spinner";
 
 const DEFAULT_SPIN_RADIUS = 45;
 const RADIUS_LERP_DURATION = 333;
@@ -259,7 +260,7 @@ export class Replay extends InputStateHookable {
 		radiusLerpCompletion = MathUtil.clamp(radiusLerpCompletion, 0, 1);
 		radiusLerpCompletion = MathUtil.ease(EaseType.EaseInOutQuad, radiusLerpCompletion);
 		let spinRadius = MathUtil.lerp(MathUtil.fastHypot(startingPosition.x - middleX, startingPosition.y - middleY), DEFAULT_SPIN_RADIUS, radiusLerpCompletion);
-		let angle = Math.atan2(startingPosition.y - middleY, startingPosition.x - middleX) - 0.06 * elapsedTime; // Minus, because spinning counter-clockwise looks so much better.
+		let angle = Math.atan2(startingPosition.y - middleY, startingPosition.x - middleX) - (MAX_RADIANS_PER_MILLISECOND * 1.1) * elapsedTime; // Minus, because spinning counter-clockwise looks so much better. Spin a bit faster than max speed so that we can be *sure* we spin at max speed.
 
 		return {
 			x: middleX + Math.cos(angle) * spinRadius,
