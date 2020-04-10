@@ -77,17 +77,16 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 
 	break(time: number) {
 		if (this.currentCombo === 0) return;
-		super.break(time);
 
 		if (this.currentCombo >= 50) {
 			this.play.skin.sounds[SkinSoundType.ComboBreak].start(0);
 		}
 
 		let adjustedTime = this.play.toPlaybackRateIndependentTime(time);
-
-		this.currentCombo = 0;
 		this.phantomComboAnimationInterpolator.start(adjustedTime);
 		this.delayedVisualComboIncreases.push({time: adjustedTime, value: this.currentCombo});
+
+		super.break(time);
 	}
 
 	compose() {
