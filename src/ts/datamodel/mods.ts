@@ -84,7 +84,7 @@ export function modComparator(a: Mod, b: Mod) {
 
 export const modLongNames = new Map<Mod, string>();
 modLongNames.set(Mod.Easy, 'Easy');
-modLongNames.set(Mod.NoFail, 'No Fail');
+modLongNames.set(Mod.NoFail, 'No-Fail');
 modLongNames.set(Mod.HalfTime, 'Half Time');
 modLongNames.set(Mod.Daycore, 'Daycore');
 modLongNames.set(Mod.HardRock, 'Hard Rock');

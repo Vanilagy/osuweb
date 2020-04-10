@@ -543,7 +543,12 @@ export class DrawableSpinner extends DrawableHitObject {
 		}
 	}
 
-	tick(currentTime: number) {
+	tick(currentTime: number, dt: number) {
+		if (this.drawableBeatmap.play.activeMods.has(Mod.SpunOut)) {
+			let overlap = MathUtil.calculateIntervalOverlap(currentTime - dt, currentTime, this.parent.startTime, this.parent.endTime);
+			this.spin(-overlap * 0.05, Math.min(this.parent.endTime - 1e-6, currentTime), overlap);
+		}
+
 		let skin = this.drawableBeatmap.play.skin;
 
 		// Handle playback, stopping and playback rate of the spinning sounds
@@ -609,7 +614,7 @@ export class DrawableSpinner extends DrawableHitObject {
 				this.score();
 			}; break;
 			case PlayEventType.SpinnerSpin: {
-				this.tick(currentTime);
+				this.tick(currentTime, dt);
 			}; break;
 		}
 	}

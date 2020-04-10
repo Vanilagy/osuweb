@@ -355,10 +355,7 @@ export class Play {
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
 		const hud = this.controller.hud;
 
-		if (this.lastTickTime === null) {
-			this.lastTickTime = currentTime;
-			return;
-		}
+		if (this.lastTickTime === null) this.lastTickTime = -this.preludeTime;
 		/** Time since the last tick */
 		let dt = currentTime - this.lastTickTime;
 		this.lastTickTime = currentTime;
