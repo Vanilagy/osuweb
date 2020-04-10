@@ -221,6 +221,9 @@ export class GameplayController {
 		globalState.backgroundManager.setBlurState(true, 400, EaseType.EaseOutQuart);
 
 		this.pauseScreen.turnOffSound();
+
+		this.recordingReplay = null;
+		this.inputState.unbindReplayRecording();
 	}
 
 	async completePlay() {

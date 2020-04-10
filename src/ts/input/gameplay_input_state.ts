@@ -22,6 +22,10 @@ export class GameplayInputState {
 		this.controller = controller;
 	}
 
+	private get play() {
+		return this.controller.currentPlay;
+	}
+
 	reset() {
 		this.buttonA = [false, false];
 		this.buttonB = [false, false];
@@ -35,6 +39,8 @@ export class GameplayInputState {
 	}
 
 	setButton(button: GameButton, state: boolean, time: number) {
+		if (!this.play.handlesInputRightNow()) return;
+
 		let tuple = this.getButtonTuple(button);
 
 		let index = (button === GameButton.A1 || button === GameButton.B1)? 0 : 1;
@@ -43,26 +49,27 @@ export class GameplayInputState {
 		let offThen = !tuple.includes(true);
 		tuple[index] = state;
 
-		if (offThen && state === true) this.controller.currentPlay.handleButtonDown(time);
+		if (offThen && state === true) this.play.handleButtonDown(time);
 
-		if (this.recordingReplay && this.controller.currentPlay.handlesInputRightNow()) this.recordingReplay.addEvent({
+		if (this.recordingReplay && this.play.handlesInputRightNow()) this.recordingReplay.addEvent({
 			type: ReplayEventType.Button,
 			time: time,
 			button: button,
 			state: state
 		});
 
-		let adjustedTime = this.controller.currentPlay.toPlaybackRateIndependentTime(time);
+		let adjustedTime = this.play.toPlaybackRateIndependentTime(time);
 		this.controller.hud.keyCounter.setButtonState(button, state, adjustedTime);
 	}
 
 	setMousePosition(osuPosition: Point, time: number) {
+		if (!this.play.handlesInputRightNow()) return;
 		if (osuPosition === this.currentMousePosition) return; // If nothing changed
 
 		this.currentMousePosition = osuPosition;
-		this.controller.currentPlay.handleMouseMove(osuPosition, time);
+		this.play.handleMouseMove(osuPosition, time);
 
-		if (this.recordingReplay && this.controller.currentPlay.handlesInputRightNow()) this.recordingReplay.addEvent({
+		if (this.recordingReplay && this.play.handlesInputRightNow()) this.recordingReplay.addEvent({
 			type: ReplayEventType.Positional,
 			time: time,
 			position: osuPosition

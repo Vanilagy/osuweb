@@ -61,18 +61,18 @@ window.onmousemove = (e: MouseEvent) => {
 	inputEventEmitter.emit('mouseMove', e);
 };
 
-window.addEventListener('keydown', (e) => {
+window.onkeydown = (e: KeyboardEvent) => {
 	tickAll();
 	inputEventEmitter.emit('keyDown', e);
-});
+};
 
-window.addEventListener('keyup', (e) => {
+window.onkeyup = (e: KeyboardEvent) => {
 	tickAll();
 	inputEventEmitter.emit('keyUp', e);
-});
+};
 
 // TODO: Eventually add touch support. Eventually.
-window.addEventListener('mousedown', (e) => {
+window.onmousedown = (e: MouseEvent) => {
 	tickAll();
 
 	let button = e.button;
@@ -81,9 +81,9 @@ window.addEventListener('mousedown', (e) => {
 	else if (button === MouseButton.Middle) currentMouseButtonState.mmb = true;
 	else if (button === MouseButton.Right) currentMouseButtonState.rmb = true;
 	inputEventEmitter.emit('mouseDown', e);
-});
+};
 
-window.addEventListener('mouseup', (e) => {
+window.onmouseup = (e: MouseEvent) => {
 	tickAll();
 
 	let button = e.button;
@@ -92,15 +92,15 @@ window.addEventListener('mouseup', (e) => {
 	else if (button === MouseButton.Middle) currentMouseButtonState.mmb = false;
 	else if (button === MouseButton.Right) currentMouseButtonState.rmb = false;
 	inputEventEmitter.emit('mouseUp', e);
-});
+};
 
 // Prevent context menu from opening on right click
-window.addEventListener('contextmenu', (e) => {
+window.oncontextmenu = (e: MouseEvent) => {
 	tickAll();
 	if (PREVENT_NATIVE_CONTEXT_MENU) e.preventDefault();
-});
+};
 
-window.addEventListener('wheel', (ev) => {
+window.onwheel = (ev: WheelEvent) => {
 	tickAll();
 	inputEventEmitter.emit('wheel', normalizeWheelEvent(ev));
-});
+};

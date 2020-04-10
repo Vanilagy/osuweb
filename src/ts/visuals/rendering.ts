@@ -13,7 +13,7 @@ const gl = mainCanvas.getContext('webgl2', {
 	alpha: true,
 	powerPreference: 'high-performance',
 	// TODO: Remember to turn this off if framerate is uncapped:
-	desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
+	//desynchronized: true // Tells browser to send canvas data directly to the GPU. Breaks the FPS meter ;)
 }) as WebGLRenderingContext; // Technically WebGL2, but idk. Rollup is complaining :S
 
 export const MAX_TEXTURE_SIZE = gl.getParameter(gl.MAX_TEXTURE_SIZE);

@@ -99,9 +99,9 @@ class KeyCounterButton {
 
 		this.pressInterpolator = new Interpolator({
 			duration: 35,
-			reverseDuration: 150,
+			reverseDuration: 200,
 			ease: EaseType.EaseOutQuad,
-			reverseEase: EaseType.EaseInQuad
+			reverseEase: EaseType.EaseInCubic
 		});
 	}
 
@@ -121,7 +121,7 @@ class KeyCounterButton {
 		let pressCompletion = this.pressInterpolator.getCurrentValue(now);
 
 		let size = Math.floor(BUTTON_SIZE * this.parent.scalingFactor);
-		let lineWidth = MathUtil.lerp(1.4, 3.5, pressCompletion) * this.parent.scalingFactor;
+		let lineWidth = MathUtil.lerp(1.4, 3, pressCompletion) * this.parent.scalingFactor;
 		if (pressCompletion % 1 === 0) lineWidth = Math.ceil(lineWidth);
 		let lineColor = lerpColors(hexNumberToColor(0x4B4B4B), this.accentColor, pressCompletion);
 		

@@ -157,7 +157,7 @@ export class Play {
 		if (this.activeMods.has(Mod.Flashlight)) this.controller.flashlightOccluder.show();
 		else this.controller.flashlightOccluder.hide();
 
-		this.controller.hud.setMode(this.activeMods.has(Mod.Relax)? HudMode.Relax : HudMode.Normal);
+		this.controller.hud.setMode(this.activeMods.has(Mod.Relax)? HudMode.Relax : this.activeMods.has(Mod.Autopilot)? HudMode.Autopilot : HudMode.Normal);
 
 		await this.compose(true, true);
 
@@ -367,7 +367,10 @@ export class Play {
 
 		// Update health
 		if (!this.hasFailed()) this.healthProcessor.update(currentTime);
-		if (this.healthProcessor.health <= 0) this.fail();
+		if (this.healthProcessor.health <= 0) {
+			this.fail();
+			this.healthProcessor.health = 0;
+		}
 
 		// Show section pass/pass when necessary
 		let currentBreak = this.getCurrentBreak();
@@ -472,17 +475,17 @@ export class Play {
 		if (this.hasFailed()) return;
 
 		this.healthProcessor.update(judgement.time);
-		if (this.healthProcessor.health <= 0 && !this.cannotFail()) return; // Don't process the judgement; the player is dead.
+		if (this.healthProcessor.health <= 0 && !this.cannotFail()) return; // Don't process the judgement; the player has failed.
 
 		this.healthProcessor.process(judgement);
 		this.scoreProcessor.process(judgement);
 
-		// Handle SD and PF insta-death on miss
+		// Handle SD and PF insta-fail on miss
 		if ((this.activeMods.has(Mod.SuddenDeath) || this.activeMods.has(Mod.Perfect)) && judgement.value === ScoringValue.Miss) {
 			this.fail();
 		}
 
-		// Handle PF insta-death on a non-perfect hit
+		// Handle PF insta-fail on a non-perfect hit
 		if (this.activeMods.has(Mod.Perfect) && (judgement.value === ScoringValue.Hit100 || judgement.value === ScoringValue.Hit50)) {
 			this.fail();
 		}
