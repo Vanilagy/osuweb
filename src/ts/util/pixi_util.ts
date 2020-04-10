@@ -37,12 +37,12 @@ export function fitSpriteIntoContainer(sprite: PIXI.Sprite, containerWidth: numb
 	}
 }
 
-export function createPolygonTexture(width: number, height: number, polygon: PIXI.Point[], scalingFactor = 1.0, margin = 0, invert = false, cornerRadius = 0) {
+export function createPolygonTexture(width: number, height: number, polygon: PIXI.Point[], scalingFactor = 1.0, margin = 0, invert = false, cornerRadius = 0, resolution = 1.0) {
 	let canvas = document.createElement('canvas');
 	let ctx = canvas.getContext('2d');
 
-	canvas.setAttribute('width', String(Math.ceil((width + 2*margin) * scalingFactor)));
-	canvas.setAttribute('height', String(Math.ceil((height + 2*margin) * scalingFactor)));
+	canvas.setAttribute('width', String(Math.ceil((width + 2*margin) * scalingFactor * resolution)));
+	canvas.setAttribute('height', String(Math.ceil((height + 2*margin) * scalingFactor * resolution)));
 
 	let points = polygon;
 
@@ -94,8 +94,8 @@ export function createPolygonTexture(width: number, height: number, polygon: PIX
 	for (let i = 0; i < points.length; i++) {
 		let p = points[i];
 
-		let x = Math.floor((p.x + margin) * scalingFactor),
-			y = Math.floor((p.y + margin) * scalingFactor);
+		let x = MathUtil.floorToMultiple((p.x + margin) * scalingFactor * resolution, 1),
+			y = MathUtil.floorToMultiple((p.y + margin) * scalingFactor * resolution, 1);
 		
 		if (i === 0) ctx.moveTo(x, y);
 		else ctx.lineTo(x, y);
@@ -108,7 +108,7 @@ export function createPolygonTexture(width: number, height: number, polygon: PIX
 	if (cornerRadius > 0) {
 		ctx.strokeStyle = '#ffffff';
 		ctx.lineJoin = 'round';
-		ctx.lineWidth = cornerRadius*2 * scalingFactor;
+		ctx.lineWidth = MathUtil.floorToMultiple(cornerRadius*2 * scalingFactor * resolution, 2 * resolution);
 		ctx.stroke();
 	}
 

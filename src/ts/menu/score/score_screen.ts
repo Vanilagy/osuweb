@@ -332,7 +332,8 @@ export class ScoreScreen {
 		const modIconMarginSize = modIconSize + 7;
 		for (let i = 0; i < this.modIcons.length; i++) {
 			let m = this.modIcons[i];
-			m.resize(modIconSize * this.scalingFactor);
+			m.resize(modIconSize * this.scalingFactor, 1);
+			m.update(0);
 
 			let x = i*modIconMarginSize,
 				y = 0;

@@ -1,5 +1,5 @@
 import { createPolygonTexture } from "../../util/pixi_util";
-import { colorToHexNumber } from "../../util/graphics_util";
+import { colorToHexNumber, lerpColors, Colors } from "../../util/graphics_util";
 import { Mod, modColors, modLongNames } from "../../datamodel/mods";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
@@ -20,8 +20,10 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 
 	private selectionCycle: Mod[];
 	private currentlySelectedIndex: number = null;
+	private currentMod: Mod = null;
 
 	private lastScalingFactor: number = 1.0;
+	private lastResolution: number = 1.0;
 	private hoverInterpolator: Interpolator;
 	private selectInterpolator: Interpolator;
 	private selectTextInterpolator: Interpolator;
@@ -40,8 +42,9 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 		this.text = new PIXI.Text('');
 		this.text.style = {
 			fontFamily: 'FredokaOne-Regular',
-			fill: 0xffffff
+			fill: 0x000000 ?? colorToHexNumber({r: 55, g: 55, b: 55})
 		};
+		this.text.alpha = 0.75;
 		this.mainContainer.addChild(this.text);
 
 		if (mod !== undefined) this.setMod(mod);
@@ -73,32 +76,37 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 
 	private setMod(mod: Mod) {
 		this.text.text = mod;
-		this.background.tint = colorToHexNumber(modColors.get(mod));
+		//this.background.tint = colorToHexNumber(modColors.get(mod));
 	
 		if (this.label) {
 			this.label.text = modLongNames.get(mod).toLowerCase();
 			this.label.pivot.x = Math.floor(this.label.width / 2);
 		}
+
+		this.currentMod = mod;
 	}
 
-	resize(height: number) {
+	resize(height: number, resolution: number) {
 		let scalingFactor = height / MOD_ICON_REFERENCE_HEIGHT;
 		this.lastScalingFactor = scalingFactor;
+		this.lastResolution = resolution;
 		let slantWidth = height/5;
 
 		this.mainContainer.pivot.x = Math.floor((MOD_ICON_REFERENCE_HEIGHT + slantWidth) / 2 * scalingFactor);
 		this.mainContainer.pivot.y = Math.floor(MOD_ICON_REFERENCE_HEIGHT / 2 * scalingFactor);
 		this.mainContainer.position.copyFrom(this.mainContainer.pivot);
+		this.mainContainer.pivot.x *= resolution;
+		this.mainContainer.pivot.y *= resolution;
 
 		this.background.texture = createPolygonTexture(MOD_ICON_REFERENCE_HEIGHT + slantWidth, MOD_ICON_REFERENCE_HEIGHT, [
 			new PIXI.Point(0, 0), new PIXI.Point(MOD_ICON_REFERENCE_HEIGHT, 0), new PIXI.Point(MOD_ICON_REFERENCE_HEIGHT + slantWidth, MOD_ICON_REFERENCE_HEIGHT), new PIXI.Point(slantWidth, MOD_ICON_REFERENCE_HEIGHT)
-		], scalingFactor, 0, false, 20);
+		], scalingFactor, 0, false, 20, resolution);
 
-		this.text.style.fontSize = Math.floor(50 * scalingFactor);
+		this.text.style.fontSize = Math.floor(50 * scalingFactor * resolution);
 		this.text.pivot.x = Math.floor(this.text.width/2 * 1.03);
 		this.text.pivot.y = Math.floor(this.text.height/2);
-		this.text.x = Math.floor((MOD_ICON_REFERENCE_HEIGHT + slantWidth) / 2 * scalingFactor);
-		this.text.y = Math.floor(MOD_ICON_REFERENCE_HEIGHT / 2 * scalingFactor);
+		this.text.x = Math.floor((MOD_ICON_REFERENCE_HEIGHT + slantWidth) / 2 * scalingFactor * resolution);
+		this.text.y = Math.floor(MOD_ICON_REFERENCE_HEIGHT / 2 * scalingFactor * resolution);
 
 		if (this.label) {
 			this.label.style.fontSize = Math.floor(25 * scalingFactor);
@@ -116,12 +124,15 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 		if (hoverCompletion === 1) this.container.pivot.y = Math.ceil(this.container.pivot.y);
 
 		let selectCompletion = this.selectInterpolator.getCurrentValue(now);
-		this.mainContainer.scale.set(MathUtil.lerp(1.0, 1.15, selectCompletion));
+		this.mainContainer.scale.set(MathUtil.lerp(1.0, 1.15, selectCompletion) / this.lastResolution);
 
 		if (this.label) {
 			let selectTextCompletion = this.selectTextInterpolator.getCurrentValue(now);
 			this.label.alpha = MathUtil.lerp(MathUtil.lerp(0.3, 0.5, hoverCompletion), 1.0, selectTextCompletion);
 		}
+
+		let rawColor = modColors.get(this.currentMod);
+		this.background.tint = colorToHexNumber(lerpColors(rawColor, Colors.White, selectCompletion * 0.17));
 	}
 	
 	enableLabel() {

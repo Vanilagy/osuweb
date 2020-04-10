@@ -253,7 +253,7 @@ export class ModSelectionPanel {
 			for (let j = 0; j < icons.length; j++) {
 				let icon = icons[j];
 
-				icon.resize(42 * this.scalingFactor);
+				icon.resize(42 * this.scalingFactor, 2);
 				icon.container.y = sectionHeader.y + Math.floor(27 * this.scalingFactor);
 			}
 		}
@@ -298,7 +298,7 @@ export class ModSelectionPanel {
 		for (let i = 0; i < this.sectionHeaders.length; i++) {
 			let sectionHeader = this.sectionHeaders[i];
 			let nudge = (1 - fadeInCompletion) * (-15) * (3-i) * this.scalingFactor;
-			sectionHeader.x = Math.floor(LEFT_MARGIN * this.scalingFactor) + nudge;
+			sectionHeader.x = Math.floor(LEFT_MARGIN * this.scalingFactor + nudge);
 
 			let icons = this.modIcons[i];
 			for (let j = 0; j < icons.length; j++) {

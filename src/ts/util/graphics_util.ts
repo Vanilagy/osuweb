@@ -13,7 +13,7 @@ export interface Color {
 }
 
 export function colorToHexNumber(color: Color) {
-	return color.r * 0x10000 + color.g * 0x100 + color.b * 0x1;
+	return (color.r | 0) * 0x10000 + (color.g | 0) * 0x100 + (color.b | 0) * 0x1;
 }
 
 export function colorToHexString(color: Color) {
@@ -30,9 +30,9 @@ export function hexNumberToColor(hexNumber: number): Color {
 
 export function lerpColors(c1: Color, c2: Color, t: number): Color {
 	return {
-		r: MathUtil.lerp(c1.r, c2.r, t) | 0,
-		g: MathUtil.lerp(c1.g, c2.g, t) | 0,
-		b: MathUtil.lerp(c1.b, c2.b, t) | 0
+		r: MathUtil.lerp(c1.r, c2.r, t),
+		g: MathUtil.lerp(c1.g, c2.g, t),
+		b: MathUtil.lerp(c1.b, c2.b, t)
 	};
 }
 
