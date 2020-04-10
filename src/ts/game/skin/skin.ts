@@ -24,7 +24,11 @@ export enum SkinSoundType {
 	SectionFail,
 	PauseLoop,
 	Applause,
-	FailSound
+	FailSound,
+	NightcoreKick,
+	NightcoreClap,
+	NightcoreHat,
+	NightcoreFinish
 }
 
 export class Skin {
@@ -202,8 +206,12 @@ export class Skin {
 		this.sounds[SkinSoundType.SectionFail] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "sectionfail", "audioBufferPlayer", soundEffectsNode);
 		this.sounds[SkinSoundType.PauseLoop] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "pause-loop", "audioBufferPlayer", soundEffectsNode);
 		this.sounds[SkinSoundType.PauseLoop].setLoopState(true);
-		this.sounds[SkinSoundType.Applause] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "applause", "audioPlayer", soundEffectsNode);
-		this.sounds[SkinSoundType.FailSound] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "failsound", "audioPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.Applause] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "applause", "audioMediaPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.FailSound] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "failsound", "audioMediaPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.NightcoreKick] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "nightcore-kick", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.NightcoreClap] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "nightcore-clap", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.NightcoreHat] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "nightcore-hat", "audioBufferPlayer", soundEffectsNode);
+		this.sounds[SkinSoundType.NightcoreFinish] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "nightcore-finish", "audioBufferPlayer", soundEffectsNode);
 		
 		if (readyAssets) await this.readyAssets();
 

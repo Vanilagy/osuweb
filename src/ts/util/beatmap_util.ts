@@ -4,6 +4,9 @@ import { DifficultyAttributes, DifficultyCalculator } from "../datamodel/difficu
 import { Beatmap } from "../datamodel/beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 
+/** First value is when the first beat begins. Second value is the time in millisecond between beats. */
+type MsPerBeatTiming = [number, number];
+
 export interface ExtendedBeatmapData {
 	title: string,
 	artist: string,
@@ -21,7 +24,7 @@ export interface ExtendedBeatmapData {
 	difficulty: Exclude<BeatmapDifficulty, Function>,
 	difficultyAttributes: DifficultyAttributes,
 	playableLength: number,
-	msPerBeatTimings: number[][],
+	msPerBeatTimings: MsPerBeatTiming[],
 	imageName: string
 }
 
@@ -40,7 +43,7 @@ export abstract class BeatmapUtil {
 
 		let difficultyAttributes = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);
 
-		let msPerBeatTimings: number[][] = [];
+		let msPerBeatTimings: MsPerBeatTiming[] = [];
 		for (let i = 0; i < beatmap.timingPoints.length; i++) {
 			let timingPoint = beatmap.timingPoints[i];
 			if (!timingPoint.inheritable) continue;

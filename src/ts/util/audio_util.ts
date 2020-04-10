@@ -340,7 +340,7 @@ export class AudioUtil {
 		return offlineContext.startRendering();
 	}
 
-	static async createSoundPlayerFromFilename(directory: VirtualDirectory, filename: string, playerType: 'audioBufferPlayer' | 'audioPlayer', destination: AudioNode) {
+	static async createSoundPlayerFromFilename(directory: VirtualDirectory, filename: string, playerType: 'audioBufferPlayer' | 'audioMediaPlayer', destination: AudioNode) {
 		let foundFile: VirtualFile;
 
 		if (directory.networkFallbackUrl) {

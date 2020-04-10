@@ -267,7 +267,7 @@ export class Beatmap {
 				else if (line.startsWith("OverallDifficulty")) this.difficulty.OD = parseFloat(value);
 				else if (line.startsWith("ApproachRate")) {this.difficulty.AR = parseFloat(value); this.approachRateFound = true;}
 				else if (line.startsWith("SliderMultiplier")) this.difficulty.SV = parseFloat(value);
-				else if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseFloat(value);
+				else if (line.startsWith("SliderTickRate")) this.difficulty.TR = parseInt(value); // TR is always an integer value
 			}
 		}
 

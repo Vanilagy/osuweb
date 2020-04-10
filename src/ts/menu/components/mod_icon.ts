@@ -117,7 +117,7 @@ export class ModIcon extends CustomEventEmitter<{clicked: void}> {
 	}
 
 	update(now: number) {
-		let scalingFactor = this.lastScalingFactor;	
+		let scalingFactor = this.lastScalingFactor;
 		let hoverCompletion = this.hoverInterpolator.getCurrentValue(now);
 
 		this.container.pivot.y = 3 * hoverCompletion * scalingFactor;

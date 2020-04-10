@@ -1,0 +1,1 @@
+Note: These can't really be found online, so these were sampled by hand from osu!'s default skin.

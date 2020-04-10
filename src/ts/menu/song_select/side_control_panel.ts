@@ -338,6 +338,7 @@ class SideControlPulsar {
 			let currentTime = globalState.basicSongPlayer.getCurrentTime() * 1000;
 			let latest = msPerBeatTimings[0];
 
+			// Find the timing section we're currently in
 			for (let i = 0; i < msPerBeatTimings.length; i++) {
 				let timing = msPerBeatTimings[i];
 
@@ -347,9 +348,11 @@ class SideControlPulsar {
 			}
 
 			let elapsed = currentTime - latest[0];
+			// This condition is here because we don't want to start pulsing the pulsar before the first beat of the first timing section starts.
 			if (elapsed >= 0) {
-				let beatTime = latest[0] + Math.floor(elapsed / latest[1]) * latest[1];
+				let beatTime = latest[0] + MathUtil.floorToMultiple(elapsed, latest[1]);
 
+				// The second condition here is to handle jumping back in time (especially through looping) correctly
 				if (beatTime > this.lastBeatTime || beatTime < this.lastBeatTime - latest[1]) {
 					this.lastBeatTime = beatTime;
 					let beatElapsed = elapsed % latest[1];
@@ -364,6 +367,7 @@ class SideControlPulsar {
 						normalized.push(Math.abs(timeDomainData[i] - 128) / 128);
 					}
 
+					// Update the pulsing strength based on the average audio amplitude at the moment
 					let averageAmplitude = Math.min(0.25, MathUtil.getPercentile(normalized, 85, true) * 0.4);
 					this.pulseInterpolator.setValueRange(averageAmplitude, 0);
 				}

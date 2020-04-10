@@ -1,13 +1,12 @@
-import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR, FOLLOW_CIRCLE_THICKNESS_FACTOR } from "../util/constants";
-import { Point, lerpPoints } from "../util/point";
+import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
+import { Point } from "../util/point";
 import { MathUtil, EaseType } from "../util/math_util";
-import { last, assert } from "../util/misc_util";
+import { assert } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
 import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
-import { AutoInstruction, ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE, AutoInstructionType } from "./mods/mod_helper";
+import {  ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods/mod_helper";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
-import { ProcessedSlider } from "../datamodel/processed/processed_slider";
 import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { GameplayController } from "./gameplay_controller";
@@ -22,7 +21,7 @@ import { HealthProcessor } from "../datamodel/scoring/health_processor";
 import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
 import { Judgement } from "../datamodel/scoring/judgement";
 import { HitSoundInfo, calculatePanFromOsuCoordinates } from "./skin/hit_sound";
-import { Replay } from "./replay";
+import { PercussionPlayer } from "./mods/percussion_player";
 
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
@@ -48,6 +47,7 @@ export class Play {
 	public scoreProcessor: DrawableScoreProcessor;
 	public healthProcessor: HealthProcessor;
 	public activeMods: Set<Mod>;
+	public percussionPlayer: PercussionPlayer;
 	public colorArray: Color[];
 	public remainingLives: number;
 
@@ -118,8 +118,6 @@ export class Play {
 			this.breakEndWarningTimes.push(warningTime);
 		}
 
-		this.reset();
-
 		let mediaPlayer = globalState.gameplayAudioPlayer,
 		    backgroundManager = globalState.backgroundManager;
 
@@ -142,8 +140,6 @@ export class Play {
 			}
 		}
 
-		// TODO: Add nightcore percussion
-
 		if (this.activeMods.has(Mod.HalfTime) || this.activeMods.has(Mod.Daycore)) this.playbackRate = HALF_TIME_PLAYBACK_RATE;
 		if (this.activeMods.has(Mod.DoubleTime) || this.activeMods.has(Mod.Nightcore)) this.playbackRate = DOUBLE_TIME_PLAYBACK_RATE;
 
@@ -152,6 +148,8 @@ export class Play {
 
 		if (this.activeMods.has(Mod.Nightcore)) mediaPlayer.setPitch(DOUBLE_TIME_PLAYBACK_RATE);
 		if (this.activeMods.has(Mod.Daycore)) mediaPlayer.setPitch(HALF_TIME_PLAYBACK_RATE);
+
+		if (this.activeMods.has(Mod.Nightcore)) this.percussionPlayer = new PercussionPlayer(this);
 
 		this.preludeTime = this.processedBeatmap.getPreludeTime();
 
@@ -169,6 +167,7 @@ export class Play {
 
 		await this.compose(true, true);
 
+		this.reset();
 		this.initted = true;
 	}
 
@@ -409,6 +408,8 @@ export class Play {
 		
 		this.drawableBeatmap.setFailAnimationCompletion(failAnimationCompletion);
 		this.controller.setFailAnimationCompletion(failAnimationCompletion);
+
+		if (this.percussionPlayer) this.percussionPlayer.tick(currentTime);
 	}
 
 	complete() {
@@ -456,6 +457,7 @@ export class Play {
 		this.failAnimationEndTriggered = false;
 		globalState.gameplayAudioPlayer.pause();
 		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
+		if (this.percussionPlayer) this.percussionPlayer.reset();
 
 		if (this.controller.playbackReplay) this.controller.playbackReplay.resetPlayback();
 	}
