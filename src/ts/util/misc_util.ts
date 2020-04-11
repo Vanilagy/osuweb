@@ -224,3 +224,19 @@ export function bytesToString(bytes: Uint8Array) {
 export function removeHTMLElement(element: HTMLElement) {
 	element.parentElement.removeChild(element);
 }
+
+export function stringContainsOnly(string: string, characters: string[], startIndex = 0, endIndex?: number) {
+	if (endIndex === undefined) endIndex = string.length;
+
+	for (let i = startIndex; i < endIndex; i++) {
+		if (!characters.includes(string[i])) return false;
+	}
+
+	return true;
+}
+
+/** Removes surrounding double quotes from a string if it has them. */
+export function removeSurroundingDoubleQuotes(str: string) {
+	if (str[0] === `"` && str[str.length-1] === `"`) return str.slice(1, -1);
+	return str;
+}

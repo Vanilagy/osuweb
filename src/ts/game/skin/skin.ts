@@ -55,7 +55,7 @@ export class Skin {
 		this.hitSounds = {};
 		this.sounds = {};
 		this.allowSliderBallExtras = true;
-    }
+	}
 
     async init(readyAssets = true) {
         console.time("Skin init");

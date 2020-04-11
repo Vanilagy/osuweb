@@ -36,6 +36,14 @@ export function lerpColors(c1: Color, c2: Color, t: number): Color {
 	};
 }
 
+export function parseColor(parts: string[], startIndex: number): Color {
+	return {
+		r: parseInt(parts[startIndex + 0]),
+		g: parseInt(parts[startIndex + 1]),
+		b: parseInt(parts[startIndex + 2])
+	};
+}
+
 export const Colors = {
 	White: {r: 255, g: 255, b: 255} as Color,
 	Black: {r: 0, g: 0, b: 0} as Color,

@@ -2,11 +2,11 @@ import { Slider } from "./slider";
 import { Circle } from "./circle";
 import { BeatmapDifficulty } from "./beatmap_difficulty";
 import { BeatmapSet } from "./beatmap_set";
-import { Color } from "../util/graphics_util";
+import { Color, parseColor } from "../util/graphics_util";
 import { HitObject } from "./hit_object";
 import { Point } from "../util/point";
 import { Spinner } from "./spinner";
-import { last, unholeArray, createSearchableString } from "../util/misc_util";
+import { last, unholeArray, createSearchableString, removeSurroundingDoubleQuotes } from "../util/misc_util";
 
 const DEFAULT_TIMING_POINT_METER = 4;
 const DEFAULT_TIMING_POINT_SAMPLE_SET = 1;
@@ -303,11 +303,7 @@ export class Beatmap {
 		let parts = line.split(':');
 		let property = parts[0];
 		let colStrings = parts[1].trim().split(',');
-		let color: Color = {
-			r: parseInt(colStrings[0]),
-			g: parseInt(colStrings[1]),
-			b: parseInt(colStrings[2])
-		}
+		let color = parseColor(colStrings, 0);
 		
 		if (property.startsWith("Combo")) {
 			let n = parseInt(property.slice(5));
@@ -380,7 +376,7 @@ export class Beatmap {
 				let event: BeatmapEventBackground = {
 					type: BeatmapEventType.Background,
 					time: parseInt(values[1]),
-					file: values[2].substring(1, values[2].length - 1),
+					file: removeSurroundingDoubleQuotes(values[2]),
 					offset: {x: offsetX, y: offsetY}
 				};
 
@@ -393,7 +389,7 @@ export class Beatmap {
 				let event: BeatmapEventVideo = {
 					type: BeatmapEventType.Video,
 					time: parseInt(values[1]),
-					file: values[2].substring(1, values[2].length - 1),
+					file: removeSurroundingDoubleQuotes(values[2]),
 					offset: {x: offsetX, y: offsetY}
 				};
 
