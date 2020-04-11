@@ -24,8 +24,33 @@ export enum EaseType {
 	EaseInOutSine,
 	EaseInExpo,
 	EaseOutExpo,
-	EaseInOutExpo
+	EaseInOutExpo,
+	EaseInCirc,
+	EaseOutCirc,
+	EaseInOutCirc,
+	EaseInBack,
+	EaseOutBack,
+	EaseInOutBack,
+	EaseInElasticAlternative,
+	EaseOutElasticAlternative,
+	EaseOutElasticHalf,
+	EaseOutElasticQuarter,
+	EaseInOutElasticAlternative,
+	EaseInBounce,
+	EaseOutBounce,
+	EaseInOutBounce
 }
+
+// Some constants for easing:
+const c1 = 1.70158;
+const c2 = c1 * 1.525;
+const c3 = c1 + 1;
+const c4 = (2 * Math.PI) / 3;
+const c5 = (2 * Math.PI) / 4.5;
+const elasticConst = 2 * Math.PI / 0.3;
+const elasticConst2 = 0.3 / 4;
+const elasticOffsetHalf = Math.pow(2, -10) * Math.sin((.5 - elasticConst2) * elasticConst);
+const elasticOffsetQuarter = Math.pow(2, -10) * Math.sin((.25 - elasticConst2) * elasticConst);
 
 export abstract class MathUtil {
 	static pointOnBézierCurve(pointArray: Point[], t: number): Point {
@@ -196,59 +221,55 @@ export abstract class MathUtil {
 		return val;
 	}
 
-	static ease(type: EaseType, val: number, p = 0.3): number {
+	/** @param x Should be in the range [0, 1]. */
+	static ease(type: EaseType, x: number, p = 0.3): number {
 		// p = Some shit used for elastic bounce
 
 		switch (type) {
-			/**
-				Only considering the value for the range [0, 1] => [0, 1].
-				The higher the power used (Quad, Cubic, Quart), the more sudden the animation will be.
-			*/
+			case EaseType.Linear:
+				return x;
+			case EaseType.EaseInQuad:
+				return x * x;
+			case EaseType.EaseOutQuad:
+				return x * (2 - x);
+			case EaseType.EaseInOutQuad:
+				return x < 0.5 ? 2 * x * x : -1 + (4 - 2 * x) * x;
+			case EaseType.EaseInCubic:
+				return x * x * x;
+			case EaseType.EaseOutCubic:
+				return (--x) * x * x + 1;
+			case EaseType.EaseInOutCubic:
+				return x < 0.5 ? 4 * x * x * x : (x - 1) * (2 * x - 2) * (2 * x - 2) + 1;
+			case EaseType.EaseInQuart:
+				return x * x * x * x;
+			case EaseType.EaseOutQuart:
+				return 1-(--x) * x * x * x;
+			case EaseType.EaseInOutQuart:
+				return x < 0.5 ? 8 * x * x * x * x : 1 - 8 * (--x) * x * x * x;
+			case EaseType.EaseInQuint:
+				return x * x * x * x * x;
+			case EaseType.EaseOutQuint:
+				return 1+(--x) * x * x * x * x;
+			case EaseType.EaseInOutQuint:
+				return x < 0.5 ? 16 * x * x * x * x * x : 1 + 16*(--x) * x * x * x * x;
+			case EaseType.EaseInElastic:
+				return 1 - MathUtil.ease(EaseType.EaseOutElastic, 1 - x, p);
+			case EaseType.EaseOutElastic:
+				return Math.pow(2,-10*x) * Math.sin((x-p/4)*(2*Math.PI)/p) + 1;
+			case EaseType.EaseInSine:
+				return -1 * Math.cos(x * (Math.PI / 2)) + 1;
+			case EaseType.EaseOutSine:
+				return Math.sin(x * (Math.PI / 2));
+			case EaseType.EaseInOutSine:
+				return Math.cos(Math.PI * x) * -0.5 + 0.5;
+			case EaseType.EaseInExpo:
+				return x === 0 ? 0 : Math.pow(2, 10 * (x - 1));
+			case EaseType.EaseOutExpo:
+				return x === 1 ? 1 : (-Math.pow(2, -10 * x) + 1);
+			case EaseType.EaseInOutExpo:
+				if (x === 0 || x === 1) return x;
 
-			case EaseType.Linear: // no easing, no acceleration
-				return val;
-			case EaseType.EaseInQuad: // accelerating from zero velocity
-				return val * val;
-			case EaseType.EaseOutQuad: // decelerating to zero velocity
-				return val * (2 - val);
-			case EaseType.EaseInOutQuad: // acceleration until halfway, then deceleration
-				return val < 0.5 ? 2 * val * val : -1 + (4 - 2 * val) * val;
-			case EaseType.EaseInCubic: // accelerating from zero velocity
-				return val * val * val;
-			case EaseType.EaseOutCubic: // decelerating to zero velocity
-				return (--val) * val * val + 1;
-			case EaseType.EaseInOutCubic: // acceleration until halfway, then deceleration
-				return val < 0.5 ? 4 * val * val * val : (val - 1) * (2 * val - 2) * (2 * val - 2) + 1;
-			case EaseType.EaseInQuart: // accelerating from zero velocity
-				return val * val * val * val;
-			case EaseType.EaseOutQuart: // decelerating to zero velocity
-				return 1-(--val) * val * val * val;
-			case EaseType.EaseInOutQuart: // acceleration until halfway, then deceleration
-				return val < 0.5 ? 8 * val * val * val * val : 1 - 8 * (--val) * val * val * val;
-			case EaseType.EaseInQuint: // accelerating from zero velocity
-				return val * val * val * val * val;
-			case EaseType.EaseOutQuint: // decelerating to zero velocity
-				return 1+(--val) * val * val * val * val;
-			case EaseType.EaseInOutQuint: // acceleration until halfway, then deceleration
-				return val < 0.5 ? 16 * val * val * val * val * val : 1 + 16*(--val) * val * val * val * val;
-			case EaseType.EaseInElastic: // Cartoon-like elastic effect at the beginning
-				return 1 - MathUtil.ease(EaseType.EaseOutElastic, 1 - val, p);
-			case EaseType.EaseOutElastic: // Cartoon-like elastic effect at the end
-				return Math.pow(2,-10*val) * Math.sin((val-p/4)*(2*Math.PI)/p) + 1;
-			case EaseType.EaseInSine: // accelerating from zero velocity, using trig.
-				return -1 * Math.cos(val * (Math.PI / 2)) + 1;
-			case EaseType.EaseOutSine: // decelerating to zero velocity, using trig.
-				return Math.sin(val * (Math.PI / 2));
-			case EaseType.EaseInOutSine: // acceleration until halfway, then deceleration, using trig.
-				return Math.cos(Math.PI * val) * -0.5 + 0.5;
-			case EaseType.EaseInExpo: // Accelerate exponentially until finish
-				return val === 0 ? 0 : Math.pow(2, 10 * (val - 1));
-			case EaseType.EaseOutExpo: // Initial exponential acceleration slowing to stop
-				return val === 1 ? 1 : (-Math.pow(2, -10 * val) + 1);
-			case EaseType.EaseInOutExpo: // Exponential acceleration and deceleration
-				if (val === 0 || val === 1) return val;
-
-				const scaledTime = val * 2;
+				const scaledTime = x * 2;
 				const scaledTime1 = scaledTime - 1;
 
 				if (scaledTime < 1) {
@@ -256,8 +277,67 @@ export abstract class MathUtil {
 				}
 
 				return 0.5 * (-Math.pow(2, -10 * scaledTime1) + 2);
+			case EaseType.EaseInCirc:
+				return 1 - Math.sqrt(1 - Math.pow(x, 2));
+			case EaseType.EaseOutCirc:
+				return Math.sqrt(1 - Math.pow(x - 1, 2));
+			case EaseType.EaseInOutCirc:
+				return x < 0.5
+					? (1 - Math.sqrt(1 - Math.pow(2 * x, 2))) / 2
+					: (Math.sqrt(1 - Math.pow(-2 * x + 2, 2)) + 1) / 2;
+			case EaseType.EaseInBack:
+				return c3 * x * x * x - c1 * x * x;
+			case EaseType.EaseOutBack:
+				return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+			case EaseType.EaseInOutBack:
+				return x < 0.5
+					? (Math.pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2
+					: (Math.pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
+			case EaseType.EaseInElasticAlternative:
+				return x === 0
+					? 0
+					: x === 1
+					? 1
+					: -Math.pow(2, 10 * x - 10) * Math.sin((x * 10 - 10.75) * c4);
+			case EaseType.EaseOutElasticAlternative:
+				return x === 0
+					? 0
+					: x === 1
+					? 1
+					: Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
+			case EaseType.EaseInOutElasticAlternative:
+				return x === 0
+					? 0
+					: x === 1
+					? 1
+					: x < 0.5
+					? -(Math.pow(2, 20 * x - 10) * Math.sin((20 * x - 11.125) * c5)) / 2
+					: (Math.pow(2, -20 * x + 10) * Math.sin((20 * x - 11.125) * c5)) / 2 + 1;
+			case EaseType.EaseOutElasticHalf:
+				return Math.pow(2, -10 * x) * Math.sin((.5 * x - elasticConst2) * elasticConst) + 1 - elasticOffsetHalf * x;
+			case EaseType.EaseOutElasticQuarter:
+				return Math.pow(2, -10 * x) * Math.sin((.25 * x - elasticConst2) * elasticConst) + 1 - elasticOffsetQuarter * x;
+			case EaseType.EaseInBounce:
+				return 1 - MathUtil.ease(EaseType.EaseOutBounce, 1 - x);
+			case EaseType.EaseOutBounce:
+				const n1 = 7.5625;
+				const d1 = 2.75;
+
+				if (x < 1 / d1) {
+					return n1 * x * x;
+				} else if (x < 2 / d1) {
+					return n1 * (x -= 1.5 / d1) * x + 0.75;
+				} else if (x < 2.5 / d1) {
+					return n1 * (x -= 2.25 / d1) * x + 0.9375;
+				} else {
+					return n1 * (x -= 2.625 / d1) * x + 0.984375;
+				}
+			case EaseType.EaseInOutBounce:
+				return x < 0.5
+					? (1 - MathUtil.ease(EaseType.EaseOutBounce, 1 - 2 * x)) / 2
+					: (1 + MathUtil.ease(EaseType.EaseOutBounce, 2 * x - 1)) / 2;
 			default:
-				return val;
+				return x;
 		}
 	}
 
