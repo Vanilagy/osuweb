@@ -78,10 +78,10 @@ export class AudioBufferPlayer extends AudioPlayer {
 
 		let delay = 0;
 		if (offset < 0) {
-			delay = offset * -1;
+			delay = offset * -1 / this.playbackRate;
 		}
 
-		this.offset = offset;
+		this.offset = offset / this.playbackRate;
 
 		this.sourceNode.start(audioContext.currentTime + delay, (offset < 0)? 0: offset);
 		this.audioStartTime = audioContext.currentTime;
@@ -161,6 +161,7 @@ export class AudioBufferPlayer extends AudioPlayer {
 
 	getCurrentTime() {
 		if (this.audioStartTime === null) return 0;
+		if (this.pauseTime !== null) return this.pauseTime;
 		return (audioContext.currentTime - this.audioStartTime + this.offset) * this.playbackRate;
 	}
 
