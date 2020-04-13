@@ -88,7 +88,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 		if (scoringValue !== ScoringValue.Miss) {
 			const hud = this.drawableBeatmap.play.controller.hud;
 
-			this.drawableBeatmap.play.playHitSound(this.hitSound);
+			this.drawableBeatmap.play.playHitSound(this.hitSound, time);
 			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
 			scoreProcessor.addHitInaccuracy(timeInaccuracy);
 		}

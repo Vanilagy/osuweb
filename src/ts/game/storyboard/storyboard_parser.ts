@@ -1,11 +1,21 @@
-import { StoryboardEntitySprite, StoryboardEntity, StoryboardLayer, StoryboardOrigin, StoryboardEventType, StoryboardEvent, StoryboardEventParameters, StoryboardEventParametersValue, StoryboardEventLoop, StoryboardEventTriggeredLoop, StoryboardEntityType, StoryboardEntityAnimation, StoryboardLoopType, StoryboardEntitySample } from "./storyboard_types";
-import { stringContainsOnly, shallowObjectClone, removeSurroundingDoubleQuotes } from "../../util/misc_util";
+import { StoryboardEntitySprite, StoryboardEntity, StoryboardLayer, StoryboardOrigin, StoryboardEventType, StoryboardEvent, StoryboardEventParameter, StoryboardEventParameterValue, StoryboardEventLoop, StoryboardEventTrigger, StoryboardEntityType, StoryboardEntityAnimation, StoryboardLoopType, StoryboardEntitySample } from "./storyboard_types";
+import { stringContainsOnly, shallowObjectClone, removeSurroundingDoubleQuotes, replaceAll, charIsDigit } from "../../util/misc_util";
 import { EaseType } from "../../util/math_util";
 import { parseColor, Color } from "../../util/graphics_util";
 import { Storyboard } from "./storyboard";
 import { Point, Vector2 } from "../../util/point";
 
 export namespace StoryboardParser {
+	const layerToEnum: {[name: string]: StoryboardLayer} = {
+		"Background": StoryboardLayer.Background,
+		"0": StoryboardLayer.Background,
+		"Fail": StoryboardLayer.Fail,
+		"1": StoryboardLayer.Fail,
+		"Pass": StoryboardLayer.Pass,
+		"2": StoryboardLayer.Pass,
+		"Foreground": StoryboardLayer.Foreground,
+		"3": StoryboardLayer.Foreground
+	};
 	const originToEnum: {[name: string]: StoryboardOrigin} = {
 		"TopLeft": StoryboardOrigin.TopLeft,
 		"TopCentre": StoryboardOrigin.TopCenter,
@@ -15,7 +25,18 @@ export namespace StoryboardParser {
 		"CentreRight": StoryboardOrigin.CenterRight,
 		"BottomLeft": StoryboardOrigin.BottomLeft,
 		"BottomCentre": StoryboardOrigin.BottomCenter,
-		"BottomRight": StoryboardOrigin.BottomRight
+		"BottomRight": StoryboardOrigin.BottomRight,
+		// Origins also have number aliases, although their order is weird:
+		"0": StoryboardOrigin.TopLeft,
+		"1": StoryboardOrigin.Center,
+		"2": StoryboardOrigin.CenterLeft,
+		"3": StoryboardOrigin.TopRight,
+		"4": StoryboardOrigin.BottomCenter,
+		"5": StoryboardOrigin.TopCenter,
+		"6": StoryboardOrigin.TopLeft, // again... sign
+		"7": StoryboardOrigin.CenterRight,
+		"8": StoryboardOrigin.BottomLeft,
+		"9": StoryboardOrigin.BottomRight
 	};
 	const eventTypeToEnum: {[name: string]: StoryboardEventType} = {
 		"F": StoryboardEventType.Fade,
@@ -27,8 +48,8 @@ export namespace StoryboardParser {
 		"R": StoryboardEventType.Rotate,
 		"C": StoryboardEventType.Color,
 		"L": StoryboardEventType.Loop,
-		"T": StoryboardEventType.TriggeredLoop,
-		"P": StoryboardEventType.Parameters
+		"T": StoryboardEventType.Trigger,
+		"P": StoryboardEventType.Parameter
 	};
 	const eventEasingToEnum: {[number: string]: EaseType} = {
 		"0": EaseType.Linear,
@@ -68,38 +89,53 @@ export namespace StoryboardParser {
 		"34": EaseType.EaseInOutBounce
 	};
 
-	/** Parses an .osb file. Full specification for the file format can be found here: https://osu.ppy.sh/help/wiki/Storyboard_Scripting */
-	export function parse(text: string) {
+	/** Does a text preprocessing pass by replacing all occurrences of variables specified in [Variables] with the variable value. */
+	export function preprocessText(text: string) {
 		// First, we split the text into the part before "[Events]" and the part after, because there might be variable declarations that we need to handle before moving on.
 		let eventsIndex = text.indexOf("[Events]");
 		let preEventsString = text.slice(0, eventsIndex);
 		let postEventsString = text.slice(eventsIndex);
 		let currentSection: "variables" | "events";
-
+		let variables: {[varName: string]: string} = {};
 		let preEventsLines = preEventsString.split("\n");
+
 		for (let i = 0; i < preEventsLines.length; i++) {
 			let line = preEventsLines[i];
 			let trimmed = line.trim();
 			if (!trimmed || trimmed.startsWith("//")) preEventsLines.splice(i--, 1);
 
-			if (line.startsWith("[Variables]")) {
+			if (trimmed.startsWith("[Variables]")) {
 				currentSection = "variables";
 				continue;
 			}
 
 			if (currentSection === "variables") {
-				let parts = line.split("=");
+				for (let varName in variables) {
+					// Replace all the occurrences of currently found variables in this line
+					trimmed = replaceAll(trimmed, varName, variables[varName]);
+				}
+
+				let parts = trimmed.split("=");
 				if (parts.length !== 2) continue;
 
 				let variableName = parts[0];
 				let variableValue = parts[1];
 
-				// Cheap method to replace every occurance of variableName with variableValue (but since variables are used super rarely, it's okay to be slow)
-				postEventsString = postEventsString.split(variableName).join(variableValue);
+				variables[variableName] = variableValue;
+
+				// Do replacement
+				postEventsString = replaceAll(postEventsString, variableName, variableValue);
 			}
 		}
 
-		let lines = postEventsString.split("\n");
+		return postEventsString;
+	}
+
+	/** Parses an .osb file. Full specification for the file format can be found here: https://osu.ppy.sh/help/wiki/Storyboard_Scripting */
+	/** @param includeSprites Whether or not to parse sprites. This is generally on, but can be turned off if one only wants the sound samples. */
+	export function parse(text: string, includeSprites = true) {
+		let lines = text.split("\n");
+		let currentSection: "variables" | "events";
 
 		// Remove comments and empty lines
 		for (let i = 0; i < lines.length; i++) {
@@ -126,11 +162,11 @@ export namespace StoryboardParser {
 			let entity: StoryboardEntity;
 
 			// Create a new entity based on the type
-			if (entityType === "Sprite") {
-				entity = parseSprite(parts, lines, i);
-			} else if (entityType === "Animation") {
-				entity = parseAnimation(parts, lines, i);
-			} else if (entityType === "Sample") {
+			if (entityType === "Sprite" || entityType === "4") {
+				if (includeSprites) entity = parseSprite(parts, lines, i);
+			} else if (entityType === "Animation" || entityType === "6") {
+				if (includeSprites) entity = parseAnimation(parts, lines, i);
+			} else if (entityType === "Sample" || entityType === "5") {
 				entity = parseSample(parts);
 			}
 
@@ -162,16 +198,16 @@ export namespace StoryboardParser {
 
 		animation.frameCount = parseInt(parts[6]);
 		animation.frameDelay = parseFloat(parts[7]);
-		animation.loopType = (parts[8] === "LoopOnce")? StoryboardLoopType.LoopOnce : StoryboardLoopType.LoopForever;
+		animation.loopType = parts[8]? ((parts[8].startsWith("LoopOnce"))? StoryboardLoopType.LoopOnce : StoryboardLoopType.LoopForever) : StoryboardLoopType.LoopForever; // LoopForever by default
 
 		return animation;
 	}
 
 	/** Sets data common to both regular and animated sprites. */
 	function parseSpriteBasics(sprite: StoryboardEntitySprite | StoryboardEntityAnimation, parts: string[]) {
-		sprite.layer = StoryboardLayer[parts[1] as keyof typeof StoryboardLayer];
-		sprite.origin = originToEnum[parts[2]];
-		sprite.filepath = removeSurroundingDoubleQuotes(parts[3]);
+		sprite.layer = layerToEnum[parts[1]];
+		sprite.origin = originToEnum[parts[2]] ?? StoryboardOrigin.TopLeft;
+		sprite.filepath = removeSurroundingDoubleQuotes(parts[3].trim()); // Trim here, because we don't want filthy \r messing up the quote detection.
 		sprite.position = {x: parseFloat(parts[4]), y: parseFloat(parts[5])};
 	}
 
@@ -180,9 +216,9 @@ export namespace StoryboardParser {
 
 		sample.type = StoryboardEntityType.Sample;
 		sample.time = parseFloat(parts[1]);
-		sample.layer = StoryboardLayer[parts[2] as keyof typeof StoryboardLayer];
-		sample.filepath = removeSurroundingDoubleQuotes(parts[3]);
-		sample.volume = parseFloat(parts[4]);
+		sample.layer = layerToEnum[parts[2]];
+		sample.filepath = removeSurroundingDoubleQuotes(parts[3].trim());
+		sample.volume = parts[4]? parseFloat(parts[4]) : 100; // Volume defaults to 100
 
 		return sample;
 	}
@@ -200,8 +236,8 @@ export namespace StoryboardParser {
 
 			event.type = eventTypeToEnum[parts[0]];
 
-			if (event.type !== StoryboardEventType.Loop && event.type !== StoryboardEventType.TriggeredLoop) {
-				// Loop and TriggeredLoop do these differently, that's why we don't run this code for them
+			if (event.type !== StoryboardEventType.Loop && event.type !== StoryboardEventType.Trigger) {
+				// Loop and Trigger do these differently, that's why we don't run this code for them
 				event.easing = eventEasingToEnum[parts[1]];
 				event.startTime = parseFloat(parts[2]);
 				event.endTime = parts[3]? parseFloat(parts[3]) : event.startTime;
@@ -347,11 +383,11 @@ export namespace StoryboardParser {
 					colorEnd: colors[i+1]
 				});
 			}
-		} else if (eventType === StoryboardEventType.Parameters) {
+		} else if (eventType === StoryboardEventType.Parameter) {
 			for (let i = 4; i < parts.length; i += 1) {
-				let paramObj = {} as StoryboardEventParameters;
+				let paramObj = {} as StoryboardEventParameter;
 
-				paramObj.parameter = (parts[i] === "H")? StoryboardEventParametersValue.HorizontalFlip : (parts[i] === "V")? StoryboardEventParametersValue.VerticalFlip : StoryboardEventParametersValue.AdditiveColor;
+				paramObj.parameter = (parts[i] === "H")? StoryboardEventParameterValue.HorizontalFlip : (parts[i] === "V")? StoryboardEventParameterValue.VerticalFlip : StoryboardEventParameterValue.AdditiveColor;
 	
 				params.push(paramObj);
 			}
@@ -363,17 +399,85 @@ export namespace StoryboardParser {
 			paramObj.events = parseEvents(lines, lineNumber + 1, indentation + 1); // Recursive call
 
 			params.push(paramObj);
-		} else if (eventType === StoryboardEventType.TriggeredLoop) {
-			let paramObj = {} as StoryboardEventTriggeredLoop;
+		} else if (eventType === StoryboardEventType.Trigger) {
+			let paramObj = {} as StoryboardEventTrigger;
 
 			paramObj.trigger = parts[1];
 			paramObj.startTime = parseFloat(parts[2]);
 			paramObj.endTime = parseFloat(parts[3]);
 			paramObj.events = parseEvents(lines, lineNumber + 1, indentation + 1); // Recursive call
+			paramObj.groupNumber = (parts[4])? parseInt(parts[4]) : 0; // Default case, meanning "no group".
 
 			params.push(paramObj);
 		}
 
 		return params;
+	}
+
+	const possibleTokens = ["Any", "Normal", "Soft", "Drum", "Whistle", "Finish", "Clap"];
+	const sampleSetTokens = ["Any", "Normal", "Soft", "Drum"];
+	const additionTokens = [null, "Whistle", "Finish", "Clap"];
+
+	/** Parses a hit sound trigger string into its components. The general format for such string is HitSound[SampleSet][AdditionsSampleSet][Addition][CustomSampleSet], and examples can be found here: https://osu.ppy.sh/help/wiki/Storyboard_Scripting/Compound_Commands */
+	export function parseHitSoundTrigger(str: string) {
+		let returnValue = {
+			sampleSet: 0, // 0 here refers to "All", aka accepts all values
+			additionSet: 0,
+			addition: 0,
+			sampleIndex: null as number // Here, null means "All"
+		};
+
+		let stage = 0;
+		str = str.slice("HitSound".length);
+
+		/** Gets the next token. Is either one from 'possibleTokens' or a number. */
+		function getNextToken() {
+			for (let i = 0; i < possibleTokens.length; i++) {
+				if (str.startsWith(possibleTokens[i])) {
+					str = str.slice(possibleTokens[i].length);
+					return possibleTokens[i];
+				}
+			}
+
+			if (charIsDigit(str[0])) {
+				let int = parseInt(str);
+				str = "";
+
+				return int;
+			}
+
+			return null;
+		}
+
+		while (true) {
+			let token = getNextToken();
+			if (token === null) break; // We've reached the end of the string, or a token was invalid
+
+			if (typeof token === "string") {
+				if (sampleSetTokens.includes(token)) {
+					let index = sampleSetTokens.indexOf(token);
+
+					if (stage === 0) returnValue.sampleSet = index;
+					else if (stage === 1) returnValue.additionSet = index;
+					else console.error("Incorrect hit sound trigger string: ", str);
+
+					stage++;
+				} else {
+					let index = additionTokens.indexOf(token);
+
+					if (stage <= 2) returnValue.addition = index;
+					else console.error("Incorrect hit sound trigger string: ", str);
+
+					stage = 3;
+				}
+			} else {
+				if (stage === 3) returnValue.sampleIndex = token;
+				else console.error("Incorrect hit sound trigger string: ", str);
+
+				stage++;
+			}
+		}
+
+		return returnValue;
 	}
 }

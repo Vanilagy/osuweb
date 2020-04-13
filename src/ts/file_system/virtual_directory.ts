@@ -94,6 +94,12 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		});
 	}
 
+	*[Symbol.iterator]() {
+		for (let entry of this.entries) {
+			yield entry[1];
+		}
+	}
+
 	/** Load all files in this directory. */
 	loadShallow() {
 		let arr: Promise<void>[] = [];

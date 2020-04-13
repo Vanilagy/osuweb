@@ -18,12 +18,16 @@ import { FlashlightOccluder } from "./mods/flashlight_occluder";
 import { GameplayInputState } from "../input/gameplay_input_state";
 import { GameplayInputListener } from "../input/gameplay_input_listener";
 import { Replay } from "./replay";
+import { StoryboardPlayer } from "./storyboard/storyboard_player";
+import { StoryboardParser } from "./storyboard/storyboard_parser";
+import { ENABLE_STORYBOARD } from "./storyboard/storyboard";
 
 export class GameplayController {
 	public container: PIXI.Container;
 	public hud: Hud;
 	public pauseScreen: PauseScreen;
 	public flashlightOccluder: FlashlightOccluder;
+	public backgroundDimmer: PIXI.Sprite;
 
 	public interactionGroup: InteractionGroup;
 	public interactionTarget: PIXI.Container;
@@ -31,6 +35,7 @@ export class GameplayController {
 	public inputState: GameplayInputState;
 	public userInputListener: GameplayInputListener;
 
+	public storyboardContainer: PIXI.Container;
 	public gameplayContainer: PIXI.Container;
 	private desaturationFilter: PIXI.filters.ColorMatrixFilter;
 
@@ -42,6 +47,7 @@ export class GameplayController {
 	public autoCursor: PIXI.Sprite;
 	
 	public currentPlay: Play = null;
+	public currentStoryboard: StoryboardPlayer = null;
 	public playbackReplay: Replay = null;
 	public playbackReplayIsAutopilot = false;
 	public recordingReplay: Replay = null;
@@ -58,6 +64,11 @@ export class GameplayController {
 		this.pauseScreen = new PauseScreen(this);
 		this.flashlightOccluder = new FlashlightOccluder();
 
+		this.backgroundDimmer = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.backgroundDimmer.tint = 0x000000;
+		this.backgroundDimmer.alpha = 0;
+
+		this.storyboardContainer = new PIXI.Container();
 		this.gameplayContainer = new PIXI.Container();
 		this.desaturationFilter = new PIXI.filters.ColorMatrixFilter();
 		this.gameplayContainer.filters = [this.desaturationFilter];
@@ -80,7 +91,9 @@ export class GameplayController {
 		this.gameplayContainer.addChild(this.hitObjectContainer);
         this.gameplayContainer.addChild(this.approachCircleContainer);
 		this.gameplayContainer.addChild(this.upperDrawableJudgementContainer);
-
+		
+		this.container.addChild(this.storyboardContainer);
+		this.container.addChild(this.backgroundDimmer);
 		this.container.addChild(this.gameplayContainer);
 		this.container.addChild(this.flashlightOccluder.container);
 		this.container.addChild(this.autoCursor);
@@ -138,6 +151,7 @@ export class GameplayController {
 		this.followPointContainer.removeChildren();
 		this.lowerDrawableJudgementContainer.removeChildren();
 		this.upperDrawableJudgementContainer.removeChildren();
+		this.storyboardContainer.removeChildren();
 		this.autoCursor.visible = false;
 		this.pauseScreen.reset();
 
@@ -162,6 +176,40 @@ export class GameplayController {
 
 		this.resize(false);
 		this.show();
+	}
+
+	async initStoryboard() {
+		let beatmap = this.currentPlay.processedBeatmap.beatmap;
+		let text = beatmap.eventsString;
+
+		let osbFile = beatmap.beatmapSet.getStoryboardFile();
+		if (osbFile) {
+			console.time("Storyboard file read");
+			let osbText = await osbFile.readAsText();
+			console.timeEnd("Storyboard file read");
+
+			console.time("Storyboard text preprocessing");
+			let preprocessedText = StoryboardParser.preprocessText(osbText);
+			console.timeEnd("Storyboard text preprocessing");
+
+			// Append the .osb file contents to the [Events] section of the beatmap file
+			text += '\n' + preprocessedText;
+		}
+
+		console.time("Storyboard parsing");
+		let storyboard = StoryboardParser.parse(text, ENABLE_STORYBOARD); // If storyboards are disabled, their audio component (sample playback) stays active nonetheless.
+		console.timeEnd("Storyboard parsing");
+
+		// Create an array of directories the storyboard player will have access to. The directories will be used for file loopup in array order.
+		let directories = [beatmap.beatmapSet.directory];
+		if (beatmap.useSkinSprites) {
+			directories.unshift(...this.currentPlay.skin.parentDirectories.slice().reverse(), this.currentPlay.skin.directory);
+		}
+
+		console.time("Storyboard init");
+		this.currentStoryboard = new StoryboardPlayer(storyboard, directories, this.storyboardContainer);
+		await this.currentStoryboard.init();
+		console.timeEnd("Storyboard init");
 	}
 
 	setReplay(replay: Replay, isAutopilotReplay = false) {
@@ -224,6 +272,9 @@ export class GameplayController {
 
 		this.recordingReplay = null;
 		this.inputState.unbindReplayRecording();
+
+		this.currentStoryboard?.pause();
+		this.currentStoryboard = null;
 	}
 
 	async completePlay() {
@@ -307,6 +358,9 @@ export class GameplayController {
 		this.pauseScreen.resize();
 		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
 		this.flashlightOccluder.resize();
+
+		this.backgroundDimmer.width = currentWindowDimensions.width;
+		this.backgroundDimmer.height = currentWindowDimensions.height;
 	}
 
 	pause() {
@@ -315,6 +369,7 @@ export class GameplayController {
 		this.pauseScreen.show((this.playbackReplay && !this.playbackReplayIsAutopilot)? PauseScreenMode.PausedReplay : PauseScreenMode.Paused);
 		this.currentPlay.pause();
 		this.hud.interactionGroup.disable();
+		this.currentStoryboard?.pause();
 	}
 
 	unpause() {
@@ -323,6 +378,7 @@ export class GameplayController {
 		this.pauseScreen.hide();
 		this.currentPlay.unpause();
 		this.hud.interactionGroup.enable();
+		this.currentStoryboard?.unpause();
 	}
 
 	restart() {
@@ -348,5 +404,9 @@ export class GameplayController {
 
 	setFailAnimationCompletion(completion: number) {
 		this.failAnimationCompletion = completion;
+	}
+
+	setDim(dim: number) {
+		this.backgroundDimmer.alpha = dim;
 	}
  }

@@ -58,11 +58,8 @@ export class SectionStateDisplayer {
 			let flickerCompletion = elapsedTime / SECTION_STATE_DISPLAY_FLICKER_DURATION;
 			let sine = Math.sin((SECTION_STATE_DISPLAY_FLICKER_AMOUNT * flickerCompletion) * TAU);
 
-			this.container.visible = sine >= 0;
-			this.container.alpha = 1;
+			this.container.alpha = (sine >= 0)? 1 : 0;
 		} else {
-			this.container.visible = true;
-
 			let fadeOutCompletion = (elapsedTime - 1200) / 400;
 			fadeOutCompletion = MathUtil.clamp(fadeOutCompletion, 0, 1);
 			this.container.alpha = 1 - fadeOutCompletion;

@@ -13,7 +13,7 @@ const DEFAULT_TIMING_POINT_SAMPLE_SET = 1;
 const DEFAULT_TIMING_POINT_SAMPLE_INDEX = 1;
 const DEFAULT_TIMING_POINT_VOLUME = 100;
 const DEFAULT_TIMING_POINT_INHERITABLE = true;
-const DEFAULT_TIMING_POINT_KIAI = false;
+const DEFAULT_TIMING_POINT_EFFECTS = 0;
 
 interface BeatmapCreationOptions {
 	text: string;
@@ -31,7 +31,7 @@ export interface TimingPoint {
 	sampleIndex: number,
 	volume: number,
 	inheritable: boolean,
-	kiai: boolean,
+	effects: number,
 	beatmap: Beatmap
 }
 
@@ -98,6 +98,7 @@ export class Beatmap {
 	public bpmMin: number = 120;
 	public bpmMax: number = 120; 
 	public approachRateFound: boolean = false;
+	public eventsString: string = "[Events]\n";
 	
 	// General // 
 
@@ -207,10 +208,10 @@ export class Beatmap {
 		let section = "header";
 
 		for (let i = 0; i < lines.length; i++) {
-			let line = lines[i].trim();
+			let untrimmedLine = lines[i];
+			let line = untrimmedLine.trim();
 
 			if (line === "" || line.startsWith("//")) continue;
-
 			if (line.startsWith("osu file format v")) {
 				this.version = line.substr(line.length - 2, 2);
 			} else if (line.startsWith("[") && line.endsWith("]")) {
@@ -221,9 +222,8 @@ export class Beatmap {
 			} else if (section === "timingpoints") {
 				if (!this.metadataOnly) this.parseTimingPoint(line);
 			} else if (section === "events") {
-				if (line.startsWith("//")) continue;
-
 				this.parseEvent(line);
+				if (!this.metadataOnly) this.eventsString += untrimmedLine + '\n';
 			} else if (section === "hitobjects") {
 				if (!this.metadataOnly) this.parseHitObject(line);
 			} else {
@@ -342,7 +342,7 @@ export class Beatmap {
 			sampleIndex: values[4]? parseInt(values[4]) : DEFAULT_TIMING_POINT_SAMPLE_INDEX,
 			volume: values[5]? parseInt(values[5]) : DEFAULT_TIMING_POINT_VOLUME,
 			inheritable: values[6]? values[6] === "1" : DEFAULT_TIMING_POINT_INHERITABLE, // "Inherited (Boolean: 0 or 1) tells if the timing point can be inherited from.". Kind of a misleading name, right, ppy?
-			kiai: values[7]? Boolean(parseInt(values[7])) : DEFAULT_TIMING_POINT_KIAI,
+			effects: values[7]? parseInt(values[7]) : DEFAULT_TIMING_POINT_EFFECTS,
 			beatmap: this
 		};
 		this.timingPoints.push(timingPoint);

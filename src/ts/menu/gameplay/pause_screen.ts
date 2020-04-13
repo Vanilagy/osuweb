@@ -153,7 +153,7 @@ export class PauseScreen {
 
 	private requireCursorAlignment() {
 		let play = this.controller.currentPlay;
-		return !(this.controller.playbackReplay || play.activeMods.has(Mod.Relax) || play.activeMods.has(Mod.Autopilot) || play.processedBeatmap.isInBreak(play.getCurrentSongTime()));
+		return !(this.controller.playbackReplay || play.activeMods.has(Mod.Relax) || play.activeMods.has(Mod.Autopilot) || play.isInBreak(play.getCurrentSongTime()));
 	}
 
 	trigger() {

@@ -13,6 +13,7 @@ import { Play } from "./play";
 import { PlayEvent, PlayEventType } from "../datamodel/play_events";
 import { Mod, RELAX_HIT_RELATIVE_TIME } from "../datamodel/mods";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
+import { last } from "../util/misc_util";
 
 export class DrawableBeatmap {
 	public play: Play;
@@ -312,5 +313,9 @@ export class DrawableBeatmap {
 		for (let i = 0; i < this.onscreenHitObjects.length; i++) {
 			this.onscreenHitObjects[i].setFailAnimationCompletion(completion);
 		}
+	}
+
+	getEndTime() {
+		return last(this.playEvents)?.time ?? -Infinity;
 	}
 }

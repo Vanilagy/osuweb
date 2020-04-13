@@ -207,12 +207,10 @@ export class OsuTexture {
                 if (sdFile) {
                     let tex = PIXI.Texture.from(await sdFile.readAsResourceUrl());
                     newOsuTexture.sd.push(tex);
-                    //if (i === 0 && !newOsuTexture.sdBase) newOsuTexture.sdBase = tex;
                 }
                 if (hdFile) {
                     let tex = PIXI.Texture.from(await hdFile.readAsResourceUrl());
                     newOsuTexture.hd.push(tex);
-                    //if (i === 0 && !newOsuTexture.hdBase) newOsuTexture.hdBase = tex;
                 }
 
                 i++;
@@ -220,5 +218,18 @@ export class OsuTexture {
         }
 
         return newOsuTexture;
-    }
+	}
+	
+	hasLoaded() {
+		let textures: PIXI.Texture[] = [];
+		textures.push(this.sdBase, this.hdBase, ...this.sd, ...this.hd);
+
+		for (let tex of textures) {
+			if (!tex) continue;
+
+			if (!tex.baseTexture.valid) return false;
+		}
+
+		return true;
+	}
 }

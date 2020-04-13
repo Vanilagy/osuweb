@@ -103,7 +103,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				base: getTickHitSoundTypeFromSampleSet(determineSampleSet(slider.extras.sampleSet, timingPoint)),
 				volume: determineVolume(slider.extras.sampleVolume,timingPoint),
 				sampleIndex: determineSampleIndex(slider.extras.customIndex, timingPoint),
-				position: position
+				position: position,
+				timingPoint
 			};
 			tickSounds.push(info);
 		}
@@ -681,7 +682,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.followCirclePulseStartTime = time;
 	}
 
-	score(time: number) {
+	score() {
 		let resultingRawScore: ScoringValue = ScoringValue.Miss;
 
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) {
@@ -708,7 +709,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			})();
 		}
 
-		if (this.scoring.end || resultingRawScore === ScoringValue.Hit300) this.drawableBeatmap.play.playHitSound(last(this.hitSounds)); // Play the slider end hitsound. 
+		if (this.scoring.end || resultingRawScore === ScoringValue.Hit300) this.drawableBeatmap.play.playHitSound(last(this.hitSounds), this.parent.endTime); // Play the slider end hitsound. 
 
 		this.drawableBeatmap.play.processJudgement(Judgement.createSliderTotalJudgement(this.parent, resultingRawScore));
 	}
@@ -736,7 +737,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		if (score !== ScoringValue.Miss) {
 			const hud = this.drawableBeatmap.play.controller.hud;
 
-			this.drawableBeatmap.play.playHitSound(this.hitSounds[0]);
+			this.drawableBeatmap.play.playHitSound(this.hitSounds[0], time);
 			hud.accuracyMeter.addAccuracyLine(timeInaccuracy, time);
 			this.drawableBeatmap.play.scoreProcessor.addHitInaccuracy(timeInaccuracy);
 			this.holdFollowCircle(time);
@@ -793,7 +794,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				if (primitive) HitCirclePrimitive.fadeOutBasedOnHitState(primitive, event.time, endHit);
 
 				// Score the slider, no matter if the end was hit or not (obviously) 
-				this.score(event.time);
+				this.score();
 			}; break;
 			case PlayEventType.SliderRepeat: {
 				let hit: boolean = null;
@@ -809,7 +810,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 					this.pulseFollowCircle(event.time);
 					
 					let hitSound = this.hitSounds[event.index + 1];
-					play.playHitSound(hitSound);
+					play.playHitSound(hitSound, event.time);
 				} else {
 					this.releaseFollowCircle(event.time);
 				}
@@ -832,7 +833,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 					this.pulseFollowCircle(event.time);
 
 					let hitSound = this.tickSounds[event.index];
-					play.playHitSound(hitSound);
+					play.playHitSound(hitSound, event.time);
 				} else {
 					this.releaseFollowCircle(event.time);
 				}

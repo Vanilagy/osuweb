@@ -45,4 +45,12 @@ export class BeatmapSet {
 
 		return skin;
 	}
+
+	getStoryboardFile() {
+		for (let entry of this.directory) {
+			if (entry instanceof VirtualFile && entry.name.endsWith(".osb")) return entry;
+		}
+
+		return null;
+	}
 }

@@ -38,7 +38,7 @@ export abstract class BeatmapUtil {
 			metadataOnly: false
 		});
 		let processedBeatmap = new ProcessedBeatmap(beatmap, true);
-		processedBeatmap.init(false); // No need to generate breaks here
+		processedBeatmap.init();
 		processedBeatmap.applyStackShift();
 
 		let difficultyAttributes = DifficultyCalculator.calculate(processedBeatmap, new Set(), 1.0);

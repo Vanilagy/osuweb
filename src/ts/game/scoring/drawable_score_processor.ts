@@ -68,6 +68,11 @@ export class DrawableScoreProcessor extends ScoreProcessor {
 		this.accuracyInterpolator.setGoal(this.score.accuracy, adjustedTime);
 
 		if (judgement.isDrawable()) this.addDrawableJudgement(new DrawableJudgement(this, judgement));
+
+		if (judgement.hitObject.comboInfo.isLast) {
+			// Update the storyboard's game state to switch between Passing and Failing
+			this.play.controller.currentStoryboard?.setGameState(judgement.geki? "Pass" : "Fail", judgement.time);
+		}
 	}
 
 	addDrawableJudgement(drawable: DrawableJudgement) {

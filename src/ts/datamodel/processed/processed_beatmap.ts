@@ -14,18 +14,11 @@ import { BeatmapDifficulty } from "../beatmap_difficulty";
 import { pointDistance } from "../../util/point";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
-const IMPLICIT_BREAK_THRESHOLD = 5000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
-const REQUIRED_MINIMUM_BREAK_LENGTH = 750; // In milliseconds
 
 export interface ComboInfo {
 	comboNum: number,
 	n: number,
 	isLast: boolean
-}
-
-export interface Break {
-	startTime: number,
-	endTime: number
 }
 
 export interface CurrentTimingPointInfo {
@@ -38,7 +31,6 @@ export interface CurrentTimingPointInfo {
 export class ProcessedBeatmap {
 	public beatmap: Beatmap;
 	public hitObjects: ProcessedHitObject[];
-	public breaks: Break[];
 	public difficulty: BeatmapDifficulty;
 	private allowColorSkipping: boolean;
 	private initialized = false;
@@ -49,17 +41,15 @@ export class ProcessedBeatmap {
 	constructor(beatmap: Beatmap, allowColorSkipping: boolean) {
 		this.beatmap = beatmap;
 		this.hitObjects = [];
-		this.breaks = [];
 		this.difficulty = this.beatmap.difficulty.clone();
 		this.allowColorSkipping = allowColorSkipping;
 	}
 
-	init(generateBreaks = true) {
+	init() {
 		assert(!this.initialized);
 		this.initialized = true;
 
 		this.generateHitObjects();
-		if (generateBreaks) this.generateBreaks();
 	}
 
 	private generateHitObjects() {
@@ -242,6 +232,10 @@ export class ProcessedBeatmap {
 		}
 	}
 
+	getStartTime() {
+		return this.hitObjects[0]?.startTime ?? Infinity;
+	}
+
 	/** Returns the earliest time where all hit obejcts have been completed. */
 	getEndTime() {
 		let max = -Infinity;
@@ -278,91 +272,10 @@ export class ProcessedBeatmap {
 		return events;
 	}
 
-	private generateBreaks() {
-		for (let i = 0; i < this.beatmap.events.length; i++) {
-			let event = this.beatmap.events[i];
-			if (event.type !== BeatmapEventType.Break) continue;
-
-			let breakEvent = event as BeatmapEventBreak;
-			if (breakEvent.endTime - breakEvent.time < REQUIRED_MINIMUM_BREAK_LENGTH) continue;
-
-			this.breaks.push({
-				startTime: breakEvent.time,
-				endTime: breakEvent.endTime
-			});
-		}
-
-		if (this.hitObjects.length > 0) {
-			let firstObject = this.hitObjects[0];
-
-			// Add break before the first hit object
-			this.breaks.push({
-				startTime: -Infinity,
-				endTime: firstObject.startTime
-			});
-
-			// Add break after the last hit object ends
-			this.breaks.push({
-				startTime: this.getEndTime(),
-				endTime: Infinity
-			});
-
-			// Generate implicit breaks
-			let currentBiggestEndTime = this.hitObjects[0].endTime;
-			for (let i = 1; i < this.hitObjects.length; i++) {
-				let hitObject = this.hitObjects[i];
-
-				outer: if (hitObject.startTime - currentBiggestEndTime >= IMPLICIT_BREAK_THRESHOLD) {
-					// Check if there's already a break in this interval
-					for (let k = 0; k < this.breaks.length; k++) {
-						let breakEvent = this.breaks[k];
-						if (MathUtil.calculateIntervalOverlap(currentBiggestEndTime, hitObject.startTime, breakEvent.startTime, breakEvent.endTime) !== 0) break outer;
-					}
-
-					// No break there yet! Let's add one!
-					this.breaks.push({
-						startTime: currentBiggestEndTime,
-						endTime: hitObject.startTime
-					});
-				}
-
-				currentBiggestEndTime = Math.max(currentBiggestEndTime, hitObject.endTime);
-			}
-		} else {
-			// Just a "break" that spans the whole song
-			this.breaks.push({
-				startTime: -Infinity,
-				endTime: Infinity
-			});
-		}
-
-		this.breaks.sort((a, b) => a.startTime - b.startTime); // ascending
-	}
-
 	/** Returns the total length of the playable portion of the map. */
 	getPlayableLength() {
 		if (this.hitObjects.length === 0) return 0;
-		else return this.getEndTime() - this.hitObjects[0].startTime;
-	}
-
-	getTotalBreakTime() {
-		let total = 0;
-
-		for (let i = 0; i < this.breaks.length; i++) {
-			let breakEvent = this.breaks[i];
-			total += getBreakLength(breakEvent);
-		}
-
-		return total;
-	}
-
-	isInBreak(time: number) {
-		// Do a naive linear search for now. Given that songs almost always have less than 10 breaks, this shouldn't be a performance issue. But look into this!
-		for (let i = 0; i < this.breaks.length; i++) {
-			let osuBreak = this.breaks[i];
-			if (time >= osuBreak.startTime && time < osuBreak.endTime) return true;
-		}
-		return false;
+		else return this.getEndTime() - this.getStartTime();
 	}
 
 	/** Returns the BPM that is present for the longest duration in the map. */
@@ -411,12 +324,4 @@ export class ProcessedBeatmap {
 		bpmDurations.sort((a, b) => b[1] - a[1]);
 		return bpmDurations[0][0];
 	}
-}
-
-export function getBreakMidpoint(osuBreak: Break) {
-	return (osuBreak.startTime + osuBreak.endTime) / 2;
-}
-
-export function getBreakLength(osuBreak: Break) {
-	return osuBreak.endTime - osuBreak.startTime;
 }

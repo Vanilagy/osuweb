@@ -2,15 +2,15 @@ import { SpriteNumberTextures } from "../../visuals/sprite_number";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../../datamodel/skin_configuration";
 import { Color } from "../../util/graphics_util";
-import { assert, jsonClone, shallowObjectClone, last } from "../../util/misc_util";
+import { assert, jsonClone, shallowObjectClone, last, retryUntil } from "../../util/misc_util";
 import { OsuTexture } from "./texture";
 import { HitSound, HitSoundType, hitSoundFilenames } from "./hit_sound";
 import { AudioPlayer } from "../../audio/audio_player";
 import { AudioUtil } from "../../util/audio_util";
 import { soundEffectsNode } from "../../audio/audio";
 
-export const IGNORE_BEATMAP_SKIN = false;
-export const IGNORE_BEATMAP_HIT_SOUNDS = true;
+export const IGNORE_BEATMAP_SKIN = true;
+export const IGNORE_BEATMAP_SOUNDS = true;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];
@@ -32,7 +32,8 @@ export enum SkinSoundType {
 }
 
 export class Skin {
-    private directory: VirtualDirectory;
+	public directory: VirtualDirectory;
+	public parentDirectories: VirtualDirectory[] = [];
     public config: SkinConfiguration;
     public hasDefaultConfig: boolean;
     public textures: { [name: string]: OsuTexture };
@@ -230,9 +231,16 @@ export class Skin {
 
         await Promise.all(hitSoundReadyPromises);
 
-        console.timeEnd("Hit sounds load");
+		console.timeEnd("Hit sounds load");
 
-        // All texture resources should have loaded now, so let's push them into VRAM:
+		// Wait until all textures assets have loaded
+		await retryUntil(() => {
+			for (let key in this.textures) {
+				if (!this.textures[key].hasLoaded()) return false;
+			}
+			return true;
+		});
+
         console.time("Texture upload to GPU");
         for (let key in this.textures) {
             this.textures[key].uploadToGpu();
@@ -266,9 +274,11 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinSounds = true,
     assert(skins.length > 0);
 
 	let baseSkin = skins[0].clone();
+	let directories: VirtualDirectory[] = [];
 
     for (let i = 1; i < skins.length; i++) {
-        let skin = skins[i];
+		let skin = skins[i];
+		directories.unshift(skin.directory, ...skin.parentDirectories);
 
         if (joinTextures) {
             for (let key in skin.textures) {
@@ -340,5 +350,7 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinSounds = true,
     }
 
 	if (useLastConfig) baseSkin.config = last(skins).config;
+	baseSkin.parentDirectories = directories;
+
     return baseSkin;
 }

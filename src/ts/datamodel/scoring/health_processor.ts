@@ -3,6 +3,7 @@ import { Judgement } from "./judgement";
 import { ProcessedBeatmap } from "../processed/processed_beatmap";
 import { BeatmapDifficulty } from "../beatmap_difficulty";
 import { MathUtil } from "../../util/math_util";
+import { Interval } from "../../util/misc_util";
 
 /** A reasonable allowable error for the minimum health offset from target minimum health. A 1% error is unnoticeable. */
 const MINIMUM_HEALTH_ERROR = 0.01;
@@ -13,7 +14,9 @@ export class HealthProcessor extends JudgementProcessor {
 	/** The health that is drained in one second */
 	private drainRate: number;
 	private drainStartTime: number;
-	private beatmap: ProcessedBeatmap = null;
+	private drainEndTime: number;
+	private processedBeatmap: ProcessedBeatmap = null;
+	private breaks: Interval[];
 
 	constructor() {
 		super();
@@ -28,7 +31,7 @@ export class HealthProcessor extends JudgementProcessor {
 	process(judgement: Judgement, record = false) {
 		super.process(judgement, record);
 
-		if (!this.beatmap) return;
+		if (!this.processedBeatmap) return;
 
 		this.update(judgement.time);
 		
@@ -36,19 +39,23 @@ export class HealthProcessor extends JudgementProcessor {
 		if (this.health > 1) this.health = 1;
 	}
 
-	hookBeatmap(beatmap: ProcessedBeatmap) {
-		this.beatmap = beatmap;
-		this.drainStartTime = (beatmap.hitObjects.length > 0)? beatmap.hitObjects[0].startTime : Infinity;
+	hookBeatmap(processedBeatmap: ProcessedBeatmap, breaks: Interval[]) {
+		this.processedBeatmap = processedBeatmap;
+		this.drainStartTime = processedBeatmap.getStartTime();
+		this.drainEndTime = processedBeatmap.getEndTime();
+		this.breaks = breaks;
 	}
 
 	update(time: number) {
+		time = MathUtil.clamp(time, this.drainStartTime, this.drainEndTime);
+
 		let lastTime = (this.lastDrainTime === null)? this.drainStartTime : this.lastDrainTime;
 		let elapsed = time - lastTime;
 		
 		// Subtract time spent in breaks (in which no health is drained)
-		for (let i = 0; i < this.beatmap.breaks.length; i++) {
-			let breakEvent = this.beatmap.breaks[i];
-			let overlap = MathUtil.calculateIntervalOverlap(lastTime, time, breakEvent.startTime, breakEvent.endTime);
+		for (let i = 0; i < this.breaks.length; i++) {
+			let breakEvent = this.breaks[i];
+			let overlap = MathUtil.calculateIntervalOverlap(lastTime, time, breakEvent.start, breakEvent.end);
 
 			elapsed -= overlap;
 		}
@@ -64,7 +71,7 @@ export class HealthProcessor extends JudgementProcessor {
 
 		let adjustment = 1;
 		/** The minimum HP reached in a perfect playthrough of the map. */
-		let targetMinimumHealth = BeatmapDifficulty.difficultyRange(this.beatmap.difficulty.HP, 0.95, 0.70, 0.30);
+		let targetMinimumHealth = BeatmapDifficulty.difficultyRange(this.processedBeatmap.difficulty.HP, 0.95, 0.70, 0.30);
 
 		// failsafe:
 		while (adjustment < 2**32) {

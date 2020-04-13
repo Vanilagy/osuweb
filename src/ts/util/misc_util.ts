@@ -96,7 +96,7 @@ export function toFloat32(f64: number) {
 	return floatConverterDataView.getFloat32(0);
 }
 
-/** Returns the index of the last occurance of the element less than or equal to the key, or -1 if none was found. Adapted from https://www.geeksforgeeks.org/variants-of-binary-search/ */
+/** Returns the index of the last occurrences of the element less than or equal to the key, or -1 if none was found. Adapted from https://www.geeksforgeeks.org/variants-of-binary-search/ */
 export function binarySearchLessOrEqual(arr: number[], key: number): number;
 export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter: (x: T) => number): number;
 export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter?: (x: T) => number) {
@@ -239,4 +239,44 @@ export function stringContainsOnly(string: string, characters: string[], startIn
 export function removeSurroundingDoubleQuotes(str: string) {
 	if (str[0] === `"` && str[str.length-1] === `"`) return str.slice(1, -1);
 	return str;
+}
+
+export function retryUntil(breakCondition: () => boolean, retryDelay = 50) {
+	return new Promise((resolve, reject) => {
+		let interval = setInterval(retry, retryDelay);
+
+		function retry() {
+			try {
+				if (breakCondition()) {
+					resolve();
+					clearInterval(interval);
+				}
+			} catch (e) {
+				reject();
+				clearInterval(interval);
+			}
+		}
+		retry();
+	});
+}
+
+export function escapeRegExp(str: string) {
+	return str.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
+
+export function replaceAll(str: string, find: string, replace: string) {
+	return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
+}
+
+export interface Interval {
+	start: number,
+	end: number
+}
+
+export function getIntervalMidpoint(interval: Interval) {
+	return (interval.start + interval.end) / 2;
+}
+
+export function getIntervalSize(interval: Interval) {
+	return interval.end - interval.start;
 }

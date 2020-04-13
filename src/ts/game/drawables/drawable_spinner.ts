@@ -452,7 +452,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		play.processJudgement(Judgement.createSpinnerTotalJudgement(this.parent, scoringValue));
 		if (scoringValue !== ScoringValue.Miss) {
-			play.playHitSound(this.hitSound);
+			play.playHitSound(this.hitSound, this.parent.endTime);
 		}
 
 		play.scoreProcessor.addSpmValues(this.getAverageSpm(), this.getMaxSpm());

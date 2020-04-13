@@ -37,6 +37,13 @@ export enum HitSoundType {
     DrumSliderTick
 }
 
+export enum AdditionType {
+	Normal = 0,
+	Whistle = 1,
+	Finish = 2,
+	Clap = 3
+}
+
 export let hitSoundFilenames: Map<HitSoundType, string> = new Map();
 // normal
 hitSoundFilenames.set(HitSoundType.NormalHitNormal, "normal-hitnormal");
@@ -63,12 +70,24 @@ hitSoundFilenames.set(HitSoundType.DrumSliderSlide, "drum-sliderslide");
 hitSoundFilenames.set(HitSoundType.DrumSliderWhistle, "drum-sliderwhistle");
 hitSoundFilenames.set(HitSoundType.DrumSliderTick, "drum-slidertick");
 
+export function hitSoundTypeToAdditionType(type: HitSoundType) {
+	let num = type % 7;
+
+	if (num === 0) return AdditionType.Normal;
+	if (num === 1) return AdditionType.Whistle;
+	if (num === 2) return AdditionType.Finish;
+	if (num === 3) return AdditionType.Clap;
+
+	return null;
+}
+
 export interface HitSoundInfo {
     base: HitSoundType,
     additions?: HitSoundType[],
     volume: number,
     sampleIndex?: number,
-    position?: Point
+	position?: Point,
+	timingPoint: TimingPoint
 }
 
 export function getHitSoundTypesFromSampleSetAndBitfield(sampleSet: number, bitfield: number) {
@@ -153,7 +172,8 @@ export function generateHitSoundInfo(hitSound: number, baseSet: number, addition
         additions: additionTypes,
         volume: volume,
         sampleIndex: sampleIndex,
-        position: position
+		position: position,
+		timingPoint: timingPoint
 	};
     
     return info;

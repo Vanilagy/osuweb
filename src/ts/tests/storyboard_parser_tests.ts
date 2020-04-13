@@ -1,4 +1,5 @@
 import { StoryboardParser } from "../game/storyboard/storyboard_parser";
+import { StoryboardPlayer } from "../game/storyboard/storyboard_player";
 
 let storyboardText = `
 [Variables]
@@ -20,9 +21,10 @@ Sample,1234,Foreground,"audio.wav",100
 //Storyboard Sound Samples
 `;
 
-//let input = prompt();
-let input = storyboardText;
+let input = prompt();
+//let input = storyboardText;
 
 console.time()
-console.log(StoryboardParser.parse(input));
+let storyboard = StoryboardParser.parse(input);
+console.log(storyboard)
 console.timeEnd();

@@ -9,9 +9,13 @@ export enum StoryboardEntityType {
 }
 
 export enum StoryboardLayer {
+	/** Is always shown behind all other layers. */
 	Background,
+	/** Is only shown when the game is in a "fail" state. The game transfers to a fail state whenever the player doesn't get a geki at the end of a combo. */
 	Fail,
+	/** Is only shown when the game is in a "pass" state, which is the case when the game isn't in a "fail" state. */
 	Pass,
+	/** Is always shown above all other layers. */
 	Foreground
 }
 
@@ -73,11 +77,11 @@ export enum StoryboardEventType {
 	Rotate,
 	Color,
 	Loop,
-	TriggeredLoop,
-	Parameters
+	Trigger,
+	Parameter
 }
 
-export enum StoryboardEventParametersValue {
+export enum StoryboardEventParameterValue {
 	HorizontalFlip,
 	VerticalFlip,
 	AdditiveColor
@@ -144,15 +148,18 @@ export interface StoryboardEventLoop extends StoryboardEventBase {
 	events: StoryboardEvent[]
 }
 
-export interface StoryboardEventTriggeredLoop extends StoryboardEventBase {
-	type: StoryboardEventType.TriggeredLoop,
+export interface StoryboardEventTrigger extends StoryboardEventBase {
+	type: StoryboardEventType.Trigger,
+	/** This is either "Failing", "Passing" or a hit sound identifier, info about which can be found in the storyboarding spec. */
 	trigger: string,
+	/** Can be used to link several triggers of one entity together. If triggers are linked, all of the curerntly playing triggers will stop when a new trigger begins. */
+	groupNumber: number,
 	events: StoryboardEvent[]
 }
 
-export interface StoryboardEventParameters extends StoryboardEventBase {
-	type: StoryboardEventType.Parameters,
-	parameter: StoryboardEventParametersValue
+export interface StoryboardEventParameter extends StoryboardEventBase {
+	type: StoryboardEventType.Parameter,
+	parameter: StoryboardEventParameterValue
 }
 
-export type StoryboardEvent = StoryboardEventFade | StoryboardEventMove | StoryboardEventMoveX | StoryboardEventMoveY | StoryboardEventScale | StoryboardEventVectorScale | StoryboardEventRotate | StoryboardEventColor | StoryboardEventLoop | StoryboardEventTriggeredLoop | StoryboardEventParameters;
+export type StoryboardEvent = StoryboardEventFade | StoryboardEventMove | StoryboardEventMoveX | StoryboardEventMoveY | StoryboardEventScale | StoryboardEventVectorScale | StoryboardEventRotate | StoryboardEventColor | StoryboardEventLoop | StoryboardEventTrigger | StoryboardEventParameter;

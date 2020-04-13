@@ -1,12 +1,12 @@
 import { PLAYFIELD_DIMENSIONS, STANDARD_SCREEN_DIMENSIONS, SCREEN_COORDINATES_X_FACTOR, SCREEN_COORDINATES_Y_FACTOR } from "../util/constants";
 import { Point } from "../util/point";
 import { MathUtil, EaseType } from "../util/math_util";
-import { assert } from "../util/misc_util";
+import { assert, Interval, getIntervalMidpoint, getIntervalSize } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
-import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_HIT_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
-import {  ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods/mod_helper";
+import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
+import { ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods/mod_helper";
 import { DrawableBeatmap } from "./drawable_beatmap";
-import { ProcessedBeatmap, getBreakMidpoint, getBreakLength } from "../datamodel/processed/processed_beatmap";
+import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { GameplayController } from "./gameplay_controller";
@@ -20,8 +20,11 @@ import { PauseScreenMode } from "../menu/gameplay/pause_screen";
 import { HealthProcessor } from "../datamodel/scoring/health_processor";
 import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
 import { Judgement } from "../datamodel/scoring/judgement";
-import { HitSoundInfo, calculatePanFromOsuCoordinates } from "./skin/hit_sound";
+import { HitSoundInfo, calculatePanFromOsuCoordinates, hitSoundTypeToAdditionType, AdditionType } from "./skin/hit_sound";
 import { PercussionPlayer } from "./mods/percussion_player";
+import { Storyboard, ENABLE_STORYBOARD } from "./storyboard/storyboard";
+import { BeatmapEventType, BeatmapEventBreak } from "../datamodel/beatmap";
+import { StoryboardParser } from "./storyboard/storyboard_parser";
 
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
@@ -30,12 +33,13 @@ const VIDEO_FADE_IN_DURATION = 1000; // In ms
 const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relative to the end of the break
 const GAMEPLAY_WARNING_ARROWS_FLICKER_END = 400;
 const FAIL_ANIMATION_DURATION = 2000;
+const IMPLICIT_BREAK_THRESHOLD = 5000; // In milliseconds. When two hitobjects are more than {this value} millisecond apart and there's no break inbetween them already, put a break there automatically.
+const REQUIRED_MINIMUM_BREAK_LENGTH = 750; // In milliseconds
 
 export class Play {
 	public controller: GameplayController;
 	public processedBeatmap: ProcessedBeatmap;
 	public drawableBeatmap: DrawableBeatmap;
-	public preludeTime: number;
 	public playbackRate: number = 1.0;
 	public effectiveBackgroundDim: number;
 	private hasVideo: boolean = false;
@@ -43,6 +47,11 @@ export class Play {
 	private playing: boolean = false;
 	private initted: boolean = false;
 	public completed: boolean = false;
+
+	private startTime: number;
+	private hitObjectStartTime: number;
+	private hitObjectEndTime: number;
+	private endTime: number;
 
 	public scoreProcessor: DrawableScoreProcessor;
 	public healthProcessor: HealthProcessor;
@@ -52,6 +61,7 @@ export class Play {
 	public remainingLives: number;
 
 	private lastTickTime: number = null;
+	private breaks: Interval[];
 	private currentBreakIndex = 0;
 	private breakEndWarningTimes: number[] = [];
 	
@@ -104,20 +114,6 @@ export class Play {
 
 		this.scoreProcessor.hookBeatmap(this.processedBeatmap, this.activeMods);
 
-		this.healthProcessor = new HealthProcessor();
-		this.healthProcessor.simulateAutoplay(this.drawableBeatmap.playEvents);
-		this.healthProcessor.hookBeatmap(this.processedBeatmap);
-		this.healthProcessor.calculateDrainRate();
-
-		// Compute break end warning times
-		for (let i = 0; i < this.processedBeatmap.breaks.length; i++) {
-			let osuBreak = this.processedBeatmap.breaks[i];
-			if (!isFinite(getBreakMidpoint(osuBreak))) continue; // It has to be a bounded break
-
-			let warningTime = Math.max(osuBreak.startTime, osuBreak.endTime + GAMEPLAY_WARNING_ARROWS_FLICKER_START);
-			this.breakEndWarningTimes.push(warningTime);
-		}
-
 		let mediaPlayer = globalState.gameplayAudioPlayer,
 		    backgroundManager = globalState.backgroundManager;
 
@@ -151,8 +147,6 @@ export class Play {
 
 		if (this.activeMods.has(Mod.Nightcore)) this.percussionPlayer = new PercussionPlayer(this);
 
-		this.preludeTime = this.processedBeatmap.getPreludeTime();
-
 		if (this.activeMods.has(Mod.Flashlight)) this.controller.flashlightOccluder.show();
 		else this.controller.flashlightOccluder.hide();
 
@@ -167,8 +161,113 @@ export class Play {
 
 		await this.compose(true, true);
 
+		// Init storyboard (always!)
+		await this.controller.initStoryboard();
+
+		// Determine play start and end times
+		let preludeTime = this.processedBeatmap.getPreludeTime();
+		this.startTime = -preludeTime * this.playbackRate;
+		this.endTime = this.startTime;
+
+		if (this.controller.currentStoryboard) {
+			this.startTime = Math.min(this.startTime, this.controller.currentStoryboard.getStartTime());
+			this.endTime = Math.max(this.endTime, this.controller.currentStoryboard.getEndTime());
+		}
+
+		this.hitObjectStartTime = this.processedBeatmap.getStartTime();
+		this.hitObjectEndTime = this.drawableBeatmap.getEndTime();
+
+		this.startTime = Math.min(this.startTime, this.hitObjectStartTime);
+		this.endTime = Math.max(this.endTime, this.hitObjectEndTime);
+
+		this.generateBreaks();
+		// Compute break end warning times
+		for (let i = 0; i < this.breaks.length; i++) {
+			let osuBreak = this.breaks[i];
+			if (!isFinite(getIntervalMidpoint(osuBreak))) continue; // It has to be a bounded break
+			if (osuBreak.start >= this.hitObjectEndTime) continue; // It's some event after all hit objects, there's no need for a warning
+
+			let warningTime = Math.max(osuBreak.start, osuBreak.end + GAMEPLAY_WARNING_ARROWS_FLICKER_START);
+			this.breakEndWarningTimes.push(warningTime);
+		}
+
+		this.healthProcessor = new HealthProcessor();
+		this.healthProcessor.simulateAutoplay(this.drawableBeatmap.playEvents);
+		this.healthProcessor.hookBeatmap(this.processedBeatmap, this.breaks);
+		this.healthProcessor.calculateDrainRate();
+
+		if (this.controller.currentStoryboard?.hasTexturePath(this.processedBeatmap.beatmap.getBackgroundImageName())) {
+			// If the storyboard makes use of the background file, hide the background.
+			backgroundManager.setGameplayBrightness(0);
+		} else {
+			backgroundManager.setGameplayBrightness(1);
+		}
+
 		this.reset();
 		this.initted = true;
+	}
+
+	private generateBreaks() {
+		this.breaks = [];
+
+		for (let i = 0; i < this.processedBeatmap.beatmap.events.length; i++) {
+			let event = this.processedBeatmap.beatmap.events[i];
+			if (event.type !== BeatmapEventType.Break) continue;
+
+			let breakEvent = event as BeatmapEventBreak;
+			if (breakEvent.endTime - breakEvent.time < REQUIRED_MINIMUM_BREAK_LENGTH) continue;
+
+			this.breaks.push({
+				start: breakEvent.time,
+				end: breakEvent.endTime
+			});
+		}
+
+		let hitObjects = this.processedBeatmap.hitObjects;
+		if (hitObjects.length > 0) {
+			// Add break before the first hit object
+			this.breaks.push({
+				start: -Infinity,
+				end: this.hitObjectStartTime
+			});
+
+			// Add break after the last hit object ends
+			this.breaks.push({
+				start: this.hitObjectEndTime,
+				end: Infinity
+			});
+
+			// Generate implicit breaks
+			let currentBiggestEndTime = hitObjects[0].endTime;
+			for (let i = 1; i < hitObjects.length; i++) {
+				let hitObject = hitObjects[i];
+
+				outer:
+				if (hitObject.startTime - currentBiggestEndTime >= IMPLICIT_BREAK_THRESHOLD) {
+					// Check if there's already a break in this interval
+					for (let k = 0; k < this.breaks.length; k++) {
+						let breakEvent = this.breaks[k];
+						if (MathUtil.calculateIntervalOverlap(currentBiggestEndTime, hitObject.startTime, breakEvent.start, breakEvent.end) !== 0) break outer;
+					}
+
+					// No break there yet! Let's add one!
+					this.breaks.push({
+						start: currentBiggestEndTime,
+						end: hitObject.startTime
+					});
+				}
+
+				currentBiggestEndTime = Math.max(currentBiggestEndTime, hitObject.endTime);
+			}
+		} else {
+			// Just a "break" that spans the whole song
+			this.breaks.push({
+				start: -Infinity,
+				end: Infinity
+			});
+		}
+
+		this.breaks.sort((a, b) => a.start - b.start); // ascending
 	}
 
 	async compose(updateSkin: boolean, triggerInstantly = false) {
@@ -181,11 +280,11 @@ export class Play {
 		this.headedHitObjectTextureFactor = this.circleDiameter / 128;
 
 		if (updateSkin) {
-			if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_HIT_SOUNDS) {
+			if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_SOUNDS) {
 				this.skin = globalState.baseSkin;
 			} else {
 				let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-				this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_HIT_SOUNDS);
+				this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_SOUNDS);
 			}
 
 			let colorArray: Color[];
@@ -209,11 +308,11 @@ export class Play {
 
 		let minimumStartDuration = 0;
 		if (this.processedBeatmap.hitObjects.length > 0) {
-			minimumStartDuration = this.processedBeatmap.hitObjects[0].startTime / 1000; // When the first hit object starts. This way, we can be sure that we can skip the intro of the song without further audio decoding delay.
+			minimumStartDuration = this.hitObjectPixelRatio / 1000; // When the first hit object starts. This way, we can be sure that we can skip the intro of the song without further audio decoding delay.
 		}
 		globalState.gameplayAudioPlayer.setMinimumBeginningSliceDuration(minimumStartDuration);
 
-		if (when === undefined) when = 0 || -this.preludeTime / 1000;
+		if (when === undefined) when = 0 || this.startTime / 1000;
 		await globalState.gameplayAudioPlayer.start(when);
 
 		this.playing = true;
@@ -234,6 +333,8 @@ export class Play {
 		this.drawableBeatmap.render(currentTime);
 		this.scoreProcessor.update(currentTime);
 
+		this.controller.currentStoryboard?.render(currentTime);
+
 		hud.scorebar.setAmount(this.healthProcessor.health, currentTime);
 		hud.scorebar.update(currentTime);
 		hud.sectionStateDisplayer.update(currentTime);
@@ -242,23 +343,19 @@ export class Play {
 		hud.keyCounter.update(hudTime);
 
 		// Update the progress indicator
-		let firstHitObject = this.processedBeatmap.hitObjects[0];
-		if (firstHitObject) {
-			let start = firstHitObject.startTime,
-				end = this.processedBeatmap.getEndTime();
-			let diff = currentTime - start;
+		let diff = currentTime - this.hitObjectStartTime;
+		if (diff < 0) {
+			let preludeDuration = Math.min(this.hitObjectStartTime, this.endTime) - this.startTime;
 
-			if (diff < 0) {
-				let completion = (currentTime + this.preludeTime) / (start + this.preludeTime);
-				completion = MathUtil.clamp(completion, 0, 1);
+			let completion = (currentTime - this.startTime) / preludeDuration;
+			completion = MathUtil.clamp(completion, 0, 1);
 
-				hud.progressIndicator.draw(completion, true);
-			} else {
-				let completion = (currentTime - start) / (end - start);
-				completion = MathUtil.clamp(completion, 0, 1);
+			hud.progressIndicator.draw(completion, true);
+		} else {
+			let completion = (currentTime - this.hitObjectStartTime) / (this.hitObjectEndTime - this.hitObjectStartTime);
+			completion = MathUtil.clamp(completion, 0, 1);
 
-				hud.progressIndicator.draw(completion, false); 
-			}
+			hud.progressIndicator.draw(completion, false); 
 		}
 
 		// Update the gameplay warning arrows
@@ -298,10 +395,10 @@ export class Play {
 
 		// Handle breaks
 		let breakiness = 0;
-		while (this.currentBreakIndex < this.processedBeatmap.breaks.length) {
+		while (this.currentBreakIndex < this.breaks.length) {
 			// Can't call this variable "break" because reserved keyword, retarded.
-			let breakEvent = this.processedBeatmap.breaks[this.currentBreakIndex];
-			if (currentTime >= breakEvent.endTime) {
+			let breakEvent = this.breaks[this.currentBreakIndex];
+			if (currentTime >= breakEvent.end) {
 				this.currentBreakIndex++;
 				continue;
 			}
@@ -311,32 +408,38 @@ export class Play {
 
 			// Comment this.
 			// Nah so basically, this takes care of the edge case that a break is shorter than BREAK_FADE_TIME*2. Since we don't want the animation to "jump", we tell it to start the fade in the very middle of the break, rather than at endTime - BREAK_FADE_TIME. This might cause x to go, like, 0.0 -> 0.6 -> 0.0, instead of the usual 0.0 -> 1.0 -> 0.0.
-			let breakFadeOutStart = Math.max(breakEvent.endTime - BREAK_FADE_TIME, (breakEvent.startTime + breakEvent.endTime)/2);
+			let breakFadeOutStart = Math.max(breakEvent.end - BREAK_FADE_TIME, (breakEvent.start + breakEvent.end)/2);
 
-			if (currentTime >= breakEvent.startTime) {
+			if (currentTime >= breakEvent.start) {
 				// If we arrive here, we should current be in a break (if I'm not mistaken)
 
 				if (currentTime >= breakFadeOutStart) {
-					let completion = (currentTime - (breakEvent.endTime - BREAK_FADE_TIME)) / BREAK_FADE_TIME;
+					let completion = (currentTime - (breakEvent.end - BREAK_FADE_TIME)) / BREAK_FADE_TIME;
 					completion = MathUtil.clamp(completion, 0, 1);
 					breakiness = 1 - completion;
-				} else if (currentTime >= breakEvent.startTime) {
-					let completion = (currentTime - breakEvent.startTime) / BREAK_FADE_TIME;
+				} else if (currentTime >= breakEvent.start) {
+					let completion = (currentTime - breakEvent.start) / BREAK_FADE_TIME;
 					completion = MathUtil.clamp(completion, 0, 1);
 					breakiness = completion;
 				}
 			}
 
-			let brightness = MathUtil.lerp(1 - this.effectiveBackgroundDim, 1 - this.effectiveBackgroundDim/2, MathUtil.ease(EaseType.EaseInOutQuad, breakiness));
-			backgroundManager.setGameplayBrightness(brightness);
+			let dim = MathUtil.lerp(this.effectiveBackgroundDim, this.effectiveBackgroundDim/2, MathUtil.ease(EaseType.EaseInOutQuad, breakiness));
+			this.controller.setDim(dim);
 
 			hud.setBreakiness(breakiness);
 
-			if (isFinite(breakEvent.endTime) && getBreakLength(breakEvent) >= SKIP_BUTTON_MIN_BREAK_LENGTH) {
-				let fadeIn = MathUtil.clamp((currentTime - breakEvent.startTime) / SKIP_BUTTON_FADE_TIME, 0, 1);
-				let fadeOut = 1 - MathUtil.clamp((currentTime - (breakEvent.endTime - SKIP_BUTTON_END_TIME - SKIP_BUTTON_FADE_TIME)) / SKIP_BUTTON_FADE_TIME, 0, 1);
+			if (isFinite(breakEvent.end) && getIntervalSize(breakEvent) >= SKIP_BUTTON_MIN_BREAK_LENGTH) {
+				let fadeIn = MathUtil.clamp((currentTime - breakEvent.start) / SKIP_BUTTON_FADE_TIME, 0, 1);
+				let fadeOut = 1 - MathUtil.clamp((currentTime - (breakEvent.end - SKIP_BUTTON_END_TIME - SKIP_BUTTON_FADE_TIME)) / SKIP_BUTTON_FADE_TIME, 0, 1);
 
 				hud.skipButton.setVisibility(fadeIn * fadeOut);
+			} else if (breakEvent.start >= this.hitObjectEndTime) {
+				// We're in the time after all hit objects
+				let opacity = MathUtil.clamp((currentTime - breakEvent.start) / SKIP_BUTTON_FADE_TIME, 0, 1);
+				if (currentTime >= this.endTime) opacity = 0;
+
+				hud.skipButton.setVisibility(opacity);
 			} else {
 				hud.skipButton.setVisibility(0);
 			}
@@ -362,12 +465,14 @@ export class Play {
 		let currentTime = (currentTimeOverride !== undefined)? currentTimeOverride : this.getCurrentSongTime();
 		const hud = this.controller.hud;
 
-		if (this.lastTickTime === null) this.lastTickTime = -this.preludeTime;
+		if (this.lastTickTime === null) this.lastTickTime = this.startTime;
 		/** Time since the last tick */
 		let dt = currentTime - this.lastTickTime;
 		this.lastTickTime = currentTime;
 
 		this.drawableBeatmap.tick(currentTime, dt);
+
+		this.controller.currentStoryboard?.tick(currentTime);
 
 		// Update health
 		if (!this.hasFailed()) this.healthProcessor.update(currentTime);
@@ -378,9 +483,9 @@ export class Play {
 
 		// Show section pass/pass when necessary
 		let currentBreak = this.getCurrentBreak();
-		if (currentBreak) {
-			let midpoint = getBreakMidpoint(currentBreak);
-			let length = getBreakLength(currentBreak);
+		if (currentBreak && currentBreak.start < this.hitObjectEndTime) {
+			let midpoint = getIntervalMidpoint(currentBreak);
+			let length = getIntervalSize(currentBreak);
 
 			if (isFinite(midpoint) && length >= 3000 && currentTime >= midpoint && hud.sectionStateDisplayer.getLastPopUpTime() < midpoint) {
 				let isPass = this.healthProcessor.health >= 0.5;
@@ -389,7 +494,7 @@ export class Play {
 		}
 
 		// Check if the map has been completed
-		if (this.drawableBeatmap.playEventsCompleted() && !this.hasFailed()) {
+		if (currentTime >= this.endTime && this.drawableBeatmap.playEventsCompleted() && !this.hasFailed()) {
 			this.controller.completePlay();
 		}
 
@@ -457,9 +562,10 @@ export class Play {
 		this.failAnimationEndTriggered = false;
 		globalState.gameplayAudioPlayer.pause();
 		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
-		if (this.percussionPlayer) this.percussionPlayer.reset();
+		this.percussionPlayer?.reset();
+		this.controller.currentStoryboard?.reset();
 
-		if (this.controller.playbackReplay) this.controller.playbackReplay.resetPlayback();
+		this.controller.playbackReplay?.resetPlayback();
 	}
 
 	async restart() {
@@ -520,10 +626,10 @@ export class Play {
 		if (this.hasFailed() || !this.playing || this.activeMods.has(Mod.Cinema)) return;
 
 		let currentTime = this.getCurrentSongTime();
-		let currentBreak = this.processedBeatmap.breaks[this.currentBreakIndex];
+		let currentBreak = this.breaks[this.currentBreakIndex];
 
-		if (isFinite(currentBreak.endTime) && currentTime >= currentBreak.startTime) {
-			let skipToTime = currentBreak.endTime - SKIP_BUTTON_END_TIME;
+		if ((isFinite(currentBreak.end) || currentBreak.start >= this.hitObjectEndTime) && currentTime >= currentBreak.start) {
+			let skipToTime = Math.min(currentBreak.end - SKIP_BUTTON_END_TIME, this.endTime);
 
 			if (currentTime < skipToTime) {
 				await globalState.gameplayAudioPlayer.start(skipToTime / 1000);
@@ -555,7 +661,7 @@ export class Play {
 			return currentSongTime;
 		}
 
-		if (globalState.gameplayAudioPlayer.isPlaying() === false) return -this.preludeTime;
+		if (globalState.gameplayAudioPlayer.isPlaying() === false) return this.startTime;
 		return globalState.gameplayAudioPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
 	}
 
@@ -608,7 +714,16 @@ export class Play {
 	}
 
 	getCurrentBreak() {
-		return this.processedBeatmap.breaks[this.currentBreakIndex] || null;
+		return this.breaks[this.currentBreakIndex] || null;
+	}
+
+	isInBreak(time: number) {
+		// Do a naive linear search for now. Given that songs almost always have less than 10 breaks, this shouldn't be a performance issue. But look into this!
+		for (let i = 0; i < this.breaks.length; i++) {
+			let osuBreak = this.breaks[i];
+			if (time >= osuBreak.start && time < osuBreak.end) return true;
+		}
+		return false;
 	}
 
 	private getHitSoundPlaybackRate() {
@@ -617,7 +732,7 @@ export class Play {
 		return 1.0;
 	}
 
-	playHitSound(info: HitSoundInfo) {
+	playHitSound(info: HitSoundInfo, time: number) {
 		let skin = this.skin;
 		let pan = calculatePanFromOsuCoordinates(info.position);
 		let playbackRate = this.getHitSoundPlaybackRate();
@@ -629,8 +744,18 @@ export class Play {
             for (let i = 0; i < info.additions.length; i++) {
                 let additionSound = skin.hitSounds[info.additions[i]];
                 additionSound.play(info.volume, info.sampleIndex, pan, playbackRate);
-            }
-        }
+			}
+			
+			let triggerData: ReturnType<typeof StoryboardParser.parseHitSoundTrigger> = {
+				sampleSet: info.timingPoint.sampleSet,
+				additionSet: info.timingPoint.sampleSet,
+				addition: (info.additions.length > 0)? hitSoundTypeToAdditionType(info.additions[0]) : AdditionType.Normal,
+				sampleIndex: info.sampleIndex
+			}
+			let time = this.getCurrentSongTime();
+
+			this.controller.currentStoryboard?.trigger(time, "HitSound", triggerData);
+		}
     }
 
 	fail() {

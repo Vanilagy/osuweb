@@ -152,6 +152,10 @@ export class Hud {
 				this.progressIndicator.container.visible = false;
 			}; break;
 		}
+
+		this.sectionStateDisplayer.container.visible = mode !== HudMode.Cinema;
+		this.gameplayWarningArrows.container.visible = mode !== HudMode.Cinema;
+		this.skipButton.container.visible = mode !== HudMode.Cinema;
 	}
 
 	updateSkin() {
