@@ -25,6 +25,12 @@ export abstract class AudioPlayer {
 	abstract stop(): void;
 	/** Returns true if the audio is currently playing. */
 	abstract isPlaying(): boolean;
+	/** Pauses the audio playback. */
+	abstract pause(): void;
+	/** Unpauses the audio playback. */
+	abstract unpause(): void;
+	/** Returns true if the audio is currently paused. */
+	abstract isPaused(): boolean;
 	
 	/**
 	 * Sets the volume of the player.

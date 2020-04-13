@@ -16,6 +16,7 @@ export class AudioBufferPlayer extends AudioPlayer {
 
 	private audioStartTime: number = null;
 	private playing: boolean = false;
+	private pauseTime: number = null;
 
 	constructor(destination: AudioNode) {
 		super(destination);
@@ -85,8 +86,10 @@ export class AudioBufferPlayer extends AudioPlayer {
 		this.sourceNode.start(audioContext.currentTime + delay, (offset < 0)? 0: offset);
 		this.audioStartTime = audioContext.currentTime;
 
+		this.pauseTime = null;
 		this.playing = true;
 		this.sourceNode.addEventListener('ended', () => {
+			if (this.pauseTime !== null) return;
 			this.playing = false;
 		});
 	}
@@ -96,6 +99,20 @@ export class AudioBufferPlayer extends AudioPlayer {
 
 		this.sourceNode.stop();
 		this.sourceNode = null;
+	}
+	
+	pause() {
+		this.pauseTime = this.getCurrentTime();
+		this.stop();
+	}
+
+	unpause() {
+		this.start(this.pauseTime);
+		this.pauseTime = null;
+	}
+
+	isPaused() {
+		return this.pauseTime !== null;
 	}
 
 	isPlaying() {
