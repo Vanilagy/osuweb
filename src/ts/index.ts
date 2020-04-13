@@ -23,6 +23,7 @@ import { AudioMediaPlayer } from './audio/audio_media_player';
 //import './tests/polygon_tests';
 //import './tests/animation_tests';
 //import './tests/storyboard_parser_tests';
+//import './tests/audio_player_tests';
 
 const osu: string | null = 'ORERU!';
 

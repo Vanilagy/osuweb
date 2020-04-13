@@ -215,8 +215,6 @@ export class PauseScreen {
 			this.updateHeadingText('failed');
 			this.continueButton.container.visible = false;
 			this.continueButton.disable();
-
-			globalState.baseSkin.sounds[SkinSoundType.FailSound].start(0);
 		}
 
 		this.fadeInterpolator.setReversedState(false, performance.now());

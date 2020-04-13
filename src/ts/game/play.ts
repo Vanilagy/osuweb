@@ -3,7 +3,7 @@ import { Point } from "../util/point";
 import { MathUtil, EaseType } from "../util/math_util";
 import { assert, Interval, getIntervalMidpoint, getIntervalSize } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
-import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_SOUNDS, DEFAULT_COLORS, Skin } from "./skin/skin";
+import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_SOUNDS, DEFAULT_COLORS, Skin, SkinSoundType } from "./skin/skin";
 import { ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods/mod_helper";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
@@ -22,7 +22,6 @@ import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
 import { Judgement } from "../datamodel/scoring/judgement";
 import { HitSoundInfo, calculatePanFromOsuCoordinates, hitSoundTypeToAdditionType, AdditionType } from "./skin/hit_sound";
 import { PercussionPlayer } from "./mods/percussion_player";
-import { Storyboard, ENABLE_STORYBOARD } from "./storyboard/storyboard";
 import { BeatmapEventType, BeatmapEventBreak } from "../datamodel/beatmap";
 import { StoryboardParser } from "./storyboard/storyboard_parser";
 
@@ -776,6 +775,7 @@ export class Play {
 		globalState.gameplayAudioPlayer.enablePlaybackRateChangerNode();
 
 		this.drawableBeatmap.stopHitObjectSounds();
+		globalState.baseSkin.sounds[SkinSoundType.FailSound].start(0);
 	}
 
 	hasFailed() {
