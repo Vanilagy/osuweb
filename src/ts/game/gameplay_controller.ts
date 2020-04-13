@@ -283,7 +283,7 @@ export class GameplayController {
 		this.currentPlay.complete();
 		this.hud.setFade(false, 300);
 
-		this.preScoreScreenTimeout = setTimeout(() => this.showScoreScreen(), 600);
+		this.preScoreScreenTimeout = setTimeout(() => this.showScoreScreen(), 1000);
 
 		this.inputState.unbindReplayRecording();
 		if (this.recordingReplay) this.recordingReplay.finalize();

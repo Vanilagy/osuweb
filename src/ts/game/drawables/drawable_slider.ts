@@ -261,11 +261,12 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	compose(updateSkin: boolean) {
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-		super.compose(updateSkin);
 		let { skin, headedHitObjectTextureFactor, hitObjectPixelRatio } = this.drawableBeatmap.play;
 
 		this.bounds.updateScreenDimensions(hitObjectPixelRatio);
 		this.hasFullscreenBaseSprite = Math.max(this.bounds.screenWidth, this.bounds.screenHeight) >= Math.max(currentWindowDimensions.width, currentWindowDimensions.height);
+
+		super.compose(updateSkin);
 
 		let renderTex = PIXI.RenderTexture.create({
 			width: this.hasFullscreenBaseSprite? currentWindowDimensions.width : this.bounds.screenWidth,
