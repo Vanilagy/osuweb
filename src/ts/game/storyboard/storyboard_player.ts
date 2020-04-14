@@ -55,6 +55,11 @@ export class StoryboardPlayer {
 		this.passContainer = new PIXI.Container();
 		this.foregroundContainer = new PIXI.Container();
 
+		this.backgroundContainer.sortableChildren = true;
+		this.failContainer.sortableChildren = true;
+		this.passContainer.sortableChildren = true;
+		this.foregroundContainer.sortableChildren = true;
+
 		this.container.removeChildren();
 		this.container.addChild(this.backgroundContainer, this.failContainer, this.passContainer, this.foregroundContainer);
 	}
