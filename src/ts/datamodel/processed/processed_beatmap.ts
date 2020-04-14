@@ -107,7 +107,7 @@ export class ProcessedBeatmap {
 				currentTimingPointInfo.index++;
 			}
 
-			let newProcessedObject = null;
+			let newProcessedObject: ProcessedHitObject = null;
 			let duplicatedTimingPointInfo = shallowObjectClone(currentTimingPointInfo);
 
 			if (rawHitObject instanceof Circle) {

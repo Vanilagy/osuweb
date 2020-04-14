@@ -226,6 +226,7 @@ export class ModSelectionPanel {
 		this.background.width = currentWindowDimensions.width;
 		this.background.height = currentWindowDimensions.height;
 
+		this.mask.texture.destroy(true);
 		this.mask.texture = createPolygonTexture(PANEL_WIDTH + slantWidth, PANEL_HEIGHT, [
 			new PIXI.Point(0, 0), new PIXI.Point(PANEL_WIDTH, 0), new PIXI.Point(PANEL_WIDTH + slantWidth, PANEL_HEIGHT), new PIXI.Point(slantWidth, PANEL_HEIGHT)
 		], this.scalingFactor);

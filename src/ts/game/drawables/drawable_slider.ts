@@ -114,7 +114,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	reset() {
 		super.reset();
 
-		this.forceSliderBodyRender = false;
 		this.lastGeneratedSnakingCompletion = this.getSliderBodyDefaultSnake();
 		this.followCircleHoldStartTime = null;
 		this.followCircleReleaseStartTime = null;
@@ -128,6 +127,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		this.scoring = getDefaultSliderScoring();
 		this.setHoldingState(false, 0);
+
+		this.disposeFramebuffersAndGeometry();
 	}
 
 	draw() {
@@ -268,17 +269,23 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		super.compose(updateSkin);
 
-		let renderTex = PIXI.RenderTexture.create({
-			width: this.hasFullscreenBaseSprite? currentWindowDimensions.width : this.bounds.screenWidth,
-			height: this.hasFullscreenBaseSprite? currentWindowDimensions.height : this.bounds.screenHeight,
-			resolution: 2 // For anti-aliasing
-		});
-		let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
-		renderTexFramebuffer.enableDepth();
-		renderTexFramebuffer.addDepthTexture();
+		let renderTexWidth = this.hasFullscreenBaseSprite? currentWindowDimensions.width : this.bounds.screenWidth;
+		let renderTexHeight = this.hasFullscreenBaseSprite? currentWindowDimensions.height : this.bounds.screenHeight;
 
-		this.baseSprite.texture.baseTexture.destroy();
-		this.baseSprite.texture = renderTex;
+		if (this.baseSprite.texture instanceof PIXI.RenderTexture) {
+			this.baseSprite.texture.resize(renderTexWidth, renderTexHeight);
+		} else {
+			let renderTex = PIXI.RenderTexture.create({
+				width: renderTexWidth,
+				height: renderTexHeight,
+				resolution: 2 // For anti-aliasing
+			});
+			let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
+			renderTexFramebuffer.enableDepth();
+			renderTexFramebuffer.addDepthTexture();
+
+			this.baseSprite.texture = renderTex;
+		}
 		
 		this.updateTransformationMatrix();
 		if (updateSkin) updateSliderBodyShaderUniforms(this.sliderBodyMesh.shader, this);
@@ -394,9 +401,23 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	dispose() {
 		if (this.parent.specialBehavior === SpecialSliderBehavior.Invisible) return;
 
-		this.baseSprite.texture.baseTexture.destroy();
-		this.sliderBodyMesh.geometry.dispose();
+		this.disposeFramebuffersAndGeometry();
+		this.baseSprite.texture.destroy(true);
+		this.sliderBodyMesh.geometry.destroy();
 		this.sliderBodyMesh.destroy();
+	}
+
+	private disposeFramebuffersAndGeometry() {
+		let baseRenderTexture = this.baseSprite?.texture.baseTexture as PIXI.BaseRenderTexture;
+		if (!(baseRenderTexture instanceof PIXI.BaseRenderTexture)) return;
+
+		let renderTexFramebuffer = (baseRenderTexture as any).framebuffer as PIXI.Framebuffer;
+		let depthTexture = (renderTexFramebuffer as any).depthTexture as PIXI.BaseTexture;
+		depthTexture.dispose();
+
+		baseRenderTexture.dispose();
+
+		this.sliderBodyMesh.geometry.dispose();
 	}
 
 	update(currentTime: number) {
@@ -404,6 +425,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		if (currentTime > this.parent.endTime + HIT_OBJECT_FADE_OUT_TIME) {
 			this.renderFinished = true;
+			this.disposeFramebuffersAndGeometry();
 			return;
 		}
 

@@ -388,6 +388,12 @@ export class StoryboardPlayer {
 		for (let player of this.activeAudioPlayers) player.unpause();
 	}
 
+	dispose() {
+		for (let [, tex] of this.textures) {
+			tex.destroy(true);
+		}
+	}
+
 	private updateSprite(sprite: PIXI.Sprite, currentTime: number) {
 		let entity = this.spriteEntityMap.get(sprite);
 		let scalingFac = getScalingFactor();

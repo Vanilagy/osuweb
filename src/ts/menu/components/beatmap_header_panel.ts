@@ -134,6 +134,9 @@ export class BeatmapHeaderPanel {
 	}
 
 	resize(scalingFactor: number) {
+		this.mask.texture.destroy(true);
+		this.darkening.texture.destroy(true);
+
 		this.mask.texture = this.createMaskTexture(scalingFactor);
 		this.darkening.texture = this.createGradientTexture(scalingFactor);
 

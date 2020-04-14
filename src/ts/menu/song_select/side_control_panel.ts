@@ -105,7 +105,8 @@ export class SongSelectSideControlPanel {
 
 		this.container.x = currentWindowDimensions.width;
     	this.container.y = Math.floor(currentWindowDimensions.height / 2);
-        
+		
+		this.background.texture.destroy(true);
         this.background.texture = createPanelBackgroundTexture(this.scalingFactor);
         this.background.pivot.set(Math.floor(SIDE_CONTROL_PANEL_WIDTH/2 * this.scalingFactor), Math.floor((SIDE_CONTROL_PANEL_HEIGHT + 2*SIDE_CONTROL_PANEL_WIDTH/5) /2 * this.scalingFactor));
 
@@ -200,6 +201,7 @@ class SideControlPanelButton {
     resize() {
 		let scalingFactor = this.parent.scalingFactor;
 
+		this.background.texture.destroy(true);
 		this.background.texture = createPanelButtonTexture(scalingFactor);
 
         this.text.style.fontSize = Math.floor(9 * scalingFactor);

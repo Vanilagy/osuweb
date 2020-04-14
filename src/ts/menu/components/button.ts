@@ -89,6 +89,7 @@ export class Button {
 		this.lastScalingFactor = scalingFactor;
 		let slantWidth = this.height/5;
 
+		this.mask.texture.destroy(true);
 		this.mask.texture = createPolygonTexture(this.width + slantWidth, this.height, [
 			new PIXI.Point(0, 0), new PIXI.Point(this.width, 0), new PIXI.Point(this.width + slantWidth, this.height), new PIXI.Point(slantWidth, this.height)
 		], scalingFactor);

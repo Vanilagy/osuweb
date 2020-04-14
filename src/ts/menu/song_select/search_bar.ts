@@ -83,10 +83,12 @@ export class SearchBar {
 		let slantWidth = SEARCH_BAR_HEIGHT/5;
 		let textBackgroundSlantWidth = TEXT_BACKGROUND_HEIGHT/5;
 
+		this.background.texture.destroy(true);
 		this.background.texture = createPolygonTexture(SEARCH_BAR_WIDTH, SEARCH_BAR_HEIGHT, 
 			[new PIXI.Point(0, 0), new PIXI.Point(SEARCH_BAR_WIDTH, 0), new PIXI.Point(SEARCH_BAR_WIDTH, SEARCH_BAR_HEIGHT), new PIXI.Point(slantWidth, SEARCH_BAR_HEIGHT)],
 		this.scalingFactor);
 
+		this.textBackground.texture.destroy(true);
 		this.textBackground.texture = createPolygonTexture(SEARCH_BAR_WIDTH, TEXT_BACKGROUND_HEIGHT, 
 			[new PIXI.Point(0, 0), new PIXI.Point(SEARCH_BAR_WIDTH, 0), new PIXI.Point(SEARCH_BAR_WIDTH, TEXT_BACKGROUND_HEIGHT), new PIXI.Point(textBackgroundSlantWidth, TEXT_BACKGROUND_HEIGHT)],
 		this.scalingFactor);

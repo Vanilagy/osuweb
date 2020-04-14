@@ -274,6 +274,7 @@ export class GameplayController {
 		this.inputState.unbindReplayRecording();
 
 		this.currentStoryboard?.pause();
+		this.currentStoryboard?.dispose();
 		this.currentStoryboard = null;
 	}
 

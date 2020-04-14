@@ -17104,12 +17104,12 @@ var PIXI = (function (exports) {
 	        var glBuffer = buffer._glBuffers[this.CONTEXT_UID];
 	        var gl = this.gl;
 
-	        buffer.disposeRunner.remove(this);
+			buffer.disposeRunner.remove(this);
 
 	        if (!glBuffer)
 	        {
 	            return;
-	        }
+			}
 
 	        if (!contextLost)
 	        {
