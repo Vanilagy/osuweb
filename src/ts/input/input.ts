@@ -14,6 +14,7 @@ export enum KeyCode {
 	UpArrow = 38,
 	RightArrow = 39,
 	DownArrow = 40,
+	C = 67,
 	X = 88,
 	Y = 89
 }

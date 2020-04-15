@@ -21,6 +21,7 @@ import { Replay } from "./replay";
 import { StoryboardPlayer } from "./storyboard/storyboard_player";
 import { StoryboardParser } from "./storyboard/storyboard_parser";
 import { ENABLE_STORYBOARD } from "./storyboard/storyboard";
+import { SmokeCanvas } from "./hud/smoke_canvas";
 
 export class GameplayController {
 	public container: PIXI.Container;
@@ -28,6 +29,7 @@ export class GameplayController {
 	public pauseScreen: PauseScreen;
 	public flashlightOccluder: FlashlightOccluder;
 	public backgroundDimmer: PIXI.Sprite;
+	public smokeCanvas: SmokeCanvas;
 
 	public interactionGroup: InteractionGroup;
 	public interactionTarget: PIXI.Container;
@@ -63,6 +65,7 @@ export class GameplayController {
 		this.hud = new Hud(this);
 		this.pauseScreen = new PauseScreen(this);
 		this.flashlightOccluder = new FlashlightOccluder();
+		this.smokeCanvas = new SmokeCanvas(this);
 
 		this.backgroundDimmer = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.backgroundDimmer.tint = 0x000000;
@@ -94,6 +97,7 @@ export class GameplayController {
 		
 		this.container.addChild(this.storyboardContainer);
 		this.container.addChild(this.backgroundDimmer);
+		this.container.addChild(this.smokeCanvas.container);
 		this.container.addChild(this.gameplayContainer);
 		this.container.addChild(this.flashlightOccluder.container);
 		this.container.addChild(this.autoCursor);
@@ -255,6 +259,7 @@ export class GameplayController {
 		this.hud.interactionGroup.enable();
 
 		this.inputState.reset();
+		this.smokeCanvas.reset();
 	}
 
 	endPlay() {
@@ -359,6 +364,7 @@ export class GameplayController {
 		this.pauseScreen.resize();
 		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
 		this.flashlightOccluder.resize();
+		this.smokeCanvas.resize();
 
 		this.backgroundDimmer.width = currentWindowDimensions.width;
 		this.backgroundDimmer.height = currentWindowDimensions.height;

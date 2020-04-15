@@ -62,6 +62,8 @@ export class KeyCounter {
 
 	setButtonState(button: GameButton, state: boolean, time: number) {
 		let index = [GameButton.A1, GameButton.B1, GameButton.A2, GameButton.B2].indexOf(button);
+		if (index === -1) return;
+		
 		this.buttons[index].setState(state, time);
 	}
 

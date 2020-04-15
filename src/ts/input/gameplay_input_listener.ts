@@ -5,6 +5,7 @@ import { GameButton } from "./gameplay_input_state";
 import { GameplayController } from "../game/gameplay_controller";
 
 export const GAME_KEYS: [number, number] = [KeyCode.X, KeyCode.Y];
+const SMOKE_KEY = KeyCode.C;
 
 export class GameplayInputListener extends InputStateHookable {
 	private controller: GameplayController;
@@ -20,6 +21,11 @@ export class GameplayInputListener extends InputStateHookable {
 		this.registration.addListener('keyDown', (e) => {
 			if (!this.inputStateButtonHook) return;
 
+			if (e.keyCode === SMOKE_KEY) {
+				this.inputStateButtonHook.setButton(GameButton.Smoke, true, this.getCurrentTime());
+				return;
+			}
+
 			let index = GAME_KEYS.indexOf(e.keyCode);
 			if (index === -1) return;
 
@@ -28,6 +34,11 @@ export class GameplayInputListener extends InputStateHookable {
 		});
 		this.registration.addListener('keyUp', (e) => {
 			if (!this.inputStateButtonHook) return;
+
+			if (e.keyCode === SMOKE_KEY) {
+				this.inputStateButtonHook.setButton(GameButton.Smoke, false, this.getCurrentTime());
+				return;
+			}
 
 			let index = GAME_KEYS.indexOf(e.keyCode);
 			if (index === -1) return;

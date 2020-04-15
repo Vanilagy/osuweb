@@ -15,6 +15,7 @@ export class GameplayInputState {
 	private controller: GameplayController;
 	private buttonA: [boolean, boolean];
 	private buttonB: [boolean, boolean];
+	private smokeButton: boolean;
 	private currentMousePosition: Point;
 	private recordingReplay: Replay = null;
 
@@ -31,6 +32,8 @@ export class GameplayInputState {
 		this.buttonB = [false, false];
 		this.currentMousePosition = clonePoint(INITIAL_MOUSE_OSU_POSITION);
 		if (this.recordingReplay) this.recordingReplay.clearEventsAndUnfinalize();
+
+		this.smokeButton = false;
 	}
 
 	private getButtonTuple(button: GameButton) {
@@ -41,15 +44,22 @@ export class GameplayInputState {
 	setButton(button: GameButton, state: boolean, time: number) {
 		if (!this.play.handlesInputRightNow()) return;
 
-		let tuple = this.getButtonTuple(button);
+		if (button === GameButton.Smoke) {
+			if (state) this.controller.smokeCanvas.press();
+			else this.controller.smokeCanvas.release(time);
 
-		let index = (button === GameButton.A1 || button === GameButton.B1)? 0 : 1;
-		if (tuple[index] === state) return; // Nothing's changed, don't do anything
+			this.smokeButton = state;
+		} else {
+			let tuple = this.getButtonTuple(button);
 
-		let offThen = !tuple.includes(true);
-		tuple[index] = state;
-
-		if (offThen && state === true) this.play.handleButtonDown(time);
+			let index = (button === GameButton.A1 || button === GameButton.B1)? 0 : 1;
+			if (tuple[index] === state) return; // Nothing's changed, don't do anything
+	
+			let offThen = !tuple.includes(true);
+			tuple[index] = state;
+	
+			if (offThen && state === true) this.play.handleButtonDown(time);
+		}
 
 		if (this.recordingReplay && this.play.handlesInputRightNow()) this.recordingReplay.addEvent({
 			type: ReplayEventType.Button,
@@ -68,6 +78,7 @@ export class GameplayInputState {
 
 		this.currentMousePosition = osuPosition;
 		this.play.handleMouseMove(osuPosition, time);
+		this.controller.smokeCanvas.moveMouse(osuPosition);
 
 		if (this.recordingReplay && this.play.handlesInputRightNow()) this.recordingReplay.addEvent({
 			type: ReplayEventType.Positional,

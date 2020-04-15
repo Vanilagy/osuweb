@@ -7,7 +7,7 @@ import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_SOUNDS, DEFAULT_COLORS, 
 import { ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods/mod_helper";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
-import { Color } from "../util/graphics_util";
+import { Color, Dimensions } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { GameplayController } from "./gameplay_controller";
 import { globalState } from "../global_state";
@@ -341,6 +341,8 @@ export class Play {
 		hud.accuracyMeter.update(hudTime);
 		hud.keyCounter.update(hudTime);
 
+		this.controller.smokeCanvas.update(hudTime);
+
 		// Update the progress indicator
 		let diff = currentTime - this.hitObjectStartTime;
 		if (diff < 0) {
@@ -669,13 +671,13 @@ export class Play {
 	}
 
 	toScreenCoordinatesX(osuCoordinateX: number, floor = true) {
-		let coord = currentWindowDimensions.width*SCREEN_COORDINATES_X_FACTOR + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.hitObjectPixelRatio;
+		let coord = currentWindowDimensions.width * SCREEN_COORDINATES_X_FACTOR + (osuCoordinateX - PLAYFIELD_DIMENSIONS.width/2) * this.hitObjectPixelRatio;
 
 		return floor? (coord | 0) : coord; // "Cast" to int
 	}
 
 	toScreenCoordinatesY(osuCoordinateY: number, floor = true) {
-		let coord = currentWindowDimensions.height*SCREEN_COORDINATES_Y_FACTOR + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.hitObjectPixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
+		let coord = currentWindowDimensions.height * SCREEN_COORDINATES_Y_FACTOR + (osuCoordinateY - PLAYFIELD_DIMENSIONS.height/2) * this.hitObjectPixelRatio; // The innerHeight factor is the result of eyeballing and comparing to stable osu!
 
 		return floor? (coord | 0) : coord;
 	}
@@ -689,12 +691,12 @@ export class Play {
 
 	// Inverse of toScreenCoordinatesX
 	toOsuCoordinatesX(screenCoordinateX: number) {
-		return (screenCoordinateX - currentWindowDimensions.width*0.5) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.width/2;
+		return (screenCoordinateX - currentWindowDimensions.width * SCREEN_COORDINATES_X_FACTOR) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.width/2;
 	}
 	
 	// Inverse of toScreenCoordinatesY
 	toOsuCoordinatesY(screenCoordinateY: number) {
-		return (screenCoordinateY - currentWindowDimensions.height*0.510) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.height/2;
+		return (screenCoordinateY - currentWindowDimensions.height * SCREEN_COORDINATES_Y_FACTOR) / this.hitObjectPixelRatio + PLAYFIELD_DIMENSIONS.height/2;
 	}
 
 	toOsuCoordinates(screenCoordinate: Point) {
