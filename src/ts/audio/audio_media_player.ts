@@ -78,7 +78,8 @@ export class AudioMediaPlayer extends AudioPlayer {
 	}
 
 	async loadFile(file: VirtualFile) {
-		return this.loadUrl(await file.readAsResourceUrl());
+		let url = await file.readAsResourceUrl();
+		return this.loadUrl(url)
 	}
 
 	loadBuffer(buffer: ArrayBuffer) {
@@ -95,6 +96,12 @@ export class AudioMediaPlayer extends AudioPlayer {
 			this.audioElement.preload = 'auto';
 			this.audioElement.load();
 
+			// Something might go wrong with preloading the audio, so catch that.
+			this.audioElement.addEventListener('error', (e) => {
+				console.error(e);
+				resolve();
+			});
+
 			// Fires once the browser thinks it can play the whole file without buffering
 			this.audioElement.addEventListener('canplaythrough', () => {
 				resolve();
@@ -108,7 +115,7 @@ export class AudioMediaPlayer extends AudioPlayer {
 
 	start(offset: number = 0) {
 		audioContext.resume();
-		if (!this.audioElement) return;
+		if (!this.audioElement || !this.audioElement.src) return;
 
 		if (!this.audioElement.paused) this.pause();
 
