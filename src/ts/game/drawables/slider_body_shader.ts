@@ -6,8 +6,6 @@ import { IGNORE_BEATMAP_SKIN } from "../skin/skin";
 import { SliderBounds } from "./drawable_slider_path";
 import { currentWindowDimensions } from "../../visuals/ui";
 
-declare const glMatrix: any; // Why? Because TypeScript made it goddamn hard to get actual good and correct types for glMatrix. AND HELL NAW DO I WANNA IMPORT IT VIA FUCKING NPM.
-
 export const OBSERVED_SLIDER_BODY_TEXTURE_SIZE = 32768; // Observed in osu!stable. TODO: Is this system-dependent?
 
 let vertexShaderSource = `
@@ -86,7 +84,7 @@ export function updateSliderBodyShaderUniforms(shader: PIXI.Shader, slider: Draw
 export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sliderBounds: SliderBounds) { // The reason the bounds is given as a separate argument here is that bounds can change dynamically for very large, snaking sliders.
 	let { hitObjectPixelRatio, circleRadius, circleRadiusOsuPx } = slider.drawableBeatmap.play;
 
-	let matrix = new Float32Array(9);
+	let matrix = glMatrix.mat3.create();
 	glMatrix.mat3.identity(matrix);
 
 	// NOTE: Read all matrix transformations in reverse order (bottom to top).
@@ -100,12 +98,12 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 		let width = sliderBounds.screenWidth,
 			height = sliderBounds.screenHeight;
 
-		glMatrix.mat3.translate(matrix, matrix, new Float32Array([-1.0, -1.0]));
-		glMatrix.mat3.scale(matrix, matrix, new Float32Array([2 / width, 2 / height])); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
+		glMatrix.mat3.translate(matrix, matrix, [-1.0, -1.0]);
+		glMatrix.mat3.scale(matrix, matrix, [2 / width, 2 / height]); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
 
-		glMatrix.mat3.translate(matrix, matrix, new Float32Array([circleRadius, circleRadius])); // Okay, at this point, we'll have projected the coordinate into slider-relative space.
-		glMatrix.mat3.scale(matrix, matrix, new Float32Array([hitObjectPixelRatio, hitObjectPixelRatio]));
-		glMatrix.mat3.translate(matrix, matrix, new Float32Array([-sliderBounds.min.x, -sliderBounds.min.y]));
+		glMatrix.mat3.translate(matrix, matrix, [circleRadius, circleRadius]); // Okay, at this point, we'll have projected the coordinate into slider-relative space.
+		glMatrix.mat3.scale(matrix, matrix, [hitObjectPixelRatio, hitObjectPixelRatio]);
+		glMatrix.mat3.translate(matrix, matrix, [-sliderBounds.min.x, -sliderBounds.min.y]);
 	} else {
 		// The slider base sprite is fullscreen because the slider is likely very big, at least bigger than the device's screen. In rare cases, this can trigger sliders to get distorted. This behavior is accurately faked here.
 
@@ -119,8 +117,8 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 		let width = currentWindowDimensions.width,
 			height = currentWindowDimensions.height;
 
-		glMatrix.mat3.translate(matrix, matrix, new Float32Array([-1.0, -1.0]));
-		glMatrix.mat3.scale(matrix, matrix, new Float32Array([2 / width, 2 / height])); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
+		glMatrix.mat3.translate(matrix, matrix, [-1.0, -1.0]);
+		glMatrix.mat3.scale(matrix, matrix, [2 / width, 2 / height]); // From here, we just norm it to the [-1.0, 1.0] NDC (normalized device coordinates) interval.
 
 		// Slider distortion code here:
 		let intersectsLeftEdge = false,
@@ -137,29 +135,29 @@ export function createSliderBodyTransformationMatrix(slider: DrawableSlider, sli
 			intersectsBottomEdge = slider.drawableBeatmap.play.toScreenCoordinatesY(sliderBounds.max.y + adjustedCircleRadius, false) >= currentWindowDimensions.height;
 
 			// Do left-edge scaling
-			if (intersectsLeftEdge) glMatrix.mat3.scale(matrix, matrix, new Float32Array([shrinkFactorX, 1.0]));
+			if (intersectsLeftEdge) glMatrix.mat3.scale(matrix, matrix, [shrinkFactorX, 1.0]);
 			// Do top-edge scaling
-			if (intersectsTopEdge && intersectsBottomEdge) glMatrix.mat3.scale(matrix, matrix, new Float32Array([1.0, shrinkFactorY]));
+			if (intersectsTopEdge && intersectsBottomEdge) glMatrix.mat3.scale(matrix, matrix, [1.0, shrinkFactorY]);
 		}
 
 		// These lines project from osu coordinates into screen coordinates:
-		glMatrix.mat3.translate(matrix, matrix, new Float32Array([width * SCREEN_COORDINATES_X_FACTOR, height * SCREEN_COORDINATES_Y_FACTOR])); // At this point, we'll have projected the coordinate into screen-relative space.
-		glMatrix.mat3.scale(matrix, matrix, new Float32Array([hitObjectPixelRatio, hitObjectPixelRatio]));
-		glMatrix.mat3.translate(matrix, matrix, new Float32Array([-PLAYFIELD_DIMENSIONS.width/2, -PLAYFIELD_DIMENSIONS.height/2]));
+		glMatrix.mat3.translate(matrix, matrix, [width * SCREEN_COORDINATES_X_FACTOR, height * SCREEN_COORDINATES_Y_FACTOR]); // At this point, we'll have projected the coordinate into screen-relative space.
+		glMatrix.mat3.scale(matrix, matrix, [hitObjectPixelRatio, hitObjectPixelRatio]);
+		glMatrix.mat3.translate(matrix, matrix, [-PLAYFIELD_DIMENSIONS.width/2, -PLAYFIELD_DIMENSIONS.height/2]);
 
 		// More slider distortion code:
 		if (!intersectsLeftEdge) {
 			// Scale from the left-most part of the slider
-			glMatrix.mat3.translate(matrix, matrix, new Float32Array([sliderBounds.min.x - adjustedCircleRadius, 0]));
-			glMatrix.mat3.scale(matrix, matrix, new Float32Array([shrinkFactorX, 1.0]));
-			glMatrix.mat3.translate(matrix, matrix, new Float32Array([-sliderBounds.min.x + adjustedCircleRadius, 0])); // Why plus here, and not minus? :thinking:
+			glMatrix.mat3.translate(matrix, matrix, [sliderBounds.min.x - adjustedCircleRadius, 0]);
+			glMatrix.mat3.scale(matrix, matrix, [shrinkFactorX, 1.0]);
+			glMatrix.mat3.translate(matrix, matrix, [-sliderBounds.min.x + adjustedCircleRadius, 0]); // Why plus here, and not minus? :thinking:
 		}
 
 		if (!intersectsTopEdge) {
 			// Scale from the top-most part of the slider
-			glMatrix.mat3.translate(matrix, matrix, new Float32Array([0, sliderBounds.min.y - adjustedCircleRadius]));
-			glMatrix.mat3.scale(matrix, matrix, new Float32Array([1.0, shrinkFactorY]));
-			glMatrix.mat3.translate(matrix, matrix, new Float32Array([0, -sliderBounds.min.y + adjustedCircleRadius]));
+			glMatrix.mat3.translate(matrix, matrix, [0, sliderBounds.min.y - adjustedCircleRadius]);
+			glMatrix.mat3.scale(matrix, matrix, [1.0, shrinkFactorY]);
+			glMatrix.mat3.translate(matrix, matrix, [0, -sliderBounds.min.y + adjustedCircleRadius]);
 		}
 	}
 
