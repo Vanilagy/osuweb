@@ -8,9 +8,6 @@ import { currentWindowDimensions } from "../../visuals/ui";
 
 declare const glMatrix: any; // Why? Because TypeScript made it goddamn hard to get actual good and correct types for glMatrix. AND HELL NAW DO I WANNA IMPORT IT VIA FUCKING NPM.
 
-export const SLIDER_BODY_MESH_STATE = new PIXI.State();
-SLIDER_BODY_MESH_STATE.depthTest = true;
-SLIDER_BODY_MESH_STATE.blend = false; // Why doesn't this work?
 export const OBSERVED_SLIDER_BODY_TEXTURE_SIZE = 32768; // Observed in osu!stable. TODO: Is this system-dependent?
 
 let vertexShaderSource = `

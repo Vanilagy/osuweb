@@ -7,7 +7,7 @@ import { assert, last } from "../../util/misc_util";
 import { DrawableHeadedHitObject, SliderScoring, getDefaultSliderScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { renderer } from "../../visuals/rendering";
-import { createSliderBodyShader, SLIDER_BODY_MESH_STATE, createSliderBodyTransformationMatrix, updateSliderBodyShaderUniforms } from "./slider_body_shader";
+import { createSliderBodyShader, createSliderBodyTransformationMatrix, updateSliderBodyShaderUniforms } from "./slider_body_shader";
 import { AnimatedOsuSprite } from "../skin/animated_sprite";
 import { ProcessedSlider, SpecialSliderBehavior } from "../../datamodel/processed/processed_slider";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";
@@ -206,9 +206,13 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let sliderBodyGeometry = this.drawablePath.generateGeometry(sliderBodyDefaultSnake);
 		this.lastGeneratedSnakingCompletion = sliderBodyDefaultSnake;
 		let sliderBodyShader = createSliderBodyShader();
-		let sliderBodyMesh = new PIXI.Mesh(sliderBodyGeometry, sliderBodyShader, SLIDER_BODY_MESH_STATE);
+		let sliderBodyMesh = new PIXI.Mesh(sliderBodyGeometry, sliderBodyShader, new PIXI.State());
 		sliderBodyMesh.size = this.drawablePath.currentVertexCount;
 		this.sliderBodyMesh = sliderBodyMesh;
+
+		// Set the PIXI.State *after* creating the mesh
+		this.sliderBodyMesh.state.blend = false;
+		this.sliderBodyMesh.state.depthTest = true;
 
 		this.sliderBall = new SliderBall(this);
 
@@ -280,6 +284,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 				height: renderTexHeight,
 				resolution: 2 // For anti-aliasing
 			});
+
+			// Render textures don't automatically create a depth texture. Therefore, we need to do that manually.
 			let renderTexFramebuffer = (renderTex.baseTexture as any).framebuffer as PIXI.Framebuffer;
 			renderTexFramebuffer.enableDepth();
 			renderTexFramebuffer.addDepthTexture();
@@ -477,7 +483,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 
 		let doRender = this.forceSliderBodyRender;
 		let renderTex = this.baseSprite.texture as PIXI.RenderTexture;
-		let gl = renderer.state.gl;
 
 		if (this.lastGeneratedSnakingCompletion < snakeCompletion) {
 			let newBounds = this.drawablePath.updateGeometry(this.sliderBodyMesh.geometry, snakeCompletion, this.hasFullscreenBaseSprite);
@@ -490,13 +495,8 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		}
 
 		if (!doRender) return;
-
-		// Blending here needs to be done manually 'cause, well, reasons. lmao
-		// INSANE hack:
-		gl.disable(gl.BLEND);
+		
 		renderer.render(this.sliderBodyMesh, renderTex);
-		gl.enable(gl.BLEND);
-
 		this.forceSliderBodyRender = false;
 	}
 
