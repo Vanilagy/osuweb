@@ -154,11 +154,6 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.spinnerMiddle2 = createElement("spinnerMiddle2", new PIXI.Point(0.5, 0.5));
 			this.spinnerMiddle = createElement("spinnerMiddle", new PIXI.Point(0.5, 0.5));
 		} else {
-			let approachCircleSprite = createElement("spinnerApproachCircle", new PIXI.Point(0.5, 0.5), 2.0); // Since the approach circle starts out at ~2.0x the scale, use that as the reference for texture quality.
-			this.spinnerApproachCircle = new PIXI.Container();
-			this.spinnerApproachCircle.addChild(approachCircleSprite);
-			if (activeMods.has(Mod.Hidden)) this.spinnerApproachCircle.visible = false; // With HD, all spinner approach circles are hidden
-
 			this.spinnerBackground = createElement("spinnerBackground", new PIXI.Point(0.5, 0.5));
 			this.spinnerBackground.y = 5 * screenPixelRatio; // TODO: Where does this come from?
 			this.spinnerBackground.tint = colorToHexNumber(skin.config.colors.spinnerBackground);
@@ -171,6 +166,12 @@ export class DrawableSpinner extends DrawableHitObject {
 
 			this.spinnerCircle = createElement("spinnerCircle", new PIXI.Point(0.5, 0.5));
 		}
+
+		// The approach circle is there for both styles
+		let approachCircleSprite = createElement("spinnerApproachCircle", new PIXI.Point(0.5, 0.5), 2.0); // Since the approach circle starts out at ~2.0x the scale, use that as the reference for texture quality.
+		this.spinnerApproachCircle = new PIXI.Container();
+		this.spinnerApproachCircle.addChild(approachCircleSprite);
+		if (activeMods.has(Mod.Hidden)) this.spinnerApproachCircle.visible = false; // With HD, all spinner approach circles are hidden
 
 		// Update spinner SPM display
 		let spmOsuTexture = skin.textures["spinnerRpm"]; // Yeah,the texture is called RPM and not SPM. ¯\_(ツ)_/¯
@@ -205,8 +206,6 @@ export class DrawableSpinner extends DrawableHitObject {
 		this.container.removeChildren();
 		this.componentContainer.removeChildren();
 		this.componentContainer2.removeChildren();
-		
-		this.container.addChild(this.componentContainer);
 
 		if (this.isNewStyle) {
 			this.scalablePart = new PIXI.Container();
@@ -222,13 +221,14 @@ export class DrawableSpinner extends DrawableHitObject {
 			this.container.addChild(this.spinnerMeter);
 			this.container.addChild(this.spinnerMeterMask);
 			this.componentContainer2.addChild(this.spinnerCircle);
-			this.componentContainer2.addChild(this.spinnerApproachCircle);
 		}
-		
+		this.componentContainer2.addChild(this.spinnerApproachCircle);
+
 		this.componentContainer2.addChild(this.spinnerSpin);
 		this.componentContainer2.addChild(this.spinnerClear);
 		this.componentContainer2.addChild(this.spinnerBonus.container);
 		
+		this.container.addChild(this.componentContainer);
 		this.container.addChild(this.spinnerSpm);
 		this.container.addChild(this.componentContainer2);
 		this.container.addChild(this.spinnerSpmNumber.container); // Above all other elements
@@ -375,6 +375,8 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		let visualRotation = this.visualRotationInterpolator.getCurrentValue(currentTime);
 
+		this.spinnerApproachCircle.scale.set(MathUtil.lerp(1.85, 0.1, completion)); // Quote Google docs: "starts at 200% of its size and shrinks down to 10%". Changed to 185% 'cause I have eyes.
+
 		if (this.isNewStyle) {
 			this.spinnerBottom.rotation = visualRotation * 0.2;
 			this.spinnerTop.rotation = visualRotation * 0.5;
@@ -390,8 +392,6 @@ export class DrawableSpinner extends DrawableHitObject {
 			let glowCompletion = this.glowInterpolator.getCurrentValue(currentTime);
 			(this.spinnerGlow as PIXI.Sprite).tint = colorToHexNumber(lerpColors(Colors.White, SPINNER_GLOW_TINT, glowCompletion));
 		} else {
-			this.spinnerApproachCircle.scale.set(MathUtil.lerp(1.85, 0.1, completion)); // Quote Google docs: "starts at 200% of its size and shrinks down to 10%". Changed to 185% 'cause I have eyes.
-
 			this.spinnerCircle.rotation = visualRotation;
 
 			// Do meter mask stuff:
@@ -399,7 +399,7 @@ export class DrawableSpinner extends DrawableHitObject {
 				let mask = this.spinnerMeterMask;
 
 				let completedSteps = Math.floor(clearCompletion * SPINNER_METER_STEPS);
-				let completion = completedSteps / SPINNER_METER_STEPS; // Quantize this shit
+				let completion = completedSteps / SPINNER_METER_STEPS; // Quantize this shit <- What the hell is this comment? XD
 
 				// For a lack of better names:
 				let a = Math.max(0, completedSteps-1);
