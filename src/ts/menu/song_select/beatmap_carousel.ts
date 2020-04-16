@@ -54,7 +54,7 @@ export class BeatmapCarousel {
 	private panelCache = new WeakMap<BeatmapSet, BeatmapSetPanel>();
 
 	public selectedPanel: BeatmapSetPanel = null;
-	public selectedSubpanel: BeatmapDifficultyPanel = null;
+	public selectedDifficultyPanel: BeatmapDifficultyPanel = null;
 
 	private referencePanel: BeatmapSetPanel = null;
 	private referencePanelY = 0;
@@ -214,9 +214,15 @@ export class BeatmapCarousel {
 		}
 		this.skipSnapbackNextFrame = false;
 
-		this.referencePanel.update(now, this.referencePanelY, this.referencePanel.getTotalHeight(now));
+		// Offset the position of the current reference panel by the relative position of the selected difficulty panel. This is done so that everything moves relatively to that difficulty panel.
+		let offsetY = this.referencePanelY;
+		if (this.selectedDifficultyPanel) {
+			offsetY -= this.selectedDifficultyPanel.currentNormalizedY;
+		}
 
-		let currentY = this.referencePanelY;
+		this.referencePanel.update(now, offsetY, this.referencePanel.getTotalHeight(now));
+
+		let currentY = offsetY;
 		for (let i = referenceIndex-1; i >= 0; i--) {
 			let panel = this.beatmapSetPanels[i];
 			let height = panel.getTotalHeight(now);
@@ -226,7 +232,7 @@ export class BeatmapCarousel {
 			panel.update(now, currentY, height);
 		}
 
-		currentY = this.referencePanelY;
+		currentY = offsetY;
 		for (let i = referenceIndex+1; i < this.beatmapSetPanels.length; i++) {
 			let prevPanel = this.beatmapSetPanels[i-1];
 			let panel = this.beatmapSetPanels[i];
@@ -237,7 +243,7 @@ export class BeatmapCarousel {
 			panel.update(now, currentY, panel.getTotalHeight(now));
 		}
 
-		// Update scrollbar;
+		// Update scrollbar
 		let firstPanel = this.beatmapSetPanels[0];
 		let lastPanel = last(this.beatmapSetPanels);
 
@@ -267,11 +273,26 @@ export class BeatmapCarousel {
 	setReferencePanel(panel: BeatmapSetPanel, currentYPosition: number) {
 		this.referencePanel = panel;
 		this.referencePanelY = currentYPosition;
+		this.selectedDifficultyPanel = null;
 	
-		this.snapToReferencePanel(currentYPosition, BEATMAP_SET_PANEL_SNAP_TARGET);
+		this.snapReferencePanelPosition(currentYPosition, BEATMAP_SET_PANEL_SNAP_TARGET);
 	}
 
-	snapToReferencePanel(from: number, to: number) {
+	setDifficultyPanel(panel: BeatmapDifficultyPanel) {
+		// Select the currently selected difficulty panel
+		let currentlySelected = this.selectedDifficultyPanel;
+		if (currentlySelected) {
+			// We need to offer the y position because we don't have a difficulty panel selected anymore, which would otherwise cause a jump in y position.
+			this.referencePanelY -= currentlySelected.currentNormalizedY;
+			currentlySelected.deselect();
+		}
+
+		this.selectedDifficultyPanel = panel;
+		// Now, offset the y position in the other direction, again to avoid jumping
+		this.referencePanelY += panel.currentNormalizedY;
+	}
+
+	snapReferencePanelPosition(from: number, to: number) {
 		let now = performance.now();
 	
 		// It could be that we snap to a position that's off the end of the carousel, where the carousel would normally snap back. Here, we catch this case and only snap as far as we should.
@@ -291,7 +312,7 @@ export class BeatmapCarousel {
 		this.scrollVelocity = 0;
 	}
 
-	skipSet(forward: boolean) {
+	skipSet(forward: boolean, selectLastDifficulty: boolean) {
 		if (this.beatmapSetPanels.length === 0) return;
 
 		let nextIndex: number;
@@ -303,29 +324,31 @@ export class BeatmapCarousel {
 			if (index === nextIndex) return;
 		}
 
-		this.beatmapSetPanels[nextIndex].select();
+		this.beatmapSetPanels[nextIndex].select(selectLastDifficulty? Infinity : 0);
 	}
 
 	skipDifficulty(forward: boolean) {
 		if (this.beatmapSetPanels.length === 0) return;
 
 		if (!this.beatmapSetPanels.includes(this.selectedPanel)) {
-			this.skipSet(forward);
+			this.skipSet(forward, false);
 			return;
 		}
 
 		let success = this.selectedPanel.skip(forward);
 		if (!success) {
-			this.skipSet(forward);
+			this.skipSet(forward, !forward);
 		}
 	}
 
 	selectRandom() {
 		if (this.beatmapSetPanels.length === 0) return;
 
+		let panel: BeatmapSetPanel;
+
 		if (this.beatmapSetPanels.length === 1) {
-			// If there's only one beatmap, and that one isn't select it, just select that one.
-			if (!this.beatmapSetPanels.includes(this.selectedPanel)) this.beatmapSetPanels[0].select();
+			// If there's only one beatmap, and that one isn't selected, just select that one.
+			if (!this.beatmapSetPanels.includes(this.selectedPanel)) panel = this.beatmapSetPanels[0];
 		} else {
 			let selectedIndex = this.beatmapSetPanels.indexOf(this.selectedPanel);
 			let randomIndex: number;
@@ -334,8 +357,10 @@ export class BeatmapCarousel {
 				randomIndex = Math.floor(Math.random() * this.beatmapSetPanels.length);
 			} while (randomIndex === selectedIndex);
 
-			this.beatmapSetPanels[randomIndex].select();
+			panel = this.beatmapSetPanels[randomIndex];
 		}
+
+		if (panel) panel.select(Math.floor(Math.random() * panel.beatmapFiles.length)); // Select a random difficulty
 	}
 }
 

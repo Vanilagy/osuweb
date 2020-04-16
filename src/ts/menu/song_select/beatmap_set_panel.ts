@@ -3,16 +3,14 @@ import { VirtualFile } from "../../file_system/virtual_file";
 import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { currentWindowDimensions } from "../../visuals/ui";
-import { BackgroundManager } from "../../visuals/background";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BeatmapCarouselSortingType, BeatmapCarousel } from "./beatmap_carousel";
+import { getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BeatmapCarousel } from "./beatmap_carousel";
 import { InteractionRegistration, InteractionGroup } from "../../input/interactivity";
 import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
 import { fitSpriteIntoContainer } from "../../util/pixi_util";
 import { JobUtil } from "../../multithreading/job_util";
 import { Interpolator } from "../../util/interpolation";
-import { globalState } from "../../global_state";
-import { shallowObjectClone } from "../../util/misc_util";
+import { shallowObjectClone, last } from "../../util/misc_util";
 
 export class BeatmapSetPanel {
 	public carousel: BeatmapCarousel;
@@ -20,7 +18,7 @@ export class BeatmapSetPanel {
 	public interactionGroup: InteractionGroup;
 
 	public beatmapSet: BeatmapSet;
-	private beatmapFiles: VirtualFile[];
+	public beatmapFiles: VirtualFile[];
 
 	private panelContainer: PIXI.Container;
 	private mainMask: PIXI.Sprite;
@@ -127,10 +125,11 @@ export class BeatmapSetPanel {
 
 	private initInteractions() {
 		let registration = new InteractionRegistration(this.panelContainer);
+		registration.setZIndex(2); // Above the difficulty panels
 		this.interactionGroup.add(registration);
 
 		registration.addButtonHandlers(
-			() => this.select(),
+			() => this.select(0),
 			() => this.hoverInterpolator.setReversedState(false, performance.now()),
 			() => this.hoverInterpolator.setReversedState(true, performance.now()),
 			() => this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now()),
@@ -273,13 +272,16 @@ export class BeatmapSetPanel {
 		return this.expandInterpolator.getCurrentValue(now) * combinedDifficultyPanelHeight * this.beatmapFiles.length;
 	}
 
-	async select() {
+	async select(selectDifficultyIndex: number) {
+		let now = performance.now();
+
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
 		this.difficultyPanels.length = 0;
 		this.difficultyContainer.removeChildren();
 
+		// Collapse any other currently expanded panel
 		let selectedPanel = this.carousel.selectedPanel;
 		if (selectedPanel) {
 			selectedPanel.collapse();
@@ -288,11 +290,12 @@ export class BeatmapSetPanel {
 		this.carousel.selectedPanel = this;
 		this.carousel.setReferencePanel(this, this.currentNormalizedY);
 
-		this.expandInterpolator.setReversedState(false, performance.now());
+		this.expandInterpolator.setReversedState(false, now);
 
 		let representingBeatmap = this.beatmapSet.representingBeatmap;
 		this.carousel.songSelect.infoPanel.loadBeatmapSet(representingBeatmap);
 
+		// Create the beatmap difficulty panels
 		for (let i = 0; i < this.beatmapFiles.length; i++) {
 			let difficultyPanel = new BeatmapDifficultyPanel(this);
 			difficultyPanel.container.zIndex = -i;
@@ -300,7 +303,13 @@ export class BeatmapSetPanel {
 			this.difficultyContainer.addChild(difficultyPanel.container);
 			this.difficultyPanels.push(difficultyPanel);
 		}
-		this.difficultyPanels[0].select(false);
+
+		// Run this update function to update difficulty panel positions
+		this.update(now, this.currentNormalizedY, this.getTotalHeight(now));
+
+		// Instantly select the difficult panel at the corresponding index
+		selectDifficultyIndex = MathUtil.clamp(selectDifficultyIndex, 0, this.difficultyPanels.length-1);
+		this.difficultyPanels[selectDifficultyIndex].select(true);
 
 		this.carousel.songSelect.startAudio(representingBeatmap);
 
@@ -330,10 +339,10 @@ export class BeatmapSetPanel {
 	private collapse() {
 		if (!this.isExpanded) return;
 
-		let currentlySelectedSubpanel = this.carousel.selectedSubpanel;
-		if (currentlySelectedSubpanel) {
-			currentlySelectedSubpanel.deselect();
-			this.carousel.selectedSubpanel = null;
+		let currentlySelectedDifficultyPanel = this.carousel.selectedDifficultyPanel;
+		if (currentlySelectedDifficultyPanel) {
+			currentlySelectedDifficultyPanel.deselect();
+			this.carousel.selectedDifficultyPanel = null;
 		}
 
 		this.expandInterpolator.setReversedState(true, performance.now());
@@ -345,7 +354,7 @@ export class BeatmapSetPanel {
 	}
 
 	skip(forward = true) {
-		let index = this.difficultyPanels.indexOf(this.carousel.selectedSubpanel);
+		let index = this.difficultyPanels.indexOf(this.carousel.selectedDifficultyPanel);
 		if (index === -1) return;
 
 		let nextIndex = index + (forward? 1 : -1);
