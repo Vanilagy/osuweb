@@ -75,10 +75,10 @@ export class SongSelect {
 					this.triggerSelectedBeatmap();
 				}; break;
 				case KeyCode.LeftArrow: {
-					this.carousel.skipSet(false);
+					this.carousel.skipSet(false, false);
 				}; break;
 				case KeyCode.RightArrow: {
-					this.carousel.skipSet(true);
+					this.carousel.skipSet(true, false);
 				}; break;
 				case KeyCode.UpArrow: {
 					this.carousel.skipDifficulty(false);

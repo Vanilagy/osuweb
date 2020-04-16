@@ -1,15 +1,12 @@
 import { SongSelect } from "./song_select";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { scale } from "gl-matrix/src/gl-matrix/vec2";
 import { createPolygonTexture, svgToTexture } from "../../util/pixi_util";
-import { addRenderingTask } from "../../visuals/rendering";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { AnalyserNodeWrapper } from "../../audio/analyser_node_wrapper";
 import { calculateRatioBasedScalingFactor, lerpColors, Colors, colorToHexNumber } from "../../util/graphics_util";
 import { globalState } from "../../global_state";
-import { EMPTY_FUNCTION } from "../../util/misc_util";
 import { THEME_COLORS } from "../../util/constants";
 
 const PULSAR_IDLE_RADIUS = 60;
