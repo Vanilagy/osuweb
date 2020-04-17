@@ -292,7 +292,8 @@ export class InteractionGroup extends InteractionUnit {
 			let child = children[i];
 			if (!this.children.includes(child)) continue;
 
-			removeItem(this.children, child);
+			this.children.splice(i--, 1);
+			removeItem(this.active, child);
 			child.parent = null;
 		}
 	}
