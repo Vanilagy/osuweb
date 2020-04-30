@@ -55,7 +55,6 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 			let interaction = new InteractionRegistration(container);
 			interaction.addListener('mouseDown', () => {
 				this.setSelection(i);
-				this.emit('selection', i);
 			});
 			interaction.addListener('mouseEnter', () => {
 				hoverInterpolator.setReversedState(false, performance.now());
@@ -98,6 +97,8 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 
 		this.selectionBarXInterpolator.setGoal(selectionBarX, now);
 		this.selectionBarWidthInterpolator.setGoal(selectionBarWidth, now);
+
+		this.emit('selection', this.selectedIndex);
 	}
 
 	getSelectedIndex() {

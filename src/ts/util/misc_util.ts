@@ -155,14 +155,35 @@ export function normalizeWheelEvent(e: WheelEvent): NormalizedWheelEvent {
 /** Inserts an item into an array at a specific point, satisfying a comparator. */
 export function insertItem<T>(arr: T[], item: T, comparator: (a: T, b: T) => number) {
 	for (let i = 0; i < arr.length; i++) {
-		let comp = comparator(item, arr[i]);
-		if (comp <= 0) {
+		let comp = comparator(arr[i], item);
+		if (comp >= 0) {
 			arr.splice(i, 0, item);
 			return;
 		}
 	}
 
 	arr.push(item);
+}
+
+/** Inserts an item into a sorted array at a specific point, satisfying a comparator. */
+export function insertItemBinary<T>(arr: T[], item: T, comparator: (a: T, b: T) => number) {
+	let low = 0;
+	let high = arr.length - 1;
+	let ans = -1;
+
+	while (low <= high) {
+		let mid = ((low + high) / 2) | 0;
+		let comp = comparator(arr[mid], item);
+
+		if (comp <= 0) {
+			ans = mid;
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
+	}
+
+	arr.splice(ans+1, 0, item);
 }
 
 /** Removes an item from an array - if it's in there. Returns true if the item was removed. */
@@ -187,6 +208,10 @@ export function pushItemUnique<T>(arr: T[], item: T) {
 	return false;
 }
 
+export interface Searchable {
+	searchableString: string
+}
+
 export function createSearchableString(substrings: string[]) {
 	let str = '';
 
@@ -198,6 +223,16 @@ export function createSearchableString(substrings: string[]) {
 	return str.toLowerCase();
 }
 
+export function matchesSearchable(searchable: Searchable, words: string[]) {
+	let matchCount = 0;
+
+	for (let i = 0; i < words.length; i++) {
+		if (searchable.searchableString.includes(words[i])) matchCount++;
+	}
+
+	return matchCount === words.length;
+}
+
 export class OverridableDelay {
 	private timeoutId: number = null;
 
@@ -207,8 +242,22 @@ export class OverridableDelay {
 	}
 }
 
-export function compareStringsLowerCase(a: string, b: string) {
-	return a.toLowerCase().localeCompare(b.toLowerCase());
+/** Compares to strings based on lexicographical order. You might say "Oh but dude, why didn't you use < or localeCompare??" Well, this one was the fastest. */
+export function compareStrings(a: string, b: string) {
+	let min = Math.min(a.length, b.length);
+
+	for (let i = 0; i < min; i++) {
+		let charA = a[i];//.toLowerCase();
+		let charB = b[i];//.toLowerCase();
+
+		if (charA < charB) return -1;
+		if (charA > charB) return 1;
+	}
+
+	if (a.length > min) return 1;
+	if (b.length > min) return -1;
+
+	return 0;
 }
 
 export function bytesToString(bytes: Uint8Array) {
@@ -279,4 +328,27 @@ export function getIntervalMidpoint(interval: Interval) {
 
 export function getIntervalSize(interval: Interval) {
 	return interval.end - interval.start;
+}
+
+// Based on https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
+/** Shuffles an array in-place. */
+export function shuffle<T>(arr: T[]) {
+	let j, x, i;
+	
+    for (i = arr.length - 1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1));
+        x = arr[i];
+        arr[i] = arr[j];
+        arr[j] = x;
+	}
+	
+    return arr;
+}
+
+export function arraysEqualShallow<T>(arr1: T[], arr2: T[]) {
+	if (arr1.length !== arr2.length) return false;
+	for (let i = 0; i < arr1.length; i++) {
+		if (arr1[i] !== arr2[i]) return false;
+	}
+	return true;
 }

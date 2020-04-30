@@ -11,11 +11,12 @@ import { BeatmapRankingTab } from "./beatmap_ranking_tab";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
 import { Interpolator, InterpolatedValueChanger } from "../../util/interpolation";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
-import { ExtendedBeatmapData } from "../../util/beatmap_util";
+import { ExtendedBeatmapData, BasicBeatmapData } from "../../util/beatmap_util";
 import { SongSelect } from "./song_select";
 import { BeatmapHeaderPanel } from "../components/beatmap_header_panel";
 import { globalState } from "../../global_state";
 import { VirtualFile } from "../../file_system/virtual_file";
+import { BeatmapEntry } from "../../datamodel/beatmap_entry";
 
 export const INFO_PANEL_WIDTH = 520;
 export const INFO_PANEL_HEADER_HEIGHT = 260;
@@ -110,21 +111,20 @@ export class BeatmapInfoPanel {
 		}
 	}
 
-	async loadBeatmapSet(representingBeatmap: Beatmap) {
-		let beatmapSet = representingBeatmap.beatmapSet;
+	async loadBeatmapSet(beatmapSet: BeatmapSet, basicData: BasicBeatmapData) {
 		if (this.currentBeatmapSet === beatmapSet) return;
 		this.currentBeatmapSet = beatmapSet;
 
-		this.header.updateText(representingBeatmap, false, true);
+		this.header.updateText(basicData, false, true);
 	}
 
-	async loadBeatmapData(extendedData: ExtendedBeatmapData, beatmapSet: BeatmapSet) {
-		this.header.updateText(extendedData, true, false);
+	async loadBeatmapData(entry: BeatmapEntry) {
+		this.header.updateText(entry.extendedMetadata, true, false);
 
 		let detailsTab = this.tabs[0] as BeatmapDetailsTab;
-		detailsTab.loadBeatmapData(extendedData);
+		detailsTab.loadBeatmapData(entry.extendedMetadata);
 
-		let imageFile = await beatmapSet.directory.getFileByPath(extendedData.imageName);
+		let imageFile = await entry.beatmapSet.directory.getFileByPath(entry.extendedMetadata.imageName);
 		await this.loadImage(imageFile);
 	}
 

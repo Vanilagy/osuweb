@@ -5,8 +5,14 @@ import { splitPath } from "../util/file_util";
 export class VirtualDirectory extends VirtualFileSystemEntry {
 	private entries: Map<string, VirtualFileSystemEntry>;
 	private caseInsensitiveEntries: Map<string, VirtualFileSystemEntry>;
+	
+	/** If this is set, and a file is requested but not found, the network will be hit relative to this url to find the file. */
 	public networkFallbackUrl: string;
-	public failedNetworkFallbacks: Set<string>; // In order to prevent hitting the network twice for a 404 resource.
+	/** In order to prevent hitting the network twice for a 404 resource. */
+	private failedNetworkFallbacks: Set<string>;
+	/** If the directory was created using the Native File System API, this will be set. */
+	private directoryHandle: FileSystemDirectoryHandle;
+	private readied = false;
 
 	constructor(name: string) {
 		super();
@@ -30,44 +36,47 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		this.caseInsensitiveEntries.delete(entry.name.toLowerCase());
 	}
 
-	async getEntryByPath(name: string, caseSensitive = false) {
-		if (name === null || name === undefined) return null;
+	/** Gets an entry in this directory by path. */
+	async getEntryByPath(path: string, caseSensitive = false) {
+		if (path === null || path === undefined) return null;
 
-		let parts = splitPath(name);
+		let parts = splitPath(path);
 		let currentDirectory: VirtualDirectory = this;
 
 		for (let i = 0; i < parts.length; i++) {
 			let part = parts[i];
 			let entry: VirtualFileSystemEntry;
 
-			if (part === '.') entry = currentDirectory;
-			else if (part === '..') entry = currentDirectory.parent;
+			await currentDirectory.ready();
+
+			if (part === '.') entry = currentDirectory; // Stay in the current directory
+			else if (part === '..') entry = currentDirectory.parent; // Go up a level!
 			else entry = caseSensitive? currentDirectory.entries.get(part) : currentDirectory.caseInsensitiveEntries.get(part.toLowerCase());
 			
 			if (entry) {
-				if (i === parts.length-1) return entry;
-				else if (entry instanceof VirtualDirectory) currentDirectory = entry;
+				if (i === parts.length-1) return entry; // We found the file!
+				else if (entry instanceof VirtualDirectory) currentDirectory = entry; // Step into the directory.
 				else break;
 			} else {
 				break;
 			}
 		}
 
-		let entry = caseSensitive? this.entries.get(name) : this.caseInsensitiveEntries.get(name.toLowerCase());
-		if (entry) return entry;
-
 		if (this.networkFallbackUrl) {
-			let url = this.networkFallbackUrl + '/' + name; // We ignore case sensitivity here
+			// Go hit the network and see if the file's there. Somewhere.
+
+			let url = this.networkFallbackUrl + '/' + parts.join('/'); // We ignore case sensitivity here
 			if (this.failedNetworkFallbacks.has(url)) return null;
 
 			let response = await fetch(url);
 			if (response.ok) {
 				let blob = await response.blob();
-				let file = VirtualFile.fromBlob(blob, name);
+				let file = VirtualFile.fromBlob(blob, path);
 
 				this.addEntry(file);
 				return file;
 			} else {
+				// Remember that this URL is not OK.
 				this.failedNetworkFallbacks.add(url);
 			}
 		}
@@ -75,59 +84,71 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		return null;
 	}
 
-	async getFileByPath(name: string, caseSensitive = false) {
-		let entry = await this.getEntryByPath(name, caseSensitive);
+	async getFileByPath(path: string, caseSensitive = false) {
+		let entry = await this.getEntryByPath(path, caseSensitive);
 
 		if (entry instanceof VirtualFile) return entry as VirtualFile;
 		return null;
 	}
 
-	forEach(func: (entry: VirtualFileSystemEntry) => any) {
-		this.entries.forEach((entry) => {
-			func(entry);
-		});
+	/** Prepares all directory entries. */
+	async ready() {
+		if (this.readied) return;
+		if (!this.directoryHandle) {
+			this.readied = true;
+			return;
+		}
+
+		let entries = await this.directoryHandle.getEntries();
+		for await (let entry of entries) {
+			if (entry instanceof FileSystemFileHandle) {
+				this.addEntry(VirtualFile.fromFileHandle(entry));
+			} else if (entry instanceof FileSystemDirectoryHandle) {
+				this.addEntry(VirtualDirectory.fromDirectoryHandle(entry));
+			}
+		}
+
+		this.readied = true;
 	}
 
-	forEachFile(func: (entry: VirtualFile) => any) {
-		this.entries.forEach((entry) => {
-			if (entry instanceof VirtualFile) func(entry);
-		});
-	}
+	async *[Symbol.asyncIterator]() {
+		await this.ready();
 
-	*[Symbol.iterator]() {
 		for (let entry of this.entries) {
 			yield entry[1];
 		}
 	}
 
 	/** Load all files in this directory. */
-	loadShallow() {
+	async loadShallow() {
 		let arr: Promise<void>[] = [];
-		this.forEach((entry) => {
+		for await (let entry of this) {
 			if (entry instanceof VirtualFile) arr.push(entry.load());
-		});
+		}
 
 		return Promise.all(arr);
 	}
 
 	/** Load all files in this directory and its subdirectories. */
-	loadDeep() {
+	async loadDeep() {
 		let arr: Promise<void>[] = [];
 
-		function addFilesInDirectory(dir: VirtualDirectory) {
-			dir.forEach((entry) => {
+		async function addFilesInDirectory(dir: VirtualDirectory) {
+			for await (let entry of dir) {
 				if (entry instanceof VirtualFile) arr.push(entry.load());
 				else addFilesInDirectory(entry as VirtualDirectory);
-			});
+			}
 		}
-		addFilesInDirectory(this);
+		await addFilesInDirectory(this);
 
 		return Promise.all(arr);
 	}
 
+	/** Creates a directory structure from a FileList, which is what you get from an <input type="file"> thing. */
 	static fromFileList(list: FileList) {
 		let root = new VirtualDirectory("");
 
+		/** Creates a directory at a certain path, creating all necessary directories on the path as it goes. */
 		function createIteratively(dir: VirtualDirectory, pathSegments: string[], index: number): VirtualDirectory {
 			let currentDir = dir;
 
@@ -145,7 +166,8 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 			}
 		}
 
-		let cache = new Map();
+		// Cache directories by their path for faster lookup
+		let cache = new Map<string, VirtualDirectory>();
 
 		for (let i = 0; i < list.length; i++) {
 			let file = list[i];
@@ -164,6 +186,14 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 			
 			parentDir.addEntry(VirtualFile.fromFile(file));
 		}
+
+		return root;
+	}
+
+	/** Creates a directory from a FileSystemDirectoryHandle (Native File System API) */
+	static fromDirectoryHandle(handle: FileSystemDirectoryHandle) {
+		let root = new VirtualDirectory(handle.name);
+		root.directoryHandle = handle;
 
 		return root;
 	}

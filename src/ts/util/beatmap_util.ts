@@ -1,11 +1,25 @@
 import { VirtualFile } from "../file_system/virtual_file";
 import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { DifficultyAttributes, DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
-import { Beatmap } from "../datamodel/beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
+import { BeatmapParser } from "../datamodel/beatmap_parser";
+import { createSearchableString } from "./misc_util";
 
 /** First value is when the first beat begins. Second value is the time in millisecond between beats. */
 type MsPerBeatTiming = [number, number];
+
+export interface BasicBeatmapData {
+	title: string,
+	titleUnicode: string,
+	artist: string,
+	artistUnicode: string,
+	creator: string,
+	version: string,
+	tags: string,
+	imageName: string,
+	audioName: string,
+	audioPreviewTime: number
+}
 
 export interface ExtendedBeatmapData {
 	title: string,
@@ -29,14 +43,29 @@ export interface ExtendedBeatmapData {
 }
 
 export abstract class BeatmapUtil {
+	static async getBasicBeatmapData(beatmapFile: VirtualFile): Promise<BasicBeatmapData> {
+		let text = await beatmapFile.readAsText();
+
+		let beatmap = BeatmapParser.parse(text, null, true);
+
+		return {
+			title: beatmap.title,
+			titleUnicode: beatmap.titleUnicode,
+			artist: beatmap.artist,
+			artistUnicode: beatmap.artistUnicode,
+			creator: beatmap.creator,
+			version: beatmap.version,
+			tags: beatmap.tags,
+			imageName: beatmap.getBackgroundImageName(),
+			audioName: beatmap.audioFilename,
+			audioPreviewTime: beatmap.getAudioPreviewTimeInSeconds()
+		};
+	}
+
 	static async getExtendedBeatmapData(beatmapFile: VirtualFile): Promise<ExtendedBeatmapData> {
 		let text = await beatmapFile.readAsText();
 
-		let beatmap = new Beatmap({
-			text: text,
-			beatmapSet: null,
-			metadataOnly: false
-		});
+		let beatmap = BeatmapParser.parse(text, null, false);
 		let processedBeatmap = new ProcessedBeatmap(beatmap, true);
 		processedBeatmap.init();
 		processedBeatmap.applyStackShift();
@@ -72,5 +101,9 @@ export abstract class BeatmapUtil {
 			msPerBeatTimings: msPerBeatTimings,
 			imageName: beatmap.getBackgroundImageName()
 		};
+	}
+
+	static getSearchableStringFromBasicData(data: BasicBeatmapData) {
+		return createSearchableString([data.title, data.titleUnicode, data.artist, data.artistUnicode, data.creator, data.version, data.tags]);
 	}
 }

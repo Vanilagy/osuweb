@@ -1,5 +1,5 @@
 import { Beatmap } from "../../datamodel/beatmap";
-import { ExtendedBeatmapData } from "../../util/beatmap_util";
+import { ExtendedBeatmapData, BasicBeatmapData } from "../../util/beatmap_util";
 import { Interpolator } from "../../util/interpolation";
 import { BitmapQuality } from "../../util/image_util";
 import { createPolygonTexture, createLinearGradientTexture } from "../../util/pixi_util";
@@ -98,7 +98,7 @@ export class BeatmapHeaderPanel {
 		await this.imageCrossfader.loadImage(imageFile, BitmapQuality.Medium, doAnimation);
 	}
 
-	updateText(beatmap: Beatmap | ExtendedBeatmapData, showDifficulty: boolean, beginAnimation: boolean) {
+	updateText(beatmap: Beatmap | ExtendedBeatmapData | BasicBeatmapData, showDifficulty: boolean, beginAnimation: boolean) {
 		this.titleText.text = beatmap.title + ' ';
 		this.artistText.text = beatmap.artist + ' ';
 		this.mapperTextPrefix.text = 'Mapped by ';

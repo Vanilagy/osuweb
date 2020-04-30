@@ -2,7 +2,8 @@ import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
 import { getFilenameWithoutExtension } from "../util/file_util";
 
 export class VirtualFile extends VirtualFileSystemEntry {
-	private resource: Blob | File | string;
+	private resource: Blob | File | FileSystemFileHandle | string;
+	/** Every resource will eventually be converted to a blob. */
 	private blob: Blob = null;
 	private cachedResourceUrl: string;
 
@@ -16,19 +17,26 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		if (typeof this.resource === "string") {
 			let response = await fetch(this.resource);
 			this.blob = await response.blob();
-		} else {
+		} else if (this.resource instanceof Blob) {
 			this.blob = this.resource;
+		} else if (this.resource instanceof FileSystemFileHandle) {
+			this.blob = await this.resource.getFile();
 		}
 	}
 
 	async readAsText() {
 		await this.load();
-		return await new Response(this.blob).text();
+		return new Response(this.blob).text();
+	}
+
+	async readAsJson() {
+		await this.load();
+		return new Response(this.blob).json();
 	}
 
 	async readAsArrayBuffer() {
 		await this.load();
-		return await new Response(this.blob).arrayBuffer();
+		return new Response(this.blob).arrayBuffer();
 	}
 
 	async readAsResourceUrl() {
@@ -91,6 +99,15 @@ export class VirtualFile extends VirtualFileSystemEntry {
 
 		newFile.resource = blob;
 		newFile.name = resourceName;
+
+		return newFile;
+	}
+
+	static fromFileHandle(handle: FileSystemFileHandle) {
+		let newFile = new VirtualFile();
+
+		newFile.resource = handle;
+		newFile.name = handle.name;
 
 		return newFile;
 	}

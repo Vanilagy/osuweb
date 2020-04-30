@@ -1,6 +1,7 @@
-import { ExtendedBeatmapData } from "../util/beatmap_util";
+import { ExtendedBeatmapData, BasicBeatmapData } from "../util/beatmap_util";
 
 export enum JobTask {
+	GetBasicBeatmapData,
 	GetExtendedBetamapData,
 	GetImageBitmap
 }
@@ -22,7 +23,15 @@ export type JobResponseWrapper = {
 	reason: any
 };
 
-export interface GetBeatmapMetadataRequest extends JobMessageBase {
+export interface GetBasicBeatmapDataRequest extends JobMessageBase {
+	task: JobTask.GetBasicBeatmapData,
+	data: {
+		beatmapResource: Blob
+	},
+	responseType: BasicBeatmapData
+}
+
+export interface GetExtendedBeatmapDataRequest extends JobMessageBase {
 	task: JobTask.GetExtendedBetamapData,
 	data: {
 		beatmapResource: Blob
@@ -40,4 +49,4 @@ export interface GetImageBitmapRequest extends JobMessageBase {
 	responseType?: ImageBitmap
 }
 
-export type JobRequestMessage = GetBeatmapMetadataRequest | GetImageBitmapRequest;
+export type JobRequestMessage = GetBasicBeatmapDataRequest | GetExtendedBeatmapDataRequest | GetImageBitmapRequest;

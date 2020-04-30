@@ -348,12 +348,12 @@ export class AudioUtil {
             await directory.getFileByPath(filename + '.mp3');
 		}
 
-		directory.forEachFile((e) => {
-			if (foundFile) return;
-			if (!e.name.startsWith(filename)) return;
+		for await (let e of directory) {
+			if (!(e instanceof VirtualFile) || !e.name.startsWith(filename)) continue;
 
 			foundFile = e;
-		});
+			break;
+		}
 
 		let player: AudioPlayer;
 		if (playerType === 'audioBufferPlayer') player = new AudioBufferPlayer(destination);

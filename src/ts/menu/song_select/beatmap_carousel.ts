@@ -1,48 +1,29 @@
-import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../visuals/ui";
-import { BeatmapSetPanel } from "./beatmap_set_panel";
+import { BeatmapSetPanelDrawable } from "./beatmap_set_panel_drawable";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, compareStringsLowerCase } from "../../util/misc_util";
+import { NormalizedWheelEvent, last, binarySearchLessOrEqual } from "../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
 import { SongSelect } from "./song_select";
 import { Interpolator } from "../../util/interpolation";
+import { globalState } from "../../global_state";
+import { BeatmapSetPanel, BEATMAP_SET_PANEL_HEIGHT } from "./beatmap_set_panel";
+import { BeatmapSetPanelCollection, beatmapCarouselSortingTypeFunctions, BeatmapCarouselSortingType } from "./beatmap_set_panel_collection";
+import { BeatmapSetPanelCollectionGrouped } from "./beatmap_set_panel_collection_grouped";
+import { BeatmapSetPanelCollectionSplit } from "./beatmap_set_panel_collection_split";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
-export const BEATMAP_SET_PANEL_WIDTH = 700;
-export const BEATMAP_SET_PANEL_HEIGHT = 100;
-export const BEATMAP_SET_PANEL_MARGIN = 10;
 export const BEATMAP_SET_PANEL_SNAP_TARGET = 225;
-export const BEATMAP_DIFFICULTY_PANEL_WIDTH = 650;
-export const BEATMAP_DIFFICULTY_PANEL_HEIGHT = 50;
-export const BEATMAP_DIFFICULTY_PANEL_MARGIN = 10;
 export const BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET = 300;
 const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEIGHT/2; // When either the top or bottom panel of the carousel cross this line, the carousel should snap back.
 const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the scroll velocity will have fallen off by this much.
-const MAX_JUMP_DISTANCE = 2500;
+const MAX_JUMP_DISTANCE = 2500; // See usage for meaning.
+const DRAWABLE_POOL_SIZE = 25; // 25 drawables is usually more than enough!
 
-export enum BeatmapCarouselSortingType {
-	None = "",
-	Title = "Title",
-	Artist = "Artist",
-	Difficulty = "Difficulty",
-	Length = "Length",
-	DateAdded = "Date Added",
-	Mapper = "Mapper"
-}
-export let beatmapCarouselSortingTypes = [BeatmapCarouselSortingType.Title, BeatmapCarouselSortingType.Artist, BeatmapCarouselSortingType.Difficulty, BeatmapCarouselSortingType.Length, BeatmapCarouselSortingType.DateAdded, BeatmapCarouselSortingType.Mapper];
-export let defaultBeatmapCarouselSortingType = BeatmapCarouselSortingType.Title;
-export let beatmapCarouselSortingTypeFunctions = new Map<BeatmapCarouselSortingType, (a: BeatmapSet, b: BeatmapSet) => number>();
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.None, (a, b) => 0);
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Title, (a, b) => compareStringsLowerCase(a.representingBeatmap.title, b.representingBeatmap.title));
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Artist, (a, b) => compareStringsLowerCase(a.representingBeatmap.artist, b.representingBeatmap.artist));
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Difficulty, (a, b) => 0);
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Length, (a, b) => 0);
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.DateAdded, (a, b) => 0);
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Mapper, (a, b) => compareStringsLowerCase(a.representingBeatmap.creator, b.representingBeatmap.creator));
+type CollectionName = 'grouped' | 'split';
 
 export class BeatmapCarousel {
 	public songSelect: SongSelect;
@@ -50,25 +31,38 @@ export class BeatmapCarousel {
 	public interactionGroup: InteractionGroup;
 	public scalingFactor: number = 1.0;
 
-	private beatmapSetPanels: BeatmapSetPanel[] = [];
-	private panelCache = new WeakMap<BeatmapSet, BeatmapSetPanel>();
-
+	/** The currently selected beatmap set panel. Doesn't need to be the reference panel! */
 	public selectedPanel: BeatmapSetPanel = null;
+	/** The currently selected difficulty panel. */
 	public selectedDifficultyPanel: BeatmapDifficultyPanel = null;
 
-	private referencePanel: BeatmapSetPanel = null;
-	private referencePanelY = 0;
+	/** The panel all positions will be relative to. This panel's position is "locked" at referenceY. */
+	private reference: BeatmapSetPanel | BeatmapDifficultyPanel;
+	/** The y-position of the current reference panel. */
+	private referenceY = 0;
 	private scrollVelocity = 0; // In normalized pixels per second
+	/** If this is true, the reference panel will move according to the output the interpolator below, and not according to scrolling/dragging. */
 	private snapToSelected = false;
-	private skipSnapbackNextFrame = true;
 	private snapToSelectionInterpolator = new Interpolator({
 		duration: 750,
 		ease: EaseType.EaseOutElastic,
 		p: 0.9,
 		defaultToFinished: true
 	});
+	
+	/** All collections of beatmap set panels */
+	private collections: {[name in CollectionName]?: BeatmapSetPanelCollection} = {};
+	private currentCollection: CollectionName;
+	
+	/** For performance's sake, there are only very few beatmap set drawables in the carousel. These drawables are then continuously and seamlessly reassigned which panel they representing, creating the illusion of many panels. This array stores all these drawables. */
+	private drawablePool: BeatmapSetPanelDrawable[] = [];
+	/** The drawables that currently have no panel assigned. */
+	private unassignedDrawables: BeatmapSetPanelDrawable[] = [];
+	/** The drawables that currently have a panel assigned. */
+	private assignedDrawables: BeatmapSetPanelDrawable[] = [];
 
 	private interactionTarget: PIXI.Container;
+	/** If the users moves too much while holding down the mouse, we release all presses. */
 	private pressDownStopped = true;
 
 	constructor(songSelect: SongSelect) {
@@ -76,10 +70,40 @@ export class BeatmapCarousel {
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
 
+		this.collections["grouped"] = new BeatmapSetPanelCollectionGrouped(this);
+		this.collections["split"] = new BeatmapSetPanelCollectionSplit(this);
+		this.currentCollection = "grouped";
+
+		// Populate the drawable pool
+		for (let i = 0; i < DRAWABLE_POOL_SIZE; i++) {
+			let panel = new BeatmapSetPanelDrawable(this);
+			this.container.addChild(panel.container);
+			this.drawablePool.push(panel);
+		}
+		this.unassignedDrawables.push(...this.drawablePool);
+
 		this.initInteraction();
+
+		globalState.beatmapLibrary.addListener('add', (beatmapSets) => {
+			for (let key in this.collections) {
+				this.collections[key as CollectionName].onChange(beatmapSets);
+			}
+		});
+		globalState.beatmapLibrary.addListener('change', (beatmapSet) => {
+			for (let key in this.collections) {
+				this.collections[key as CollectionName].onChange([beatmapSet]);
+			}
+		});
+
+		this.setSortingAndSearchQuery(BeatmapCarouselSortingType.Title, "");
+	}
+
+	private getPanels() {
+		return this.collections[this.currentCollection].displayedPanels;
 	}
 
 	private initInteraction() {
+		// Will be used to listen to drag and wheel inputs
 		this.interactionTarget = new PIXI.Container();
 		this.songSelect.container.addChild(this.interactionTarget);
 
@@ -93,10 +117,11 @@ export class BeatmapCarousel {
 			this.scrollVelocity = 0;
 			this.pressDownStopped = false;
 		}, (e) => {
-			if (!this.referencePanel) return;
-			this.referencePanelY += e.movement.y / this.scalingFactor;
+			if (!this.reference) return;
+			this.referenceY += e.movement.y / this.scalingFactor;
 		
-			if (Math.abs(e.distanceFromStart.y) > 5 && !this.pressDownStopped) {
+			// Release all presses if the user moved a bit too much while pressing down
+			if (Math.abs(e.distanceFromStart.y) > 7 && !this.pressDownStopped) {
 				this.pressDownStopped = true;
 				this.interactionGroup.releaseAllPresses();
 			}
@@ -110,14 +135,15 @@ export class BeatmapCarousel {
 	}
 
 	private onWheel(data: NormalizedWheelEvent, now: number) {
-		if (this.beatmapSetPanels.length === 0) return;
+		let panels = this.getPanels();
+		if (panels.length === 0) return;
 
 		let wheelEvent = data as NormalizedWheelEvent;
 		let effectiveness = 1.0; // How much the scroll "counts"	
 	
 		// Determine scroll dampening if the user is on the top/bottom of the carousel
-		let firstPanel = this.beatmapSetPanels[0];
-		let lastPanel = last(this.beatmapSetPanels);
+		let firstPanel = panels[0];
+		let lastPanel = last(panels);
 		let diff: number;
 	
 		// Top edge
@@ -132,55 +158,98 @@ export class BeatmapCarousel {
 		this.snapToSelected = false;
 	}
 
-	showBeatmapSets(beatmapSets: BeatmapSet[], sortingType: BeatmapCarouselSortingType) {
-		for (let panel of this.beatmapSetPanels) {
-			this.container.removeChild(panel.container);
-			panel.interactionGroup.disable();
+	async setSortingAndSearchQuery(sortingType: BeatmapCarouselSortingType, query: string) {
+		let newCollection: CollectionName;
+		if (sortingType === BeatmapCarouselSortingType.Difficulty) {
+			// Display all beatmap difficulties individually when showing difficulty.
+			newCollection = 'split';
+		} else {
+			newCollection = 'grouped';
 		}
-		this.beatmapSetPanels.length = 0;
-	
-		beatmapSets = beatmapSets.slice();
-		beatmapSets.sort(beatmapCarouselSortingTypeFunctions.get(sortingType));
-	
-		for (let i = 0; i < beatmapSets.length; i++) {
-			let set = beatmapSets[i];
-			let cachedPanel = this.panelCache.get(set);
-			let panel: BeatmapSetPanel;
-	
-			if (cachedPanel) {
-				panel = cachedPanel;
-				panel.interactionGroup.enable();
-			} else {
-				panel = new BeatmapSetPanel(this, set);
-				this.panelCache.set(set, panel);
+
+		let isNewCollection = newCollection !== this.currentCollection;
+		this.currentCollection = newCollection;
+
+		let collection = this.collections[this.currentCollection];
+
+		collection.setSortingFunction(beatmapCarouselSortingTypeFunctions.get(sortingType));
+		collection.setSearchQuery(query);
+		
+		if (sortingType === BeatmapCarouselSortingType.Length) {
+			// Make sure that metadata is loaded (otherwise we don't know the length!)
+			collection.setFilter(x => x.beatmapSet.metadataLoaded);
+		} else if (sortingType === BeatmapCarouselSortingType.Mapper) {
+			// Make sure we know the mapper.
+			collection.setFilter(x => !!x.beatmapSet.creator);
+		} else if (sortingType === BeatmapCarouselSortingType.Difficulty) {
+			collection.setFilter(x => {
+				x.showStarRating = true; // Slight hack to set this here: Configure the beatmap set panels to show the difficulty.
+				return x.beatmapSet.metadataLoaded; // Metadata has to be loaded for difficulty info to be available
+			});
+		} else {
+			// Otherwise, show all beatmap sets!
+			collection.setFilter(x => true);
+		}
+
+		collection.redetermineDisplayedPanels();
+
+		if (isNewCollection && this.selectedDifficultyPanel) {
+			// If we switched collection, but had a panel selected, we'll try to reselect the corresponding panel in the new collection.
+
+			let panels = this.collections[this.currentCollection].getPanelsByBeatmapSet(this.selectedPanel.beatmapSet);
+			// Remember these values for a while
+			let referenceY = this.referenceY;
+			let snapToSelected = this.snapToSelected;
+			
+			for (let panel of panels) {
+				let index = panel.getSortedEntries().indexOf(this.selectedDifficultyPanel.entry);
+
+				if (index !== -1) {
+					await panel.select(index, this.selectedPanel.expandInterpolator.getStartTime(), false);
+
+					// Restore old positioning
+					this.referenceY = referenceY;
+					this.snapToSelected = snapToSelected;
+
+					break;
+				}
 			}
-	
-			this.container.addChild(panel.container);
-			this.beatmapSetPanels.push(panel);
 		}
-	
-		if (!this.beatmapSetPanels.includes(this.referencePanel)) {
-			this.referencePanel = this.beatmapSetPanels[0] || null;
-			this.referencePanelY = 200;
-			this.scrollVelocity = 100; // For sick effect hehe
-		}
-	
-		this.skipSnapbackNextFrame = true;
-		this.snapToSelected = false;
 	}
 
 	update(now: number, dt: number) {
-		if (!this.referencePanel) return;
+		let panels = this.getPanels();
+		let referencePanel = (this.reference instanceof BeatmapSetPanel)? this.reference : this.reference?.parentPanel;
 
-		let referenceIndex = this.beatmapSetPanels.indexOf(this.referencePanel);
-		if (referenceIndex === -1) return;
+		if (!this.reference || panels.indexOf(referencePanel) === -1) {
+			if (panels.length === 0) {
+				// There are no panels currently. Hide them all.
 
-		if (this.snapToSelected) {
-			this.referencePanelY = this.snapToSelectionInterpolator.getCurrentValue(now);
+				this.unassignedDrawables.push(...this.assignedDrawables);
+				this.assignedDrawables.length = 0;
+
+				for (let drawable of this.drawablePool) {
+					drawable.bindPanel(null);
+					drawable.update(now);
+				}
+
+				return;
+			}
+
+			// If there is no current reference, just set it to the first panel.
+			referencePanel = panels[0];
+			this.reference = referencePanel;			
+
+			this.referenceY = 300;
+			this.scrollVelocity = 100; // For sick effect hehe
+			this.snapToSelected = false;
 		}
 
-		/* 
-		
+		if (this.snapToSelected) {
+			this.referenceY = this.snapToSelectionInterpolator.getCurrentValue(now);
+		}
+
+		/*
 		The function describing scrollVelocity over time is
 		f(t) = v0 * d^t,
 		where v0 is the starting velocity, d is the decay and t is passed time in seconds.
@@ -189,64 +258,105 @@ export class BeatmapCarousel {
 		F(t) = v0 * d^t / ln(d).
 		The distance traveled in a given interval of time [0, x] is therefore
 		F(x) - F(0) = v0 * d^x / ln(d) - v0 / ln(d) = v0 * (d^x - 1) / ln(d).
-		
 		*/
 
 		let distanceScrolled = this.scrollVelocity * (Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000) - 1) / Math.log(SCROLL_VELOCITY_DECAY_FACTOR);
 		this.scrollVelocity = this.scrollVelocity * Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000);
-		this.referencePanelY -= distanceScrolled;
+		this.referenceY -= distanceScrolled;
 
+		// Velocity has taped off so much, just set it to 0.
 		if (Math.abs(this.scrollVelocity) < 1) this.scrollVelocity = 0;
 
-		if (!this.skipSnapbackNextFrame) {
-			// Calculate snapback when user scrolls off one of the carousel edges
-			let firstPanel = this.beatmapSetPanels[0];
-			let lastPanel = last(this.beatmapSetPanels);
-			let diff: number;
+		// Get the position of the reference beatmap set panel
+		let referencePanelY: number;
+		if (this.reference instanceof BeatmapSetPanel) referencePanelY = this.referenceY;
+		else referencePanelY = this.referenceY - this.reference.currentNormalizedY;
+		let referenceIndex = panels.indexOf(referencePanel);
 
-			// Top edge snapback
-			diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
-			if (diff > 0) this.referencePanelY += diff * (Math.pow(0.0015, dt/1000) - 1);
+		referencePanel.currentNormalizedY = referencePanelY;
 
-			// Bottom edge snapback
-			diff = CAROUSEL_END_THRESHOLD - (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now));
-			if (diff > 0) this.referencePanelY -= diff * (Math.pow(0.0015, dt/1000) - 1);
-		}
-		this.skipSnapbackNextFrame = false;
-
-		// Offset the position of the current reference panel by the relative position of the selected difficulty panel. This is done so that everything moves relatively to that difficulty panel.
-		let offsetY = this.referencePanelY;
-		if (this.selectedDifficultyPanel) {
-			offsetY -= this.selectedDifficultyPanel.currentNormalizedY;
-		}
-
-		this.referencePanel.update(now, offsetY, this.referencePanel.getTotalHeight(now));
-
-		let currentY = offsetY;
+		// Working upwards from the reference panel, set the positions
+		let currentY = referencePanelY;
 		for (let i = referenceIndex-1; i >= 0; i--) {
-			let panel = this.beatmapSetPanels[i];
+			let panel = panels[i];
 			let height = panel.getTotalHeight(now);
+
 			currentY -= height;
-
-			panel.container.visible = true;
-			panel.update(now, currentY, height);
+			panel.currentNormalizedY = currentY;
 		}
 
-		currentY = offsetY;
-		for (let i = referenceIndex+1; i < this.beatmapSetPanels.length; i++) {
-			let prevPanel = this.beatmapSetPanels[i-1];
-			let panel = this.beatmapSetPanels[i];
+		// Working downwards from the reference panel, set the positions
+		currentY = referencePanelY;
+		for (let i = referenceIndex+1; i < panels.length; i++) {
+			let prevPanel = panels[i-1];
+			let panel = panels[i];
 			let height = prevPanel.getTotalHeight(now);
+
 			currentY += height;
-			
-			panel.container.visible = true;
-			panel.update(now, currentY, panel.getTotalHeight(now));
+			panel.currentNormalizedY = currentY;
 		}
+
+		// Calculate snapback when user scrolls off one of the carousel edges
+		let firstPanel = panels[0];
+		let lastPanel = last(panels);
+		let snapbackNudge: number = 0;
+		let diff: number;
+
+		// Top edge snapback
+		diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
+		if (diff > 0) snapbackNudge += diff * (Math.pow(0.0015, dt/1000) - 1);
+
+		// Bottom edge snapback
+		diff = CAROUSEL_END_THRESHOLD - (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now));
+		if (diff > 0) snapbackNudge -= diff * (Math.pow(0.0015, dt/1000) - 1);
+
+		// Apply snapback nudge and update panels
+		this.referenceY += snapbackNudge;
+		for (let i = 0; i < panels.length; i++) {
+			let panel = panels[i];
+
+			panel.currentNormalizedY += snapbackNudge;
+			panel.update(now);
+		}
+
+		for (let i = 0; i < this.assignedDrawables.length; i++) {
+			let drawable = this.assignedDrawables[i];
+			let panel = drawable.panel;
+			let currentColletion = this.collections[this.currentCollection];
+
+			// If the panel isn't in view or not part of the currently displayed panels, go clear it
+			if (!panel.isInView(now) || !currentColletion.displayedPanelsSet.has(panel)) {
+				this.assignedDrawables.splice(i--, 1);
+				this.unassignedDrawables.push(drawable);
+				drawable.bindPanel(null);
+			}
+		}
+		
+		// Find the index of a panel that's about in the middle of the screen. Then, assign drawables from there.
+		let index = binarySearchLessOrEqual(panels, REFERENCE_SCREEN_HEIGHT/2, (x) => x.currentNormalizedY);
+		index = Math.max(index, 0);
+		// Go back until we reach a panel that isn't in view anymore (off the top)
+		while (index > 0 && panels[index-1].isInView(now)) {
+			index--;
+		}
+		while (index < panels.length && this.unassignedDrawables.length > 0) {
+			let panel = panels[index];
+			if (!panel.isInView(now)) break;
+
+			if (!this.assignedDrawables.find(x => x.panel === panel)) {
+				// If there isn't a drawable displaying this panel right now, assign one.
+
+				let drawable = this.unassignedDrawables.pop();
+				this.assignedDrawables.push(drawable);
+				drawable.bindPanel(panel);
+			}
+
+			index++;
+		}
+
+		for (let drawable of this.drawablePool) drawable.update(now);
 
 		// Update scrollbar
-		let firstPanel = this.beatmapSetPanels[0];
-		let lastPanel = last(this.beatmapSetPanels);
-
 		let totalHeight = (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now)) - firstPanel.currentNormalizedY;
 		this.songSelect.scrollbar.setScrollHeight(totalHeight + REFERENCE_SCREEN_HEIGHT);
 		this.songSelect.scrollbar.setPageHeight(REFERENCE_SCREEN_HEIGHT);
@@ -264,39 +374,44 @@ export class BeatmapCarousel {
 		
 		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
 	
-		for (let i = 0; i < this.beatmapSetPanels.length; i++) {
-			let panel = this.beatmapSetPanels[i];
-			panel.needsResize = true;
-		}
+		for (let drawable of this.drawablePool) drawable.resize();
 	}
 
-	setReferencePanel(panel: BeatmapSetPanel, currentYPosition: number) {
-		this.referencePanel = panel;
-		this.referencePanelY = currentYPosition;
+	setSelectedPanel(panel: BeatmapSetPanel, setAsReference: boolean) {
+		if (panel === this.selectedPanel) return;
+
+		this.selectedPanel?.collapse();
+		this.selectedPanel = panel;
 		this.selectedDifficultyPanel = null;
-	
-		this.snapReferencePanelPosition(currentYPosition, BEATMAP_SET_PANEL_SNAP_TARGET);
+
+		if (!setAsReference) return;
+
+		this.reference = panel;
+		this.referenceY = panel.currentNormalizedY;
+		this.snapToSelected = false;
 	}
 
-	setDifficultyPanel(panel: BeatmapDifficultyPanel) {
-		// Select the currently selected difficulty panel
-		let currentlySelected = this.selectedDifficultyPanel;
-		if (currentlySelected) {
-			// We need to offer the y position because we don't have a difficulty panel selected anymore, which would otherwise cause a jump in y position.
-			this.referencePanelY -= currentlySelected.currentNormalizedY;
-			currentlySelected.deselect();
-		}
-
+	setDifficultyPanel(panel: BeatmapDifficultyPanel, setAsReference = true) {
+		this.selectedDifficultyPanel?.deselect(); // Deselect the currently selected difficulty panel
 		this.selectedDifficultyPanel = panel;
-		// Now, offset the y position in the other direction, again to avoid jumping
-		this.referencePanelY += panel.currentNormalizedY;
+
+		if (!setAsReference) return;
+
+		this.reference = panel;
+		this.referenceY = panel.currentNormalizedY + panel.parentPanel.currentNormalizedY;
+		this.snapToSelected = false;
 	}
 
 	snapReferencePanelPosition(from: number, to: number) {
 		let now = performance.now();
 	
 		// It could be that we snap to a position that's off the end of the carousel, where the carousel would normally snap back. Here, we catch this case and only snap as far as we should.
-		let lastPanel = last(this.beatmapSetPanels);
+		let lastPanel = last(this.getPanels());
+		if (lastPanel.currentNormalizedY === 0) {
+			// If the value is zero, there's a high chance that this is a new panel that hasn't been assigned a proper position yet. To be sure, we run an update tick:
+			this.update(now, 0);
+		}
+
 		let projectedY = lastPanel.currentNormalizedY - (from - to);
 		let diff = CAROUSEL_END_THRESHOLD - (projectedY + lastPanel.getAdditionalExpansionHeight(now));
 		if (diff > 0) to += diff;
@@ -312,25 +427,29 @@ export class BeatmapCarousel {
 		this.scrollVelocity = 0;
 	}
 
+	/** Moves one set forward/backward */
 	skipSet(forward: boolean, selectLastDifficulty: boolean) {
-		if (this.beatmapSetPanels.length === 0) return;
+		let panels = this.getPanels();
+		if (panels.length === 0) return;
 
 		let nextIndex: number;
-		let index = this.beatmapSetPanels.indexOf(this.selectedPanel);
+		let index = panels.indexOf(this.selectedPanel);
 		if (index === -1) {
-			nextIndex = forward? 0 : this.beatmapSetPanels.length-1;
+			nextIndex = forward? 0 : panels.length-1;
 		} else {
-			nextIndex = MathUtil.adjustedMod(index + (forward? 1 : -1), this.beatmapSetPanels.length);
+			nextIndex = MathUtil.adjustedMod(index + (forward? 1 : -1), panels.length);
 			if (index === nextIndex) return;
 		}
 
-		this.beatmapSetPanels[nextIndex].select(selectLastDifficulty? Infinity : 0);
+		panels[nextIndex].select(selectLastDifficulty? Infinity : 0);
 	}
 
+	/** Moves one difficulty forward/backward */
 	skipDifficulty(forward: boolean) {
-		if (this.beatmapSetPanels.length === 0) return;
+		let panels = this.getPanels();
+		if (panels.length === 0) return;
 
-		if (!this.beatmapSetPanels.includes(this.selectedPanel)) {
+		if (!panels.includes(this.selectedPanel)) {
 			this.skipSet(forward, false);
 			return;
 		}
@@ -342,25 +461,44 @@ export class BeatmapCarousel {
 	}
 
 	selectRandom() {
-		if (this.beatmapSetPanels.length === 0) return;
+		let panels = this.getPanels();
+		if (panels.length === 0) return;
 
 		let panel: BeatmapSetPanel;
 
-		if (this.beatmapSetPanels.length === 1) {
+		if (panels.length === 1) {
 			// If there's only one beatmap, and that one isn't selected, just select that one.
-			if (!this.beatmapSetPanels.includes(this.selectedPanel)) panel = this.beatmapSetPanels[0];
+			if (!panels.includes(this.selectedPanel)) panel = panels[0];
 		} else {
-			let selectedIndex = this.beatmapSetPanels.indexOf(this.selectedPanel);
+			let selectedIndex = panels.indexOf(this.selectedPanel);
 			let randomIndex: number;
 
 			do {
-				randomIndex = Math.floor(Math.random() * this.beatmapSetPanels.length);
+				randomIndex = Math.floor(Math.random() * panels.length);
 			} while (randomIndex === selectedIndex);
 
-			panel = this.beatmapSetPanels[randomIndex];
+			panel = panels[randomIndex];
 		}
 
-		if (panel) panel.select(Math.floor(Math.random() * panel.beatmapFiles.length)); // Select a random difficulty
+		if (panel) panel.select('random'); // Select a random difficulty
+	}
+
+	/** Get the current carousel movement velocity in pixels per second. */
+	getCurrentSignedVelocity(now: number) {
+		if (this.snapToSelected) {
+			// Approximate the derivative of the interpolation by looking at two values close to each other.
+			let dt = 0.1;
+			let val1 = this.snapToSelectionInterpolator.getCurrentValue(now);
+			let val2 = this.snapToSelectionInterpolator.getCurrentValue(now + dt);
+
+			return (val2 - val1) / dt * 1000;
+		} else {
+			return this.scrollVelocity;
+		}
+	}
+
+	getCurrentAbsoluteVelocity(now: number) {
+		return Math.abs(this.getCurrentSignedVelocity(now));
 	}
 }
 

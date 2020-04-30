@@ -196,7 +196,7 @@ export class Skin {
                 await this.directory.getFileByPath(filename + '.mp3');
             }
 
-            let hitSound = HitSound.initFromFilename(this.directory, filename);
+            let hitSound = await HitSound.initFromFilename(this.directory, filename);
             this.hitSounds[key] = hitSound;
 		}
 

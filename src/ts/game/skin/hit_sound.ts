@@ -251,11 +251,12 @@ export class HitSound {
 		return clone;
 	}
 
-	static initFromFilename(directory: VirtualDirectory, filename: string) {
+	static async initFromFilename(directory: VirtualDirectory, filename: string) {
 		let hitSound = new HitSound();
 
-		directory.forEachFile((file) => {
-            if (!file.name.startsWith(filename)) return;
+		for await (let file of directory) {
+			if (!(file instanceof VirtualFile)) continue;
+			if (!file.name.startsWith(filename)) continue;
 
             let rawName = file.getNameWithoutExtension();
             let endIndex = rawName.length;
@@ -273,7 +274,7 @@ export class HitSound {
             }
 
             hitSound.files.set(index, file);
-		});
+		}
 		
 		return hitSound;
 	}

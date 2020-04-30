@@ -29,6 +29,7 @@ export let renderer = new PIXI.Renderer({
 	//resolution: window.devicePixelRatio || 1.0 // TODO: Make this an option?
 });
 export let stage = new PIXI.Container();
+stage.sortableChildren = true;
 
 (renderer.framebuffer as any).writeDepthTexture = true; // OKAY SO. WHAT THE FUCK. WHY IS THIS FALSE IN THE FIRST PLACE. Absolute hack. Don't know if this has any side-effects. Maybe it's how the renderer is created?
 

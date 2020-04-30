@@ -1,13 +1,10 @@
-import { VirtualDirectory } from "../../file_system/virtual_directory";
-import { defaultBeatmapCarouselSortingType, BeatmapCarousel } from "./beatmap_carousel";
+import { BeatmapCarousel } from "./beatmap_carousel";
 import { BeatmapInfoPanel } from "./beatmap_info_panel";
-import { InteractionGroup, rootInteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { SongSelectSideControlPanel } from "./side_control_panel";
-import { VirtualFile } from "../../file_system/virtual_file";
-import { Beatmap } from "../../datamodel/beatmap";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { SearchBar } from "./search_bar";
-import { ExtendedBeatmapData } from "../../util/beatmap_util";
+import { BasicBeatmapData } from "../../util/beatmap_util";
 import { globalState } from "../../global_state";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
@@ -15,6 +12,8 @@ import { currentWindowDimensions, getGlobalScalingFactor } from "../../visuals/u
 import { ModSelectionPanel } from "./mod_selection_panel";
 import { KeyCode } from "../../input/input";
 import { Scrollbar } from "../components/scrollbar";
+import { BeatmapEntry } from "../../datamodel/beatmap_entry";
+import { BeatmapParser } from "../../datamodel/beatmap_parser";
 
 export class SongSelect {
 	public container: PIXI.Container;
@@ -22,10 +21,9 @@ export class SongSelect {
 	public keyInteraction: InteractionRegistration;
 	
 	public loadedBeatmapSets: BeatmapSet[] = [];
-	public selectedBeatmapFile: VirtualFile = null;
-	public selectedBeatmapSet: BeatmapSet = null;
-	public selectedExtendedBeatmapData: ExtendedBeatmapData = null;
-	public currentAudioBeatmap: Beatmap = null;
+	public selectedEntry: BeatmapEntry = null;
+	public currentAudioBeatmapSet: BeatmapSet;
+	public currentAudioBasicData: BasicBeatmapData;
 
 	public carousel: BeatmapCarousel;
 	public infoPanel: BeatmapInfoPanel;
@@ -126,42 +124,41 @@ export class SongSelect {
 		this.scrollbar.setScrollHeight(5000);
 	}
 
-	selectBeatmapDifficulty(beatmapFile: VirtualFile, beatmapSet: BeatmapSet,  extendedBeatmapData: ExtendedBeatmapData) {
-		this.selectedBeatmapFile = beatmapFile;
-		this.selectedBeatmapSet = beatmapSet;
-		this.selectedExtendedBeatmapData = extendedBeatmapData;
+	selectBeatmapEntry(entry: BeatmapEntry) {
+		this.selectedEntry = entry;
 	
-		this.infoPanel.loadBeatmapData(extendedBeatmapData, beatmapSet);
+		this.infoPanel.loadBeatmapData(entry);
 	}
 
 	triggerSelectedBeatmap() {
-		if (!this.selectedBeatmapFile) return;
+		if (!this.selectedEntry) return;
 		
 		this.hide();
 		globalState.basicSongPlayer.pause();
 	
-		this.selectedBeatmapFile.readAsText().then((text) => {
-			let map = new Beatmap({
-				text: text,
-				beatmapSet: this.selectedBeatmapSet,
-				metadataOnly: false
-			});
+		this.selectedEntry.resource.readAsText().then((text) => {
+			let map = BeatmapParser.parse(text, this.selectedEntry.beatmapSet, false);
 			let mods = this.modSelector.getSelectedMods();
 	
 			globalState.gameplayController.startPlayFromBeatmap(map, mods);
 		});
 	}
 
-	async startAudio(audioBeatmap: Beatmap) {
-		let audioFile = await audioBeatmap.getAudioFile();
+	async startAudio(beatmapSet: BeatmapSet, basicData: BasicBeatmapData) {
+		let songPlayer = globalState.basicSongPlayer;
+
+		// The same audio is already playing, let's not start it again.
+		if (songPlayer.isPlaying() && this.currentAudioBeatmapSet === beatmapSet) return;
+
+		let audioFile = await beatmapSet.directory.getFileByPath(basicData.audioName);
 		if (!audioFile) return;
 
-		this.currentAudioBeatmap = audioBeatmap;
-		let songPlayer = globalState.basicSongPlayer;
+		this.currentAudioBeatmapSet = beatmapSet;
+		this.currentAudioBasicData = basicData;
 
 		await songPlayer.loadFile(audioFile);
 
-		let startTime = audioBeatmap.getAudioPreviewTimeInSeconds();
+		let startTime = basicData.audioPreviewTime;
 		songPlayer.start(startTime)
 		songPlayer.setLoopBehavior(true, startTime);
 		this.sideControlPanel.resetLastBeatTime();
@@ -172,7 +169,7 @@ export class SongSelect {
 		this.interactionGroup.enable();
 		this.visible = true;
 
-		if (this.currentAudioBeatmap) this.startAudio(this.currentAudioBeatmap);
+		if (this.currentAudioBeatmapSet) this.startAudio(this.currentAudioBeatmapSet, this.currentAudioBasicData);
 	}
 
 	hide() {

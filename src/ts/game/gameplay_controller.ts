@@ -186,7 +186,7 @@ export class GameplayController {
 		let beatmap = this.currentPlay.processedBeatmap.beatmap;
 		let text = beatmap.eventsString;
 
-		let osbFile = beatmap.beatmapSet.getStoryboardFile();
+		let osbFile = await beatmap.beatmapSet.getStoryboardFile();
 		if (osbFile) {
 			console.time("Storyboard file read");
 			let osbText = await osbFile.readAsText();

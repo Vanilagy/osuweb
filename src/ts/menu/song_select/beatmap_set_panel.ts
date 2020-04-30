@@ -1,100 +1,56 @@
+import { BeatmapCarousel } from "./beatmap_carousel";
 import { BeatmapSet } from "../../datamodel/beatmap_set";
-import { VirtualFile } from "../../file_system/virtual_file";
-import { BeatmapDifficultyPanel } from "./beatmap_difficulty_panel";
-import { EaseType, MathUtil } from "../../util/math_util";
-import { currentWindowDimensions } from "../../visuals/ui";
-import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture } from "./beatmap_panel_components";
-import { getNormalizedOffsetOnCarousel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_SET_PANEL_MARGIN, BeatmapCarousel } from "./beatmap_carousel";
-import { InteractionRegistration, InteractionGroup } from "../../input/interactivity";
-import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
-import { fitSpriteIntoContainer } from "../../util/pixi_util";
-import { JobUtil } from "../../multithreading/job_util";
 import { Interpolator } from "../../util/interpolation";
-import { shallowObjectClone, last } from "../../util/misc_util";
+import { EaseType, MathUtil } from "../../util/math_util";
+import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
+import { currentWindowDimensions } from "../../visuals/ui";
+import { BeatmapDifficultyPanel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN } from "./beatmap_difficulty_panel";
+import { BeatmapEntry } from "../../datamodel/beatmap_entry";
+import { Searchable, createSearchableString } from "../../util/misc_util";
 
-export class BeatmapSetPanel {
+export const BEATMAP_SET_PANEL_WIDTH = 700;
+export const BEATMAP_SET_PANEL_HEIGHT = 100;
+export const BEATMAP_SET_PANEL_MARGIN = 10;
+
+export class BeatmapSetPanel implements Searchable {
 	public carousel: BeatmapCarousel;
-	public container: PIXI.Container;
-	public interactionGroup: InteractionGroup;
-
+	public currentNormalizedY: number;
 	public beatmapSet: BeatmapSet;
-	public beatmapFiles: VirtualFile[];
 
-	private panelContainer: PIXI.Container;
-	private mainMask: PIXI.Sprite;
-	private darkening: PIXI.Sprite;
-	private primaryText: PIXI.Text;
-	private secondaryText: PIXI.Text;
-	private glowSprite: PIXI.Sprite;
-
-	private backgroundImageSprite: PIXI.Sprite;
-	private backgroundImageBitmap: ImageBitmap = null;
-	private imageLoadingStarted = false;
-	private imageFadeIn: Interpolator;
-	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
-
-	private difficultyContainer: PIXI.Container;
-	private difficultyPanels: BeatmapDifficultyPanel[] = [];
+	public fadeInInterpolator: Interpolator;
+	public expandInterpolator: Interpolator;
+	public imageFadeIn: Interpolator;
+	public hoverInterpolator: Interpolator;
+	public mouseDownBrightnessInterpolator: Interpolator;
 	
-	public isExpanded: boolean = false;
-	public currentNormalizedY: number = 0;
-	public needsResize = true;
-	private expandInterpolator: Interpolator;
-	private hoverInterpolator: Interpolator;
-	private mouseDownBrightnessInterpolator: Interpolator;
+	public beatmapEntries: BeatmapEntry[] = null;
+	public difficultyPanels: BeatmapDifficultyPanel[] = [];
+
+	public isExpanded = false;
+	public imageLoadingStarted = false;
+	public imageTexture: PIXI.Texture;
+	public searchableString: string;
+	public showStarRating = false;
+
+	// Check the drawable for why there are two variants of each text
+	public primaryTextA: string = null;
+	public primaryTextB: string = null;
+	public primaryTextInterpolator: Interpolator;
+	public secondaryTextA: string = null;
+	public secondaryTextB: string = null;
+	public secondaryTextInterpolator: Interpolator;
 
 	constructor(carousel: BeatmapCarousel, beatmapSet: BeatmapSet) {
 		this.carousel = carousel;
+		this.currentNormalizedY = 0;
 		this.beatmapSet = beatmapSet;
-		this.container = new PIXI.Container();
-		this.container.sortableChildren = true;
-		this.interactionGroup = new InteractionGroup();
-		this.carousel.interactionGroup.add(this.interactionGroup);
 
-		this.difficultyContainer = new PIXI.Container();
-		this.difficultyContainer.sortableChildren = true;
-		this.difficultyContainer.zIndex = -2;
-		this.container.addChild(this.difficultyContainer);
-		this.beatmapFiles = this.beatmapSet.getBeatmapFiles();
-
-		this.panelContainer = new PIXI.Container();
-		this.container.addChild(this.panelContainer);
-
-		this.backgroundImageSprite = new PIXI.Sprite();
-		this.panelContainer.addChild(this.backgroundImageSprite);
-
-		this.darkening = new PIXI.Sprite();
-		this.darkening.y = -1;
-		this.panelContainer.addChild(this.darkening);
-
-		this.primaryText = new PIXI.Text('');
-		this.primaryText.style = {
-			fontFamily: 'Exo2-Regular',
-			fill: 0xffffff,
-			fontStyle: 'italic',
-			dropShadow: true,
-			dropShadowDistance: 1,
-			dropShadowBlur: 0
-		};
-		this.secondaryText = new PIXI.Text('');
-		this.secondaryText.style = shallowObjectClone(this.primaryText.style);
-		this.panelContainer.addChild(this.primaryText, this.secondaryText);
-
-		this.imageColorFilter = new PIXI.filters.ColorMatrixFilter();
-		this.backgroundImageSprite.filters = [this.imageColorFilter];
-
-		this.glowSprite = new PIXI.Sprite();
-		this.glowSprite.zIndex = -1;
-		this.container.addChild(this.glowSprite);
-
-		this.mainMask = new PIXI.Sprite();
-		this.panelContainer.addChildAt(this.mainMask, 0);
-		this.panelContainer.mask = this.mainMask;
-
+		this.fadeInInterpolator = new Interpolator({
+			duration: 900
+		});
 		this.expandInterpolator = new Interpolator({
-			ease: EaseType.EaseOutCubic,
 			duration: 500,
-			reverseDuration: 500,
+			ease: EaseType.EaseOutCubic,
 			reverseEase: EaseType.EaseInQuart,
 			beginReversed: true,
 			defaultToFinished: true
@@ -118,225 +74,182 @@ export class BeatmapSetPanel {
 			beginReversed: true,
 			defaultToFinished: true
 		});
-		
-		this.initInteractions();
-		this.draw();
+		this.primaryTextInterpolator = new Interpolator({
+			duration: 400,
+			ease: EaseType.EaseOutQuad,
+			defaultToFinished: true
+		});
+		this.secondaryTextInterpolator = new Interpolator({
+			duration: 400,
+			ease: EaseType.EaseOutQuad,
+			defaultToFinished: true
+		});
+
+		this.refresh();
 	}
 
-	private initInteractions() {
-		let registration = new InteractionRegistration(this.panelContainer);
-		registration.setZIndex(2); // Above the difficulty panels
-		this.interactionGroup.add(registration);
+	setPrimaryText(text: string) {
+		if (text === this.primaryTextB) return;
 
-		registration.addButtonHandlers(
-			() => this.select(0),
-			() => this.hoverInterpolator.setReversedState(false, performance.now()),
-			() => this.hoverInterpolator.setReversedState(true, performance.now()),
-			() => this.mouseDownBrightnessInterpolator.setReversedState(false, performance.now()),
-			() => this.mouseDownBrightnessInterpolator.setReversedState(true, performance.now())
-		);
-	}
-
-	private async loadImage() {
-		let scalingFactor = this.carousel.scalingFactor;
-
-		let imageFile = await this.beatmapSet.representingBeatmap.getBackgroundImageFile();
-		if (imageFile) this.backgroundImageBitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
-
-		if (this.backgroundImageBitmap) {
-			let texture = PIXI.Texture.from(this.backgroundImageBitmap as any);
-			this.backgroundImageSprite.texture = texture;
-			fitSpriteIntoContainer(this.backgroundImageSprite, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor, new PIXI.Point(0.0, 0.25));
-
-			this.imageFadeIn.start(performance.now());
-		}
-	}
-
-	private draw() {
-		let beatmap = this.beatmapSet.representingBeatmap;
-
-		this.primaryText.text = beatmap.title + ' '; // Adding the extra space so that the canvas doesn't cut off the italics
-		this.secondaryText.text = beatmap.artist + ' | ' + beatmap.creator + ' ';
-	}
-
-	private resize() {
-		this.needsResize = false;
-
-		let scalingFactor = this.carousel.scalingFactor;
-
-		this.panelContainer.hitArea = new PIXI.Rectangle(0, 0, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor);
-
-		this.mainMask.texture = getBeatmapSetPanelMask();
-		this.mainMask.pivot.set(TEXTURE_MARGIN * scalingFactor, TEXTURE_MARGIN * scalingFactor);
-
-		this.glowSprite.texture = getBeatmapSetPanelGlowTexture();
-		this.glowSprite.pivot.copyFrom(this.mainMask.pivot);
-
-		this.difficultyContainer.x = Math.floor(50 * scalingFactor);
-		
-		fitSpriteIntoContainer(this.backgroundImageSprite, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor, new PIXI.Point(0.0, 0.25));
-
-		this.darkening.texture = getDarkeningOverlay();
-
-		this.primaryText.style.fontSize = Math.floor(22 * scalingFactor);
-		this.primaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(10 * scalingFactor));
-		this.secondaryText.style.fontSize = Math.floor(14 * scalingFactor);
-		this.secondaryText.position.set(Math.floor(35 * scalingFactor), Math.floor(35 * scalingFactor));
-
-		for (let i = 0; i < this.difficultyPanels.length; i++) {
-			this.difficultyPanels[i].resize();
-		}
-	}
-
-	update(now: number, newY: number, lastCalculatedHeight: number) {
-		this.currentNormalizedY = newY;
-		let scalingFactor = this.carousel.scalingFactor;
-
-		if (!this.imageLoadingStarted) {
-			// If the top of the panel is at most a full screen height away
-			let isClose = this.currentNormalizedY * scalingFactor >= -currentWindowDimensions.height && this.currentNormalizedY * scalingFactor <= (currentWindowDimensions.height * 2);
-
-			if (isClose) {
-				this.imageLoadingStarted = true;
-				this.loadImage();
-			}
-		}
-
-		if (this.currentNormalizedY + lastCalculatedHeight < 0 || (this.currentNormalizedY - 10) * scalingFactor > currentWindowDimensions.height) { // Subtract 10 'cause of the glow
-			// Culling!
-
-			this.container.visible = false;
-			this.interactionGroup.disable();
-			return;
+		if (this.primaryTextB === null) {
+			this.primaryTextB = text;
 		} else {
-			this.container.visible = true;
-			this.interactionGroup.enable();
+			this.primaryTextA = this.primaryTextB;
+			this.primaryTextB = text;
+			this.primaryTextInterpolator.start(performance.now());
 		}
+	}
+	
+	setSecondaryText(text: string) {
+		if (text === this.secondaryTextB) return;
 
-		if (this.needsResize) this.resize();
-
-		this.container.y = this.currentNormalizedY * scalingFactor;
-
-		this.backgroundImageSprite.alpha = this.imageFadeIn.getCurrentValue(now);
-
-		this.panelContainer.x = 0;
-
-		let combinedPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
-		let expansionValue = this.expandInterpolator.getCurrentValue(now);
-
-		this.panelContainer.x -= 95 * expansionValue * scalingFactor;
-
-		// Remove beatmap panel elements if there's no need to keep them
-		if (!this.isExpanded && expansionValue === 0 && this.difficultyPanels.length > 0) {
-			this.difficultyPanels.length = 0;
-			this.difficultyContainer.removeChildren();
-		}
-
-		for (let i = 0; i < this.difficultyPanels.length; i++) {
-			let panel = this.difficultyPanels[i];
-
-			let y = BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue;
-			panel.update(now, y);
-
-			if (!this.isExpanded) {
-				panel.container.alpha = this.expandInterpolator.getCurrentValue(now);
-			}
-		}
-
-		this.panelContainer.x += getNormalizedOffsetOnCarousel((this.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor)  * scalingFactor;
-
-		let hoverValue = this.hoverInterpolator.getCurrentValue(now) * MathUtil.lerp(1, 0.2, this.expandInterpolator.getCurrentCompletion(now));
-		this.panelContainer.x += hoverValue * -15 * scalingFactor;
-
-		this.imageColorFilter.brightness(1 + this.mouseDownBrightnessInterpolator.getCurrentValue(now) * 0.2, false);
-
-		this.container.x = Math.floor(this.container.x);
-		this.container.y = Math.floor(this.container.y);
-
-		if (expansionValue === 0) {
-			this.glowSprite.visible = false;
+		if (this.secondaryTextB === null) {
+			this.secondaryTextB = text;
 		} else {
-			this.glowSprite.visible = true;
-			this.glowSprite.alpha = expansionValue;
-			this.glowSprite.x = this.panelContainer.x;
+			this.secondaryTextA = this.secondaryTextB;
+			this.secondaryTextB = text;
+			this.secondaryTextInterpolator.start(performance.now());
 		}
+	}
+
+	/** Gets the current scaling factor based on fade-in. */
+	getScaleInValue(now: number) {
+		return MathUtil.ease(EaseType.EaseOutElasticHalf, this.fadeInInterpolator.getCurrentValue(now));
 	}
 
 	getTotalHeight(now: number) {
 		let combinedSetPanelHeight = BEATMAP_SET_PANEL_HEIGHT + BEATMAP_SET_PANEL_MARGIN;
-		return combinedSetPanelHeight + this.getAdditionalExpansionHeight(now);
+		return combinedSetPanelHeight * this.getScaleInValue(now) + this.getAdditionalExpansionHeight(now);
 	}
 
 	getAdditionalExpansionHeight(now: number) {
 		let combinedDifficultyPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
-		return this.expandInterpolator.getCurrentValue(now) * combinedDifficultyPanelHeight * this.beatmapFiles.length;
+		return this.expandInterpolator.getCurrentValue(now) * combinedDifficultyPanelHeight * this.difficultyPanels.length * this.getScaleInValue(now);
 	}
 
-	async select(selectDifficultyIndex: number) {
-		let now = performance.now();
+	setBeatmapEntries(entries: BeatmapEntry[]) {
+		this.beatmapEntries = entries;
+	}
 
+	private async loadImage() {
+		if (!this.beatmapSet.basicData || this.imageLoadingStarted) return;
+
+		this.imageLoadingStarted = true;
+
+		let imageFile = await this.beatmapSet.directory.getFileByPath(this.beatmapSet.basicData.imageName);
+		if (!imageFile) return;
+
+		let bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
+		if (bitmap) {
+			this.imageTexture = PIXI.Texture.from(bitmap as any);
+			this.imageFadeIn.start(performance.now());
+		}
+	}
+
+	refresh() {
+		let primaryText = this.beatmapSet.title + ' '; // These spaces are added because otherwise, the last letters is cut off (due to italic text). This prevents that.
+		let secondaryText = this.beatmapSet.artist + ' ';
+		if (this.beatmapSet.creator) secondaryText += '| ' + this.beatmapSet.creator + ' ';
+
+		this.setPrimaryText(primaryText);
+		this.setSecondaryText(secondaryText);
+
+		this.searchableString = this.beatmapSet.searchableString;
+
+		if (this.beatmapEntries) {
+			// Add the difficulty names to the searchable string
+			for (let i = 0; i < this.beatmapEntries.length; i++) {
+				let entry = this.beatmapEntries[i];
+				if (entry.extendedMetadata) this.searchableString += ' ' + createSearchableString([entry.extendedMetadata.version]);
+			}
+
+			// If there aren't enough difficulty panels, add some
+			while (this.difficultyPanels.length < this.beatmapEntries.length) {
+				this.difficultyPanels.push(new BeatmapDifficultyPanel(this));
+			}
+	
+			// If there are too many difficulty panels, remove some
+			while (this.difficultyPanels.length > this.beatmapEntries.length) {
+				this.difficultyPanels.pop();
+			}
+
+			// If metadata's loaded, go assign the beatmap difficulties to the difficulty panels
+			if (this.beatmapSet.metadataLoaded) {
+				let sorted = this.getSortedEntries();
+
+				for (let i = 0; i < this.difficultyPanels.length; i++) {
+					let panel = this.difficultyPanels[i];
+					panel.load(sorted[i]);
+				}
+			}
+		}
+	}
+
+	update(now: number) {
+		let scalingFactor = this.carousel.scalingFactor;
+
+		// If the top of the panel is at most a full screen height away
+		let isClose = this.currentNormalizedY * scalingFactor >= -currentWindowDimensions.height && this.currentNormalizedY * scalingFactor <= (currentWindowDimensions.height * 2);
+		if (isClose && this.fadeInInterpolator.getCurrentValue(now) >= 0.75) {
+			let velocity = this.carousel.getCurrentAbsoluteVelocity(now);
+
+			if (velocity < 800) this.beatmapSet.loadEntries();
+			if (velocity < 500) this.beatmapSet.loadMetadata();
+			if (velocity < 2500) this.loadImage();
+		}
+
+		let combinedPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
+		let expansionValue = this.expandInterpolator.getCurrentValue(now);
+
+		for (let i = 0; i < this.difficultyPanels.length; i++) {
+			let panel = this.difficultyPanels[i];
+
+			// Update the position for each difficulty panel
+			let y = BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue;
+			panel.currentNormalizedY = y;
+			panel.update(now);
+		}
+	}
+
+	/** Returns true iff the panel is currently visible based on its position and size. */
+	isInView(now: number) {
+		let height = this.getTotalHeight(now);
+		return (this.currentNormalizedY + height >= 0) && ((this.currentNormalizedY - 10) * this.carousel.scalingFactor < currentWindowDimensions.height); // Subtract 10 'cause of the glow
+	}
+
+	async select(selectDifficultyIndex: number | 'random', selectionTime?: number, doSnap = true) {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
-		this.difficultyPanels.length = 0;
-		this.difficultyContainer.removeChildren();
+		this.carousel.setSelectedPanel(this, false); // Don't snap to it, we'll snap later in the difficulty panel
 
-		// Collapse any other currently expanded panel
-		let selectedPanel = this.carousel.selectedPanel;
-		if (selectedPanel) {
-			selectedPanel.collapse();
-		}
+		await this.beatmapSet.loadEntries();
 
-		this.carousel.selectedPanel = this;
-		this.carousel.setReferencePanel(this, this.currentNormalizedY);
+		// Since the previous operation was asynchronous, it could be that this panel isn't selected anymore.
+		if (this !== this.carousel.selectedPanel || this.beatmapEntries.length === 0) return;
 
-		this.expandInterpolator.setReversedState(false, now);
+		let now = performance.now();
+		this.expandInterpolator.setReversedState(false, selectionTime ?? now);
 
-		let representingBeatmap = this.beatmapSet.representingBeatmap;
-		this.carousel.songSelect.infoPanel.loadBeatmapSet(representingBeatmap);
-
-		// Create the beatmap difficulty panels
-		for (let i = 0; i < this.beatmapFiles.length; i++) {
-			let difficultyPanel = new BeatmapDifficultyPanel(this);
-			difficultyPanel.container.zIndex = -i;
-
-			this.difficultyContainer.addChild(difficultyPanel.container);
-			this.difficultyPanels.push(difficultyPanel);
-		}
+		this.carousel.songSelect.infoPanel.loadBeatmapSet(this.beatmapSet, this.beatmapSet.basicData);
+		this.carousel.songSelect.startAudio(this.beatmapSet, this.beatmapSet.basicData);
 
 		// Run this update function to update difficulty panel positions
-		this.update(now, this.currentNormalizedY, this.getTotalHeight(now));
+		this.update(now);
 
-		// Instantly select the difficult panel at the corresponding index
-		selectDifficultyIndex = MathUtil.clamp(selectDifficultyIndex, 0, this.difficultyPanels.length-1);
-		this.difficultyPanels[selectDifficultyIndex].select(true);
+		// Select the difficult panel at the corresponding index
+		selectDifficultyIndex = (selectDifficultyIndex === 'random') ? Math.floor(Math.random() * this.difficultyPanels.length) : MathUtil.clamp(selectDifficultyIndex, 0, this.difficultyPanels.length-1);
+		this.difficultyPanels[selectDifficultyIndex].select(doSnap, selectionTime);
 
-		this.carousel.songSelect.startAudio(representingBeatmap);
-
-		let data = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(this.beatmapFiles);
-		if (!this.isExpanded) return; // Could be that the panel is closed by now
-
-		let map: Map<typeof data[0], VirtualFile> = new Map();
-		for (let i = 0; i < this.beatmapFiles.length; i++) {
-			map.set(data[i], this.beatmapFiles[i]);
-		}
-
-		data.sort((a, b) => {
-			if (a.status === 'fulfilled' && b.status === 'fulfilled') {
-				return a.value.difficultyAttributes.starRating - b.value.difficultyAttributes.starRating;
-			}
-			return 0;
-		});
-
-		for (let i = 0; i < this.difficultyPanels.length; i++) {
-			let result = data[i];
-			if (result.status === 'fulfilled') {
-				this.difficultyPanels[i].load(map.get(result), result.value);
-			}
-		}
+		await this.beatmapSet.loadMetadata();
 	}
 
-	private collapse() {
+	/** Gets this panel's beatmap entries sorted by star rating. */
+	getSortedEntries() {
+		return this.beatmapEntries.slice().sort((a, b) => a.extendedMetadata.difficultyAttributes.starRating - b.extendedMetadata.difficultyAttributes.starRating);
+	}
+
+	collapse() {
 		if (!this.isExpanded) return;
 
 		let currentlySelectedDifficultyPanel = this.carousel.selectedDifficultyPanel;
@@ -347,12 +260,9 @@ export class BeatmapSetPanel {
 
 		this.expandInterpolator.setReversedState(true, performance.now());
 		this.isExpanded = false;
-
-		for (let i = 0; i < this.difficultyPanels.length; i++) {
-			this.difficultyPanels[i].disable();
-		}
 	}
 
+	/** Changes the selected difficulty in this panel by going forward or backward one. */
 	skip(forward = true) {
 		let index = this.difficultyPanels.indexOf(this.carousel.selectedDifficultyPanel);
 		if (index === -1) return;

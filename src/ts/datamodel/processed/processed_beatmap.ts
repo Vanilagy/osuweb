@@ -285,7 +285,7 @@ export class ProcessedBeatmap {
 		let i = 0;
 		while (true) {
 			let timingPoint = this.beatmap.timingPoints[i];
-			if (!timingPoint.inheritable) continue;
+			if (!timingPoint.inheritable) {i++; continue;}
 
 			let nextInheritableIndex: number;
 			let duration: number;

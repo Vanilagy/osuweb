@@ -329,10 +329,11 @@ class SideControlPulsar {
 	}
 
 	update(now: number) {
-		let currentExtendedData = this.parent.songSelect.selectedExtendedBeatmapData;
+		let currentEntry = this.parent.songSelect.selectedEntry;
+		let metadata = currentEntry?.extendedMetadata;
 
-		if (currentExtendedData && currentExtendedData.msPerBeatTimings.length > 0) {
-            let { msPerBeatTimings } = currentExtendedData;
+		if (metadata && metadata.msPerBeatTimings.length > 0) {
+            let { msPerBeatTimings } = metadata;
 
 			let currentTime = globalState.basicSongPlayer.getCurrentTime() * 1000;
 			let latest = msPerBeatTimings[0];

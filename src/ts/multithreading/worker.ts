@@ -9,6 +9,13 @@ self.onmessage = async (e: MessageEvent) => {
 
 	try {
 		switch (msg.task) {
+			case JobTask.GetBasicBeatmapData: {
+				let data = msg.data;
+				let file = VirtualFile.fromBlob(data.beatmapResource, null);
+				let basicData = await BeatmapUtil.getBasicBeatmapData(file);
+
+				response = basicData;
+			}; break;
 			case JobTask.GetExtendedBetamapData: {
 				let data = msg.data;
 				let file = VirtualFile.fromBlob(data.beatmapResource, null);

@@ -18,6 +18,8 @@ import { VirtualDirectory } from './file_system/virtual_directory';
 import { ScoreScreen } from './menu/score/score_screen';
 import { initScoreGrades } from './menu/components/score_grade_icon';
 import { AudioMediaPlayer } from './audio/audio_media_player';
+import { Toolbar } from './menu/toolbar/toolbar';
+import { BeatmapLibrary } from './datamodel/beatmap_library';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -33,6 +35,8 @@ async function init() {
 
 	initAudio();
 	initBackground();
+	initBeatmapLibrary();
+	initToolbar();
 	initSongSelect();
 	await initBaseSkin();
 	initGameplay();
@@ -65,6 +69,22 @@ async function initBaseSkin() {
 	await baseSkin.readyAssets();
 
 	globalState.baseSkin = baseSkin;
+}
+
+function initBeatmapLibrary() {
+	let library = new BeatmapLibrary();
+	globalState.beatmapLibrary = library;
+}
+
+function initToolbar() {
+	let toolbar = new Toolbar();
+	stage.addChild(toolbar.container);
+	rootInteractionGroup.add(toolbar.interactionGroup);
+
+	uiEventEmitter.addListener('resize', () => toolbar.resize());
+	addRenderingTask((now) => toolbar.update(now));
+
+	globalState.toolbar = toolbar;
 }
 
 function initSongSelect() {
@@ -122,4 +142,5 @@ function setZIndexes() {
 	globalState.gameplayController.container.zIndex = 0;
 	globalState.scoreScreen.container.zIndex = 1;
 	globalState.songSelect.container.zIndex = 2;
+	globalState.toolbar.container.zIndex = 3;
 }

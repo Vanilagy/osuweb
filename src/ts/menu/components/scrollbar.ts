@@ -1,5 +1,5 @@
 const SCROLLBAR_WIDTH = 2.5;
-const MIN_THUMB_HEIGHT = 20;
+const MIN_THUMB_HEIGHT = 15;
 
 export class Scrollbar {
 	public container: PIXI.Container;
@@ -49,7 +49,7 @@ export class Scrollbar {
 	update() {
 		// add min TODO
 		let thumbHeight = this.pageHeight / this.scrollHeight * this.scaledHeight;
-		this.thumb.height = Math.max(MIN_THUMB_HEIGHT, Math.floor(thumbHeight));
+		this.thumb.height = Math.floor(Math.max(MIN_THUMB_HEIGHT * this.scalingFactor, thumbHeight));
 
 		let thumbPosition = this.currentPosition / this.scrollHeight * this.scaledHeight;
 		this.thumb.y = Math.floor(thumbPosition);

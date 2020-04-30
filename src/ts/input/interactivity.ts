@@ -264,8 +264,6 @@ export class InteractionGroup extends InteractionUnit {
 	}
 
 	add(...newChildren: InteractionUnit[]) {
-		this.children.push(...newChildren);
-
 		for (let i = 0; i < newChildren.length; i++) {
 			let newChild = newChildren[i];
 			if (newChild.parent === this) continue;
@@ -290,9 +288,9 @@ export class InteractionGroup extends InteractionUnit {
 	remove(...children: InteractionUnit[]) {
 		for (let i = 0; i < children.length; i++) {
 			let child = children[i];
-			if (!this.children.includes(child)) continue;
+			if (child.parent !== this) continue;
 
-			this.children.splice(i--, 1);
+			removeItem(this.children, child);
 			removeItem(this.active, child);
 			child.parent = null;
 		}

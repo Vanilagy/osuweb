@@ -19,7 +19,7 @@ export class Button {
 	private height: number;
 	private fontSize: number;
 	private pivotSetting: ButtonPivot;
-	private registration: InteractionRegistration;
+	public registration: InteractionRegistration;
 
 	private mask: PIXI.Sprite;
 	private background: PIXI.Sprite;

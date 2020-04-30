@@ -185,6 +185,10 @@ export class Interpolator {
 		return isFinite(this.startTime);
 	}
 
+	getStartTime() {
+		return this.startTime;
+	}
+
 	setValueRange(from: number, to: number) {
 		this.from = from;
 		this.to = to;

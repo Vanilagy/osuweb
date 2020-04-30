@@ -1,6 +1,7 @@
-import { BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_WIDTH } from "./beatmap_carousel";
 import { renderer } from "../../visuals/rendering";
 import { createLinearGradientTexture, createPolygonTexture } from "../../util/pixi_util";
+import { BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT } from "./beatmap_set_panel";
+import { BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_WIDTH } from "./beatmap_difficulty_panel";
 
 export const TEXTURE_MARGIN = 10;
 
@@ -120,4 +121,32 @@ export function updateDifficultyColorBar(scalingFactor: number) {
 
 export function getDifficultyColorBar() {
 	return difficultyColorBar;
+}
+
+export function drawStarRatingTicks(g: PIXI.Graphics, starRating: number, scalingFactor: number) {
+	g.clear();
+	g.beginFill(0xffffff);
+
+	function addStarRatingTick(percent: number, index: number) {
+		let width = Math.floor(15 * percent * scalingFactor);
+		if (width === 0) return;
+		let x = Math.floor(20 * index * scalingFactor);
+
+		g.drawPolygon([
+			new PIXI.Point(x + 2, 0),
+			new PIXI.Point(x + Math.floor(2 * scalingFactor) + width, 0),
+			new PIXI.Point(x + width, Math.floor(3 * scalingFactor)),
+			new PIXI.Point(x + 0, Math.floor(3 * scalingFactor))
+		]);
+	}
+
+	let flooredSr = Math.floor(starRating);
+	for (let i = 0; i < flooredSr; i++) {
+		addStarRatingTick(1.0, i);
+	}
+	if (starRating !== flooredSr) {
+		addStarRatingTick(starRating - flooredSr, flooredSr);
+	}
+
+	g.endFill();
 }

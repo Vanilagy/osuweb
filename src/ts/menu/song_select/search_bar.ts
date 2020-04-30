@@ -1,14 +1,14 @@
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { TextInputStorage } from "../../input/text_input_storage";
-import { BeatmapSet } from "../../datamodel/beatmap_set";
-import { beatmapCarouselSortingTypes, defaultBeatmapCarouselSortingType } from "./beatmap_carousel";
 import { OverridableDelay } from "../../util/misc_util";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { TabSelector } from "../components/tab_selector";
-import { addRenderingTask } from "../../visuals/rendering";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { SongSelect } from "./song_select";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
+import { TOOLBAR_HEIGHT } from "../toolbar/toolbar";
+import { globalState } from "../../global_state";
+import { beatmapCarouselSortingTypes, defaultBeatmapCarouselSortingType } from "./beatmap_set_panel_collection";
 
 const SEARCH_BAR_WIDTH = 530;
 const SEARCH_BAR_HEIGHT = 49;
@@ -41,7 +41,7 @@ export class SearchBar {
 		this.textStorage = new TextInputStorage(textRegistration);
 
 		this.background = new PIXI.Sprite();
-		this.background.tint = 0x000000;
+		this.background.tint = 0x151515;
 		this.background.alpha = 0.8;
 		this.container.addChild(this.background);
 
@@ -77,7 +77,7 @@ export class SearchBar {
 	resize() {
 		this.scalingFactor = calculateRatioBasedScalingFactor(currentWindowDimensions.width, currentWindowDimensions.height, 16/9, REFERENCE_SCREEN_HEIGHT);
 
-		this.container.y = 0;
+		this.container.y = Math.floor(TOOLBAR_HEIGHT * globalState.toolbar.scalingFactor);
 		this.container.x = currentWindowDimensions.width - Math.floor(SEARCH_BAR_WIDTH * this.scalingFactor);
 
 		let slantWidth = SEARCH_BAR_HEIGHT/5;
@@ -123,22 +123,8 @@ export class SearchBar {
 
 	private updateCarousel() {
 		let query = this.textStorage.stored.toLowerCase();
-		let words = query.split(' ');
+		let sort = beatmapCarouselSortingTypes[this.sortSelector.getSelectedIndex()];
 
-		let matching: BeatmapSet[] = [];
-		for (let set of this.songSelect.loadedBeatmapSets) {
-			let matchCount = 0;
-
-			for (let i = 0; i < words.length; i++) {
-				if (set.searchableString.includes(words[i])) matchCount++;
-			}
-
-			if (matchCount === words.length) matching.push(set);
-		}
-
-		if (matching.length > 0) {
-			let sort = beatmapCarouselSortingTypes[this.sortSelector.getSelectedIndex()];
-			this.songSelect.carousel.showBeatmapSets(matching, sort);
-		}
+		this.songSelect.carousel.setSortingAndSearchQuery(sort, query);
 	}
 }

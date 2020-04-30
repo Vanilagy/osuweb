@@ -5,8 +5,12 @@ import { BackgroundManager } from "./visuals/background";
 import { Skin } from "./game/skin/skin";
 import { ScoreScreen } from "./menu/score/score_screen";
 import { AudioMediaPlayer } from "./audio/audio_media_player";
+import { Toolbar } from "./menu/toolbar/toolbar";
+import { BeatmapLibrary } from "./datamodel/beatmap_library";
 
 export const globalState = {
+	beatmapLibrary: null as BeatmapLibrary,
+	toolbar: null as Toolbar,
 	songSelect: null as SongSelect,
 	gameplayController: null as GameplayController,
 	basicSongPlayer: null as AudioMediaPlayer,
