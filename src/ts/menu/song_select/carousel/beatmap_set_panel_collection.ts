@@ -27,7 +27,7 @@ beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Mapper, (a, b
 
 type BeatmapSetPanelFilter = (x: BeatmapSetPanel) => boolean;
 
-/** Representings a collection of beatmap set panels and configurable functionality for adding, sorting and searching them. */
+/** Represents a collection of beatmap set panels and configurable functionality for adding, sorting and searching them. */
 export abstract class BeatmapSetPanelCollection {
 	protected carousel: BeatmapCarousel;
 

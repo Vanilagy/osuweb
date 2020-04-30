@@ -37,7 +37,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 
 				newBeatmapSets.push(newSet);
 			} else {
-				// The folder doesn't follow the usual naming convention. In this, we pre-parse the metadata.
+				// The folder doesn't follow the usual naming convention. In this case, we pre-parse the metadata.
 
 				let newSet = new BeatmapSet(entry);
 				await newSet.loadEntries();

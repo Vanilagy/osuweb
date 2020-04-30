@@ -54,7 +54,7 @@ export class BeatmapCarousel {
 	private collections: {[name in CollectionName]?: BeatmapSetPanelCollection} = {};
 	private currentCollection: CollectionName;
 	
-	/** For performance's sake, there are only very few beatmap set drawables in the carousel. These drawables are then continuously and seamlessly reassigned which panel they representing, creating the illusion of many panels. This array stores all these drawables. */
+	/** For performance's sake, there are only very few beatmap set drawables in the carousel. These drawables are then continuously and seamlessly reassigned which panel they represent, creating the illusion of many panels. This array stores all these drawables. */
 	private drawablePool: BeatmapSetPanelDrawable[] = [];
 	/** The drawables that currently have no panel assigned. */
 	private unassignedDrawables: BeatmapSetPanelDrawable[] = [];

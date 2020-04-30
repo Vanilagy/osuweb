@@ -35,7 +35,7 @@ export class SwitcherNode {
 		this.gain2.gain.setValueAtTime(gain1Target, audioContext.currentTime);
 		this.gain1.gain.linearRampToValueAtTime(gain1Target, audioContext.currentTime + duration);
 		this.gain2.gain.linearRampToValueAtTime(1 - gain1Target, audioContext.currentTime + duration);
-		// We set the values here again because there's some rare WebAudio bug happening sometimes? Idk...
+		// We set the values here again because there's some rare WebAudio bug (that causes the gains to be at 10% volume randomly) happening sometimes? Idk...
 		this.gain1.gain.setValueAtTime(gain1Target, audioContext.currentTime + duration);
 		this.gain2.gain.setValueAtTime(1 - gain1Target, audioContext.currentTime + duration);
 

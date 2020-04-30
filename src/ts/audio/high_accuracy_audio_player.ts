@@ -15,7 +15,7 @@ interface AudioBufferInfo {
 	buffer: AudioBuffer,
 	startOffset: number,
 	endOffset: number,
-	eofReached: boolean // If the audio buffer reaches into the end of file
+	eofReached: boolean // If the audio buffer reaches into the end of the file
 }
 
 export class HighAccuracyAudioPlayer {
@@ -517,7 +517,7 @@ export class HighAccuracyAudioPlayer {
 		let contextElapsedTime = audioContext.currentTime - this.startTime;
 		let delta = performanceElapsedTime - contextElapsedTime;
 
-		// make sure this time doesn't drift away from context time
+		// Make sure this time doesn't drift away from context time
 		if (!isNaN(delta) && this.playing) {
 			this.timingDeltas.push(delta);
 
