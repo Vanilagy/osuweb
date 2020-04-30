@@ -1,12 +1,12 @@
 import { BeatmapCarousel } from "./beatmap_carousel";
-import { BeatmapSet } from "../../datamodel/beatmap_set";
-import { Interpolator } from "../../util/interpolation";
-import { EaseType, MathUtil } from "../../util/math_util";
-import { getBitmapFromImageFile, BitmapQuality } from "../../util/image_util";
-import { currentWindowDimensions } from "../../visuals/ui";
+import { Interpolator } from "../../../util/interpolation";
+import { EaseType, MathUtil } from "../../../util/math_util";
+import { getBitmapFromImageFile, BitmapQuality } from "../../../util/image_util";
+import { currentWindowDimensions } from "../../../visuals/ui";
 import { BeatmapDifficultyPanel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN } from "./beatmap_difficulty_panel";
-import { BeatmapEntry } from "../../datamodel/beatmap_entry";
-import { Searchable, createSearchableString } from "../../util/misc_util";
+import { Searchable, createSearchableString } from "../../../util/misc_util";
+import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
+import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
 
 export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;

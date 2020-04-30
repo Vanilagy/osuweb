@@ -1,6 +1,6 @@
-import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength, stackShiftPoint } from "../util/point";
-import { MathUtil, TAU } from "../util/math_util";
-import { last, jsonClone, binarySearchLessOrEqual } from "../util/misc_util";
+import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength, stackShiftPoint } from "../../util/point";
+import { MathUtil, TAU } from "../../util/math_util";
+import { last, jsonClone, binarySearchLessOrEqual } from "../../util/misc_util";
 import { Slider, SliderType, SliderCurveSection } from "./slider";
 
 export const SLIDER_CAPCIRCLE_SEGMENTS = 48;

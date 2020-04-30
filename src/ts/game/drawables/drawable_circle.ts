@@ -1,4 +1,4 @@
-import { Circle } from "../../datamodel/circle";
+import { Circle } from "../../datamodel/hit_objects/circle";
 import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../../util/constants";
 import { DrawableHeadedHitObject, CircleScoring, getDefaultCircleScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";

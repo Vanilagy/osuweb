@@ -1,8 +1,8 @@
 import { BeatmapSetPanelCollection } from "./beatmap_set_panel_collection";
 import { BeatmapCarousel } from "./beatmap_carousel";
-import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
-import { BeatmapEntry } from "../../datamodel/beatmap_entry";
+import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
+import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
 
 /** "Split" means that every beatmap entry has its own panel. This comes in handy for things like sorting maps by difficulty, where sorting entire beatmap sets would make no sense. */
 export class BeatmapSetPanelCollectionSplit extends BeatmapSetPanelCollection {

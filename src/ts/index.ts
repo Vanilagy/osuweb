@@ -19,7 +19,7 @@ import { ScoreScreen } from './menu/score/score_screen';
 import { initScoreGrades } from './menu/components/score_grade_icon';
 import { AudioMediaPlayer } from './audio/audio_media_player';
 import { Toolbar } from './menu/toolbar/toolbar';
-import { BeatmapLibrary } from './datamodel/beatmap_library';
+import { BeatmapLibrary } from './datamodel/beatmap/beatmap_library';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';

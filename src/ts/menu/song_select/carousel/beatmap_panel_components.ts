@@ -1,5 +1,5 @@
-import { renderer } from "../../visuals/rendering";
-import { createLinearGradientTexture, createPolygonTexture } from "../../util/pixi_util";
+import { renderer } from "../../../visuals/rendering";
+import { createLinearGradientTexture, createPolygonTexture } from "../../../util/pixi_util";
 import { BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT } from "./beatmap_set_panel";
 import { BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_WIDTH } from "./beatmap_difficulty_panel";
 

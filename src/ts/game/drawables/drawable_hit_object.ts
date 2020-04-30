@@ -1,4 +1,4 @@
-import { HitObject } from "../../datamodel/hit_object";
+import { HitObject } from "../../datamodel/hit_objects/hit_object";
 import { Point } from "../../util/point";
 import { ProcessedHitObject } from "../../datamodel/processed/processed_hit_object";
 import { CurrentTimingPointInfo } from "../../datamodel/processed/processed_beatmap";

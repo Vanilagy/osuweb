@@ -1,8 +1,8 @@
-import { EaseType } from "../../util/math_util";
+import { EaseType } from "../../../util/math_util";
 import { BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET } from "./beatmap_carousel";
-import { Interpolator } from "../../util/interpolation";
+import { Interpolator } from "../../../util/interpolation";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
-import { BeatmapEntry } from "../../datamodel/beatmap_entry";
+import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
 
 export const BEATMAP_DIFFICULTY_PANEL_WIDTH = 650;
 export const BEATMAP_DIFFICULTY_PANEL_HEIGHT = 50;

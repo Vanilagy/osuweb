@@ -1,5 +1,5 @@
 import { DrawableHitObject } from "./drawable_hit_object";
-import { Spinner } from "../../datamodel/spinner";
+import { Spinner } from "../../datamodel/hit_objects/spinner";
 import { MathUtil, EaseType, TAU } from "../../util/math_util";
 import { Point } from "../../util/point";
 import { PLAYFIELD_DIMENSIONS, DEFAULT_HIT_OBJECT_FADE_IN_TIME } from "../../util/constants";

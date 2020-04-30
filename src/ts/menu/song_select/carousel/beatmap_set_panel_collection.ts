@@ -1,7 +1,7 @@
-import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { BeatmapCarousel } from "./beatmap_carousel";
-import {  matchesSearchable, arraysEqualShallow, compareStrings, insertItemBinary } from "../../util/misc_util";
+import {  matchesSearchable, arraysEqualShallow, compareStrings, insertItemBinary } from "../../../util/misc_util";
+import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
 
 export enum BeatmapCarouselSortingType {
 	None = "",

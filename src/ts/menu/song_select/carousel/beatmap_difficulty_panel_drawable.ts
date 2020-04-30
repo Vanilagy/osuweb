@@ -1,10 +1,10 @@
 import { BeatmapSetPanelDrawable } from "./beatmap_set_panel_drawable";
-import { InteractionRegistration } from "../../input/interactivity";
-import { colorToHexNumber } from "../../util/graphics_util";
-import { DifficultyUtil } from "../../datamodel/difficulty/difficulty_util";
+import { InteractionRegistration } from "../../../input/interactivity";
+import { colorToHexNumber } from "../../../util/graphics_util";
+import { DifficultyUtil } from "../../../datamodel/difficulty/difficulty_util";
 import { getNormalizedOffsetOnCarousel } from "./beatmap_carousel";
 import { getBeatmapDifficultyPanelMask, TEXTURE_MARGIN, getBeatmapDifficultyPanelGlowTexture, getDifficultyColorBar, drawStarRatingTicks } from "./beatmap_panel_components";
-import { MathUtil } from "../../util/math_util";
+import { MathUtil } from "../../../util/math_util";
 import { BeatmapDifficultyPanel, BEATMAP_DIFFICULTY_PANEL_WIDTH, BEATMAP_DIFFICULTY_PANEL_HEIGHT } from "./beatmap_difficulty_panel";
 
 /** Used to draw beatmap difficulty panels. Just like for beatmap set panels, this drawable isn't bound to a specific difficulty. Instead, it is reassigned as needed to display any difficulty panel. */

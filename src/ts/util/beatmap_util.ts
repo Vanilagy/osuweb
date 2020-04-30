@@ -1,9 +1,9 @@
 import { VirtualFile } from "../file_system/virtual_file";
-import { BeatmapDifficulty } from "../datamodel/beatmap_difficulty";
 import { DifficultyAttributes, DifficultyCalculator } from "../datamodel/difficulty/difficulty_calculator";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
-import { BeatmapParser } from "../datamodel/beatmap_parser";
 import { createSearchableString } from "./misc_util";
+import { BeatmapDifficulty } from "../datamodel/beatmap/beatmap_difficulty";
+import { BeatmapParser } from "../datamodel/beatmap/beatmap_parser";
 
 /** First value is when the first beat begins. Second value is the time in millisecond between beats. */
 type MsPerBeatTiming = [number, number];

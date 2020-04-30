@@ -1,14 +1,14 @@
-import { VirtualDirectory } from "../file_system/virtual_directory";
-import { VirtualFile } from "../file_system/virtual_file";
-import { Skin } from "../game/skin/skin";
-import { BeatmapUtil, BasicBeatmapData } from "../util/beatmap_util";
-import { CustomEventEmitter } from "../util/custom_event_emitter";
+import { CustomEventEmitter } from "../../util/custom_event_emitter";
+import { Searchable, createSearchableString } from "../../util/misc_util";
+import { VirtualFile } from "../../file_system/virtual_file";
+import { VirtualDirectory } from "../../file_system/virtual_directory";
+import { BasicBeatmapData, BeatmapUtil } from "../../util/beatmap_util";
 import { BeatmapEntry } from "./beatmap_entry";
-import { JobUtil } from "../multithreading/job_util";
-import { Searchable, createSearchableString } from "../util/misc_util";
-import { startJob } from "../multithreading/job_system";
-import { JobTask } from "../multithreading/job";
-import { isOsuBeatmapFile } from "../util/file_util";
+import { isOsuBeatmapFile } from "../../util/file_util";
+import { startJob } from "../../multithreading/job_system";
+import { JobTask } from "../../multithreading/job";
+import { JobUtil } from "../../multithreading/job_util";
+import { Skin } from "../../game/skin/skin";
 
 export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Searchable {
 	// These lower-case versions exist to enable faster sorting

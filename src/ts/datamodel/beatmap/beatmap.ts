@@ -1,9 +1,9 @@
 import { BeatmapDifficulty } from "./beatmap_difficulty";
 import { BeatmapSet } from "./beatmap_set";
-import { Color } from "../util/graphics_util";
-import { HitObject } from "./hit_object";
-import { Point } from "../util/point";
-import { last, createSearchableString } from "../util/misc_util";
+import { Point } from "../../util/point";
+import { Color } from "../../util/graphics_util";
+import { HitObject } from "../hit_objects/hit_object";
+import { last, createSearchableString } from "../../util/misc_util";
 
 export interface TimingPoint {
 	/** The how-manyth timing point this is. */

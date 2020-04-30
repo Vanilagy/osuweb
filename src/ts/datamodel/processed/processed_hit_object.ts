@@ -1,5 +1,5 @@
 import { ComboInfo, CurrentTimingPointInfo, ProcessedBeatmap } from "./processed_beatmap";
-import { HitObject } from "../hit_object";
+import { HitObject } from "../hit_objects/hit_object";
 import { Point } from "../../util/point";
 import { PlayEvent } from "../play_events";
 

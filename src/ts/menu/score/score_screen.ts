@@ -1,4 +1,3 @@
-import { Beatmap } from "../../datamodel/beatmap";
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
@@ -19,6 +18,7 @@ import { modComparator } from "../../datamodel/mods";
 import { KeyCode } from "../../input/input";
 import { SkinSoundType } from "../../game/skin/skin";
 import { Replay } from "../../game/replay";
+import { Beatmap } from "../../datamodel/beatmap/beatmap";
 
 const SCORE_SCREEN_WIDTH = 615;
 const SCORE_SCREEN_HEIGHT = 342;

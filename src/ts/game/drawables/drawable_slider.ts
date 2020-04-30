@@ -1,4 +1,4 @@
-import { Slider } from "../../datamodel/slider";
+import { Slider } from "../../datamodel/hit_objects/slider";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { pointDistance, Point } from "../../util/point";
 import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../../util/constants";

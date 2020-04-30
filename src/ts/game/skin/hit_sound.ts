@@ -1,6 +1,5 @@
 import { Point } from "../../util/point";
 import { MathUtil } from "../../util/math_util";
-import { TimingPoint } from "../../datamodel/beatmap";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { charIsDigit, promiseAllSettled } from "../../util/misc_util";
@@ -8,6 +7,7 @@ import { soundEffectsNode, audioContext } from "../../audio/audio";
 import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
 import { AudioBufferPlayer } from "../../audio/audio_buffer_player";
 import { EMPTY_AUDIO_BUFFER } from "../../util/audio_util";
+import { TimingPoint } from "../../datamodel/beatmap/beatmap";
 
 const HIT_SOUND_PAN_DIVISOR = 800; // How many osu!pixels from the center of the screen one has to move for the hit sound to be fully on either the left or right audio channel
 

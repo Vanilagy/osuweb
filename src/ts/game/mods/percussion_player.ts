@@ -1,7 +1,7 @@
 import { Play } from "../play";
-import { TimingPoint } from "../../datamodel/beatmap";
 import { MathUtil } from "../../util/math_util";
 import { SkinSoundType } from "../skin/skin";
+import { TimingPoint } from "../../datamodel/beatmap/beatmap";
 
 export class PercussionPlayer {
 	private play: Play;

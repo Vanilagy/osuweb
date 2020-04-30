@@ -1,17 +1,17 @@
-import { Beatmap, BeatmapEventBreak, TimingPoint, BeatmapEventType } from "../beatmap";
-import { Circle } from "../circle";
-import { Slider } from "../slider";
+import { Circle } from "../hit_objects/circle";
+import { Slider } from "../hit_objects/slider";
 import { MathUtil } from "../../util/math_util";
 import { PlayEvent } from "../play_events";
-import { last, assert, shallowObjectClone, binarySearchLessOrEqual } from "../../util/misc_util";
-import { Spinner } from "../spinner";
+import { assert, shallowObjectClone } from "../../util/misc_util";
+import { Spinner } from "../hit_objects/spinner";
 import { ProcessedHitObject } from "./processed_hit_object";
 import { ProcessedCircle } from "./processed_circle";
 import { ProcessedSlider } from "./processed_slider";
 import { ProcessedSpinner } from "./processed_spinner";
 import { ProcessedHeadedHitObject } from "./processed_headed_hit_object";
-import { BeatmapDifficulty } from "../beatmap_difficulty";
 import { pointDistance } from "../../util/point";
+import { TimingPoint, Beatmap } from "../beatmap/beatmap";
+import { BeatmapDifficulty } from "../beatmap/beatmap_difficulty";
 
 const MINIMUM_REQUIRED_PRELUDE_TIME = 2000; // In milliseconds
 

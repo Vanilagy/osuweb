@@ -1,6 +1,6 @@
-import { ExtendedBeatmapData } from "../util/beatmap_util";
-import { VirtualFile } from "../file_system/virtual_file";
 import { BeatmapSet } from "./beatmap_set";
+import { ExtendedBeatmapData } from "../../util/beatmap_util";
+import { VirtualFile } from "../../file_system/virtual_file";
 
 /** Represents a wrapper for a beatmap. Contains beatmap metadata as well the beatmap resource used to obtain the actual full beatmap. */
 export class BeatmapEntry {

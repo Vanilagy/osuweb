@@ -1,7 +1,7 @@
 import { BeatmapSetPanelCollection } from "./beatmap_set_panel_collection";
-import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { BeatmapCarousel } from "./beatmap_carousel";
+import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
 
 /** "Grouped" in the sense that every beatmap set has exactly one panel, and all of that set's difficulties are grouped in that one panel. */
 export class BeatmapSetPanelCollectionGrouped extends BeatmapSetPanelCollection {

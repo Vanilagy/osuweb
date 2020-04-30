@@ -7,7 +7,7 @@ import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_SOUNDS, DEFAULT_COLORS, 
 import { ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods/mod_helper";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
-import { Color, Dimensions } from "../util/graphics_util";
+import { Color } from "../util/graphics_util";
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../visuals/ui";
 import { GameplayController } from "./gameplay_controller";
 import { globalState } from "../global_state";
@@ -22,8 +22,8 @@ import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
 import { Judgement } from "../datamodel/scoring/judgement";
 import { HitSoundInfo, calculatePanFromOsuCoordinates, hitSoundTypeToAdditionType, AdditionType } from "./skin/hit_sound";
 import { PercussionPlayer } from "./mods/percussion_player";
-import { BeatmapEventType, BeatmapEventBreak } from "../datamodel/beatmap";
 import { StoryboardParser } from "./storyboard/storyboard_parser";
+import { BeatmapEventType, BeatmapEventBreak } from "../datamodel/beatmap/beatmap";
 
 const BREAK_FADE_TIME = 1000; // In ms
 const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY

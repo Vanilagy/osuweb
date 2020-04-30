@@ -1,8 +1,7 @@
-import { BeatmapCarousel } from "./beatmap_carousel";
-import { BeatmapInfoPanel } from "./beatmap_info_panel";
+import { BeatmapCarousel } from "./carousel/beatmap_carousel";
+import { BeatmapInfoPanel } from "./info_panel/beatmap_info_panel";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { SongSelectSideControlPanel } from "./side_control_panel";
-import { BeatmapSet } from "../../datamodel/beatmap_set";
 import { SearchBar } from "./search_bar";
 import { BasicBeatmapData } from "../../util/beatmap_util";
 import { globalState } from "../../global_state";
@@ -12,8 +11,9 @@ import { currentWindowDimensions, getGlobalScalingFactor } from "../../visuals/u
 import { ModSelectionPanel } from "./mod_selection_panel";
 import { KeyCode } from "../../input/input";
 import { Scrollbar } from "../components/scrollbar";
-import { BeatmapEntry } from "../../datamodel/beatmap_entry";
-import { BeatmapParser } from "../../datamodel/beatmap_parser";
+import { BeatmapSet } from "../../datamodel/beatmap/beatmap_set";
+import { BeatmapEntry } from "../../datamodel/beatmap/beatmap_entry";
+import { BeatmapParser } from "../../datamodel/beatmap/beatmap_parser";
 
 export class SongSelect {
 	public container: PIXI.Container;

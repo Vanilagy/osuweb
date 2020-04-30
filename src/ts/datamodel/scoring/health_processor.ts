@@ -1,9 +1,9 @@
 import { JudgementProcessor } from "./judgement_processor";
 import { Judgement } from "./judgement";
 import { ProcessedBeatmap } from "../processed/processed_beatmap";
-import { BeatmapDifficulty } from "../beatmap_difficulty";
 import { MathUtil } from "../../util/math_util";
 import { Interval } from "../../util/misc_util";
+import { BeatmapDifficulty } from "../beatmap/beatmap_difficulty";
 
 /** A reasonable allowable error for the minimum health offset from target minimum health. A 1% error is unnoticeable. */
 const MINIMUM_HEALTH_ERROR = 0.01;

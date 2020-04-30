@@ -8,7 +8,7 @@ import { SongSelect } from "./song_select";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { TOOLBAR_HEIGHT } from "../toolbar/toolbar";
 import { globalState } from "../../global_state";
-import { beatmapCarouselSortingTypes, defaultBeatmapCarouselSortingType } from "./beatmap_set_panel_collection";
+import { beatmapCarouselSortingTypes, defaultBeatmapCarouselSortingType } from "./carousel/beatmap_set_panel_collection";
 
 const SEARCH_BAR_WIDTH = 530;
 const SEARCH_BAR_HEIGHT = 49;

@@ -1,7 +1,7 @@
 import { BeatmapSet } from "./beatmap_set";
-import { CustomEventEmitter } from "../util/custom_event_emitter";
-import { VirtualDirectory } from "../file_system/virtual_directory";
-import { toPercentageString } from "../util/misc_util";
+import { CustomEventEmitter } from "../../util/custom_event_emitter";
+import { VirtualDirectory } from "../../file_system/virtual_directory";
+import { toPercentageString } from "../../util/misc_util";
 
 // Canonical ranked beatmap folders (so, most) follow this naming scheme
 const beatmapFolderRegex = /[0-9]+ (.+?) - (.+)/;

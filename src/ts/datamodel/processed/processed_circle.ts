@@ -1,6 +1,6 @@
 import { ProcessedHeadedHitObject } from "./processed_headed_hit_object";
 import { ComboInfo, CurrentTimingPointInfo, ProcessedBeatmap } from "./processed_beatmap";
-import { Circle } from "../circle";
+import { Circle } from "../hit_objects/circle";
 import { stackShiftPoint } from "../../util/point";
 
 export class ProcessedCircle extends ProcessedHeadedHitObject {

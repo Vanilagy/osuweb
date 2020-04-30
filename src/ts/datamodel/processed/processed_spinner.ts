@@ -1,8 +1,8 @@
 import { ProcessedHitObject } from "./processed_hit_object";
 import { ComboInfo, CurrentTimingPointInfo, ProcessedBeatmap } from "./processed_beatmap";
-import { BeatmapDifficulty } from "../beatmap_difficulty";
-import { Spinner } from "../spinner";
+import { Spinner } from "../hit_objects/spinner";
 import { PlayEvent, PlayEventType } from "../play_events";
+import { BeatmapDifficulty } from "../beatmap/beatmap_difficulty";
 
 export class ProcessedSpinner extends ProcessedHitObject {
 	public hitObject: Spinner;

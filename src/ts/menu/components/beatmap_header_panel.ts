@@ -1,4 +1,3 @@
-import { Beatmap } from "../../datamodel/beatmap";
 import { ExtendedBeatmapData, BasicBeatmapData } from "../../util/beatmap_util";
 import { Interpolator } from "../../util/interpolation";
 import { BitmapQuality } from "../../util/image_util";
@@ -7,6 +6,7 @@ import { EaseType } from "../../util/math_util";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { ImageCrossfader } from "./image_crossfader";
 import { shallowObjectClone } from "../../util/misc_util";
+import { Beatmap } from "../../datamodel/beatmap/beatmap";
 
 const LEFT_PADDING = 18;
 

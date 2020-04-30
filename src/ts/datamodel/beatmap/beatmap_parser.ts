@@ -1,14 +1,14 @@
-import { unholeArray, removeSurroundingDoubleQuotes } from "../util/misc_util";
-import { Beatmap, TimingPoint, BeatmapEventBackground, BeatmapEventType, BeatmapEventVideo, BeatmapEventBreak } from "./beatmap";
-import { parseColor } from "../util/graphics_util";
-import { Circle } from "./circle";
-import { Slider, SliderType, SliderCurveSection, Sampling } from "./slider";
-import { Spinner } from "./spinner";
 import { BeatmapSet } from "./beatmap_set";
+import { Beatmap, TimingPoint, BeatmapEventBackground, BeatmapEventType, BeatmapEventVideo, BeatmapEventBreak } from "./beatmap";
 import { BeatmapDifficulty } from "./beatmap_difficulty";
-import { HitObject } from "./hit_object";
-import { pointsAreEqual, Point } from "../util/point";
-import { PLAYFIELD_DIMENSIONS } from "../util/constants";
+import { unholeArray, removeSurroundingDoubleQuotes } from "../../util/misc_util";
+import { parseColor } from "../../util/graphics_util";
+import { Slider, Sampling, SliderType, SliderCurveSection } from "../hit_objects/slider";
+import { Spinner } from "../hit_objects/spinner";
+import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
+import { HitObject } from "../hit_objects/hit_object";
+import { pointsAreEqual, Point } from "../../util/point";
+import { Circle } from "../hit_objects/circle";
 
 const DEFAULT_TIMING_POINT_METER = 4;
 const DEFAULT_TIMING_POINT_SAMPLE_SET = 1;

@@ -1,11 +1,10 @@
-import { Beatmap } from "../datamodel/beatmap";
-import { BeatmapSet } from "../datamodel/beatmap_set";
 import { VirtualDirectory } from "../file_system/virtual_directory";
 import { VirtualFile } from "../file_system/virtual_file";
 import { globalState } from "../global_state";
 import { ModHelper } from "../game/mods/mod_helper";
 import { removeHTMLElement } from "../util/misc_util";
-import { BeatmapParser } from "../datamodel/beatmap_parser";
+import { BeatmapSet } from "../datamodel/beatmap/beatmap_set";
+import { BeatmapParser } from "../datamodel/beatmap/beatmap_parser";
 
 const beatmapFileSelect = document.querySelector('#beatmap-select') as HTMLInputElement;
 beatmapFileSelect.style.display = 'none';

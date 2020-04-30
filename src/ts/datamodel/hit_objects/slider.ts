@@ -1,5 +1,5 @@
 import { HitObject } from "./hit_object";
-import { Point } from "../util/point";
+import { Point } from "../../util/point";
 
 export enum SliderType {
 	Perfect,

@@ -1,4 +1,4 @@
-import { SliderPath, SLIDER_CAPCIRCLE_SEGMENTS } from "../../datamodel/slider_path";
+import { SliderPath, SLIDER_CAPCIRCLE_SEGMENTS } from "../../datamodel/hit_objects/slider_path";
 import { Point, pointsAreEqual, pointDistance, pointNormal, clonePoint, Vector2 } from "../../util/point";
 import { TAU, MathUtil } from "../../util/math_util";
 import { binarySearchLessOrEqual } from "../../util/misc_util";

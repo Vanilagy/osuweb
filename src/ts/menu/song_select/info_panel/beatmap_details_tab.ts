@@ -1,9 +1,9 @@
 import { INFO_PANEL_WIDTH, BeatmapInfoPanel, BeatmapInfoPanelTab } from "./beatmap_info_panel";
-import { EaseType, MathUtil } from "../../util/math_util";
-import { padNumberWithZeroes } from "../../util/misc_util";import { InterpolatedValueChanger } from "../../util/interpolation";
-import { ExtendedBeatmapData } from "../../util/beatmap_util";
-import { THEME_COLORS } from "../../util/constants";
-import { colorToHexNumber } from "../../util/graphics_util";
+import { EaseType, MathUtil } from "../../../util/math_util";
+import { padNumberWithZeroes } from "../../../util/misc_util";import { InterpolatedValueChanger } from "../../../util/interpolation";
+import { ExtendedBeatmapData } from "../../../util/beatmap_util";
+import { THEME_COLORS } from "../../../util/constants";
+import { colorToHexNumber } from "../../../util/graphics_util";
 
 const CIRCLE_CIZE_CAP = 7;
 const HP_DRAIN_CAP = 10;

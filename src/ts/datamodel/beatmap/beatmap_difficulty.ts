@@ -1,4 +1,4 @@
-import { ScoringValue } from "./scoring/score";
+import { ScoringValue } from "../scoring/score";
 
 export class BeatmapDifficulty {
 	public SL: number = 0.7; // Stack leniency taken from McOsu

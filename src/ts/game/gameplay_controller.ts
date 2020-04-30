@@ -1,5 +1,4 @@
 import { Hud } from "./hud/hud";
-import { Beatmap } from "../datamodel/beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { IGNORE_BEATMAP_SKIN } from "./skin/skin";
 import { Play } from "./play";
@@ -22,6 +21,7 @@ import { StoryboardPlayer } from "./storyboard/storyboard_player";
 import { StoryboardParser } from "./storyboard/storyboard_parser";
 import { ENABLE_STORYBOARD } from "./storyboard/storyboard";
 import { SmokeCanvas } from "./hud/smoke_canvas";
+import { Beatmap } from "../datamodel/beatmap/beatmap";
 
 export class GameplayController {
 	public container: PIXI.Container;

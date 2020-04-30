@@ -6,7 +6,7 @@ import { Skin } from "./game/skin/skin";
 import { ScoreScreen } from "./menu/score/score_screen";
 import { AudioMediaPlayer } from "./audio/audio_media_player";
 import { Toolbar } from "./menu/toolbar/toolbar";
-import { BeatmapLibrary } from "./datamodel/beatmap_library";
+import { BeatmapLibrary } from "./datamodel/beatmap/beatmap_library";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,

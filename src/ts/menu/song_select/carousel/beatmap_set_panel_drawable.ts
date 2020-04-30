@@ -1,8 +1,8 @@
-import { EaseType, MathUtil } from "../../util/math_util";
+import { EaseType, MathUtil } from "../../../util/math_util";
 import { getDarkeningOverlay, getBeatmapSetPanelMask, TEXTURE_MARGIN, getBeatmapSetPanelGlowTexture, drawStarRatingTicks } from "./beatmap_panel_components";
-import { InteractionRegistration, InteractionGroup } from "../../input/interactivity";
-import { fitSpriteIntoContainer } from "../../util/pixi_util";
-import { shallowObjectClone, last } from "../../util/misc_util";
+import { InteractionRegistration, InteractionGroup } from "../../../input/interactivity";
+import { fitSpriteIntoContainer } from "../../../util/pixi_util";
+import { shallowObjectClone, last } from "../../../util/misc_util";
 import { BeatmapSetPanel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT } from "./beatmap_set_panel";
 import { BeatmapDifficultyPanelDrawable } from "./beatmap_difficulty_panel_drawable";
 import { BeatmapCarousel, getNormalizedOffsetOnCarousel } from "./beatmap_carousel";
