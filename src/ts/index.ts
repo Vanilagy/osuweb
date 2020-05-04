@@ -36,9 +36,9 @@ async function init() {
 	initAudio();
 	initBackground();
 	initBeatmapLibrary();
-	initToolbar();
+	initToolbar(); // This should be called before most other UI elements
 	initSongSelect();
-	await initBaseSkin();
+	//await initBaseSkin();
 	initGameplay();
 	initScoreGrades();
 	initScoreScreen();
@@ -143,4 +143,9 @@ function setZIndexes() {
 	globalState.scoreScreen.container.zIndex = 1;
 	globalState.songSelect.container.zIndex = 2;
 	globalState.toolbar.container.zIndex = 3;
+
+	globalState.gameplayController.interactionGroup.setZIndex(0);
+	globalState.songSelect.interactionGroup.setZIndex(1);
+	globalState.scoreScreen.interactionGroup.setZIndex(2);
+	globalState.toolbar.interactionGroup.setZIndex(3);
 }

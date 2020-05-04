@@ -63,7 +63,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		console.log(`${newBeatmapSets.length} beatmap sets, ${totalEntries} beatmaps loaded.`);
 
 		// Once the entires have loaded, start parsing every beatmap for metadata
-		console.time("Metadata load")
+		console.time("Metadata load");
 		let progress = 0;
 		for (let set of newBeatmapSets) {
 			await set.loadMetadata();
@@ -71,7 +71,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 
 			if (progress % 20 === 0) console.log(toPercentageString(progress / newBeatmapSets.length, 2));
 		}
-		console.timeEnd("Metadata stuff")
+		console.timeEnd("Metadata load");
 	}
 
 	async addFromDirectoryHandle(handle: FileSystemDirectoryHandle) {

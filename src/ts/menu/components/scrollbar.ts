@@ -1,3 +1,5 @@
+import { MathUtil } from "../../util/math_util";
+
 const SCROLLBAR_WIDTH = 2.5;
 const MIN_THUMB_HEIGHT = 15;
 
@@ -47,11 +49,25 @@ export class Scrollbar {
 	}
 
 	update() {
-		// add min TODO
-		let thumbHeight = this.pageHeight / this.scrollHeight * this.scaledHeight;
+		let completion = this.currentPosition / this.scrollHeight;
+
+		// How much the thumb overflows the top end of the scrollbar
+		let topOverflow = Math.max(0, -completion);
+		// How much the thumb overflows the bottom end of the scrollbar
+		let bottomOverflow = Math.max(0, completion - (this.scrollHeight - this.pageHeight) / this.scrollHeight);
+
+		// The height of the thumb before it is scaled down further
+		let rawThumbHeight = this.pageHeight / this.scrollHeight * this.scaledHeight;
+
+		let thumbHeight = rawThumbHeight;
+		// Squish the thumb based on its overflow
+		thumbHeight *= 1 / (1 + topOverflow * 20);
+		thumbHeight *= 1 / (1 + bottomOverflow * 20);
 		this.thumb.height = Math.floor(Math.max(MIN_THUMB_HEIGHT * this.scalingFactor, thumbHeight));
 
-		let thumbPosition = this.currentPosition / this.scrollHeight * this.scaledHeight;
+		let thumbPosition = completion * this.scaledHeight;
+		thumbPosition = MathUtil.clamp(thumbPosition, 0, this.scaledHeight - thumbHeight);
+		if (bottomOverflow > 0) thumbPosition = this.scaledHeight - thumbHeight; // Make sure the thing sticks to the bottom side
 		this.thumb.y = Math.floor(thumbPosition);
 
 		this.background.height = this.scaledHeight;

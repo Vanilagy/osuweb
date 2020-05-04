@@ -71,7 +71,6 @@ export class SongSelectSideControlPanel {
         this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
 		this.interactionGroup = new InteractionGroup();
-		this.interactionGroup.setZIndex(4);
 
         this.pulsar = new SideControlPulsar(this);
 		this.container.addChild(this.pulsar.container);

@@ -74,7 +74,6 @@ export class ModSelectionPanel {
 		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
-		this.interactionGroup.setZIndex(10);
 
 		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.background.tint = 0x000000;

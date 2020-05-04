@@ -156,7 +156,7 @@ export function normalizeWheelEvent(e: WheelEvent): NormalizedWheelEvent {
 export function insertItem<T>(arr: T[], item: T, comparator: (a: T, b: T) => number) {
 	for (let i = 0; i < arr.length; i++) {
 		let comp = comparator(arr[i], item);
-		if (comp >= 0) {
+		if (comp > 0) {
 			arr.splice(i, 0, item);
 			return;
 		}

@@ -34,15 +34,14 @@ export class SearchBar {
 		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
-		this.interactionGroup.setZIndex(3);
 
 		let textRegistration = new InteractionRegistration();
 		this.interactionGroup.add(textRegistration);
 		this.textStorage = new TextInputStorage(textRegistration);
 
 		this.background = new PIXI.Sprite();
-		this.background.tint = 0x151515;
-		this.background.alpha = 0.8;
+		this.background.tint = 0x131313;
+		this.background.alpha = 0.90;
 		this.container.addChild(this.background);
 
 		this.textBackground = new PIXI.Sprite();
@@ -77,7 +76,7 @@ export class SearchBar {
 	resize() {
 		this.scalingFactor = calculateRatioBasedScalingFactor(currentWindowDimensions.width, currentWindowDimensions.height, 16/9, REFERENCE_SCREEN_HEIGHT);
 
-		this.container.y = Math.floor(TOOLBAR_HEIGHT * globalState.toolbar.scalingFactor);
+		this.container.y = globalState.toolbar.currentHeight;
 		this.container.x = currentWindowDimensions.width - Math.floor(SEARCH_BAR_WIDTH * this.scalingFactor);
 
 		let slantWidth = SEARCH_BAR_HEIGHT/5;

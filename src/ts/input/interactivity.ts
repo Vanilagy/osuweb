@@ -338,21 +338,18 @@ export class InteractionGroup extends InteractionUnit {
 		}
 	}
 
-	// Returns true if it caused an interaction
+	// Returns true if the interaction was "absorbed" by a non-passthrough interaction unit.
 	private findTriggeredMouseRegistrations<K extends Interaction>(acc: InteractionRegistration[], interaction: K, event: InteractionEventMap[K], mousePosition: Point, func: (mousePosition: Point, registration: InteractionRegistration) => boolean): boolean {
 		let interactionUnits = this.active;
-		let causedInteraction = false;
 	
-		// We determine first which registrations need to be triggered.
+		// Determine which registrations need to be triggered, recursively
 		for (let i = 0; i < interactionUnits.length; i++) {
 			let unit = interactionUnits[i];
 
 			if (unit instanceof InteractionGroup) {
-				let result = unit.findTriggeredMouseRegistrations(acc, interaction, event, mousePosition, func);
-				if (!result) continue;
+				let absorbed = unit.findTriggeredMouseRegistrations(acc, interaction, event, mousePosition, func);
 
-				causedInteraction = true;
-				if (!unit.passThrough) break;
+				if (absorbed && !unit.passThrough) return true;
 			} else if (unit instanceof InteractionRegistration) {
 				if (!unit.handlesInteraction(interaction, event)) continue;
 	
@@ -360,12 +357,12 @@ export class InteractionGroup extends InteractionUnit {
 				if (!result) continue;
 		
 				acc.push(unit);
-				causedInteraction = true;
-				if (!unit.passThrough) break;
+
+				if (!unit.passThrough) return true;
 			}
 		}
 
-		return causedInteraction;
+		return false;
 	}
 
 	handleMouseEnterAndLeave(acc: Map<InteractionRegistration, Interaction>, mousePosition: Point, collided: boolean) {

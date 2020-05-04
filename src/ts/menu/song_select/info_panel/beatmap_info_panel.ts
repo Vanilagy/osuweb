@@ -46,7 +46,6 @@ export class BeatmapInfoPanel {
 		this.songSelect = songSelect;
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
-		this.interactionGroup.setZIndex(2);
 
 		this.header = new BeatmapHeaderPanel(INFO_PANEL_WIDTH, INFO_PANEL_HEADER_HEIGHT, true, true);
 		this.container.addChild(this.header.container);

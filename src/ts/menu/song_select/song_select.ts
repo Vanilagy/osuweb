@@ -59,8 +59,17 @@ export class SongSelect {
 			defaultToFinished: true
 		});
 
+		this.setZIndices();
 		this.resize();
 		this.hide();
+	}
+
+	private setZIndices() {
+		this.carousel.interactionGroup.setZIndex(0);
+		this.infoPanel.interactionGroup.setZIndex(2);
+		this.searchBar.interactionGroup.setZIndex(3);
+		this.sideControlPanel.interactionGroup.setZIndex(4);
+		this.modSelector.interactionGroup.setZIndex(10);
 	}
 	
 	private initKeyInteraction() {
@@ -119,9 +128,8 @@ export class SongSelect {
 		this.searchBar.resize();
 		this.modSelector.resize();
 
-		this.scrollbar.setScaling(currentWindowDimensions.height, getGlobalScalingFactor());
-		this.scrollbar.setPageHeight(500);
-		this.scrollbar.setScrollHeight(5000);
+		this.scrollbar.setScaling(currentWindowDimensions.height - globalState.toolbar.currentHeight, getGlobalScalingFactor());
+		this.scrollbar.container.y = globalState.toolbar.currentHeight;
 	}
 
 	selectBeatmapEntry(entry: BeatmapEntry) {
