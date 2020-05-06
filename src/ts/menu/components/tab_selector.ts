@@ -146,10 +146,8 @@ export class TabSelector extends CustomEventEmitter<{selection: number}> {
 				ease: EaseType.EaseOutCubic
 			});
 		} else {
-			let now = performance.now();
-
-			this.selectionBarXInterpolator.setGoal(selectionBarX, now);
-			this.selectionBarWidthInterpolator.setGoal(selectionBarWidth, now);
+			this.selectionBarXInterpolator.setGoal(selectionBarX, this.selectionBarXInterpolator.getStartTime());
+			this.selectionBarWidthInterpolator.setGoal(selectionBarWidth, this.selectionBarWidthInterpolator.getStartTime());
 		}
 
 		this.selectionBar.width = Math.ceil(selectionBarWidth);

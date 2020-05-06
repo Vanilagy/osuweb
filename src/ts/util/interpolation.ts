@@ -28,6 +28,10 @@ export class InterpolatedValueChanger {
 		this.p = options.p;
 	}
 
+	getStartTime() {
+		return this.startTime;
+	}
+
 	getDuration() {
 		let val: number;
 
