@@ -153,10 +153,10 @@ export function normalizeWheelEvent(e: WheelEvent): NormalizedWheelEvent {
 }
 
 /** Inserts an item into an array at a specific point, satisfying a comparator. */
-export function insertItem<T>(arr: T[], item: T, comparator: (a: T, b: T) => number) {
+export function insertItem<T>(arr: T[], item: T, comparator: (a: T, b: T) => number, insertAsEarlyAsPossible = false) {
 	for (let i = 0; i < arr.length; i++) {
 		let comp = comparator(arr[i], item);
-		if (comp > 0) {
+		if (insertAsEarlyAsPossible? comp >= 0 : comp > 0) {
 			arr.splice(i, 0, item);
 			return;
 		}
@@ -351,4 +351,8 @@ export function arraysEqualShallow<T>(arr1: T[], arr2: T[]) {
 		if (arr1[i] !== arr2[i]) return false;
 	}
 	return true;
+}
+
+export function supportsNativeFileSystemApi() {
+	return typeof chooseFileSystemEntries !== "undefined";
 }

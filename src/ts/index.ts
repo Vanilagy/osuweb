@@ -20,6 +20,7 @@ import { initScoreGrades } from './menu/components/score_grade_icon';
 import { AudioMediaPlayer } from './audio/audio_media_player';
 import { Toolbar } from './menu/toolbar/toolbar';
 import { BeatmapLibrary } from './datamodel/beatmap/beatmap_library';
+import { FolderSelector } from './menu/import/folder_selector';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -37,11 +38,12 @@ async function init() {
 	initBackground();
 	initBeatmapLibrary();
 	initToolbar(); // This should be called before most other UI elements
+	initFolderSelector();
 	initSongSelect();
 	//await initBaseSkin();
-	initGameplay();
-	initScoreGrades();
-	initScoreScreen();
+	//initGameplay();
+	//initScoreGrades();
+	//initScoreScreen();
 	setZIndexes();
 	showChooseFile();
 
@@ -137,15 +139,28 @@ function initScoreScreen() {
 	globalState.scoreScreen = scoreScreen;
 }
 
+function initFolderSelector() {
+	let folderSelector = new FolderSelector();
+	stage.addChild(folderSelector.container);
+	rootInteractionGroup.add(folderSelector.interactionGroup);
+
+	uiEventEmitter.addListener('resize', () => folderSelector.resize());
+	addRenderingTask((now) => folderSelector.update(now));
+
+	globalState.folderSelector = folderSelector;
+}
+
 function setZIndexes() {
 	globalState.backgroundManager.container.zIndex = -10;
-	globalState.gameplayController.container.zIndex = 0;
-	globalState.scoreScreen.container.zIndex = 1;
+	//globalState.gameplayController.container.zIndex = 0;
+	//globalState.scoreScreen.container.zIndex = 1;
 	globalState.songSelect.container.zIndex = 2;
 	globalState.toolbar.container.zIndex = 3;
+	globalState.folderSelector.container.zIndex = 4;
 
-	globalState.gameplayController.interactionGroup.setZIndex(0);
+	//globalState.gameplayController.interactionGroup.setZIndex(0);
 	globalState.songSelect.interactionGroup.setZIndex(1);
-	globalState.scoreScreen.interactionGroup.setZIndex(2);
+	//globalState.scoreScreen.interactionGroup.setZIndex(2);
 	globalState.toolbar.interactionGroup.setZIndex(3);
+	globalState.folderSelector.interactionGroup.setZIndex(4);
 }

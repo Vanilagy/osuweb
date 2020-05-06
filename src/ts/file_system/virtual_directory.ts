@@ -12,6 +12,8 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	private failedNetworkFallbacks: Set<string>;
 	/** If the directory was created using the Native File System API, this will be set. */
 	private directoryHandle: FileSystemDirectoryHandle;
+	/** Since iterating a directory handle is async, this flag will be set to true if we have successfully iterated over all entries in the directory (which then will be cached). */
+	private directoryHandleEntriesIterated = false;
 	private readied = false;
 
 	constructor(name: string) {
@@ -99,20 +101,52 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 			return;
 		}
 
-		let entries = await this.directoryHandle.getEntries();
-		for await (let entry of entries) {
-			if (entry instanceof FileSystemFileHandle) {
-				this.addEntry(VirtualFile.fromFileHandle(entry));
-			} else if (entry instanceof FileSystemDirectoryHandle) {
-				this.addEntry(VirtualDirectory.fromDirectoryHandle(entry));
-			}
-		}
+		// Iterating over all elements will load them
+		for await (let e of this) {}
 
 		this.readied = true;
 	}
 
+	async getAllEntries() {
+		let entries: VirtualFileSystemEntry[] = [];
+
+		for await (let entry of this) {
+			entries.push(entry);
+		}
+
+		return entries;
+	}
+
 	async *[Symbol.asyncIterator]() {
-		await this.ready();
+		// If we have a directory handle, use that handle's async iterator
+		if (this.directoryHandle && !this.directoryHandleEntriesIterated) {
+			let entries = await this.directoryHandle.getEntries();
+			for await (let entry of entries) {
+				let fileSystemEntry: VirtualFileSystemEntry;
+
+				// Check if it's already been added
+				let existingEntry = this.entries.get(entry.name);
+				if (existingEntry) {
+					yield existingEntry;
+					continue;
+				}
+
+				// Create a new virtual file system entry based on the type
+				if (entry instanceof FileSystemFileHandle) {
+					fileSystemEntry = VirtualFile.fromFileHandle(entry);
+				} else if (entry instanceof FileSystemDirectoryHandle) {
+					fileSystemEntry = VirtualDirectory.fromDirectoryHandle(entry);
+				}
+
+				// Add it to the entries cache
+				this.addEntry(fileSystemEntry);
+				yield fileSystemEntry;
+			}
+
+			// When we reach this point, we'll have iterated through the entire directory once, meaning we have cached all entries and don't need to iterate over the directory directly again.
+			this.directoryHandleEntriesIterated = true;
+			return;
+		}
 
 		for (let entry of this.entries) {
 			yield entry[1];

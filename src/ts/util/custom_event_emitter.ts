@@ -21,6 +21,10 @@ export class CustomEventEmitter <T extends {} = any> {
 		removeItem(listeners, func);
 	}
 
+	removeAllListeners() {
+		this.listeners.clear();
+	}
+
 	emit<K extends Extract<keyof T, string>>(name: K, data?: T[K]) {
 		let listeners = this.listeners.get(name);
 		if (!listeners) return;

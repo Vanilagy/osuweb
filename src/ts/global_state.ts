@@ -7,6 +7,7 @@ import { ScoreScreen } from "./menu/score/score_screen";
 import { AudioMediaPlayer } from "./audio/audio_media_player";
 import { Toolbar } from "./menu/toolbar/toolbar";
 import { BeatmapLibrary } from "./datamodel/beatmap/beatmap_library";
+import { FolderSelector } from "./menu/import/folder_selector";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -17,5 +18,6 @@ export const globalState = {
 	gameplayAudioPlayer: null as HighAccuracyAudioPlayer,
 	backgroundManager: null as BackgroundManager,
 	baseSkin: null as Skin,
-	scoreScreen: null as ScoreScreen
+	scoreScreen: null as ScoreScreen,
+	folderSelector: null as FolderSelector
 };

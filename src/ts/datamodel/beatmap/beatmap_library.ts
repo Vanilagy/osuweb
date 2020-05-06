@@ -2,6 +2,9 @@ import { BeatmapSet } from "./beatmap_set";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { toPercentageString } from "../../util/misc_util";
+import { Task } from "../../multithreading/task";
+import { VirtualFileSystemEntry } from "../../file_system/virtual_file_system_entry";
+import { globalState } from "../../global_state";
 
 // Canonical ranked beatmap folders (so, most) follow this naming scheme
 const beatmapFolderRegex = /[0-9]+ (.+?) - (.+)/;
@@ -18,35 +21,10 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		this.beatmapSets = [];
 	}
 
-	/** Adds beatmap sets to the library from a virtual directory. */
-	async addFromDirectory(directory: VirtualDirectory) {
-		let newBeatmapSets: BeatmapSet[] = [];
-
-		for await (let entry of directory) {
-			if (!(entry instanceof VirtualDirectory)) continue;
-
-			let match = beatmapFolderRegex.exec(entry.name);
-			if (match) {
-				// Get a quick and dirty estimate of the title and arist as a placeholder before actual metadata is loaded.
-				let title = match[2];
-				let artist = match[1];
-
-				let newSet = new BeatmapSet(entry);
-				newSet.addListener('change', () => this.emit('change', newSet));
-				newSet.setBasicMetadata(title, artist);
-
-				newBeatmapSets.push(newSet);
-			} else {
-				// The folder doesn't follow the usual naming convention. In this case, we pre-parse the metadata.
-
-				let newSet = new BeatmapSet(entry);
-				await newSet.loadEntries();
-
-				// Add the change listener after the entries have loaded
-				newSet.addListener('change', () => this.emit('change', newSet));
-
-				newBeatmapSets.push(newSet);
-			}
+	/** Adds beatmap sets and begins loading their metadata. */
+	async addBeatmapSets(newBeatmapSets: BeatmapSet[]) {
+		for (let set of newBeatmapSets) {
+			set.addListener('change', () => this.emit('change', set));
 		}
 
 		this.beatmapSets.push(...newBeatmapSets);
@@ -62,7 +40,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		console.timeEnd("Entry load");
 		console.log(`${newBeatmapSets.length} beatmap sets, ${totalEntries} beatmaps loaded.`);
 
-		// Once the entires have loaded, start parsing every beatmap for metadata
+		// Once the entries have loaded, start parsing every beatmap for metadata
 		console.time("Metadata load");
 		let progress = 0;
 		for (let set of newBeatmapSets) {
@@ -73,9 +51,66 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		}
 		console.timeEnd("Metadata load");
 	}
+}
 
-	async addFromDirectoryHandle(handle: FileSystemDirectoryHandle) {
-		let directory = VirtualDirectory.fromDirectoryHandle(handle);
-		await this.addFromDirectory(directory);
+export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, BeatmapSet[]> {
+	private processed = new Set<VirtualFileSystemEntry>();
+	private beatmapSets: BeatmapSet[] = [];
+	private paused = true;
+	private id = 0;
+
+	async init() {}
+
+	async resume() {
+		if (this.settled) return;
+		if (!this.paused) return;
+		this.paused = false;
+
+		let idAtStart = this.id;
+
+		for await (let entry of this.input) {
+			if (this.id !== idAtStart) return;
+
+			// If we've already processed this entry, skip it
+			if (this.processed.has(entry)) continue;
+			this.processed.add(entry);
+
+			if (!(entry instanceof VirtualDirectory)) continue;
+
+			let match = beatmapFolderRegex.exec(entry.name);
+			if (match) {
+				// Get a quick and dirty estimate of the title and arist as a placeholder before actual metadata is loaded.
+				let title = match[2];
+				let artist = match[1];
+
+				let newSet = new BeatmapSet(entry);
+				newSet.setBasicMetadata(title, artist);
+
+				this.beatmapSets.push(newSet);
+			} else {
+				// The folder doesn't follow the usual naming convention. In this case, we pre-parse the metadata.
+
+				let newSet = new BeatmapSet(entry);
+				await newSet.loadEntries();
+
+				this.beatmapSets.push(newSet);
+			}
+		}
+
+		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets);
+		this.setResult(this.beatmapSets);
+	}
+
+	pause() {
+		if (this.settled) return;
+
+		this.paused = true;
+		this.id++;
+	}
+
+	getProgress() {
+		return {
+			dataCompleted: this.processed.size
+		};
 	}
 }

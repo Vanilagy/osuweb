@@ -55,7 +55,7 @@ abstract class InteractionUnit {
 		if (this.enabled) return;
 		this.enabled = true;
 
-		if (this.parent) insertItem(this.parent.active, this, zIndexComparator);
+		if (this.parent) insertItem(this.parent.active, this, zIndexComparator, true);
 	}
 
 	disable() {
@@ -79,7 +79,7 @@ abstract class InteractionUnit {
 		this.zIndex = newZIndex;
 		if (this.enabled && this.parent) {
 			removeItem(this.parent.active, this);
-			insertItem(this.parent.active, this, zIndexComparator);
+			insertItem(this.parent.active, this, zIndexComparator, true);
 		}
 	}
 }

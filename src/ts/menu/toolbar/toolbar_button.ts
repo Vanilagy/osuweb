@@ -13,7 +13,7 @@ export class ToolbarButton extends ToolbarEntry {
 
 		this.icon = new PIXI.Sprite(this.texture);
 		this.icon.anchor.set(0.5, 0.5);
-		this.container.addChild(this.icon);
+		this.entryContainer.addChild(this.icon);
 	}
 
 	resize() {

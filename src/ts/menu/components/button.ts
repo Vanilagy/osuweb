@@ -112,11 +112,11 @@ export class Button {
 				this.container.pivot.y = 0;
 			}; break;
 			case ButtonPivot.Center: {
-				this.container.pivot.x = this.container.width/2;
-				this.container.pivot.y = this.container.height/2;
+				this.container.pivot.x = Math.floor(this.container.width/2);
+				this.container.pivot.y = Math.floor(this.container.height/2);
 			}; break;
 			case ButtonPivot.TopRight: {
-				this.container.pivot.x = this.width * scalingFactor;
+				this.container.pivot.x = Math.floor(this.width * scalingFactor);
 				this.container.pivot.y = 0;
 			}; break;
 		}
