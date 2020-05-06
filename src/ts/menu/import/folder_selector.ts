@@ -139,7 +139,7 @@ export class FolderSelector {
 		this.loadingContainer = new PIXI.Container();
 		this.centerContainer.addChild(this.loadingContainer);
 
-		this.loadingText = new PIXI.Text("nigga");
+		this.loadingText = new PIXI.Text("");
 		this.loadingText.style = {
 			fontFamily: 'Exo2-RegularItalic',
 			fill: 0xffffff,
