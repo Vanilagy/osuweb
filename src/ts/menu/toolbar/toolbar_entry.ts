@@ -67,7 +67,7 @@ export class ToolbarEntry {
 		let hoverCompletion = this.hoverInterpolator.getCurrentValue(now);
 		let pressdownCompletion = this.pressdownInterpolator.getCurrentValue(now);
 
-		let backgroundAlpha = MathUtil.lerp(MathUtil.lerp(0, 0.10, hoverCompletion), 0.15, pressdownCompletion);
+		let backgroundAlpha = MathUtil.lerp(MathUtil.lerp(0, 0.10, hoverCompletion), 0.18, pressdownCompletion);
 		this.background.alpha = backgroundAlpha;
 	}
 }

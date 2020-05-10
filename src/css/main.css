@@ -31,6 +31,10 @@
 	src: url("../assets/fonts/Exo_2/Exo2-LightItalic.ttf");
 }
 @font-face {
+	font-family: "Exo2-ExtraBold";
+	src: url("../assets/fonts/Exo_2/Exo2-ExtraBold.ttf");
+}
+@font-face {
 	font-family: "FredokaOne-Regular";
 	src: url("../assets/fonts/Fredoka_One/FredokaOne-Regular.ttf");
 }

@@ -1,4 +1,5 @@
 import { CustomEventEmitter } from "../util/custom_event_emitter";
+import { modMultipliers } from "../datamodel/mods";
 
 export interface TaskStatus {
 	settled: boolean,
@@ -14,6 +15,8 @@ export interface TaskProgress {
 
 /** Represents an asynchronous task with certain interfaces like pausing, resuming and getting current status. */
 export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: any}> {
+	/** Describes what this task does. Should be overridden! */
+	public descriptor = "Processing task";
 	protected input: U;
 	protected resultPromise: Promise<T>;
 	private promiseResolve: (value?: T | PromiseLike<T>) => void;
@@ -22,6 +25,7 @@ export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: an
 	protected settled = false;
 	/** Whether or not the promise has been resolved. */
 	protected resolved = false;
+	public destroyed = false;
 
 	constructor(input: U) {
 		super();
@@ -75,5 +79,14 @@ export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: an
 		};
 	}
 
-	abstract getProgress(): TaskProgress;
+	getProgress(): TaskProgress {
+		return null;
+	}
+
+	/** Destroy this task, allowing it to be GC'd. */
+	destroy() {
+		this.pause();
+		this.removeAllListeners();
+		this.destroyed = true;
+	}
 }

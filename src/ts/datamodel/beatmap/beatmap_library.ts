@@ -30,29 +30,19 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		this.beatmapSets.push(...newBeatmapSets);
 		this.emit('add', newBeatmapSets);
 
-		// Start loading all entries of the beatmaps
-		console.time("Entry load");
-		let totalEntries = 0;
-		for (let set of newBeatmapSets) {
-			await set.loadEntries();
-			totalEntries += set.entries.length;
-		}
-		console.timeEnd("Entry load");
-		console.log(`${newBeatmapSets.length} beatmap sets, ${totalEntries} beatmaps loaded.`);
+		let loadEntriesTask = new LoadBeatmapEntriesTask(newBeatmapSets);
+		loadEntriesTask.start();
+		globalState.notificationPanel.addTask(loadEntriesTask);
 
-		// Once the entries have loaded, start parsing every beatmap for metadata
-		console.time("Metadata load");
-		let progress = 0;
-		for (let set of newBeatmapSets) {
-			await set.loadMetadata();
-			progress++;
-
-			if (progress % 20 === 0) console.log(toPercentageString(progress / newBeatmapSets.length, 2));
-		}
-		console.timeEnd("Metadata load");
+		loadEntriesTask.addListener('done', () => {
+			let loadMetadataTask = new LoadBeatmapMetadataTask(newBeatmapSets);
+			loadMetadataTask.start();
+			globalState.notificationPanel.addTask(loadMetadataTask);
+		});
 	}
 }
 
+/** Imports all beatmap sets from a directory. */
 export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, BeatmapSet[]> {
 	private processed = new Set<VirtualFileSystemEntry>();
 	private beatmapSets: BeatmapSet[] = [];
@@ -111,6 +101,90 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 	getProgress() {
 		return {
 			dataCompleted: this.processed.size
+		};
+	}
+}
+
+/** Loads all the entries in a list of beatmap sets. */
+export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
+	public descriptor = "Importing beatmaps";
+	private currentIndex = 0;
+	private paused = true;
+	private id = 0;
+
+	async init() {}
+
+	async resume() {
+		if (this.settled) return;
+		if (!this.paused) return;
+		this.paused = false;
+
+		let idAtStart = this.id;
+
+		for (this.currentIndex; this.currentIndex < this.input.length; this.currentIndex++) {
+			if (this.id !== idAtStart) return;
+
+			let set = this.input[this.currentIndex];
+			await set.loadEntries();
+		}
+
+		this.setResult();
+	}
+
+	pause() {
+		if (this.settled) return;
+
+		this.paused = true;
+		this.id++;
+	}
+
+	getProgress() {
+		return {
+			completion: this.currentIndex / this.input.length,
+			dataCompleted: this.currentIndex,
+			dataTotal: this.input.length
+		};
+	}
+}
+
+/** Loads the metadata for every beatmap in a list of beatmap sets. */
+export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
+	public descriptor = "Processing beatmap metadata";
+	private currentIndex = 0;
+	private paused = true;
+	private id = 0;
+
+	async init() {}
+
+	async resume() {
+		if (this.settled) return;
+		if (!this.paused) return;
+		this.paused = false;
+
+		let idAtStart = this.id;
+
+		for (this.currentIndex; this.currentIndex < this.input.length; this.currentIndex++) {
+			if (this.id !== idAtStart) return;
+
+			let set = this.input[this.currentIndex];
+			await set.loadMetadata();
+		}
+
+		this.setResult();
+	}
+
+	pause() {
+		if (this.settled) return;
+
+		this.paused = true;
+		this.id++;
+	}
+
+	getProgress() {
+		return {
+			completion: this.currentIndex / this.input.length,
+			dataCompleted: this.currentIndex,
+			dataTotal: this.input.length
 		};
 	}
 }

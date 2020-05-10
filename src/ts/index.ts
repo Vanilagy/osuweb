@@ -21,6 +21,7 @@ import { AudioMediaPlayer } from './audio/audio_media_player';
 import { Toolbar } from './menu/toolbar/toolbar';
 import { BeatmapLibrary } from './datamodel/beatmap/beatmap_library';
 import { FolderSelector } from './menu/import/folder_selector';
+import { NotificationPanel } from './menu/notifications/notification_panel';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -38,6 +39,7 @@ async function init() {
 	initBackground();
 	initBeatmapLibrary();
 	initToolbar(); // This should be called before most other UI elements
+	initNotificationPanel();
 	initFolderSelector();
 	initSongSelect();
 	//await initBaseSkin();
@@ -87,6 +89,17 @@ function initToolbar() {
 	addRenderingTask((now) => toolbar.update(now));
 
 	globalState.toolbar = toolbar;
+}
+
+function initNotificationPanel() {
+	let panel = new NotificationPanel();
+	stage.addChild(panel.container);
+	rootInteractionGroup.add(panel.interactionGroup);
+
+	uiEventEmitter.addListener('resize', () => panel.resize());
+	addRenderingTask((now) => panel.update(now));
+
+	globalState.notificationPanel = panel;
 }
 
 function initSongSelect() {
@@ -155,12 +168,14 @@ function setZIndexes() {
 	//globalState.gameplayController.container.zIndex = 0;
 	//globalState.scoreScreen.container.zIndex = 1;
 	globalState.songSelect.container.zIndex = 2;
+	globalState.notificationPanel.container.zIndex = 2.5;
 	globalState.toolbar.container.zIndex = 3;
 	globalState.folderSelector.container.zIndex = 4;
 
 	//globalState.gameplayController.interactionGroup.setZIndex(0);
 	globalState.songSelect.interactionGroup.setZIndex(1);
 	//globalState.scoreScreen.interactionGroup.setZIndex(2);
+	globalState.notificationPanel.interactionGroup.setZIndex(2.5);
 	globalState.toolbar.interactionGroup.setZIndex(3);
 	globalState.folderSelector.interactionGroup.setZIndex(4);
 }

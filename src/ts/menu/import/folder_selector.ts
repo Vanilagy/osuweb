@@ -188,9 +188,8 @@ export class FolderSelector {
 
 	private stopTask() {
 		if (!this.loadingTask) return;
-
-		this.loadingTask.pause();
-		this.loadingTask.removeAllListeners();
+		
+		this.loadingTask.destroy();
 		this.loadingTask = null;
 	}
 
@@ -259,8 +258,6 @@ export class FolderSelector {
 		this.centerContainer.x = Math.floor(currentWindowDimensions.width / 2) - 40 * (1 - fadeInCompletion) * this.scalingFactor;
 
 		let headerNudge = -40 * (1 - fadeInCompletion) * this.scalingFactor;
-		this.header.x += headerNudge;
-		this.description.x += headerNudge * 0.8;
 
 		this.closeButton.alpha = MathUtil.lerp(0.25, 0.75, this.closeButtonInterpolator.getCurrentValue(now));
 		this.selectButton.update(now);
@@ -288,6 +285,9 @@ export class FolderSelector {
 			this.warning.x = this.description.x = this.header.x = Math.floor(LEFT_MARGIN * this.scalingFactor);
 			this.warning.x += headerNudge * 0.6;
 		}
+
+		this.header.x += headerNudge;
+		this.description.x += headerNudge * 0.8;
 	}
 
 	hide() {

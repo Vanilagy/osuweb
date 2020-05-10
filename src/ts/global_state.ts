@@ -8,10 +8,12 @@ import { AudioMediaPlayer } from "./audio/audio_media_player";
 import { Toolbar } from "./menu/toolbar/toolbar";
 import { BeatmapLibrary } from "./datamodel/beatmap/beatmap_library";
 import { FolderSelector } from "./menu/import/folder_selector";
+import { NotificationPanel } from "./menu/notifications/notification_panel";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
 	toolbar: null as Toolbar,
+	notificationPanel: null as NotificationPanel,
 	songSelect: null as SongSelect,
 	gameplayController: null as GameplayController,
 	basicSongPlayer: null as AudioMediaPlayer,
