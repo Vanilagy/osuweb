@@ -10,6 +10,9 @@ import { JobTask } from "../../multithreading/job";
 import { JobUtil } from "../../multithreading/job_util";
 import { Skin } from "../../game/skin/skin";
 
+/** Extracts artist, title, mapper and version from a beatmap file name. */
+const metadataExtractor = /^(.+) - (.+) \((.+)\) \[(.+)\]\.osu$/;
+
 export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Searchable {
 	// These lower-case versions exist to enable faster sorting
 	public title: string;
@@ -50,8 +53,16 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 
 	updateSearchableString() {
 		// If basic data is already loaded, create the searchable string from that data. Otherwise, use the metadata from this beatmap set itself.
-		if (this.basicData) this.searchableString = BeatmapUtil.getSearchableStringFromBasicData(this.basicData);
-		else this.searchableString = createSearchableString([this.title, this.artist]);
+		if (this.basicData) {
+			// Note! This doesn't include any difficulty names.
+			let arr = [this.basicData.title, this.basicData.artist, this.basicData.creator, this.basicData.tags];
+			if (this.basicData.titleUnicode) arr.push(this.basicData.titleUnicode);
+			if (this.basicData.artistUnicode) arr.push(this.basicData.artistUnicode);
+
+			this.searchableString = createSearchableString(arr);
+		} else {
+			this.searchableString = createSearchableString([this.title, this.artist]);
+		}
 	}
 
 	/** Loads all beatmap entries (all the beatmaps of this set). Additionally, loads basic metadata about the beatmap set. */
@@ -60,11 +71,27 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 		if (this.entriesLoadingPromise) return this.entriesLoadingPromise;
 
 		let promise = new Promise<void>(async (resolve) => {
-			for await (let entry of this.directory) {
-				if (!(entry instanceof VirtualFile)) continue;
+			for await (let fileEntry of this.directory) {
+				if (!(fileEntry instanceof VirtualFile)) continue;
 
-				if (isOsuBeatmapFile(entry.name)) {
-					this.entries.push(new BeatmapEntry(this, entry));
+				if (isOsuBeatmapFile(fileEntry.name)) {
+					let beatmapEntry = new BeatmapEntry(this, fileEntry);
+					let match = metadataExtractor.exec(fileEntry.name);
+
+					if (match && match[4] !== undefined) {
+						// We were able to extract the version name from the file name.
+						beatmapEntry.version = match[4];
+					} else {
+						// We weren't able to extract the version name easily. In this case, go parse the beatmap.
+						let blob = await fileEntry.getBlob();
+						let basicData = await startJob(JobTask.GetBasicBeatmapData, {
+							beatmapResource: blob
+						});
+
+						beatmapEntry.version = basicData.version;
+					}
+
+					this.entries.push(beatmapEntry);
 				}
 			}
 
@@ -96,8 +123,13 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 			let metadata = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(allFiles);
 	
 			for (let i = 0; i < this.entries.length; i++) {
+				let entry = this.entries[i];
 				let data = metadata[i];
-				if (data.status === 'fulfilled') this.entries[i].extendedMetadata = data.value;
+
+				if (data.status === 'fulfilled') {
+					entry.extendedMetadata = data.value;
+					entry.version = data.value.version;
+				}
 			}
 	
 			this.metadataLoaded = true;

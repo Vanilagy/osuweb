@@ -102,8 +102,4 @@ export abstract class BeatmapUtil {
 			imageName: beatmap.getBackgroundImageName()
 		};
 	}
-
-	static getSearchableStringFromBasicData(data: BasicBeatmapData) {
-		return createSearchableString([data.title, data.titleUnicode, data.artist, data.artistUnicode, data.creator, data.version, data.tags]);
-	}
 }

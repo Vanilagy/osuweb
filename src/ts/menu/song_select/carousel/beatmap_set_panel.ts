@@ -147,7 +147,7 @@ export class BeatmapSetPanel implements Searchable {
 	}
 
 	refresh() {
-		let primaryText = this.beatmapSet.title + ' '; // These spaces are added because otherwise, the last letters is cut off (due to italic text). This prevents that.
+		let primaryText = this.beatmapSet.title + ' '; // These spaces are added because otherwise, the last letter is cut off (due to italic text). This prevents that.
 		let secondaryText = this.beatmapSet.artist + ' ';
 		if (this.beatmapSet.creator) secondaryText += '| ' + this.beatmapSet.creator + ' ';
 
@@ -160,7 +160,7 @@ export class BeatmapSetPanel implements Searchable {
 			// Add the difficulty names to the searchable string
 			for (let i = 0; i < this.beatmapEntries.length; i++) {
 				let entry = this.beatmapEntries[i];
-				if (entry.extendedMetadata) this.searchableString += ' ' + createSearchableString([entry.extendedMetadata.version]);
+				if (entry.version) this.searchableString += ' ' + createSearchableString([entry.version]);
 			}
 
 			// If there aren't enough difficulty panels, add some
