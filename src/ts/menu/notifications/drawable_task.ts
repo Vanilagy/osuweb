@@ -4,7 +4,7 @@ import { THEME_COLORS } from "../../util/constants";
 import { ProgressBar } from "../components/progress_bar";
 import { Task } from "../../multithreading/task";
 import { Interpolator } from "../../util/interpolation";
-import { EaseType } from "../../util/math_util";
+import { EaseType, MathUtil, TAU } from "../../util/math_util";
 import { LoadingIndicator } from "../components/loading_indicator";
 
 const HEIGHT = 50;
@@ -21,6 +21,7 @@ export class DrawableTask {
 	private title: PIXI.Text;
 	private loadingIndicator: LoadingIndicator;
 	private progressBar: ProgressBar;
+	private pendingText: PIXI.Text;
 
 	private fadeInInterpolator: Interpolator;
 	/** If this is set to true, then this drawawble should be disposed. */
@@ -56,6 +57,14 @@ export class DrawableTask {
 		this.progressBar.setAbsoluteData(0, 0);
 		this.container.addChild(this.progressBar.container);
 
+		this.pendingText = new PIXI.Text("pending...");
+		this.pendingText.style = {
+			fontFamily: "Exo2-Light",
+			fill: 0xffffff
+		};
+		this.pendingText.alpha = 0.666;
+		this.container.addChild(this.pendingText);
+
 		this.fadeInInterpolator = new Interpolator({
 			duration: 500,
 			ease: EaseType.EaseOutElasticHalf,
@@ -63,7 +72,7 @@ export class DrawableTask {
 		});
 		this.fadeInInterpolator.start(performance.now());
 
-		this.task.addListener('done', () => {
+		this.task.getResult().finally(() => {
 			this.close();
 		});
 
@@ -88,6 +97,10 @@ export class DrawableTask {
 		this.progressBar.resize(this.parent.scalingFactor);
 		this.progressBar.container.x = this.loadingIndicator.container.x;
 		this.progressBar.container.y = this.loadingIndicator.container.y;
+
+		this.pendingText.style.fontSize = Math.floor(10 * this.parent.scalingFactor);
+		this.pendingText.x = this.title.x;
+		this.pendingText.y = Math.floor((HEIGHT - PADDING - 1) * this.parent.scalingFactor - this.pendingText.height);
 	}
 
 	update(now: number) {
@@ -100,37 +113,40 @@ export class DrawableTask {
 			return;
 		}
 
-		let progress = this.task.getProgress();
-		if (progress) {
-			// If there is progress data, show a loading bar
+		this.pendingText.visible = false;
+		this.loadingIndicator.container.visible = false;
+		this.progressBar.container.visible = false;
 
-			this.loadingIndicator.container.visible = false;
-			this.progressBar.container.visible = true;
+		if (this.task.awaitingTask) {
+			this.pendingText.visible = true;
 
-			this.progressBar.setProgress(progress.completion);
-			this.progressBar.setAbsoluteData(progress.dataCompleted, progress.dataTotal);
-
-			this.progressBar.setExtras(true, progress.dataCompleted !== undefined);
-
-			this.progressBar.update(now);
+			// Make the pending text oscillate in brightness a bit
+			this.pendingText.alpha = MathUtil.lerp(0.4, 0.666, Math.cos(now / 1000 * TAU) * 0.5 + 0.5);
 		} else {
-			// ...otherwise, show a generic loading indicator.
+			let progress = this.task.getProgress();
+			if (progress) {
+				// If there is progress data, show a loading bar
+				this.progressBar.container.visible = true;
+	
+				this.progressBar.setProgress(progress.completion);
+				this.progressBar.setAbsoluteData(progress.dataCompleted, progress.dataTotal);
+				this.progressBar.setExtras(true, progress.dataCompleted !== undefined, this.task.isPaused());
 
-			this.loadingIndicator.container.visible = true;
-			this.progressBar.container.visible = false;
-
-			this.loadingIndicator.update(now);
+				this.progressBar.update(now);
+			} else {
+				// ...otherwise, show a generic loading indicator.
+				this.loadingIndicator.container.visible = true;
+				this.loadingIndicator.update(now);
+			}
 		}
 	}
 
 	close() {
 		this.fadeInInterpolator.setReversedState(true, performance.now());
 		this.fadeInInterpolator.start(performance.now());
-
-		this.task.destroy();
 	}
 
 	getHeight(now: number) {
-		return this.container.height + NOTIFICATION_MARGIN * this.fadeInInterpolator.getCurrentValue(now);
+		return this.container.height + NOTIFICATION_MARGIN * this.parent.scalingFactor * this.fadeInInterpolator.getCurrentValue(now);
 	}
 }

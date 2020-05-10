@@ -9,6 +9,7 @@ import { Toolbar } from "./menu/toolbar/toolbar";
 import { BeatmapLibrary } from "./datamodel/beatmap/beatmap_library";
 import { FolderSelector } from "./menu/import/folder_selector";
 import { NotificationPanel } from "./menu/notifications/notification_panel";
+import { TaskManager } from "./multithreading/task_manager";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -21,5 +22,6 @@ export const globalState = {
 	backgroundManager: null as BackgroundManager,
 	baseSkin: null as Skin,
 	scoreScreen: null as ScoreScreen,
-	folderSelector: null as FolderSelector
+	folderSelector: null as FolderSelector,
+	taskManager: null as TaskManager
 };

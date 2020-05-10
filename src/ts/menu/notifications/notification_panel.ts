@@ -133,7 +133,7 @@ export class NotificationPanel {
 			}
 
 			task.container.x = Math.floor(NOTIFICATION_PANEL_PADDING * this.scalingFactor);
-			task.container.y = currentY;
+			task.container.y = Math.floor(currentY);
 
 			currentY += task.getHeight(now);
 		}

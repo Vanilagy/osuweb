@@ -1,5 +1,4 @@
-import { CustomEventEmitter } from "../util/custom_event_emitter";
-import { modMultipliers } from "../datamodel/mods";
+import { globalState } from "../global_state";
 
 export interface TaskStatus {
 	settled: boolean,
@@ -14,9 +13,7 @@ export interface TaskProgress {
 }
 
 /** Represents an asynchronous task with certain interfaces like pausing, resuming and getting current status. */
-export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: any}> {
-	/** Describes what this task does. Should be overridden! */
-	public descriptor = "Processing task";
+export abstract class Task<U, T> {
 	protected input: U;
 	protected resultPromise: Promise<T>;
 	private promiseResolve: (value?: T | PromiseLike<T>) => void;
@@ -26,16 +23,25 @@ export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: an
 	/** Whether or not the promise has been resolved. */
 	protected resolved = false;
 	public destroyed = false;
+	/** The task we're waiting for to finish. Once it does, automatically start this task. */
+	public awaitingTask	: Task<any, any> = null;
 
 	constructor(input: U) {
-		super();
-
 		this.input = input;
 		this.resultPromise = new Promise<T>((resolve, reject) => {
 			this.promiseResolve = resolve;
 			this.promiseReject = reject;
 		});
+
+		globalState.taskManager.addTask(this);
 	}
+
+	/** Describes what this task does. */
+	abstract get descriptor(): string;
+	/** Whether or not this task should be shown in the notification panel. */
+	abstract get show(): boolean;
+	/** If this is set to true, then this task will automatically be paused during gameplay. */
+	abstract get isPerformanceIntensive(): boolean;
 
 	/** Initiate and start the task. */
 	async start() {
@@ -45,16 +51,17 @@ export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: an
 
 	/** Initiate the task. */
 	abstract async init(): Promise<void>;
-	/** Resume progress of the task where it last left off. */
+	/** Resume progress of the task where it last left off. If the task is currently running, calling this method should do absolutely nothing. */
 	abstract resume(): void;
-	/** Pause the task where it currently is. */
+	/** Pause the task where it currently is. If the task is already paused, calling this method should do absolutely nothnig. */
 	abstract pause(): void;
+	
+	abstract isPaused(): boolean;
 
 	protected setResult(result: T) {
 		if (this.settled) return;
 		
 		this.promiseResolve(result);
-		this.emit('done', result);
 		this.settled = true;
 		this.resolved = true;
 	}
@@ -63,7 +70,6 @@ export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: an
 		if (this.settled) return;
 
 		this.promiseReject(reason);
-		this.emit('error', reason);
 		this.settled = true;
 	}
 
@@ -83,10 +89,24 @@ export abstract class Task <U, T> extends CustomEventEmitter<{done: T, error: an
 		return null;
 	}
 
-	/** Destroy this task, allowing it to be GC'd. */
+	waitFor(task: Task<any, any>) {
+		this.awaitingTask = task;
+
+		// Set this task to start automatically once the other task is done
+		task.getResult().finally(() => {
+			this.awaitingTask = null;
+			this.start();
+		});
+	}
+
+	/** Pauses the task and destroys promise callbacks. */
 	destroy() {
+		if (this.destroyed) return;
+
 		this.pause();
-		this.removeAllListeners();
+		this.promiseResolve = this.promiseReject = null;
 		this.destroyed = true;
+		
+		globalState.taskManager.removeTask(this);
 	}
 }

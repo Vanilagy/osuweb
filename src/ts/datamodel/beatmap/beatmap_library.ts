@@ -1,7 +1,6 @@
 import { BeatmapSet } from "./beatmap_set";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
-import { toPercentageString } from "../../util/misc_util";
 import { Task } from "../../multithreading/task";
 import { VirtualFileSystemEntry } from "../../file_system/virtual_file_system_entry";
 import { globalState } from "../../global_state";
@@ -32,13 +31,9 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 
 		let loadEntriesTask = new LoadBeatmapEntriesTask(newBeatmapSets);
 		loadEntriesTask.start();
-		globalState.notificationPanel.addTask(loadEntriesTask);
 
-		loadEntriesTask.addListener('done', () => {
-			let loadMetadataTask = new LoadBeatmapMetadataTask(newBeatmapSets);
-			loadMetadataTask.start();
-			globalState.notificationPanel.addTask(loadMetadataTask);
-		});
+		let loadMetadataTask = new LoadBeatmapMetadataTask(newBeatmapSets);
+		loadMetadataTask.waitFor(loadEntriesTask);
 	}
 }
 
@@ -48,6 +43,10 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 	private beatmapSets: BeatmapSet[] = [];
 	private paused = true;
 	private id = 0;
+
+	get descriptor() {return "Importing directory"}
+	get show() {return false}
+	get isPerformanceIntensive() {return true}
 
 	async init() {}
 
@@ -98,6 +97,10 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 		this.id++;
 	}
 
+	isPaused() {
+		return this.paused;
+	}
+
 	getProgress() {
 		return {
 			dataCompleted: this.processed.size
@@ -107,10 +110,13 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 
 /** Loads all the entries in a list of beatmap sets. */
 export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
-	public descriptor = "Importing beatmaps";
 	private currentIndex = 0;
 	private paused = true;
 	private id = 0;
+
+	get descriptor() {return "Importing beatmaps"}
+	get show() {return true}
+	get isPerformanceIntensive() {return true}
 
 	async init() {}
 
@@ -118,6 +124,8 @@ export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
 		if (this.settled) return;
 		if (!this.paused) return;
 		this.paused = false;
+
+		console.log("LESUME")
 
 		let idAtStart = this.id;
 
@@ -138,6 +146,10 @@ export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
 		this.id++;
 	}
 
+	isPaused() {
+		return this.paused;
+	}
+
 	getProgress() {
 		return {
 			completion: this.currentIndex / this.input.length,
@@ -149,10 +161,13 @@ export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
 
 /** Loads the metadata for every beatmap in a list of beatmap sets. */
 export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
-	public descriptor = "Processing beatmap metadata";
 	private currentIndex = 0;
 	private paused = true;
 	private id = 0;
+
+	get descriptor() {return "Processing beatmap metadata"}
+	get show() {return true}
+	get isPerformanceIntensive() {return true}
 
 	async init() {}
 
@@ -178,6 +193,10 @@ export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
 
 		this.paused = true;
 		this.id++;
+	}
+
+	isPaused() {
+		return this.paused;
 	}
 
 	getProgress() {

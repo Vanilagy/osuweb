@@ -22,6 +22,7 @@ import { Toolbar } from './menu/toolbar/toolbar';
 import { BeatmapLibrary } from './datamodel/beatmap/beatmap_library';
 import { FolderSelector } from './menu/import/folder_selector';
 import { NotificationPanel } from './menu/notifications/notification_panel';
+import { TaskManager } from './multithreading/task_manager';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -35,6 +36,8 @@ window.addEventListener('load', init);
 async function init() {
 	//return;
 
+	globalState.taskManager = new TaskManager();
+
 	initAudio();
 	initBackground();
 	initBeatmapLibrary();
@@ -42,10 +45,10 @@ async function init() {
 	initNotificationPanel();
 	initFolderSelector();
 	initSongSelect();
-	//await initBaseSkin();
-	//initGameplay();
-	//initScoreGrades();
-	//initScoreScreen();
+	await initBaseSkin();
+	initGameplay();
+	initScoreGrades();
+	initScoreScreen();
 	setZIndexes();
 	showChooseFile();
 
@@ -165,16 +168,16 @@ function initFolderSelector() {
 
 function setZIndexes() {
 	globalState.backgroundManager.container.zIndex = -10;
-	//globalState.gameplayController.container.zIndex = 0;
-	//globalState.scoreScreen.container.zIndex = 1;
+	globalState.gameplayController.container.zIndex = 0;
+	globalState.scoreScreen.container.zIndex = 1;
 	globalState.songSelect.container.zIndex = 2;
 	globalState.notificationPanel.container.zIndex = 2.5;
 	globalState.toolbar.container.zIndex = 3;
 	globalState.folderSelector.container.zIndex = 4;
 
-	//globalState.gameplayController.interactionGroup.setZIndex(0);
+	globalState.gameplayController.interactionGroup.setZIndex(0);
 	globalState.songSelect.interactionGroup.setZIndex(1);
-	//globalState.scoreScreen.interactionGroup.setZIndex(2);
+	globalState.scoreScreen.interactionGroup.setZIndex(2);
 	globalState.notificationPanel.interactionGroup.setZIndex(2.5);
 	globalState.toolbar.interactionGroup.setZIndex(3);
 	globalState.folderSelector.interactionGroup.setZIndex(4);

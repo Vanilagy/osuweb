@@ -11,6 +11,7 @@ export class ProgressBar {
 	private scalingFactor: number;
 	private showPercentage: boolean = false;
 	private showAbsoluteData: boolean = false;
+	private showPaused: boolean = false;
 	private absoluteData = {done: 0, total: 0};
 
 	private percentageText: PIXI.Text;
@@ -77,9 +78,10 @@ export class ProgressBar {
 		this.absoluteData.total = total;
 	}
 
-	setExtras(showPercentage: boolean, showAbsoluteData: boolean) {
+	setExtras(showPercentage: boolean, showAbsoluteData: boolean, showPaused: boolean) {
 		this.showPercentage = showPercentage;
 		this.showAbsoluteData = showAbsoluteData;
+		this.showPaused = showPaused;
 	}
 
 	update(now: number) {
@@ -89,7 +91,11 @@ export class ProgressBar {
 
 		if (this.showPercentage) {
 			this.percentageText.visible = true;
-			this.percentageText.text = toPercentageString(Math.floor(progress * 1000)/1000, 1);
+
+			let text = toPercentageString(Math.floor(progress * 1000)/1000, 1);
+			if (this.showPaused) text += " (paused)";
+
+			this.percentageText.text = text;
 		} else {
 			this.percentageText.visible = false;
 		}

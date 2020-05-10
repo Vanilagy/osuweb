@@ -150,6 +150,8 @@ export class GameplayController {
 	async startPlayFromBeatmap(beatmap: Beatmap, mods: Set<Mod>) {
 		assert(ModHelper.validateModSelection(mods));
 
+		globalState.taskManager.pause();
+
 		this.hitObjectContainer.removeChildren();
 		this.approachCircleContainer.removeChildren();
 		this.followPointContainer.removeChildren();
@@ -281,6 +283,8 @@ export class GameplayController {
 		this.currentStoryboard?.pause();
 		this.currentStoryboard?.dispose();
 		this.currentStoryboard = null;
+
+		globalState.taskManager.resume();
 	}
 
 	async completePlay() {

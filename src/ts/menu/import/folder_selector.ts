@@ -181,9 +181,8 @@ export class FolderSelector {
 		this.loadingIndicator.start();
 		this.selectButton.registration.releaseAllPresses();
 
-		task.addListener('done', () => {
-			this.hide();
-		});
+		// Close the panel when the task is done
+		task.getResult().finally(() => this.hide());
 	}
 
 	private stopTask() {
