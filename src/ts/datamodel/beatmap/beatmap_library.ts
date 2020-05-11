@@ -125,8 +125,6 @@ export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
 		if (!this.paused) return;
 		this.paused = false;
 
-		console.log("LESUME")
-
 		let idAtStart = this.id;
 
 		for (this.currentIndex; this.currentIndex < this.input.length; this.currentIndex++) {

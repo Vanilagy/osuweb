@@ -306,6 +306,7 @@ export class InteractionGroup extends InteractionUnit {
 		}
 	}
 
+	/** Triggers a given interaction for every registration that handles it. Unconditionally. */
 	triggerAll<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
 		let toTrigger: InteractionRegistration[] = [];
 		this.getAllRegistrations(toTrigger, interaction, event);
@@ -328,18 +329,25 @@ export class InteractionGroup extends InteractionUnit {
 		}
 	}
 
-	handleMouseInteraction<K extends Interaction>(interaction: K, event: InteractionEventMap[K], func: (mousePosition: Point, registration: InteractionRegistration) => boolean) {
-		let toTrigger: InteractionRegistration[] = [];
-		this.findTriggeredMouseRegistrations(toTrigger, interaction, event, getCurrentMousePosition(), func);
+	/**
+	 * Handles mouse interactions.
+	 * @param event The mouse or wheel event triggering this mouse interaction.
+	 * @param func A function to run for each registration, which should then return an array of interactions triggered by this event.
+	 */
+	handleMouseInteraction(event: MouseEvent | NormalizedWheelEvent, func: (mousePosition: Point, registration: InteractionRegistration) => Interaction[]) {
+		let toTrigger: [InteractionRegistration, Interaction][] = [];
+
+		// First, find all the triggered interactions.
+		this.findTriggeredMouseRegistrations(toTrigger, event, getCurrentMousePosition(), func);
 
 		// Then, one after another, we trigger them. This separation happens so that the interaction doesn't trigger additional registrations that could be added as a SIDE-EFFECT of a trigger.
 		for (let i = 0; i < toTrigger.length; i++) {
-			toTrigger[i].trigger(interaction, event);
+			toTrigger[i][0].trigger(toTrigger[i][1], event);
 		}
 	}
 
 	// Returns true if the interaction was "absorbed" by a non-passthrough interaction unit.
-	private findTriggeredMouseRegistrations<K extends Interaction>(acc: InteractionRegistration[], interaction: K, event: InteractionEventMap[K], mousePosition: Point, func: (mousePosition: Point, registration: InteractionRegistration) => boolean): boolean {
+	private findTriggeredMouseRegistrations(acc: [InteractionRegistration, Interaction][], event: MouseEvent | NormalizedWheelEvent, mousePosition: Point, func: (mousePosition: Point, registration: InteractionRegistration) => Interaction[]): boolean {
 		let interactionUnits = this.active;
 	
 		// Determine which registrations need to be triggered, recursively
@@ -347,18 +355,23 @@ export class InteractionGroup extends InteractionUnit {
 			let unit = interactionUnits[i];
 
 			if (unit instanceof InteractionGroup) {
-				let absorbed = unit.findTriggeredMouseRegistrations(acc, interaction, event, mousePosition, func);
+				let absorbed = unit.findTriggeredMouseRegistrations(acc, event, mousePosition, func);
 
 				if (absorbed && !unit.passThrough) return true;
 			} else if (unit instanceof InteractionRegistration) {
-				if (!unit.handlesInteraction(interaction, event)) continue;
-	
-				let result = func(mousePosition, unit);
-				if (!result) continue;
-		
-				acc.push(unit);
+				let triggeredInteractions = func(mousePosition, unit);
+				let oneOrMoreHandled = false; // Will be set to true if one or more interactions will be dispatched for this registration.
 
-				if (!unit.passThrough) return true;
+				for (let j = 0; j < triggeredInteractions.length; j++) {
+					let interaction = triggeredInteractions[j];
+
+					if (unit.handlesInteraction(interaction, event)) {
+						acc.push([unit, interaction]);
+						oneOrMoreHandled = true;
+					}
+				}
+
+				if (oneOrMoreHandled && !unit.passThrough) return true;
 			}
 		}
 
@@ -367,6 +380,8 @@ export class InteractionGroup extends InteractionUnit {
 
 	handleMouseEnterAndLeave(acc: Map<InteractionRegistration, Interaction>, mousePosition: Point, collided: boolean) {
 		let interactionUnits = this.active;
+		
+		// Note! At no point in this loop do we break. This is because we wanted to update the mouse enter/leave state for every registration and not terminate early.
 
 		for (let i = 0; i < interactionUnits.length; i++) {
 			let unit = interactionUnits[i];
@@ -398,33 +413,27 @@ export class InteractionGroup extends InteractionUnit {
 }
 rootInteractionGroup = new InteractionGroup();
 
-inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleMouseInteraction('mouseDown', e, (pos, reg) => {
-	return reg.overlaps(pos.x, pos.y);
-}));
-
-inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleMouseInteraction('mouseClick', e, (pos, reg) => {
+inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
 	let overlaps = reg.overlaps(pos.x, pos.y);
-	if (overlaps) reg.pressedDown[e.button] = true;
 
-	return false; // Never trigger mouseClick, just set the flag.
+	if (overlaps) reg.pressedDown[e.button] = true; // Remember that the button is pressed
+
+	return overlaps? ['mouseDown'] : [];
 }));
 
-inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleMouseInteraction('mouseUp', e, (pos, reg) => {
-	return reg.overlaps(pos.x, pos.y);
-}));
-
-inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleMouseInteraction('mouseClick', e, (pos, reg) => {
-	let success = false;
+inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
 	let overlaps = reg.overlaps(pos.x, pos.y);
-	if (overlaps && reg.pressedDown[e.button] === true) success = true;
+	if (!overlaps) return [];
 
+	// Based on if the corresponding button was pressed down, either dispatch mouseClick or don't.
+	let returnValue: Interaction[] = (reg.pressedDown[e.button] === true)? ['mouseUp', 'mouseClick'] : ['mouseUp'];
 	reg.pressedDown[e.button] = false;
 
-	return success;
+	return returnValue;
 }));
 
-inputEventEmitter.addListener('mouseMove', (e) => rootInteractionGroup.handleMouseInteraction('mouseMove', e, (pos, reg) => {
-	return reg.overlaps(pos.x, pos.y);
+inputEventEmitter.addListener('mouseMove', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
+	return reg.overlaps(pos.x, pos.y)? ['mouseMove'] : [];
 }));
 
 let lastMouseMoveHandleTime = -Infinity;
@@ -444,8 +453,8 @@ addRenderingTask((now) => {
 	if (now - lastMouseMoveHandleTime >= 1000/30) onMouseMove(null); // Call it, even though the mouse didn't move, so that we catch objects having moved out of or into the cursor.
 });
 
-inputEventEmitter.addListener('wheel', (e) => rootInteractionGroup.handleMouseInteraction('wheel', e, (pos, reg) => {
-	return reg.overlaps(pos.x, pos.y);
+inputEventEmitter.addListener('wheel', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
+	return reg.overlaps(pos.x, pos.y)? ['wheel'] : [];
 }));
 
 inputEventEmitter.addListener('mouseMove', () => {
