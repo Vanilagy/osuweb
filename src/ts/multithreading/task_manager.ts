@@ -24,7 +24,6 @@ export class TaskManager {
 	/** Pauses all performance-intensive tasks. */
 	pause() {
 		for (let task of this.tasks) {
-			console.log("thing")
 			if (task.isPerformanceIntensive) task.pause();
 		}
 	}

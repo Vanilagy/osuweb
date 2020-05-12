@@ -27,7 +27,7 @@ export function readFileAsLocalResourceUrl(file: File) {
 	return URL.createObjectURL(file);
 }
 
-// Including the dot. file.jpg => .jpg
+/** Including the dot. file.jpg => .jpg */
 export function getFileExtension(filename: string) {
 	let lastDotIndex = filename.lastIndexOf('.');
 	if (lastDotIndex !== -1) return filename.slice(lastDotIndex);

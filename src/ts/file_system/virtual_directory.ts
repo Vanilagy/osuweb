@@ -12,6 +12,8 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	private failedNetworkFallbacks: Set<string>;
 	/** If the directory was created using the Native File System API, this will be set. */
 	private directoryHandle: FileSystemDirectoryHandle;
+	/** Cache the entries object in the hope that stuff won't freeze up (the API is still buggy!) */
+	private directoryHandleEntries: ReturnType<FileSystemDirectoryHandle["getEntries"]> = null;
 	/** Since iterating a directory handle is async, this flag will be set to true if we have successfully iterated over all entries in the directory (which then will be cached). */
 	private directoryHandleEntriesIterated = false;
 	private readied = false;
@@ -120,7 +122,8 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	async *[Symbol.asyncIterator]() {
 		// If we have a directory handle, use that handle's async iterator
 		if (this.directoryHandle && !this.directoryHandleEntriesIterated) {
-			let entries = await this.directoryHandle.getEntries();
+			let entries = await (this.directoryHandleEntries ?? (this.directoryHandleEntries = this.directoryHandle.getEntries()));
+
 			for await (let entry of entries) {
 				let fileSystemEntry: VirtualFileSystemEntry;
 
