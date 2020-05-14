@@ -150,9 +150,10 @@ class ListSelectorItemDrawable {
 
 		let iconSize = Math.floor(this.parent.itemIconSize * this.parent.scalingFactor);
 		fitSpriteIntoContainer(this.icon, iconSize, iconSize);
-		this.icon.anchor.set(0.0, 0.5);
+		this.icon.width = Math.floor(this.icon.width);
+		this.icon.height = Math.floor(this.icon.height);
 		this.icon.x = Math.floor(height / 3);
-		this.icon.y = Math.floor(height / 2);
+		this.icon.y = Math.floor(height / 2 - this.icon.height/2);
 	}
 
 	update(now: number) {

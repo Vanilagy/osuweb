@@ -138,13 +138,14 @@ export function createLinearGradientTexture(width: number, height: number, start
 
 // TODO: Support non-square SVGs
 export function svgToTexture(svgImageElement: HTMLImageElement, makeWhite = false) {
+	const dim = 48; // 2x size of a 24x24 SVG
 	let canvas = document.createElement('canvas');
 	let ctx = canvas.getContext('2d');
 
-	canvas.setAttribute('width', '256');
-	canvas.setAttribute('height', '256');
+	canvas.setAttribute('width', String(dim));
+	canvas.setAttribute('height', String(dim));
 
-	ctx.drawImage(svgImageElement, 0, 0, 256, 256);
+	ctx.drawImage(svgImageElement, 0, 0, dim, dim);
 
 	if (makeWhite) {
 		ctx.fillStyle = '#ffffff';
@@ -152,5 +153,6 @@ export function svgToTexture(svgImageElement: HTMLImageElement, makeWhite = fals
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 	}
 
-	return PIXI.Texture.from(canvas);
+	let tex = PIXI.Texture.from(canvas);
+	return tex;
 }
