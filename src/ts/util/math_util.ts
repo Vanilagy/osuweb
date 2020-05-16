@@ -221,10 +221,9 @@ export abstract class MathUtil {
 		return val;
 	}
 
-	/** @param x Should be in the range [0, 1]. */
+	/** @param x Should be in the range [0, 1].
+	 *  @param p Some shit used for elastic bounce */
 	static ease(type: EaseType, x: number, p = 0.3): number {
-		// p = Some shit used for elastic bounce
-
 		switch (type) {
 			case EaseType.Linear:
 				return x;

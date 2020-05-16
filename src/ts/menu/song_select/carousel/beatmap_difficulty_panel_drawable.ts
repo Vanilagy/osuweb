@@ -125,7 +125,7 @@ export class BeatmapDifficultyPanelDrawable {
 			}
 		}
 
-		this.container.y = this.panel.currentNormalizedY * scalingFactor;
+		this.container.y = this.panel.y * scalingFactor;
 
 		this.infoContainer.alpha = this.panel.fadeInInterpolator.getCurrentValue(now);
 

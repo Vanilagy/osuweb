@@ -31,7 +31,7 @@ export class BeatmapSetPanelCollectionSplit extends BeatmapSetPanelCollection {
 					continue;
 				}
 
-				let newPanel = new BeatmapSetPanel(this.carousel, beatmapSet);
+				let newPanel = new BeatmapSetPanel(this, beatmapSet);
 				newPanel.setBeatmapEntries([entry]); // Just this one entry
 				newPanel.refresh();
 				changedPanels.push(newPanel);

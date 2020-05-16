@@ -30,7 +30,7 @@ export class BeatmapSetPanelCollectionGrouped extends BeatmapSetPanelCollection 
 				continue;
 			}
 
-			let newPanel = new BeatmapSetPanel(this.carousel, beatmapSet);
+			let newPanel = new BeatmapSetPanel(this, beatmapSet);
 			newPanel.setBeatmapEntries(beatmapSet.entries);
 			newPanel.refresh();
 			changedPanels.push(newPanel);

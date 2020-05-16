@@ -360,14 +360,15 @@ class SideControlPulsar {
 
                     this.analyser.updateByteTimeDomainData();
 					let timeDomainData = this.analyser.getByteTimeDomainBuffer();
-					let normalized: number[] = [];
+					let maxAmplitude = -Infinity;
 
 					for (let i = 0; i < timeDomainData.length; i++) {
-						normalized.push(Math.abs(timeDomainData[i] - 128) / 128);
+						let normalizedValue = Math.abs(timeDomainData[i] - 128) / 128;
+						if (normalizedValue > maxAmplitude) maxAmplitude = normalizedValue;
 					}
 
-					// Update the pulsing strength based on the average audio amplitude at the moment
-					let averageAmplitude = Math.min(0.25, MathUtil.getPercentile(normalized, 85, true) * 0.4);
+					// Update the pulsing strength based on the max audio amplitude at the moment
+					let averageAmplitude = Math.min(0.25, maxAmplitude * 0.4);
 					this.pulseInterpolator.setValueRange(averageAmplitude, 0);
 				}
 			}

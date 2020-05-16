@@ -98,11 +98,11 @@ export function toFloat32(f64: number) {
 
 /** Returns the index of the last occurrences of the element less than or equal to the key, or -1 if none was found. Adapted from https://www.geeksforgeeks.org/variants-of-binary-search/ */
 export function binarySearchLessOrEqual(arr: number[], key: number): number;
-export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter: (x: T) => number): number;
-export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter?: (x: T) => number) {
+export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter: (x: T) => number, startIndex?: number, endIndex?: number): number;
+export function binarySearchLessOrEqual<T>(arr: T[], key: number, valueGetter?: (x: T) => number, startIndex = 0, endIndex?: number) {
 	let ans = -1,
-		low = 0,
-		high = arr.length-1;
+		low = startIndex,
+		high = endIndex ?? arr.length-1;
 
 	while (low <= high) {
 		let mid = (low + (high - low + 1) / 2) | 0;
@@ -152,20 +152,21 @@ export function normalizeWheelEvent(e: WheelEvent): NormalizedWheelEvent {
 	}
 }
 
-/** Inserts an item into an array at a specific point, satisfying a comparator. */
+/** Inserts an item into an array at a specific point, satisfying a comparator. Returns the index at which the item was inserted. */
 export function insertItem<T>(arr: T[], item: T, comparator: (a: T, b: T) => number, insertAsEarlyAsPossible = false) {
 	for (let i = 0; i < arr.length; i++) {
 		let comp = comparator(arr[i], item);
 		if (insertAsEarlyAsPossible? comp >= 0 : comp > 0) {
 			arr.splice(i, 0, item);
-			return;
+			return i;
 		}
 	}
 
 	arr.push(item);
+	return arr.length-1;
 }
 
-/** Inserts an item into a sorted array at a specific point, satisfying a comparator. */
+/** Inserts an item into a sorted array at a specific point, satisfying a comparator. Returns the index at which the item was inserted. */
 export function insertItemBinary<T>(arr: T[], item: T, comparator: (a: T, b: T) => number) {
 	let low = 0;
 	let high = arr.length - 1;
@@ -184,6 +185,7 @@ export function insertItemBinary<T>(arr: T[], item: T, comparator: (a: T, b: T) 
 	}
 
 	arr.splice(ans+1, 0, item);
+	return ans+1;
 }
 
 /** Removes an item from an array - if it's in there. Returns true if the item was removed. */
@@ -247,8 +249,8 @@ export function compareStrings(a: string, b: string) {
 	let min = Math.min(a.length, b.length);
 
 	for (let i = 0; i < min; i++) {
-		let charA = a[i];//.toLowerCase();
-		let charB = b[i];//.toLowerCase();
+		let charA = a[i];
+		let charB = b[i];
 
 		if (charA < charB) return -1;
 		if (charA > charB) return 1;

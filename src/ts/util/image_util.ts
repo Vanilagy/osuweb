@@ -17,6 +17,8 @@ getMaxDimensionForBitmapQuality.set(BitmapQuality.Medium, 1024);
 getMaxDimensionForBitmapQuality.set(BitmapQuality.High, 2048);
 
 let imageBitmapCache: WeakMap<VirtualFile, Map<BitmapQuality, ImageBitmap | Promise<ImageBitmap>>> = new WeakMap();
+
+/** Create a bitmap from an image file with a certain quality level. If the bitmap already exists, the cached version is returned to avoid recomputing the bitmap. */
 export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality) {
 	let cached = imageBitmapCache.get(file);
 	if (cached) {
@@ -58,6 +60,16 @@ export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality
 	cached.set(quality, promise);
 
 	return promise;
+}
+
+export function hasBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality) {
+	let cached = imageBitmapCache.get(file);
+	if (cached) {
+		let cachedQuality = cached.get(quality);
+		if (cachedQuality instanceof ImageBitmap) return true;
+	}
+
+	return false;
 }
 
 let imageDimensionsCache = new WeakMap<VirtualFile, Dimensions>();

@@ -189,6 +189,14 @@ export class Interpolator {
 		return isFinite(this.startTime);
 	}
 
+	isCompleted(now: number) {
+		let completion = this.getCurrentCompletion(now);
+		if (!this.reversed && completion === 1) return true;
+		if (this.reversed && completion === 0) return true;
+		
+		return false;
+	}
+
 	getStartTime() {
 		return this.startTime;
 	}

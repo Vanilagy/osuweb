@@ -183,7 +183,7 @@ export class BeatmapSetPanelDrawable {
 
 		let scalingFactor = this.carousel.scalingFactor;
 
-		this.container.y = this.panel.currentNormalizedY * scalingFactor;
+		this.container.y = this.panel.storedY * scalingFactor;
 
 		// All these checks are to avoid drawing more text than we need to
 		if (this.panel.primaryTextA !== null && this.primaryTextA.text !== this.panel.primaryTextA) this.primaryTextA.text = this.panel.primaryTextA;
@@ -212,7 +212,7 @@ export class BeatmapSetPanelDrawable {
 
 		this.panelContainer.x = 0;
 		this.panelContainer.x -= 95 * expansionValue * scalingFactor;
-		this.panelContainer.x += getNormalizedOffsetOnCarousel((this.panel.currentNormalizedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor)  * scalingFactor;
+		this.panelContainer.x += getNormalizedOffsetOnCarousel((this.panel.storedY + BEATMAP_SET_PANEL_HEIGHT/2) * scalingFactor)  * scalingFactor;
 
 		let hoverValue = this.panel.hoverInterpolator.getCurrentValue(now) * MathUtil.lerp(1, 0.2, this.panel.expandInterpolator.getCurrentCompletion(now));
 		this.panelContainer.x += hoverValue * -15 * scalingFactor;

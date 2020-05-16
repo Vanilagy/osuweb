@@ -29,12 +29,14 @@ type BeatmapSetPanelFilter = (x: BeatmapSetPanel) => boolean;
 
 /** Represents a collection of beatmap set panels and configurable functionality for adding, sorting and searching them. */
 export abstract class BeatmapSetPanelCollection {
-	protected carousel: BeatmapCarousel;
+	public carousel: BeatmapCarousel;
 
 	public allPanels: BeatmapSetPanel[];
 	public allPanelsSet: Set<BeatmapSetPanel>;
 	public displayedPanels: BeatmapSetPanel[];
 	public displayedPanelsSet: Set<BeatmapSetPanel>;
+	/** A set of panels that currently don't have the normal base height. */
+	public specialHeightPanels: Set<BeatmapSetPanel>;
 
 	/** Beatmap sets will be sorted according to this function. */
 	protected sortingFunction: BeatmapSetPanelComparator = beatmapCarouselSortingTypeFunctions.get(BeatmapCarouselSortingType.None);
@@ -49,6 +51,7 @@ export abstract class BeatmapSetPanelCollection {
 		this.allPanelsSet = new Set();
 		this.displayedPanels = [];
 		this.displayedPanelsSet = new Set();
+		this.specialHeightPanels = new Set();
 	}
 	
 	/** Gets called when beatmap sets change. This method is the one responsible for creating panels. */
@@ -88,9 +91,26 @@ export abstract class BeatmapSetPanelCollection {
 				if (this.displayedPanelsSet.has(panel)) continue;
 				if (!matchesSearchable(panel, this.queryWords)) continue;
 				if (!this.filter(panel)) continue;
+
+				let index = insertItemBinary(this.displayedPanels, panels[i], this.sortingFunction);
+				if (this.displayedPanels.length === 1) {
+					// If the panel is the only panel, give it order 0
+					panel.order = 0;
+				} else if (index === 0) {
+					// If it's the first panel, give it an order lower than the next panel
+					panel.order = this.displayedPanels[1].order - 1;
+				} else if (index === this.displayedPanels.length-1) {
+					// If it's the last panel, give it an order higher than the previous panel
+					panel.order = this.displayedPanels[this.displayedPanels.length-2].order + 1;
+				} else {
+					// If it's in between two panels, assign the order to be in the middle of the surrounding order values.
+					let lower = this.displayedPanels[index-1].order;
+					let upper = this.displayedPanels[index+1].order;
+
+					panel.order = lower + (upper - lower)/2;
+				}
 				
-				panel.fadeInInterpolator.start(now); // Play the fade-in animation
-				insertItemBinary(this.displayedPanels, panels[i], this.sortingFunction);
+				panel.startFadeIn(now); // Play the fade-in animation
 				this.displayedPanelsSet.add(panel);
 			}
 		} else {
@@ -108,10 +128,11 @@ export abstract class BeatmapSetPanelCollection {
 
 			if (matchesSearchable(panel, this.queryWords) && this.filter(panel)) {
 				this.displayedPanels.push(panel);
+				if (panel.hasSpecialHeight) this.specialHeightPanels.add(panel);
 
 				if (!this.displayedPanelsSet.has(panel)) {
 					// If the panel wasn't being displayed before, play the fade-in animation
-					panel.fadeInInterpolator.start(now);
+					panel.startFadeIn(now);
 					this.displayedPanelsSet.add(panel);
 				}
 			} else {
@@ -120,6 +141,11 @@ export abstract class BeatmapSetPanelCollection {
 		}
 
 		this.displayedPanels.sort(this.sortingFunction);
+
+		// Assign order values
+		for (let i = 0; i < this.displayedPanels.length; i++) {
+			this.displayedPanels[i].order = i;
+		}
 	}
 
 	setSortingFunction(func: BeatmapSetPanelComparator) {

@@ -12,7 +12,7 @@ export class BeatmapDifficultyPanel {
 	public parentPanel: BeatmapSetPanel;
 	public entry: BeatmapEntry;
 
-	public currentNormalizedY: number = 0;
+	public y: number = 0;
 	public fadeInInterpolator: Interpolator;
 	public hoverInterpolator: Interpolator;
 	public expandInterpolator: Interpolator;
@@ -82,7 +82,7 @@ export class BeatmapDifficultyPanel {
 		this.expandInterpolator.setReversedState(false, selectionTime ?? now);
 
 		if (doSnap) {
-			let totalNormalizedY = this.currentNormalizedY + this.parentPanel.currentNormalizedY;
+			let totalNormalizedY = this.y + this.parentPanel.storedY;
 			this.parentPanel.carousel.snapReferencePanelPosition(totalNormalizedY, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET);
 		}
 

@@ -49,27 +49,31 @@ export class Scrollbar {
 	}
 
 	update() {
-		let completion = this.currentPosition / this.scrollHeight;
-
-		// How much the thumb overflows the top end of the scrollbar
-		let topOverflow = Math.max(0, -completion);
-		// How much the thumb overflows the bottom end of the scrollbar
-		let bottomOverflow = Math.max(0, completion - (this.scrollHeight - this.pageHeight) / this.scrollHeight);
-
-		// The height of the thumb before it is scaled down further
-		let rawThumbHeight = this.pageHeight / this.scrollHeight * this.scaledHeight;
-
-		let thumbHeight = rawThumbHeight;
-		// Squish the thumb based on its overflow
-		thumbHeight *= 1 / (1 + topOverflow * 20);
-		thumbHeight *= 1 / (1 + bottomOverflow * 20);
-		this.thumb.height = Math.floor(Math.max(MIN_THUMB_HEIGHT * this.scalingFactor, thumbHeight));
-
-		let thumbPosition = completion * this.scaledHeight;
-		thumbPosition = MathUtil.clamp(thumbPosition, 0, this.scaledHeight - thumbHeight);
-		if (bottomOverflow > 0) thumbPosition = this.scaledHeight - thumbHeight; // Make sure the thing sticks to the bottom side
-		this.thumb.y = Math.floor(thumbPosition);
-
 		this.background.height = this.scaledHeight;
+
+		if (this.scrollHeight === 0) {
+			// If there's nothing to scroll, then don't show the thumb.
+			this.thumb.visible = false;
+			return;
+		}
+
+		let percentThumb = this.pageHeight / (this.scrollHeight + this.pageHeight);
+		let thumbHeight = percentThumb * this.scaledHeight;
+		thumbHeight = Math.max(MIN_THUMB_HEIGHT * this.scalingFactor, thumbHeight);
+
+		let completion = (this.currentPosition / this.scrollHeight) || 0;
+		let thumbPosition = completion * (this.scaledHeight - thumbHeight);
+
+		if (thumbPosition < 0) {
+			// Squish the thumb based on overflow
+			thumbHeight -= -thumbPosition;
+			thumbPosition = 0;
+		} else if (thumbPosition > this.scaledHeight) {
+			thumbHeight -= thumbPosition - this.scaledHeight;
+		}
+
+		this.thumb.visible = true;
+		this.thumb.height = Math.ceil(thumbHeight);
+		this.thumb.y = Math.floor(thumbPosition);
 	}
 }

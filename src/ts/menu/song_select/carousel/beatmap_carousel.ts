@@ -22,6 +22,8 @@ const CAROUSEL_END_THRESHOLD = REFERENCE_SCREEN_HEIGHT/2 - BEATMAP_SET_PANEL_HEI
 const SCROLL_VELOCITY_DECAY_FACTOR = 0.04; // Per second. After one second, the scroll velocity will have fallen off by this much.
 const MAX_JUMP_DISTANCE = 2500; // See usage for meaning.
 const DRAWABLE_POOL_SIZE = 25; // 25 drawables is usually more than enough!
+const UPDATE_REGION_LOW = -2000; // The first panel in the update region should have about this value as its position.
+const UPDATE_REGION_HIGH = 3000; // The last panel in the update region should have about this value as its position.
 
 type CollectionName = 'grouped' | 'split';
 
@@ -147,11 +149,11 @@ export class BeatmapCarousel {
 		let diff: number;
 	
 		// Top edge
-		diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
+		diff = firstPanel.computeY() - CAROUSEL_END_THRESHOLD;
 		effectiveness = Math.pow(0.9, Math.max(0, diff/30));
 	
 		// Bottom edge
-		diff = CAROUSEL_END_THRESHOLD - (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now));
+		diff = CAROUSEL_END_THRESHOLD - (lastPanel.computeY() + lastPanel.getAdditionalExpansionHeight(now));
 		effectiveness = Math.min(effectiveness, Math.pow(0.9, Math.max(0, diff/30)));
 	
 		this.scrollVelocity += wheelEvent.dy * 4 * effectiveness;
@@ -247,22 +249,22 @@ export class BeatmapCarousel {
 
 		if (this.snapToSelected) {
 			this.referenceY = this.snapToSelectionInterpolator.getCurrentValue(now);
+		} else {
+			/*
+			The function describing scrollVelocity over time is
+			f(t) = v0 * d^t,
+			where v0 is the starting velocity, d is the decay and t is passed time in seconds.
+
+			Therefore, the distance traveled is that function's antiderivative,
+			F(t) = v0 * d^t / ln(d).
+			The distance traveled in a given interval of time [0, x] is therefore
+			F(x) - F(0) = v0 * d^x / ln(d) - v0 / ln(d) = v0 * (d^x - 1) / ln(d).
+			*/
+
+			let distanceScrolled = this.scrollVelocity * (Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000) - 1) / Math.log(SCROLL_VELOCITY_DECAY_FACTOR);
+			this.scrollVelocity = this.scrollVelocity * Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000);
+			this.referenceY -= distanceScrolled;
 		}
-
-		/*
-		The function describing scrollVelocity over time is
-		f(t) = v0 * d^t,
-		where v0 is the starting velocity, d is the decay and t is passed time in seconds.
-
-		Therefore, the distance traveled is that function's antiderivative,
-		F(t) = v0 * d^t / ln(d).
-		The distance traveled in a given interval of time [0, x] is therefore
-		F(x) - F(0) = v0 * d^x / ln(d) - v0 / ln(d) = v0 * (d^x - 1) / ln(d).
-		*/
-
-		let distanceScrolled = this.scrollVelocity * (Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000) - 1) / Math.log(SCROLL_VELOCITY_DECAY_FACTOR);
-		this.scrollVelocity = this.scrollVelocity * Math.pow(SCROLL_VELOCITY_DECAY_FACTOR, dt/1000);
-		this.referenceY -= distanceScrolled;
 
 		// Velocity has taped off so much, just set it to 0.
 		if (Math.abs(this.scrollVelocity) < 1) this.scrollVelocity = 0;
@@ -270,97 +272,112 @@ export class BeatmapCarousel {
 		// Get the position of the reference beatmap set panel
 		let referencePanelY: number;
 		if (this.reference instanceof BeatmapSetPanel) referencePanelY = this.referenceY;
-		else referencePanelY = this.referenceY - this.reference.currentNormalizedY;
-		let referenceIndex = panels.indexOf(referencePanel);
+		else referencePanelY = this.referenceY - this.reference.y;
+		let referenceIndex = binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order);
 
-		referencePanel.currentNormalizedY = referencePanelY;
-
-		// Working upwards from the reference panel, set the positions
-		let currentY = referencePanelY;
-		for (let i = referenceIndex-1; i >= 0; i--) {
-			let panel = panels[i];
-			let height = panel.getTotalHeight(now);
-
-			currentY -= height;
-			panel.currentNormalizedY = currentY;
-		}
-
-		// Working downwards from the reference panel, set the positions
-		currentY = referencePanelY;
-		for (let i = referenceIndex+1; i < panels.length; i++) {
-			let prevPanel = panels[i-1];
-			let panel = panels[i];
-			let height = prevPanel.getTotalHeight(now);
-
-			currentY += height;
-			panel.currentNormalizedY = currentY;
+		let specialHeightPanels = this.collections[this.currentCollection].specialHeightPanels;
+		for (let panel of specialHeightPanels) {
+			// Remove the panel from the set if it has a normal height again
+			if (panel.hasBaseHeight(now)) specialHeightPanels.delete(panel);
 		}
 
 		// Calculate snapback when user scrolls off one of the carousel edges
 		let firstPanel = panels[0];
+		let firstPanelY = firstPanel.computeY();
 		let lastPanel = last(panels);
+		let lastPanelY = lastPanel.computeY();
 		let snapbackNudge: number = 0;
 		let diff: number;
 
 		// Top edge snapback
-		diff = firstPanel.currentNormalizedY - CAROUSEL_END_THRESHOLD;
+		diff = firstPanelY - CAROUSEL_END_THRESHOLD;
 		if (diff > 0) snapbackNudge += diff * (Math.pow(0.0015, dt/1000) - 1);
 
 		// Bottom edge snapback
-		diff = CAROUSEL_END_THRESHOLD - (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now));
+		diff = CAROUSEL_END_THRESHOLD - (lastPanelY + lastPanel.getAdditionalExpansionHeight(now));
 		if (diff > 0) snapbackNudge -= diff * (Math.pow(0.0015, dt/1000) - 1);
 
-		// Apply snapback nudge and update panels
+		// Apply snapback nudge
 		this.referenceY += snapbackNudge;
-		for (let i = 0; i < panels.length; i++) {
-			let panel = panels[i];
+		firstPanelY += snapbackNudge;
+		lastPanelY += snapbackNudge;
 
-			panel.currentNormalizedY += snapbackNudge;
-			panel.update(now);
+		// Only panels close to the center of the screen (update region) will be updated and drawn. This ensures good performance for huge numbers of panels.
+		// First, estimate the approximate index where the panel at the start of the update region would be, by dividing the expected distance by base height.
+		let index = referenceIndex + Math.round((UPDATE_REGION_LOW - referencePanelY) / BeatmapSetPanel.BASE_HEIGHT);
+		index = MathUtil.clamp(index, 0, panels.length);
+		// Get the actual position of the panel at the estimated index
+		let position = this.getPanelPosition(panels[index], now);
+
+		// Now, hone in on the actual panel
+		if (position > UPDATE_REGION_LOW) {
+			while (index > 0) {
+				let newPos = position - panels[index-1].getTotalHeight(now);
+
+				position = newPos;
+				index--;
+
+				if (newPos <= UPDATE_REGION_LOW) break;
+			}
+		} else {
+			while (index < panels.length-1) {
+				let newPos = position + panels[index].getTotalHeight(now);
+				if (newPos > UPDATE_REGION_LOW) break;
+
+				position = newPos;
+				index++;
+			}
 		}
 
+		let panelsToDisplay: BeatmapSetPanel[] = [];
+
+		// Now, we go through all panels in the update region
+		while (index < panels.length) {
+			let panel = panels[index];
+			if (position > UPDATE_REGION_HIGH) break; // We've reached the end of the region
+
+			index++;
+			panel.storedY = position;
+			panel.update(now);
+			position += panel.getTotalHeight(now);;
+
+			if (!panel.isInView(now)) continue;
+			panelsToDisplay.push(panel);
+		}
+
+		// Take care of drawables that aren't visible anymore
 		for (let i = 0; i < this.assignedDrawables.length; i++) {
 			let drawable = this.assignedDrawables[i];
 			let panel = drawable.panel;
-			let currentColletion = this.collections[this.currentCollection];
 
 			// If the panel isn't in view or not part of the currently displayed panels, go clear it
-			if (!panel.isInView(now) || !currentColletion.displayedPanelsSet.has(panel)) {
+			if (!panelsToDisplay.includes(panel)) {
 				this.assignedDrawables.splice(i--, 1);
 				this.unassignedDrawables.push(drawable);
 				drawable.bindPanel(null);
 			}
 		}
-		
-		// Find the index of a panel that's about in the middle of the screen. Then, assign drawables from there.
-		let index = binarySearchLessOrEqual(panels, REFERENCE_SCREEN_HEIGHT/2, (x) => x.currentNormalizedY);
-		index = Math.max(index, 0);
-		// Go back until we reach a panel that isn't in view anymore (off the top)
-		while (index > 0 && panels[index-1].isInView(now)) {
-			index--;
-		}
-		while (index < panels.length && this.unassignedDrawables.length > 0) {
-			let panel = panels[index];
-			if (!panel.isInView(now)) break;
 
-			if (!this.assignedDrawables.find(x => x.panel === panel)) {
+		// Assign drawables to visible panels
+		for (let i = 0; i < panelsToDisplay.length; i++) {
+			let panel = panelsToDisplay[i];
+
+			if (this.unassignedDrawables.length > 0 && !this.assignedDrawables.find(x => x.panel === panel)) {
 				// If there isn't a drawable displaying this panel right now, assign one.
 
 				let drawable = this.unassignedDrawables.pop();
 				this.assignedDrawables.push(drawable);
 				drawable.bindPanel(panel);
 			}
-
-			index++;
 		}
 
 		for (let drawable of this.drawablePool) drawable.update(now);
 
 		// Update scrollbar
-		let totalHeight = (lastPanel.currentNormalizedY + lastPanel.getAdditionalExpansionHeight(now)) - firstPanel.currentNormalizedY;
-		this.songSelect.scrollbar.setScrollHeight(totalHeight + REFERENCE_SCREEN_HEIGHT);
+		let totalHeight = (lastPanelY + lastPanel.getAdditionalExpansionHeight(now)) - firstPanelY;
+		this.songSelect.scrollbar.setScrollHeight(totalHeight);
 		this.songSelect.scrollbar.setPageHeight(REFERENCE_SCREEN_HEIGHT);
-		this.songSelect.scrollbar.setCurrentPosition(-firstPanel.currentNormalizedY + CAROUSEL_END_THRESHOLD);
+		this.songSelect.scrollbar.setCurrentPosition(-firstPanelY + CAROUSEL_END_THRESHOLD);
 	}
 
 	resize() {
@@ -387,7 +404,7 @@ export class BeatmapCarousel {
 		if (!setAsReference) return;
 
 		this.reference = panel;
-		this.referenceY = panel.currentNormalizedY;
+		this.referenceY = panel.computeY();
 		this.snapToSelected = false;
 	}
 
@@ -397,8 +414,10 @@ export class BeatmapCarousel {
 
 		if (!setAsReference) return;
 
+		let parentPanelY = panel.parentPanel.computeY();
+
 		this.reference = panel;
-		this.referenceY = panel.currentNormalizedY + panel.parentPanel.currentNormalizedY;
+		this.referenceY = panel.y + parentPanelY;
 		this.snapToSelected = false;
 	}
 
@@ -407,14 +426,14 @@ export class BeatmapCarousel {
 	
 		// It could be that we snap to a position that's off the end of the carousel, where the carousel would normally snap back. Here, we catch this case and only snap as far as we should.
 		let lastPanel = last(this.getPanels());
-		if (lastPanel.currentNormalizedY === 0) {
-			// If the value is zero, there's a high chance that this is a new panel that hasn't been assigned a proper position yet. To be sure, we run an update tick:
-			this.update(now, 0);
-		}
+		let lastPanelY = lastPanel.computeY();
 
-		let projectedY = lastPanel.currentNormalizedY - (from - to);
+		let projectedY = lastPanelY - (from - to);
+
 		let diff = CAROUSEL_END_THRESHOLD - (projectedY + lastPanel.getAdditionalExpansionHeight(now));
-		if (diff > 0) to += diff;
+		if (diff > 0) {
+			to += diff;
+		}
 
 		if (Math.abs(from - to) > MAX_JUMP_DISTANCE) {
 			let delta = from - to;
@@ -499,6 +518,51 @@ export class BeatmapCarousel {
 
 	getCurrentAbsoluteVelocity(now: number) {
 		return Math.abs(this.getCurrentSignedVelocity(now));
+	}
+
+	/** Compute a panel's position in the carousel. */
+	getPanelPosition(panel: BeatmapSetPanel, now: number) {
+		// If n is the amount of panels, then this algorithm computes the position of a panel in O(log n) average time. This is possible because at all times, most panels will have the same height, meaning there's no need to compute every panel's height. This algorithm takes advantage of that fact and only calculates height where it is necessary.
+
+		let panels = this.getPanels();
+		let referencePanel = (this.reference instanceof BeatmapSetPanel)? this.reference : this.reference?.parentPanel;
+		let referencePanelY: number;
+		if (this.reference instanceof BeatmapSetPanel) referencePanelY = this.referenceY;
+		else referencePanelY = this.referenceY - this.reference.y;
+
+		// If the panel is the reference panel, just return the reference panel's position.
+		if (panel === referencePanel) return referencePanelY;
+
+		// Get the indices of the panels
+		let referenceIndex = binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order);
+		let panelIndex = binarySearchLessOrEqual(panels, panel.order, (x) => x.order);
+		if (panelIndex === -1) return null;
+
+		/** The absolute position difference between the reference panel and the input panel. */
+		let positionDifference = 0;
+		/** How many panels in between the reference and input panel didn't have the regular base height. */
+		let specialPanelsHandled = 0;
+		for (let otherPanel of this.collections[this.currentCollection].specialHeightPanels) {
+			// Search for panels in between the reference and input panel
+			if (Math.min(panel.order, referencePanel.order) < otherPanel.order && otherPanel.order < Math.max(panel.order, referencePanel.order)) {
+				positionDifference += otherPanel.getTotalHeight(now);
+				specialPanelsHandled++;
+			}
+		}
+
+		/** The amount of panels with base height in between reference and input panel. */
+		let missingCount = Math.max(0, Math.abs(referenceIndex - panelIndex) - 1 - specialPanelsHandled);
+		positionDifference += missingCount * BeatmapSetPanel.BASE_HEIGHT;
+
+		if (panelIndex < referenceIndex) {
+			// If the input panel comes first, add the input panel's height to the difference
+			positionDifference += panel.getTotalHeight(now);
+			return referencePanelY - positionDifference;
+		} else {
+			// If the reference panel comes first, add the reference panel's height instead
+			positionDifference += referencePanel.getTotalHeight(now);
+			return referencePanelY + positionDifference;
+		}
 	}
 }
 

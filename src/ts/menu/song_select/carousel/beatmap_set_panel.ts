@@ -1,20 +1,26 @@
 import { BeatmapCarousel } from "./beatmap_carousel";
 import { Interpolator } from "../../../util/interpolation";
 import { EaseType, MathUtil } from "../../../util/math_util";
-import { getBitmapFromImageFile, BitmapQuality } from "../../../util/image_util";
+import { getBitmapFromImageFile, BitmapQuality, hasBitmapFromImageFile } from "../../../util/image_util";
 import { currentWindowDimensions } from "../../../visuals/ui";
 import { BeatmapDifficultyPanel, BEATMAP_DIFFICULTY_PANEL_HEIGHT, BEATMAP_DIFFICULTY_PANEL_MARGIN } from "./beatmap_difficulty_panel";
 import { Searchable, createSearchableString } from "../../../util/misc_util";
 import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
 import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
+import { BeatmapSetPanelCollection } from "./beatmap_set_panel_collection";
 
 export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;
 export const BEATMAP_SET_PANEL_MARGIN = 10;
 
 export class BeatmapSetPanel implements Searchable {
-	public carousel: BeatmapCarousel;
-	public currentNormalizedY: number;
+	static readonly BASE_HEIGHT = BEATMAP_SET_PANEL_HEIGHT + BEATMAP_SET_PANEL_MARGIN;
+
+	public collection: BeatmapSetPanelCollection;
+	/** The order number of this panel in the panel array it belongs to. These aren't necessarily integers, but they monotonically increase as index increases in the array, thus meaning: arr == arr.sort(by order). The reason this field isn't "index" is that, when panel insertion happens, that would require shifting a lot of indices forwards, which we want to avoid. */
+	public order: number = 0;
+	/** The y-position assigned by the carousel's update loop. Will only be accurate as long as the panel is being updated. */
+	public storedY: number = 0;
 	public beatmapSet: BeatmapSet;
 
 	public fadeInInterpolator: Interpolator;
@@ -25,12 +31,14 @@ export class BeatmapSetPanel implements Searchable {
 	
 	public beatmapEntries: BeatmapEntry[] = null;
 	public difficultyPanels: BeatmapDifficultyPanel[] = [];
-
+	
 	public isExpanded = false;
 	public imageLoadingStarted = false;
-	public imageTexture: PIXI.Texture;
-	public searchableString: string;
+	public imageTexture: PIXI.Texture = null;
+	public searchableString: string = null;
 	public showStarRating = false;
+	/** If the panel currently doesn't have the base height (maybe it's extended), then this is true. */
+	public hasSpecialHeight = false;
 
 	// Check the drawable for why there are two variants of each text
 	public primaryTextA: string = null;
@@ -40,9 +48,17 @@ export class BeatmapSetPanel implements Searchable {
 	public secondaryTextB: string = null;
 	public secondaryTextInterpolator: Interpolator;
 
-	constructor(carousel: BeatmapCarousel, beatmapSet: BeatmapSet) {
-		this.carousel = carousel;
-		this.currentNormalizedY = 0;
+	get carousel() {
+		return this.collection.carousel;
+	}
+
+	/** The y-position of this panel. */
+	computeY() {
+		return this.carousel.getPanelPosition(this, performance.now());
+	}
+
+	constructor(collection: BeatmapSetPanelCollection, beatmapSet: BeatmapSet) {
+		this.collection = collection;
 		this.beatmapSet = beatmapSet;
 
 		this.fadeInInterpolator = new Interpolator({
@@ -112,6 +128,11 @@ export class BeatmapSetPanel implements Searchable {
 		}
 	}
 
+	enableSpecialHeight() {
+		this.hasSpecialHeight = true;
+		this.collection.specialHeightPanels.add(this);
+	}
+
 	/** Gets the current scaling factor based on fade-in. */
 	getScaleInValue(now: number) {
 		return MathUtil.ease(EaseType.EaseOutElasticHalf, this.fadeInInterpolator.getCurrentValue(now));
@@ -127,22 +148,38 @@ export class BeatmapSetPanel implements Searchable {
 		return this.expandInterpolator.getCurrentValue(now) * combinedDifficultyPanelHeight * this.difficultyPanels.length * this.getScaleInValue(now);
 	}
 
+	hasBaseHeight(now: number) {
+		return this.fadeInInterpolator.isCompleted(now) && this.expandInterpolator.isReversed() && this.expandInterpolator.isCompleted(now);
+	}
+
 	setBeatmapEntries(entries: BeatmapEntry[]) {
 		this.beatmapEntries = entries;
 	}
 
-	private async loadImage() {
+	private async loadImage(carouselValocity: number) {
 		if (!this.beatmapSet.basicData || this.imageLoadingStarted) return;
 
-		this.imageLoadingStarted = true;
-
 		let imageFile = await this.beatmapSet.directory.getFileByPath(this.beatmapSet.basicData.imageName);
-		if (!imageFile) return;
+		if (!imageFile) {
+			this.imageLoadingStarted = true;
+			return;
+		}
 
-		let bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
-		if (bitmap) {
-			this.imageTexture = PIXI.Texture.from(bitmap as any);
-			this.imageFadeIn.start(performance.now());
+		// Check if the image bitmap has already been loaded
+		let bitmapLoadedAlready = hasBitmapFromImageFile(imageFile, BitmapQuality.Medium);
+		let bitmap: ImageBitmap;
+
+		if (bitmapLoadedAlready || carouselValocity < 2500) {
+			this.imageLoadingStarted = true;
+			bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
+
+			if (bitmap) {
+				this.imageTexture = PIXI.Texture.from(bitmap as any);
+
+				// If the bitmap has already been loaded, play no animation.
+				if (!bitmapLoadedAlready) this.imageFadeIn.start(performance.now());
+				else this.imageFadeIn.end();
+			}
 		}
 	}
 
@@ -189,13 +226,13 @@ export class BeatmapSetPanel implements Searchable {
 		let scalingFactor = this.carousel.scalingFactor;
 
 		// If the top of the panel is at most a full screen height away
-		let isClose = this.currentNormalizedY * scalingFactor >= -currentWindowDimensions.height && this.currentNormalizedY * scalingFactor <= (currentWindowDimensions.height * 2);
+		let isClose = this.storedY * scalingFactor >= -currentWindowDimensions.height && this.storedY * scalingFactor <= (currentWindowDimensions.height * 2);
 		if (isClose && this.fadeInInterpolator.getCurrentValue(now) >= 0.75) {
 			let velocity = this.carousel.getCurrentAbsoluteVelocity(now);
 
 			if (velocity < 800) this.beatmapSet.loadEntries();
 			if (velocity < 500) this.beatmapSet.loadMetadata();
-			if (velocity < 2500) this.loadImage();
+			this.loadImage(velocity);
 		}
 
 		let combinedPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;
@@ -206,7 +243,7 @@ export class BeatmapSetPanel implements Searchable {
 
 			// Update the position for each difficulty panel
 			let y = BEATMAP_SET_PANEL_HEIGHT/2 + combinedPanelHeight * expansionValue + combinedPanelHeight * i * expansionValue;
-			panel.currentNormalizedY = y;
+			panel.y = y;
 			panel.update(now);
 		}
 	}
@@ -214,7 +251,7 @@ export class BeatmapSetPanel implements Searchable {
 	/** Returns true iff the panel is currently visible based on its position and size. */
 	isInView(now: number) {
 		let height = this.getTotalHeight(now);
-		return (this.currentNormalizedY + height >= 0) && ((this.currentNormalizedY - 10) * this.carousel.scalingFactor < currentWindowDimensions.height); // Subtract 10 'cause of the glow
+		return (this.storedY + height >= 0) && ((this.storedY - 10) * this.carousel.scalingFactor < currentWindowDimensions.height); // Subtract 10 'cause of the glow
 	}
 
 	async select(selectDifficultyIndex: number | 'random', selectionTime?: number, doSnap = true) {
@@ -230,6 +267,7 @@ export class BeatmapSetPanel implements Searchable {
 
 		let now = performance.now();
 		this.expandInterpolator.setReversedState(false, selectionTime ?? now);
+		this.enableSpecialHeight();
 
 		this.carousel.songSelect.infoPanel.loadBeatmapSet(this.beatmapSet, this.beatmapSet.basicData);
 		this.carousel.songSelect.startAudio(this.beatmapSet, this.beatmapSet.basicData);
@@ -272,5 +310,10 @@ export class BeatmapSetPanel implements Searchable {
 
 		this.difficultyPanels[nextIndex].select(true);
 		return true;
+	}
+
+	startFadeIn(now: number) {
+		this.fadeInInterpolator.start(now);
+		this.enableSpecialHeight();
 	}
 }
