@@ -1,7 +1,7 @@
 import { MathUtil } from "../../util/math_util";
 
 const SCROLLBAR_WIDTH = 2.5;
-const MIN_THUMB_HEIGHT = 15;
+const MIN_THUMB_HEIGHT = 12;
 
 export class Scrollbar {
 	public container: PIXI.Container;

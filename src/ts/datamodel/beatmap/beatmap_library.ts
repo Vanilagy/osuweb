@@ -162,12 +162,22 @@ export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
 	private currentIndex = 0;
 	private paused = true;
 	private id = 0;
+	private processedBeatmaps: number = 0;
+	private totalBeatmaps: number = 0;
 
 	get descriptor() {return "Processing beatmap metadata"}
 	get show() {return true}
 	get isPerformanceIntensive() {return true}
 
-	async init() {}
+	async init() {
+		let total = 0;
+
+		for (let i = 0; i < this.input.length; i++) {
+			total += this.input[i].entries.length;
+		}
+
+		this.totalBeatmaps = total;
+	}
 
 	async resume() {
 		if (this.settled) return;
@@ -181,6 +191,8 @@ export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
 
 			let set = this.input[this.currentIndex];
 			await set.loadMetadata();
+
+			this.processedBeatmaps += set.entries.length;
 		}
 
 		this.setResult();
@@ -199,9 +211,9 @@ export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
 
 	getProgress() {
 		return {
-			completion: this.currentIndex / this.input.length,
-			dataCompleted: this.currentIndex,
-			dataTotal: this.input.length
+			completion: this.processedBeatmaps / this.totalBeatmaps,
+			dataCompleted: this.processedBeatmaps,
+			dataTotal: this.totalBeatmaps
 		};
 	}
 }

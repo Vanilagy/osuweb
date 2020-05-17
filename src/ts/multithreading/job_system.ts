@@ -1,6 +1,5 @@
-import { JobTask, JobResponseWrapper, GetExtendedBeatmapDataRequest, GetImageBitmapRequest, GetBasicBeatmapDataRequest } from "./job";
 import { MathUtil } from "../util/math_util";
-import { ExtendedBeatmapData, BasicBeatmapData } from "../util/beatmap_util";
+import { JobTaskInput, JobTask, JobTaskOutput, JobResponseWrapper } from "./worker";
 
 interface JobPromiseWrapper {
 	promise: Promise<unknown>,
@@ -9,6 +8,7 @@ interface JobPromiseWrapper {
 }
 
 let workerCount = MathUtil.clamp(navigator.hardwareConcurrency - 1, 1, 2); // Using more than two can kinda cause lag
+//workerCount = 1;
 let workerPool: Worker[] = [];
 let currentJobId = 0;
 let jobPromises: Map<number, JobPromiseWrapper> = new Map();
@@ -42,11 +42,8 @@ for (let i = 0; i < workerCount; i++) {
 	};
 }
 
-export function startJob(task: JobTask.GetBasicBeatmapData, data: GetBasicBeatmapDataRequest["data"]): Promise<BasicBeatmapData>;
-export function startJob(task: JobTask.GetExtendedBetamapData, data: GetExtendedBeatmapDataRequest["data"]): Promise<ExtendedBeatmapData>;
-export function startJob(task: JobTask.GetImageBitmap, data: GetImageBitmapRequest["data"]): Promise<ImageBitmap>;
-export function startJob<T>(task: JobTask, data?: any, transfer?: Transferable[]): Promise<T> {
-	let worker = workerPool[getNextRoundRobinIndex()];
+export function startJob<T extends JobTask>(task: T, data?: JobTaskInput[T], transfer?: Transferable[], workerIndexOverride?: number): Promise<JobTaskOutput[T]> {
+	let worker = workerPool[(workerIndexOverride ?? getNextRoundRobinIndex()) % workerPool.length];
 	let jobId = currentJobId++;
 
 	worker.postMessage({
@@ -56,7 +53,7 @@ export function startJob<T>(task: JobTask, data?: any, transfer?: Transferable[]
 	}, transfer);
 
 	let promiseResolve: Function, promiseReject: Function;
-	let promise = new Promise<T>((resolve, reject) => {
+	let promise = new Promise<JobTaskOutput[T]>((resolve, reject) => {
 		promiseResolve = resolve;
 		promiseReject = reject;
 	});

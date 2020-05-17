@@ -1,51 +1,90 @@
-import { JobTask, JobResponseWrapper, JobRequestMessage } from "./job";
 import { VirtualFile } from "../file_system/virtual_file";
 import { BeatmapUtil } from "../util/beatmap_util";
+import { UnPromisify } from "../util/misc_util";
 
-self.onmessage = async (e: MessageEvent) => {
+export interface JobRequestMessage {
+	id: number,
+	task: JobTask,
+	data: JobTaskInput[JobTask]
+};
+
+export type JobResponseWrapper = {
+	id: number,
+	status: 'fulfilled',
+	data: JobTaskOutput[JobTask]
+} | {
+	id: number,
+	status: 'rejected',
+	reason: any
+};
+
+const buildTasks = <
+    Tasks extends Record<string, (data: any, transfer?: Transferable[]) => Promise<any>>
+>(tasks: Tasks) => tasks;
+
+export type JobTask = keyof typeof tasks;
+export type JobTaskInput = {
+	[K in JobTask]: Parameters<typeof tasks[K]>[0]
+};
+export type JobTaskOutput = {
+	[K in JobTask]: UnPromisify<ReturnType<typeof tasks[K]>>
+};
+
+let queue: MessageEvent[] = [];
+async function shiftQueue() {
+	let e = queue[0];
+
 	let msg = e.data as JobRequestMessage;
-	let response: typeof msg.responseType;
-	let transfer: Transferable[] = [];
 
 	try {
-		switch (msg.task) {
-			case JobTask.GetBasicBeatmapData: {
-				let data = msg.data;
-				let file = VirtualFile.fromBlob(data.beatmapResource, null);
-				let basicData = await BeatmapUtil.getBasicBeatmapData(file);
+		let transfer: Transferable[] = [];
+		let response = await tasks[msg.task](msg.data as any, transfer);
 
-				response = basicData;
-			}; break;
-			case JobTask.GetExtendedBetamapData: {
-				let data = msg.data;
-				let file = VirtualFile.fromBlob(data.beatmapResource, null);
-				let extendedData = await BeatmapUtil.getExtendedBeatmapData(file);
-
-				response = extendedData;
-			}; break;
-			case JobTask.GetImageBitmap: {
-				let data = msg.data;
-
-				let bitmap = await (createImageBitmap as any)(data.imageResource, {
-					resizeWidth: data.resizeWidth,
-					resizeHeight: data.resizeHeight
-				});
-
-				response = bitmap;
-				transfer.push(bitmap);
-			}; break;
-		}
+		self.postMessage({
+			id: msg.id,
+			status: 'fulfilled',
+			data: response
+		} as JobResponseWrapper, transfer);
 	} catch (e) {
 		self.postMessage({
 			id: msg.id,
 			status: 'rejected',
 			reason: e
-		} as JobResponseWrapper, null);
+		} as JobResponseWrapper);
 	}
 
-	self.postMessage({
-		id: msg.id,
-		status: 'fulfilled',
-		data: response
-	} as JobResponseWrapper, null, transfer);
+	queue.shift();
+	if (queue.length > 0) shiftQueue();
+}
+
+self.onmessage = async (e: MessageEvent) => {
+	queue.push(e);
+	if (queue.length === 1) shiftQueue();
 };
+
+const tasks = buildTasks({
+	getBasicBeatmapData: (blob: Blob) => {
+		let file = VirtualFile.fromBlob(blob, null);
+		return BeatmapUtil.getBasicBeatmapData(file);
+	},
+	getExtendedBetamapData: (blob: Blob) => {
+		let file = VirtualFile.fromBlob(blob, null);
+		return BeatmapUtil.getExtendedBeatmapData(file);
+	},
+	getImageBitmap: async (data: {
+		resourceUrl: string,
+		resizeWidth: number,
+		resizeHeight: number
+	}, transfer) => {
+		let request = await fetch(data.resourceUrl);
+		let blob = await request.blob();
+
+		let bitmap = await (createImageBitmap as any)(blob, {
+			resizeWidth: data.resizeWidth,
+			resizeHeight: data.resizeHeight
+		});
+
+		transfer.push(bitmap);
+		return bitmap;
+	}
+});

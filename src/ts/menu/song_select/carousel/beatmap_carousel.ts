@@ -1,7 +1,7 @@
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../../visuals/ui";
 import { BeatmapSetPanelDrawable } from "./beatmap_set_panel_drawable";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, binarySearchLessOrEqual } from "../../../util/misc_util";
+import { NormalizedWheelEvent, last, binarySearchLessOrEqual, removeSurroundingDoubleQuotes } from "../../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../../util/graphics_util";
 import { EaseType, MathUtil } from "../../../util/math_util";
 import { InteractionGroup, InteractionRegistration } from "../../../input/interactivity";
@@ -330,6 +330,7 @@ export class BeatmapCarousel {
 		}
 
 		let panelsToDisplay: BeatmapSetPanel[] = [];
+		let region: BeatmapSetPanel[] = [];
 
 		// Now, we go through all panels in the update region
 		while (index < panels.length) {
@@ -338,11 +339,25 @@ export class BeatmapCarousel {
 
 			index++;
 			panel.storedY = position;
-			panel.update(now);
+			region.push(panel);
 			position += panel.getTotalHeight(now);;
 
 			if (!panel.isInView(now)) continue;
 			panelsToDisplay.push(panel);
+		}
+
+		// Start out in the middle of the update region
+		let mid = Math.floor(region.length/2);
+		// Then, move forward based on current scrolling velocity, to "predict" where the middle will be in a short amount of time
+		mid += Math.floor(this.getCurrentSignedVelocity(now) / 600);
+
+		// Update the beatmap panels inside out. This is done so that images close to the middle will load sooner than images on the edges of the region.
+		for (let i = 0; true; i++) {
+			let index = mid;
+			index += Math.ceil(i/2) * Math.pow(-1, i);
+			if (Math.abs(index - mid) > region.length) break;
+
+			region[index]?.update(now);
 		}
 
 		// Take care of drawables that aren't visible anymore

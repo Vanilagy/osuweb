@@ -1,5 +1,4 @@
 import { VirtualFile } from "../file_system/virtual_file";
-import { JobTask } from "./job";
 import { startJob } from "./job_system";
 import { promiseAllSettled } from "../util/misc_util";
 import { ExtendedBeatmapData } from "../util/beatmap_util";
@@ -10,9 +9,7 @@ export abstract class JobUtil {
 
 		for (let i = 0; i < beatmapFiles.length; i++) {
 			let blob = await beatmapFiles[i].getBlob();
-			let promise = startJob(JobTask.GetExtendedBetamapData, {
-				beatmapResource: blob
-			});
+			let promise = startJob("getExtendedBetamapData", blob);
 
 			promises.push(promise);
 		}

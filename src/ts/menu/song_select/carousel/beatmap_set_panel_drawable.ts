@@ -28,7 +28,7 @@ export class BeatmapSetPanelDrawable {
 	private lastStarRating: number;
 
 	private backgroundImageSprite: PIXI.Sprite;
-	private imageColorFilter: PIXI.filters.ColorMatrixFilter;
+	private brightnessLayer: PIXI.Sprite;
 
 	private difficultyContainer: PIXI.Container;
 	private difficultyPanels: BeatmapDifficultyPanelDrawable[] = [];
@@ -52,6 +52,10 @@ export class BeatmapSetPanelDrawable {
 		this.backgroundImageSprite.width = 200;
 		this.backgroundImageSprite.height = 200;
 		this.panelContainer.addChild(this.backgroundImageSprite);
+
+		this.brightnessLayer = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.brightnessLayer.blendMode = PIXI.BLEND_MODES.ADD;
+		this.panelContainer.addChild(this.brightnessLayer);
 
 		this.darkening = new PIXI.Sprite();
 		this.darkening.y = -1;
@@ -77,9 +81,6 @@ export class BeatmapSetPanelDrawable {
 		this.starRatingGraphics = new PIXI.Graphics();
 
 		this.panelContainer.addChild(this.primaryTextA, this.primaryTextB, this.secondaryTextA, this.secondaryTextB, this.starRatingGraphics);
-
-		this.imageColorFilter = new PIXI.filters.ColorMatrixFilter();
-		this.backgroundImageSprite.filters = [this.imageColorFilter];
 
 		this.glowSprite = new PIXI.Sprite();
 		this.glowSprite.zIndex = -1;
@@ -130,6 +131,10 @@ export class BeatmapSetPanelDrawable {
 		fitSpriteIntoContainer(this.backgroundImageSprite, BEATMAP_SET_PANEL_WIDTH * scalingFactor, BEATMAP_SET_PANEL_HEIGHT * scalingFactor, new PIXI.Point(0.0, 0.25));
 
 		this.darkening.texture = getDarkeningOverlay();
+
+		this.brightnessLayer.y = -1;
+		this.brightnessLayer.width = BEATMAP_SET_PANEL_WIDTH * scalingFactor;
+		this.brightnessLayer.height = BEATMAP_SET_PANEL_HEIGHT * scalingFactor + 1;
 
 		// Update all the text stuff
 		this.primaryTextA.style.fontSize = Math.floor(22 * scalingFactor);
@@ -217,7 +222,7 @@ export class BeatmapSetPanelDrawable {
 		let hoverValue = this.panel.hoverInterpolator.getCurrentValue(now) * MathUtil.lerp(1, 0.2, this.panel.expandInterpolator.getCurrentCompletion(now));
 		this.panelContainer.x += hoverValue * -15 * scalingFactor;
 
-		this.imageColorFilter.brightness(1 + this.panel.mouseDownBrightnessInterpolator.getCurrentValue(now) * 0.2, false);
+		this.brightnessLayer.alpha = MathUtil.lerp(0.0, 0.1, this.panel.mouseDownBrightnessInterpolator.getCurrentValue(now));
 
 		this.container.x = Math.floor(this.container.x);
 		this.container.y = Math.floor(this.container.y);

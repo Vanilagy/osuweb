@@ -358,3 +358,5 @@ export function arraysEqualShallow<T>(arr1: T[], arr2: T[]) {
 export function supportsNativeFileSystemApi() {
 	return typeof chooseFileSystemEntries !== "undefined";
 }
+
+export type UnPromisify<T> = T extends Promise<infer U> ? U : T;

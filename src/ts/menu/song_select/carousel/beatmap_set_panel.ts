@@ -230,9 +230,9 @@ export class BeatmapSetPanel implements Searchable {
 		if (isClose && this.fadeInInterpolator.getCurrentValue(now) >= 0.75) {
 			let velocity = this.carousel.getCurrentAbsoluteVelocity(now);
 
+			this.loadImage(velocity);
 			if (velocity < 800) this.beatmapSet.loadEntries();
 			if (velocity < 500) this.beatmapSet.loadMetadata();
-			this.loadImage(velocity);
 		}
 
 		let combinedPanelHeight = BEATMAP_DIFFICULTY_PANEL_HEIGHT + BEATMAP_DIFFICULTY_PANEL_MARGIN;

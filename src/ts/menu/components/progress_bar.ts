@@ -44,6 +44,7 @@ export class ProgressBar {
 			fill: 0xffffff
 		};
 		this.absoluteDataText.alpha = 0.75;
+		this.absoluteDataText.anchor.set(1.0, 0.0);
 		this.container.addChild(this.absoluteDataText);
 
 		this.progressInterpolator = new InterpolatedValueChanger({
@@ -103,7 +104,6 @@ export class ProgressBar {
 		if (this.showAbsoluteData) {
 			this.absoluteDataText.visible = true;
 			this.absoluteDataText.text = this.absoluteData.done + ' / ' + this.absoluteData.total;
-			this.absoluteDataText.pivot.x = Math.floor(this.absoluteDataText.width);
 		} else {
 			this.absoluteDataText.visible = false;
 		}

@@ -6,7 +6,6 @@ import { BasicBeatmapData, BeatmapUtil } from "../../util/beatmap_util";
 import { BeatmapEntry } from "./beatmap_entry";
 import { isOsuBeatmapFile } from "../../util/file_util";
 import { startJob } from "../../multithreading/job_system";
-import { JobTask } from "../../multithreading/job";
 import { JobUtil } from "../../multithreading/job_util";
 import { Skin } from "../../game/skin/skin";
 
@@ -84,9 +83,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 					} else {
 						// We weren't able to extract the version name easily. In this case, go parse the beatmap.
 						let blob = await fileEntry.getBlob();
-						let basicData = await startJob(JobTask.GetBasicBeatmapData, {
-							beatmapResource: blob
-						});
+						let basicData = await startJob("getBasicBeatmapData", blob);
 
 						beatmapEntry.version = basicData.version;
 					}
@@ -96,9 +93,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 			}
 
 			let blob = await this.entries[0].resource.getBlob();
-			this.basicData = await startJob(JobTask.GetBasicBeatmapData, {
-				beatmapResource: blob
-			});
+			this.basicData = await startJob("getBasicBeatmapData", blob);
 			this.setBasicMetadata(this.basicData.title, this.basicData.artist, this.basicData.creator);
 
 			this.entriesLoaded = true;
