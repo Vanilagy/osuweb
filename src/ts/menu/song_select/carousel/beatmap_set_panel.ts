@@ -1,4 +1,3 @@
-import { BeatmapCarousel } from "./beatmap_carousel";
 import { Interpolator } from "../../../util/interpolation";
 import { EaseType, MathUtil } from "../../../util/math_util";
 import { getBitmapFromImageFile, BitmapQuality, hasBitmapFromImageFile } from "../../../util/image_util";
@@ -284,7 +283,12 @@ export class BeatmapSetPanel implements Searchable {
 
 	/** Gets this panel's beatmap entries sorted by star rating. */
 	getSortedEntries() {
-		return this.beatmapEntries.slice().sort((a, b) => a.extendedMetadata.difficultyAttributes.starRating - b.extendedMetadata.difficultyAttributes.starRating);
+		try {
+			return this.beatmapEntries.slice().sort((a, b) => a.extendedMetadata.difficultyAttributes.starRating - b.extendedMetadata.difficultyAttributes.starRating);
+		} catch (e) {
+			console.log(e);
+			console.log(this.beatmapSet);
+		}
 	}
 
 	collapse() {

@@ -21,7 +21,6 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 	public creator: string;
 	public creatorLowerCase: string;
 
-	public imageFile: VirtualFile;
 	public directory: VirtualDirectory;
 	/** Basic data about the beatmap "representing" this beatmap set. Just gotta pick one. */
 	public basicData: BasicBeatmapData = null;
@@ -92,11 +91,18 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 				}
 			}
 
-			let blob = await this.entries[0].resource.getBlob();
-			this.basicData = await startJob("getBasicBeatmapData", blob);
-			this.setBasicMetadata(this.basicData.title, this.basicData.artist, this.basicData.creator);
+			try {
+				let blob = await this.entries[0].resource.getBlob();
+				this.basicData = await startJob("getBasicBeatmapData", blob);
+				this.setBasicMetadata(this.basicData.title, this.basicData.artist, this.basicData.creator);
 
-			this.entriesLoaded = true;
+				this.entriesLoaded = true;
+			} catch (e) {
+				console.log(this.directory);
+				//console.log(this.entries[0].resource);
+				console.log("HAAAAAAAAAA");
+			}
+			
 			this.emit('change');
 
 			resolve();
@@ -110,6 +116,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 	loadMetadata() {
 		// Entries is already loading, return the ongoing promise.
 		if (this.metadataLoadingPromise) return this.metadataLoadingPromise;
+		if (!this.basicData) return;
 
 		let promise = new Promise<void>(async (resolve) => {
 			if (!this.entriesLoaded) await this.loadEntries();
@@ -124,6 +131,12 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 				if (data.status === 'fulfilled') {
 					entry.extendedMetadata = data.value;
 					entry.version = data.value.version;
+				} else {
+					console.log(data, this);
+					
+					this.entries.splice(i, 1);
+					metadata.splice(i, 1);
+					i--;
 				}
 			}
 	
