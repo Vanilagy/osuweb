@@ -2,7 +2,7 @@ import { BeatmapSet } from "./beatmap_set";
 import { Beatmap, TimingPoint, BeatmapEventBackground, BeatmapEventType, BeatmapEventVideo, BeatmapEventBreak } from "./beatmap";
 import { BeatmapDifficulty } from "./beatmap_difficulty";
 import { unholeArray, removeSurroundingDoubleQuotes } from "../../util/misc_util";
-import { parseColor } from "../../util/graphics_util";
+import { parseColor, colorToHexNumber } from "../../util/graphics_util";
 import { Slider, Sampling, SliderType, SliderCurveSection } from "../hit_objects/slider";
 import { Spinner } from "../hit_objects/spinner";
 import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
@@ -57,9 +57,9 @@ export namespace BeatmapParser {
 				if (metadataOnly) break; // We can safely assume that by the time we've hit the [HitPoints] portion, we can safely stop parsing the rest of the file (if we're only looking for metadata)
 				if (!metadataOnly) parseHitObject(beatmap, line);
 			} else {
-				let split = line.split(':');
-				if (split[1] === undefined) continue;
-				let value = split[1].trim();
+				let colonIndex = line.indexOf(':');
+				if (colonIndex === -1) return;
+				let value = line.slice(colonIndex + 1).trim();
 
 				// General
 				     if (line.startsWith("AudioFilename")) beatmap.audioFilename = value;
@@ -132,9 +132,9 @@ export namespace BeatmapParser {
 	}
 
 	function parseColorLine(beatmap: Beatmap, line: string) {
-		let parts = line.split(':');
-		let property = parts[0];
-		let colStrings = parts[1].trim().split(',');
+		let colonIndex = line.indexOf(':');
+		let property = line.slice(0, colonIndex);
+		let colStrings = line.slice(colonIndex + 1).trim().split(',');
 		let color = parseColor(colStrings, 0);
 		
 		if (property.startsWith("Combo")) {
