@@ -104,7 +104,10 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		}
 
 		// Iterating over all elements will load them
-		for await (let e of this) {}
+		for await (let e of this) {
+			// This is practically a no-op that has to be here because otherwise, the entire iterator is optimized away.
+			if (!e) console.log(e);
+		}
 
 		this.readied = true;
 	}
