@@ -84,14 +84,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 				if (isOsuBeatmapFile(fileEntry.name)) {
 					let beatmapEntry = new BeatmapEntry(this, fileEntry);
 
-					let version = this.getVersionFromFileName(fileEntry.name);
-
-					if (version !== null) {
-						// We were able to extract the version name from the file name.
-						beatmapEntry.version = version;
-					} else {
-						beatmapEntry.version = "loading...";
-					}
+					beatmapEntry.version = this.getVersionFromFileName(fileEntry.name) ?? "loading...";
 
 					this.entries.push(beatmapEntry);
 				}
@@ -100,6 +93,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 			try {
 				let blob = await this.entries[0].resource.getBlob();
 				this.basicData = await startJob("getBasicBeatmapData", blob);
+
 				this.setBasicMetadata(this.basicData.title, this.basicData.artist, this.basicData.creator);
 
 				this.entriesLoaded = true;
