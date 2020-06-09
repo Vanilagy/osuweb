@@ -90,6 +90,8 @@ export class Play {
 	
 	async init() {
 		if (this.initted) return;
+		
+		globalState.toolbar.container.alpha = 0;
 
 		console.time("Beatmap process");
 		this.processedBeatmap.init();
@@ -583,6 +585,8 @@ export class Play {
 		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 		this.drawableBeatmap.stopHitObjectSounds();
 		if (this.hasVideo) globalState.backgroundManager.removeVideo();
+		
+		globalState.toolbar.container.alpha = 1;
 	}
 
 	processJudgement(judgement: Judgement) {
