@@ -14,12 +14,12 @@ const metadataExtractor = /^(.+) - (.+) \((.+)\) \[(.+)\]\.osu$/;
 
 export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Searchable {
 	// These lower-case versions exist to enable faster sorting
-	public title: string;
-	public titleLowerCase: string;
-	public artist: string;
-	public artistLowerCase: string;
-	public creator: string;
-	public creatorLowerCase: string;
+	public title: string = "<title>";
+	public titleLowerCase: string = "<title>";
+	public artist: string = "<artist>";
+	public artistLowerCase: string = "<artist>";
+	public creator: string = "<creator>";
+	public creatorLowerCase: string = "<creator>";
 
 	public directory: VirtualDirectory;
 	/** Basic data about the beatmap "representing" this beatmap set. Just gotta pick one. */
