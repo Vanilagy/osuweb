@@ -525,7 +525,7 @@ export class HighAccuracyAudioPlayer {
 				this.lastDeltaAdjustmentTime = now;
 			} else if (now - this.lastDeltaAdjustmentTime >= 250 && this.timingDeltas.length >= 10) {
 				let avg = MathUtil.calculateMean(this.timingDeltas);
-				this.performanceStartTime += avg * 1000;
+				// this.performanceStartTime += avg * 1000;
 				this.timingDeltas.length = 0;
 	
 				this.lastDeltaAdjustmentTime = now;
