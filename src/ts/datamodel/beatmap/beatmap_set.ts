@@ -63,6 +63,15 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 		}
 	}
 
+	getVersionFromFileName(fileName: string) {
+		let openingBracketPos = fileName.lastIndexOf('[');
+		let closingBracketPos = fileName.lastIndexOf(']');
+
+		if (openingBracketPos < 0 || closingBracketPos < 0) return null;
+
+		return fileName.substr(openingBracketPos, closingBracketPos - openingBracketPos);
+	}
+
 	/** Loads all beatmap entries (all the beatmaps of this set). Additionally, loads basic metadata about the beatmap set. */
 	loadEntries() {
 		// Entries are already loading, return the ongoing promise.
@@ -74,17 +83,14 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 
 				if (isOsuBeatmapFile(fileEntry.name)) {
 					let beatmapEntry = new BeatmapEntry(this, fileEntry);
-					let match = metadataExtractor.exec(fileEntry.name);
 
-					if (match && match[4] !== undefined) {
+					let version = this.getVersionFromFileName(fileEntry.name);
+
+					if (version !== null) {
 						// We were able to extract the version name from the file name.
-						beatmapEntry.version = match[4];
+						beatmapEntry.version = version;
 					} else {
-						// We weren't able to extract the version name easily. In this case, go parse the beatmap.
-						let blob = await fileEntry.getBlob();
-						let basicData = await startJob("getBasicBeatmapData", blob);
-
-						beatmapEntry.version = basicData.version;
+						beatmapEntry.version = "loading...";
 					}
 
 					this.entries.push(beatmapEntry);
