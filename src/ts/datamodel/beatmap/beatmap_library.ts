@@ -54,20 +54,14 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 		let firstSpacePos = folderName.indexOf(' ');
 		let dashPos = folderName.indexOf(' - ');
 
-		if (dashPos !== folderName.lastIndexOf(' - ')) {
-			return null;
-		}
-
-		let id = parseInt(folderName.substr(0, firstSpacePos), 10); // BeatmapSet ID
-
-		if (id === NaN) {
+		if (firstSpacePos === dashPos || dashPos !== folderName.lastIndexOf(' - ')) {
 			return null;
 		}
 
 		let artist = folderName.substr(firstSpacePos + 1, dashPos - firstSpacePos + 1);
 		let title = folderName.substr(dashPos + 3).trimEnd();
 
-		return [id.toString(10), artist, title];
+		return [artist, title];
 	}
 
 	async resume() {
@@ -90,8 +84,8 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 
 			if (data) {
 				// Get a quick and dirty estimate of the title and arist as a placeholder before actual metadata is loaded.
-				let title = data[2];
-				let artist = data[1];
+				let title = data[1];
+				let artist = data[0];
 
 				let newSet = new BeatmapSet(entry);
 				newSet.setBasicMetadata(title, artist);
@@ -148,7 +142,7 @@ export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
 
 		let idAtStart = this.id;
 
-		for (this.currentIndex; this.currentIndex < this.input.length; this.currentIndex++) {
+		for (; this.currentIndex < this.input.length; this.currentIndex++) {
 			if (this.id !== idAtStart) return;
 
 			let set = this.input[this.currentIndex];
