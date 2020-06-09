@@ -52,53 +52,52 @@ let frameCount = 0;
 let lastFrameCountStart: number = null;
 
 function mainRenderingLoop() {
-	let startTime = performance.now();
-	
+	let currentTime = performance.now();
+	let dt = currentTime - (lastFrameTime ?? 0);
+
+	inbetweenFrameTimes.push(dt);
+
 	frameCount++;
 	if (lastFrameCountStart === null) {
-		lastFrameCountStart = startTime;
-	} else if (startTime - lastFrameCountStart >= 500) {
-		let fps = frameCount / (startTime - lastFrameCountStart) * 1000;
-		// console.log("FPS: " + fps);
+		lastFrameCountStart = currentTime;
+	} else if (currentTime - lastFrameCountStart >= 500) {
+		let fps = frameCount / (currentTime - lastFrameCountStart) * 1000;
+		 console.log("FPS: " + fps);
 
 		frameCount = 0;
-		lastFrameCountStart = startTime;
+		lastFrameCountStart = currentTime;
 	}
 
-	requestAnimationFrame(mainRenderingLoop);
-
-	let dt = 1/60;
-	if (lastFrameTime !== null) dt = startTime - lastFrameTime;
-	inbetweenFrameTimes.push(dt);
-	lastFrameTime = startTime;
-
 	for (let i = 0; i < renderingTasks.length; i++) {
-		renderingTasks[i](startTime, dt);
+		renderingTasks[i](lastFrameTime, dt);
 	}
 
 	renderer.render(stage);
 
-	if (!logRenderTimeInfo) return;
+	requestAnimationFrame(mainRenderingLoop);
 
-	// Frame time logger:
-	let now = performance.now();
-	let elapsedTime = now - startTime;
-	frameTimes.push(elapsedTime);
-
-	if ((now - lastRenderInfoLogTime) >= LOG_RENDER_INFO_INTERVAL && frameTimes.length > 0 && inbetweenFrameTimes.length > 0) {
-		let data1 = MathUtil.getAggregateValuesFromArray(frameTimes),
-			data2 = MathUtil.getAggregateValuesFromArray(inbetweenFrameTimes);
-			
-		console.log("---");
-		console.log(`Frame time info: Average: ${data1.avg.toFixed(3)}ms, Shortest: ${data1.min.toFixed(3)}ms, Longest: ${data1.max.toFixed(3)}ms`);
-		console.log(`Frame period info: Average: ${data2.avg.toFixed(3)}ms, Shortest: ${data2.min.toFixed(3)}ms, Longest: ${data2.max.toFixed(3)}ms`);
-
-		frameTimes.length = 0;
-		inbetweenFrameTimes.length = 0;
-		lastRenderInfoLogTime = now;
+	if (logRenderTimeInfo) {
+		// Frame time logger:
+		let elapsedTime = currentTime - lastFrameTime;
+		frameTimes.push(elapsedTime);
+	
+		if ((currentTime - lastRenderInfoLogTime) >= LOG_RENDER_INFO_INTERVAL && frameTimes.length > 0 && inbetweenFrameTimes.length > 0) {
+			let data1 = MathUtil.getAggregateValuesFromArray(frameTimes),
+				data2 = MathUtil.getAggregateValuesFromArray(inbetweenFrameTimes);
+				
+			console.log("---");
+			console.log(`Frame time info: Average: ${data1.avg.toFixed(3)}ms, Shortest: ${data1.min.toFixed(3)}ms, Longest: ${data1.max.toFixed(3)}ms`);
+			console.log(`Frame period info: Average: ${data2.avg.toFixed(3)}ms, Shortest: ${data2.min.toFixed(3)}ms, Longest: ${data2.max.toFixed(3)}ms`);
+	
+			frameTimes.length = 0;
+			inbetweenFrameTimes.length = 0;
+			lastRenderInfoLogTime = currentTime;
+		}
+	
+		if (lastRenderInfoLogTime === null) lastRenderInfoLogTime = currentTime;
 	}
 
-	if (lastRenderInfoLogTime === null) lastRenderInfoLogTime = now;
+	lastFrameTime = currentTime;
 }
 requestAnimationFrame(mainRenderingLoop);
 
