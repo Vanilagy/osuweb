@@ -2,6 +2,7 @@ import { BeatmapSetPanelCollection } from "./beatmap_set_panel_collection";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { BeatmapCarousel } from "./beatmap_carousel";
 import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
+import { removeItem } from "../../../util/misc_util";
 
 /** "Grouped" in the sense that every beatmap set has exactly one panel, and all of that set's difficulties are grouped in that one panel. */
 export class BeatmapSetPanelCollectionGrouped extends BeatmapSetPanelCollection {
@@ -38,5 +39,16 @@ export class BeatmapSetPanelCollectionGrouped extends BeatmapSetPanelCollection 
 		}
 
 		this.displayPanels(changedPanels);
+	}
+
+	remove(beatmapSet: BeatmapSet) {
+		let panel = this.beatmapSetToPanel.get(beatmapSet);
+		if (!panel) return;
+
+		removeItem(this.allPanels, panel);
+		this.allPanelsSet.delete(panel);
+
+		panel.startFadeOut(performance.now());
+		this.removalQueue.push(panel);
 	}
 }

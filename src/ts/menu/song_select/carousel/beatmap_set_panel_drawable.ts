@@ -38,7 +38,6 @@ export class BeatmapSetPanelDrawable {
 		this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
 		this.interactionGroup = new InteractionGroup();
-		this.carousel.interactionGroup.add(this.interactionGroup);
 
 		this.difficultyContainer = new PIXI.Container();
 		this.difficultyContainer.sortableChildren = true;
@@ -183,8 +182,10 @@ export class BeatmapSetPanelDrawable {
 
 		// Scale in the panel vertically
 		let fadeInCompletion = this.panel.fadeInInterpolator.getCurrentValue(now);
+		let fadingOut = this.panel.fadeInInterpolator.isReversed();
 		this.container.scale.set(1, this.panel.getScaleInValue(now));
-		this.container.alpha = MathUtil.ease(EaseType.EaseOutQuint, fadeInCompletion);
+		this.container.alpha = MathUtil.ease(fadingOut? EaseType.EaseInQuad : EaseType.EaseOutQuint, fadeInCompletion);
+		if (fadingOut) this.interactionGroup.disable();
 
 		let scalingFactor = this.carousel.scalingFactor;
 

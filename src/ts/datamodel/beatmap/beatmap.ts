@@ -134,14 +134,14 @@ export class Beatmap {
 	/** Beatmap creator */
 	public creator: string = null;
 	/** Difficulty name */
-	public version: string = '';
+	public version: string = null;
 	/** Original media the song was produced for */
-	public source: string = null;
+	public source: string = '';
 	/** Search terms */
-	public tags: string = null;
+	public tags: string = '';
 	/** Beatmap ID */
 	public beatmapID: number = null;
-	/** Beatmapset ID */
+	/** Beatmap set ID */
 	public beatmapSetID: number = null;
 
 	constructor(beatmapSet: BeatmapSet) {

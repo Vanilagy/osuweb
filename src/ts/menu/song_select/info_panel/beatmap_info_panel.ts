@@ -41,6 +41,7 @@ export class BeatmapInfoPanel {
 	private tabs: BeatmapInfoPanelTab[] = [];
 	private currentTabIndex: number = null;
 	private tabFadeInterpolators = new WeakMap<BeatmapInfoPanelTab, Interpolator>();
+	private fadeInInterpolator: Interpolator;
 
 	constructor(songSelect: SongSelect) {
 		this.songSelect = songSelect;
@@ -72,8 +73,17 @@ export class BeatmapInfoPanel {
 			this.tabFadeInterpolators.set(t, interpolator);
 		}
 
+		this.fadeInInterpolator = new Interpolator({
+			duration: 500,
+			ease: EaseType.EaseOutQuart,
+			reverseEase: EaseType.EaseInQuint,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+
 		this.selectTab(0);
 		this.initInteraction();
+		this.hide();
 	}
 
 	private initInteraction() {
@@ -114,6 +124,7 @@ export class BeatmapInfoPanel {
 	}
 
 	async loadBeatmapData(entry: BeatmapEntry) {
+		this.show();
 		this.header.updateText(entry.extendedMetadata, true, false);
 
 		let detailsTab = this.tabs[0] as BeatmapDetailsTab;
@@ -153,6 +164,10 @@ export class BeatmapInfoPanel {
 	}
 
 	update(now: number) {
+		let fadeInCompletion = this.fadeInInterpolator.getCurrentValue(now);
+		this.container.alpha = fadeInCompletion;
+		this.container.pivot.x = (1 - fadeInCompletion) * 50 * this.scalingFactor;
+
 		this.header.update(now, this.scalingFactor);
 
 		this.tabSelector.update(now);
@@ -181,5 +196,15 @@ export class BeatmapInfoPanel {
 		} else {
 			this.tabBackgroundHeightInterpolator.setGoal(height, performance.now());
 		}
+	}
+
+	show() {
+		this.fadeInInterpolator.setReversedState(false, performance.now());
+		this.interactionGroup.disable();
+	}
+
+	hide() {
+		this.fadeInInterpolator.setReversedState(true, performance.now());
+		this.interactionGroup.enable();
 	}
 }

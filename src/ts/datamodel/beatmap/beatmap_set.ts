@@ -12,7 +12,7 @@ import { Skin } from "../../game/skin/skin";
 /** Extracts artist, title, mapper and version from a beatmap file name. */
 const metadataExtractor = /^(.+) - (.+) \((.+)\) \[(.+)\]\.osu$/;
 
-export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Searchable {
+export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void}> implements Searchable {
 	// These lower-case versions exist to enable faster sorting
 	public title: string;
 	public titleLowerCase: string;
@@ -32,6 +32,8 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 	public entriesLoaded = false;
 	private metadataLoadingPromise: Promise<void>;
 	public metadataLoaded = false;
+	/** Whether or not this beatmap set is defective and/or as been removed. Reasons for defectiveness often include errors during file loading. Defective beatmap sets should not be used! */
+	public defective = false;
 
 	constructor(directory: VirtualDirectory) {
 		super();
@@ -72,6 +74,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 			for await (let fileEntry of this.directory) {
 				if (!(fileEntry instanceof VirtualFile)) continue;
 
+				outer:
 				if (isOsuBeatmapFile(fileEntry.name)) {
 					let beatmapEntry = new BeatmapEntry(this, fileEntry);
 					let match = metadataExtractor.exec(fileEntry.name);
@@ -80,30 +83,41 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 						// We were able to extract the version name from the file name.
 						beatmapEntry.version = match[4];
 					} else {
-						// We weren't able to extract the version name easily. In this case, go parse the beatmap.
-						let blob = await fileEntry.getBlob();
-						let basicData = await startJob("getBasicBeatmapData", blob);
+						try {
+							// We weren't able to extract the version name easily. In this case, go parse the beatmap.
+							let blob = await fileEntry.getBlob();
+							let basicData: BasicBeatmapData;
+							basicData = await startJob("getBasicBeatmapData", blob);
 
-						beatmapEntry.version = basicData.version;
+							beatmapEntry.version = basicData.version;
+						} catch (e) {
+							// There was an error getting basic beatmap data; discard this beatmap entry.
+							break outer;
+						}
 					}
 
 					this.entries.push(beatmapEntry);
 				}
 			}
 
-			try {
-				let blob = await this.entries[0].resource.getBlob();
-				this.basicData = await startJob("getBasicBeatmapData", blob);
-				this.setBasicMetadata(this.basicData.title, this.basicData.artist, this.basicData.creator);
-
-				this.entriesLoaded = true;
-			} catch (e) {
-				console.log(this.directory);
-				//console.log(this.entries[0].resource);
-				console.log("HAAAAAAAAAA");
+			if (this.entries.length === 0) {
+				// Beatmap sets with zero beatmaps are practically useless and shouldn't even be considered beatmap sets.
+				this.defective = true;
+			} else {
+				try {
+					let blob = await this.entries[0].resource.getBlob();
+					this.basicData = await startJob("getBasicBeatmapData", blob);
+					this.setBasicMetadata(this.basicData.title, this.basicData.artist, this.basicData.creator);
+	
+					this.entriesLoaded = true;
+					this.emit('change');
+				} catch (e) {
+					console.log("Error loading entries for beatmap set: ", e);
+					this.defective = true;
+				}
 			}
-			
-			this.emit('change');
+
+			if (this.defective) this.remove();
 
 			resolve();
 		});
@@ -114,7 +128,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 
 	/** Loads the complete metadata of all the entries in the set (including difficulty). */
 	loadMetadata() {
-		// Entries is already loading, return the ongoing promise.
+		// Metadata is already loading, return the ongoing promise.
 		if (this.metadataLoadingPromise) return this.metadataLoadingPromise;
 		if (!this.basicData) return;
 
@@ -148,6 +162,12 @@ export class BeatmapSet extends CustomEventEmitter<{change: void}> implements Se
 		this.metadataLoadingPromise = promise;
 
 		return promise;
+	}
+
+	/** Removes this beatmap set and labels it as defective. */
+	remove() {
+		this.defective = true;
+		this.emit('remove');
 	}
 
 	async getBeatmapSkin() {

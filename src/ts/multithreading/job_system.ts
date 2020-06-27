@@ -8,7 +8,6 @@ interface JobPromiseWrapper {
 }
 
 let workerCount = MathUtil.clamp(navigator.hardwareConcurrency - 1, 1, 2); // Using more than two can kinda cause lag
-//workerCount = 1;
 let workerPool: Worker[] = [];
 let currentJobId = 0;
 let jobPromises: Map<number, JobPromiseWrapper> = new Map();

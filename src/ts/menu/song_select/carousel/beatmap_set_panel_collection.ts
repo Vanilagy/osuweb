@@ -1,6 +1,6 @@
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { BeatmapCarousel } from "./beatmap_carousel";
-import {  matchesSearchable, arraysEqualShallow, compareStrings, insertItemBinary } from "../../../util/misc_util";
+import {  matchesSearchable, arraysEqualShallow, compareStrings, insertItemBinary, removeItem } from "../../../util/misc_util";
 import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
 
 export enum BeatmapCarouselSortingType {
@@ -45,6 +45,8 @@ export abstract class BeatmapSetPanelCollection {
 	/** Only beatmap sets matching this query will be displayed. */
 	protected queryWords: string[] = [];
 
+	protected removalQueue: BeatmapSetPanel[];
+
 	constructor(carousel: BeatmapCarousel) {
 		this.carousel = carousel;
 		this.allPanels = [];
@@ -52,10 +54,14 @@ export abstract class BeatmapSetPanelCollection {
 		this.displayedPanels = [];
 		this.displayedPanelsSet = new Set();
 		this.specialHeightPanels = new Set();
+		this.removalQueue = [];
 	}
 	
 	/** Gets called when beatmap sets change. This method is the one responsible for creating panels. */
 	abstract onChange(beatmapSets: BeatmapSet[]): void;
+
+	/** Gets called when a beatmap set is removed. This method is responsible for removing the corresponding panels. */
+	abstract remove(beatmapSet: BeatmapSet): void;
 
 	getPanelsByBeatmapSet(beatmapSet: BeatmapSet) {
 		let panels: BeatmapSetPanel[] = [];
@@ -145,6 +151,19 @@ export abstract class BeatmapSetPanelCollection {
 		// Assign order values
 		for (let i = 0; i < this.displayedPanels.length; i++) {
 			this.displayedPanels[i].order = i;
+		}
+	}
+
+	update(now: number) {
+		// Remove panels whose fade out animation has completed
+		for (let panel of this.removalQueue) {
+			if (panel.fadeInInterpolator.getCurrentValue(now) === 0) {
+				removeItem(this.displayedPanels, panel);
+				this.displayedPanelsSet.delete(panel);
+
+				removeItem(this.removalQueue, panel);
+				this.specialHeightPanels.delete(panel);
+			}
 		}
 	}
 

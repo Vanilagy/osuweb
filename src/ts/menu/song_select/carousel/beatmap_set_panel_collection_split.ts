@@ -3,6 +3,7 @@ import { BeatmapCarousel } from "./beatmap_carousel";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
 import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
+import { removeItem } from "../../../util/misc_util";
 
 /** "Split" means that every beatmap entry has its own panel. This comes in handy for things like sorting maps by difficulty, where sorting entire beatmap sets would make no sense. */
 export class BeatmapSetPanelCollectionSplit extends BeatmapSetPanelCollection {
@@ -40,5 +41,18 @@ export class BeatmapSetPanelCollectionSplit extends BeatmapSetPanelCollection {
 		}
 
 		this.displayPanels(changedPanels);
+	}
+
+	remove(beatmapSet: BeatmapSet) {
+		let panels = beatmapSet.entries.map(x => this.beatmapEntryToPanel.get(x)).filter(x => x); // Filter to get rid of undefineds
+		let now = performance.now();
+
+		for (let panel of panels) {
+			removeItem(this.allPanels, panel);
+			this.allPanelsSet.delete(panel);
+	
+			panel.startFadeOut(now);
+			this.removalQueue.push(panel);
+		}		
 	}
 }

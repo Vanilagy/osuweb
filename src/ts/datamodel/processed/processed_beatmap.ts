@@ -53,6 +53,8 @@ export class ProcessedBeatmap {
 	}
 
 	private generateHitObjects() {
+		if (this.beatmap.timingPoints.length === 0) return; // Require at least one timing point to generate anything
+
 		let currentObjectIndex = 0;
 		let comboCount = 1;
 		let currentCombo = 0;

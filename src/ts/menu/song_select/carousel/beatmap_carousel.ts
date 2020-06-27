@@ -81,6 +81,7 @@ export class BeatmapCarousel {
 			let panel = new BeatmapSetPanelDrawable(this);
 			this.container.addChild(panel.container);
 			this.drawablePool.push(panel);
+			this.interactionGroup.add(panel.interactionGroup);
 		}
 		this.unassignedDrawables.push(...this.drawablePool);
 
@@ -92,8 +93,35 @@ export class BeatmapCarousel {
 			}
 		});
 		globalState.beatmapLibrary.addListener('change', (beatmapSet) => {
+			if (beatmapSet.defective) return; // Don't forward changes to defective beatmap sets
+
 			for (let key in this.collections) {
 				this.collections[key as CollectionName].onChange([beatmapSet]);
+			}
+		});
+		globalState.beatmapLibrary.addListener('remove', (beatmapSet) => {
+			for (let key in this.collections) {
+				this.collections[key as CollectionName].remove(beatmapSet);
+			}
+
+			// Switch to a different reference panel if the removed panel was the reference panel
+			let referencePanel = this.getReferencePanel();
+			if (referencePanel && referencePanel.beatmapSet === beatmapSet) {
+				let panels = this.getPanels();
+				let index = binarySearchLessOrEqual(panels, referencePanel.order, x => x.order);
+
+				let replacementPanel = panels[index-1]; // Try the one above
+				if (!replacementPanel) replacementPanel = panels[index+1]; // ...or the one below
+
+				if (replacementPanel && replacementPanel !== referencePanel) {
+					this.setReferencePanel(replacementPanel);
+				}
+			}
+
+			// Deselect the panel if it was selected
+			if (this.selectedPanel && this.selectedPanel.beatmapSet === beatmapSet) {
+				this.selectedPanel.collapse();
+				this.songSelect.infoPanel.hide();
 			}
 		});
 
@@ -102,6 +130,11 @@ export class BeatmapCarousel {
 
 	private getPanels() {
 		return this.collections[this.currentCollection].displayedPanels;
+	}
+
+	private getReferencePanel() {
+		if (!this.reference) return null;
+		return (this.reference instanceof BeatmapSetPanel)? this.reference : this.reference?.parentPanel;
 	}
 
 	private initInteraction() {
@@ -221,7 +254,7 @@ export class BeatmapCarousel {
 
 	update(now: number, dt: number) {
 		let panels = this.getPanels();
-		let referencePanel = (this.reference instanceof BeatmapSetPanel)? this.reference : this.reference?.parentPanel;
+		let referencePanel = this.getReferencePanel();
 
 		if (!this.reference || panels.indexOf(referencePanel) === -1) {
 			if (panels.length === 0) {
@@ -240,7 +273,7 @@ export class BeatmapCarousel {
 
 			// If there is no current reference, just set it to the first panel.
 			referencePanel = panels[0];
-			this.reference = referencePanel;			
+			this.reference = referencePanel;
 
 			this.referenceY = 300;
 			this.scrollVelocity = 100; // For sick effect hehe
@@ -269,6 +302,9 @@ export class BeatmapCarousel {
 		// Velocity has taped off so much, just set it to 0.
 		if (Math.abs(this.scrollVelocity) < 1) this.scrollVelocity = 0;
 
+		// Update the current collection
+		this.collections[this.currentCollection].update(now);
+
 		// Get the position of the reference beatmap set panel
 		let referencePanelY: number;
 		if (this.reference instanceof BeatmapSetPanel) referencePanelY = this.referenceY;
@@ -278,7 +314,9 @@ export class BeatmapCarousel {
 		let specialHeightPanels = this.collections[this.currentCollection].specialHeightPanels;
 		for (let panel of specialHeightPanels) {
 			// Remove the panel from the set if it has a normal height again
-			if (panel.hasBaseHeight(now)) specialHeightPanels.delete(panel);
+			if (panel.hasBaseHeight(now)) {
+				specialHeightPanels.delete(panel);
+			}
 		}
 
 		// Calculate snapback when user scrolls off one of the carousel edges
@@ -409,6 +447,15 @@ export class BeatmapCarousel {
 		for (let drawable of this.drawablePool) drawable.resize();
 	}
 
+	setReferencePanel(panel: BeatmapSetPanel) {
+		if (panel === this.reference) return;
+
+		let y = panel.computeY();
+		this.reference = panel;
+		this.referenceY = y;
+		this.snapToSelected = false;
+	}
+
 	setSelectedPanel(panel: BeatmapSetPanel, setAsReference: boolean) {
 		if (panel === this.selectedPanel) return;
 
@@ -418,8 +465,9 @@ export class BeatmapCarousel {
 
 		if (!setAsReference) return;
 
+		let y = panel.computeY();
 		this.reference = panel;
-		this.referenceY = panel.computeY();
+		this.referenceY = y;
 		this.snapToSelected = false;
 	}
 
@@ -540,7 +588,7 @@ export class BeatmapCarousel {
 		// If n is the amount of panels, then this algorithm computes the position of a panel in O(log n) average time. This is possible because at all times, most panels will have the same height, meaning there's no need to compute every panel's height. This algorithm takes advantage of that fact and only calculates height where it is necessary.
 
 		let panels = this.getPanels();
-		let referencePanel = (this.reference instanceof BeatmapSetPanel)? this.reference : this.reference?.parentPanel;
+		let referencePanel = this.getReferencePanel();
 		let referencePanelY: number;
 		if (this.reference instanceof BeatmapSetPanel) referencePanelY = this.referenceY;
 		else referencePanelY = this.referenceY - this.reference.y;

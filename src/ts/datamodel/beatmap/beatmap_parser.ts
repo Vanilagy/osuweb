@@ -41,7 +41,7 @@ export namespace BeatmapParser {
 
 			if (line === "" || line.startsWith("//")) continue;
 			if (line.startsWith("osu file format v")) {
-				beatmap.version = line.substr(line.length - 2, 2);
+				//
 			} else if (line.startsWith("[") && line.endsWith("]")) {
 				// New section!
 				section = line.substr(1, line.length-2).toLowerCase();
@@ -103,7 +103,7 @@ export namespace BeatmapParser {
 
 		if (!approachRateFound) beatmap.difficulty.AR = beatmap.difficulty.OD;
 
-		// Sicne the beatmap colors could be given in arbitrary order, including skipping over a color, like Combo1 -> Combo3, we have to remove all holes in the array
+		// Since the beatmap colors could be given in arbitrary order, including skipping over a color, like Combo1 -> Combo3, we have to remove all holes in the array
 		unholeArray(beatmap.colors.comboColors);
 
 		// These arrays are not guaranteed to be in-order in the file, so we sort 'em:
@@ -127,6 +127,12 @@ export namespace BeatmapParser {
 			beatmap.bpmMin = min;
 			beatmap.bpmMax = max;
 		}
+
+		// Make sure crucial metadata exists
+		if (beatmap.title == null) throw new Error("No beatmap title found.");
+		if (beatmap.artist == null) throw new Error("No beatmap artist found.");
+		if (beatmap.creator == null) throw new Error("No beatmap creator found.");
+		if (beatmap.version == null) throw new Error("No beatmap version string found.");
 
 		return beatmap;
 	}

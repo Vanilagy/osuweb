@@ -61,7 +61,8 @@ export class BeatmapSetPanel implements Searchable {
 		this.beatmapSet = beatmapSet;
 
 		this.fadeInInterpolator = new Interpolator({
-			duration: 900
+			duration: 900,
+			reverseDuration: 750
 		});
 		this.expandInterpolator = new Interpolator({
 			duration: 500,
@@ -134,7 +135,8 @@ export class BeatmapSetPanel implements Searchable {
 
 	/** Gets the current scaling factor based on fade-in. */
 	getScaleInValue(now: number) {
-		return MathUtil.ease(EaseType.EaseOutElasticHalf, this.fadeInInterpolator.getCurrentValue(now));
+		let fadingOut = this.fadeInInterpolator.isReversed();
+		return MathUtil.ease(fadingOut? EaseType.EaseInQuint : EaseType.EaseOutElasticHalf, this.fadeInInterpolator.getCurrentValue(now));
 	}
 
 	getTotalHeight(now: number) {
@@ -148,7 +150,7 @@ export class BeatmapSetPanel implements Searchable {
 	}
 
 	hasBaseHeight(now: number) {
-		return this.fadeInInterpolator.isCompleted(now) && this.expandInterpolator.isReversed() && this.expandInterpolator.isCompleted(now);
+		return this.fadeInInterpolator.isCompleted(now) && !this.fadeInInterpolator.isReversed() && this.expandInterpolator.isReversed() && this.expandInterpolator.isCompleted(now);
 	}
 
 	setBeatmapEntries(entries: BeatmapEntry[]) {
@@ -262,7 +264,7 @@ export class BeatmapSetPanel implements Searchable {
 		await this.beatmapSet.loadEntries();
 
 		// Since the previous operation was asynchronous, it could be that this panel isn't selected anymore.
-		if (this !== this.carousel.selectedPanel || this.beatmapEntries.length === 0) return;
+		if (this !== this.carousel.selectedPanel || this.beatmapEntries.length === 0 || this.beatmapSet.defective) return;
 
 		let now = performance.now();
 		this.expandInterpolator.setReversedState(false, selectionTime ?? now);
@@ -318,6 +320,11 @@ export class BeatmapSetPanel implements Searchable {
 
 	startFadeIn(now: number) {
 		this.fadeInInterpolator.start(now);
+		this.enableSpecialHeight();
+	}
+
+	startFadeOut(now: number) {
+		this.fadeInInterpolator.setReversedState(true, now);
 		this.enableSpecialHeight();
 	}
 }
