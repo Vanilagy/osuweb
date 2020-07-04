@@ -492,7 +492,7 @@ export class DrawableSpinner extends DrawableHitObject {
 
 		let prevSpinsSpun = this.getSpinsSpun();
 
-		radians *= this.drawableBeatmap.play.playbackRate; // Spinners should be easier in DT, and harder in HT!
+		radians *= Math.max(this.drawableBeatmap.play.playbackRate, 1); // Spinners should be easier in DT. Don't make them harder for HT.
 		let cappedRadians = Math.min(Math.abs(radians), dt * MAX_RADIANS_PER_MILLISECOND) * Math.sign(radians);
 		this.rotation += cappedRadians;
 		let absRotation = Math.abs(cappedRadians);
