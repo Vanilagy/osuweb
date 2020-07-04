@@ -58,7 +58,7 @@ export namespace BeatmapParser {
 				if (!metadataOnly) parseHitObject(beatmap, line);
 			} else {
 				let colonIndex = line.indexOf(':');
-				if (colonIndex === -1) return;
+				if (colonIndex === -1) continue;
 				let value = line.slice(colonIndex + 1).trim();
 
 				// General
