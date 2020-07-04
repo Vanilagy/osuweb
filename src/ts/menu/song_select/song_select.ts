@@ -138,6 +138,13 @@ export class SongSelect {
 		this.infoPanel.loadBeatmapData(entry);
 	}
 
+	deselectCurrentEntry() {
+		if (!this.selectedEntry) return;
+
+		this.selectedEntry = null;
+		this.infoPanel.hide();
+	}
+
 	triggerSelectedBeatmap() {
 		if (!this.selectedEntry) return;
 		

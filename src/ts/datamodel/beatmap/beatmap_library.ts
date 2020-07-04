@@ -6,6 +6,7 @@ import { VirtualFileSystemEntry } from "../../file_system/virtual_file_system_en
 import { globalState } from "../../global_state";
 import { startJob } from "../../multithreading/job_system";
 import { removeItem } from "../../util/misc_util";
+import { BeatmapEntry } from "./beatmap_entry";
 
 // Canonical ranked beatmap folders (so, most) follow this naming scheme
 const beatmapFolderRegex = /[0-9]+ (.+?) - (.+)/;
@@ -14,7 +15,8 @@ const beatmapFolderRegex = /[0-9]+ (.+?) - (.+)/;
 export class BeatmapLibrary extends CustomEventEmitter<{
 	add: BeatmapSet[],
 	change: BeatmapSet,
-	remove: BeatmapSet
+	remove: BeatmapSet,
+	removeEntry: BeatmapEntry
 }> {
 	public beatmapSets: BeatmapSet[];
 
@@ -31,6 +33,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 				removeItem(this.beatmapSets, set);
 				this.emit('remove', set);
 			});
+			set.addListener('removeEntry', (entry) => this.emit('removeEntry', entry));
 		}
 
 		this.beatmapSets.push(...newBeatmapSets);

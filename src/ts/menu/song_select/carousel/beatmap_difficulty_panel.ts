@@ -57,6 +57,7 @@ export class BeatmapDifficultyPanel {
 		this.fadeInInterpolator.start(performance.now());
 		this.entry = entry;
 
+		// If this difficulty panel is currently selected, select the corresponding difficulty.
 		if (this.parentPanel.carousel.selectedDifficultyPanel === this) this.selectDifficulty();
 	}
 
@@ -71,7 +72,6 @@ export class BeatmapDifficultyPanel {
 	async select(doSnap = true, selectionTime?: number) {
 		if (this.isSelected()) {
 			// Selecting it a second time means "Start the play"
-			
 			this.trigger();
 			return;
 		}
@@ -94,6 +94,7 @@ export class BeatmapDifficultyPanel {
 	}
  
 	private trigger() {
+		if (!this.entry) return;
 		this.parentPanel.carousel.songSelect.triggerSelectedBeatmap();
 	}
 

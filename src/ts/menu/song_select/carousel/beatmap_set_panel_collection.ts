@@ -2,6 +2,7 @@ import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { BeatmapCarousel } from "./beatmap_carousel";
 import {  matchesSearchable, arraysEqualShallow, compareStrings, insertItemBinary, removeItem } from "../../../util/misc_util";
 import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
+import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
 
 export enum BeatmapCarouselSortingType {
 	None = "",
@@ -62,6 +63,9 @@ export abstract class BeatmapSetPanelCollection {
 
 	/** Gets called when a beatmap set is removed. This method is responsible for removing the corresponding panels. */
 	abstract remove(beatmapSet: BeatmapSet): void;
+
+	/** Gets called with a beatmap entry is removed. This method is responsible for removing the corresponding difficulty and/or beatmap set panels. */
+	abstract removeEntry(beatmapEntry: BeatmapEntry): void;
 
 	getPanelsByBeatmapSet(beatmapSet: BeatmapSet) {
 		let panels: BeatmapSetPanel[] = [];
@@ -181,5 +185,15 @@ export abstract class BeatmapSetPanelCollection {
 
 	setFilter(func: BeatmapSetPanelFilter) {
 		this.filter = func;
+	}
+
+	removePanel(panel: BeatmapSetPanel) {
+		removeItem(this.allPanels, panel);
+		this.allPanelsSet.delete(panel);
+
+		panel.startFadeOut(performance.now());
+		this.removalQueue.push(panel);
+
+		this.carousel.onPanelRemove(panel);
 	}
 }

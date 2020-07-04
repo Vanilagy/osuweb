@@ -59,7 +59,7 @@ function mainRenderingLoop() {
 		lastFrameCountStart = startTime;
 	} else if (startTime - lastFrameCountStart >= 500) {
 		let fps = frameCount / (startTime - lastFrameCountStart) * 1000;
-		// console.log("FPS: " + fps);
+		//console.log("FPS: " + fps);
 
 		frameCount = 0;
 		lastFrameCountStart = startTime;

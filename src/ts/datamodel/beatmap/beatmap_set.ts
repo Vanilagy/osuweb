@@ -1,5 +1,5 @@
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
-import { Searchable, createSearchableString } from "../../util/misc_util";
+import { Searchable, createSearchableString, removeItem } from "../../util/misc_util";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { BasicBeatmapData, BeatmapUtil } from "../../util/beatmap_util";
@@ -12,7 +12,7 @@ import { Skin } from "../../game/skin/skin";
 /** Extracts artist, title, mapper and version from a beatmap file name. */
 const metadataExtractor = /^(.+) - (.+) \((.+)\) \[(.+)\]\.osu$/;
 
-export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void}> implements Searchable {
+export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, removeEntry: BeatmapEntry}> implements Searchable {
 	// These lower-case versions exist to enable faster sorting
 	public title: string;
 	public titleLowerCase: string;
@@ -112,7 +112,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void}>
 					this.entriesLoaded = true;
 					this.emit('change');
 				} catch (e) {
-					console.log("Error loading entries for beatmap set: ", e);
+					console.info("Error loading entries for beatmap set: ", e);
 					this.defective = true;
 				}
 			}
@@ -137,20 +137,17 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void}>
 
 			let allFiles = this.entries.map(x => x.resource);
 			let metadata = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(allFiles);
+			let i = 0;
 	
-			for (let i = 0; i < this.entries.length; i++) {
-				let entry = this.entries[i];
-				let data = metadata[i];
+			for (let entry of this.entries.slice()) { // Duplicate the array as it could shrink during iteration
+				let data = metadata[i++];
 
 				if (data.status === 'fulfilled') {
 					entry.extendedMetadata = data.value;
 					entry.version = data.value.version;
 				} else {
-					console.log(data, this);
-					
-					this.entries.splice(i, 1);
-					metadata.splice(i, 1);
-					i--;
+					console.info("Error loading metadata: ", this, data.reason);
+					this.removeEntry(entry);
 				}
 			}
 	
@@ -168,6 +165,15 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void}>
 	remove() {
 		this.defective = true;
 		this.emit('remove');
+	}
+
+	/** Removes a specific beatmap entry. */
+	removeEntry(entry: BeatmapEntry) {
+		let removed = removeItem(this.entries, entry);
+		if (!removed) return;
+
+		this.emit('removeEntry', entry);
+		if (this.entries.length === 0) this.remove();
 	}
 
 	async getBeatmapSkin() {

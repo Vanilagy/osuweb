@@ -99,33 +99,46 @@ export class BeatmapCarousel {
 				this.collections[key as CollectionName].onChange([beatmapSet]);
 			}
 		});
+		globalState.beatmapLibrary.addListener('removeEntry', (entry) => {
+			for (let key in this.collections) {
+				this.collections[key as CollectionName].removeEntry(entry);
+			}
+
+			if (this.selectedDifficultyPanel && this.selectedDifficultyPanel.entry === entry) {
+				this.selectedDifficultyPanel = null;
+				this.songSelect.deselectCurrentEntry();
+			}
+		});
 		globalState.beatmapLibrary.addListener('remove', (beatmapSet) => {
 			for (let key in this.collections) {
 				this.collections[key as CollectionName].remove(beatmapSet);
 			}
-
-			// Switch to a different reference panel if the removed panel was the reference panel
-			let referencePanel = this.getReferencePanel();
-			if (referencePanel && referencePanel.beatmapSet === beatmapSet) {
-				let panels = this.getPanels();
-				let index = binarySearchLessOrEqual(panels, referencePanel.order, x => x.order);
-
-				let replacementPanel = panels[index-1]; // Try the one above
-				if (!replacementPanel) replacementPanel = panels[index+1]; // ...or the one below
-
-				if (replacementPanel && replacementPanel !== referencePanel) {
-					this.setReferencePanel(replacementPanel);
-				}
-			}
-
-			// Deselect the panel if it was selected
-			if (this.selectedPanel && this.selectedPanel.beatmapSet === beatmapSet) {
-				this.selectedPanel.collapse();
-				this.songSelect.infoPanel.hide();
-			}
 		});
 
 		this.setSortingAndSearchQuery(BeatmapCarouselSortingType.Title, "");
+	}
+
+	/** Should be called whenever a panel is removed. */
+	onPanelRemove(panel: BeatmapSetPanel) {
+		// Switch to a different reference panel if the removed panel was the reference panel
+		let referencePanel = this.getReferencePanel();
+		if (panel === referencePanel) {
+			let panels = this.getPanels();
+			let index = binarySearchLessOrEqual(panels, referencePanel.order, x => x.order);
+
+			let replacementPanel = panels[index-1]; // Try the one above
+			if (!replacementPanel) replacementPanel = panels[index+1]; // ...or the one below
+
+			if (replacementPanel && replacementPanel !== referencePanel) {
+				this.setReferencePanel(replacementPanel);
+			}
+		}
+
+		// Deselect the panel if it was selected
+		if (panel === this.selectedPanel) {
+			this.selectedPanel.collapse();
+			this.songSelect.deselectCurrentEntry();
+		}
 	}
 
 	private getPanels() {
@@ -256,7 +269,10 @@ export class BeatmapCarousel {
 		let panels = this.getPanels();
 		let referencePanel = this.getReferencePanel();
 
-		if (!this.reference || panels.indexOf(referencePanel) === -1) {
+		// Update the current collection
+		this.collections[this.currentCollection].update(now);
+
+		if (!this.reference || binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order) === -1) {
 			if (panels.length === 0) {
 				// There are no panels currently. Hide them all.
 
@@ -301,9 +317,6 @@ export class BeatmapCarousel {
 
 		// Velocity has taped off so much, just set it to 0.
 		if (Math.abs(this.scrollVelocity) < 1) this.scrollVelocity = 0;
-
-		// Update the current collection
-		this.collections[this.currentCollection].update(now);
 
 		// Get the position of the reference beatmap set panel
 		let referencePanelY: number;

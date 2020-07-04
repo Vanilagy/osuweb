@@ -45,14 +45,18 @@ export class BeatmapSetPanelCollectionSplit extends BeatmapSetPanelCollection {
 
 	remove(beatmapSet: BeatmapSet) {
 		let panels = beatmapSet.entries.map(x => this.beatmapEntryToPanel.get(x)).filter(x => x); // Filter to get rid of undefineds
-		let now = performance.now();
 
 		for (let panel of panels) {
-			removeItem(this.allPanels, panel);
-			this.allPanelsSet.delete(panel);
-	
-			panel.startFadeOut(now);
-			this.removalQueue.push(panel);
-		}		
+			this.removePanel(panel);
+			this.beatmapEntryToPanel.delete(panel.beatmapEntries[0]);
+		}
+	}
+
+	removeEntry(entry: BeatmapEntry) {
+		let panel = this.beatmapEntryToPanel.get(entry);
+		if (!panel) return;
+
+		this.removePanel(panel);
+		this.beatmapEntryToPanel.delete(entry);
 	}
 }
