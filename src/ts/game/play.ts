@@ -746,14 +746,15 @@ export class Play {
                 let additionSound = skin.hitSounds[info.additions[i]];
                 additionSound.play(info.volume, info.sampleIndex, pan, playbackRate);
 			}
-			
+		}
+
+		if (this.controller.currentStoryboard) {
 			let triggerData: ReturnType<typeof StoryboardParser.parseHitSoundTrigger> = {
 				sampleSet: info.timingPoint.sampleSet,
 				additionSet: info.timingPoint.sampleSet,
-				addition: (info.additions.length > 0)? hitSoundTypeToAdditionType(info.additions[0]) : AdditionType.Normal,
+				addition: (info.additions && info.additions.length > 0)? hitSoundTypeToAdditionType(info.additions[0]) : AdditionType.Normal,
 				sampleIndex: info.sampleIndex
 			}
-			let time = this.getCurrentSongTime();
 
 			this.controller.currentStoryboard?.trigger(time, "HitSound", triggerData);
 		}

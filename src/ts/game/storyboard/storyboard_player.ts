@@ -280,7 +280,7 @@ export class StoryboardPlayer {
 
 				if (trigger.trigger === "Failing" || trigger.trigger === "Passing") {
 					if (trigger.trigger === type) activated = true;
-				} else {
+				} else if (type === "HitSound") {
 					// Check if hit sounds match
 
 					let parsedHitSound = StoryboardParser.parseHitSoundTrigger(trigger.trigger);
@@ -320,7 +320,7 @@ export class StoryboardPlayer {
 
 		if (before === "Fail" && state === "Pass") {
 			this.trigger(time, "Passing");
-		} else {
+		} else if (before === "Pass" && state === "Fail") {
 			this.trigger(time, "Failing");
 		}
 	}
