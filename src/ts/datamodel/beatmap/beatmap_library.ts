@@ -5,8 +5,10 @@ import { Task } from "../../multithreading/task";
 import { VirtualFileSystemEntry } from "../../file_system/virtual_file_system_entry";
 import { globalState } from "../../global_state";
 import { startJob } from "../../multithreading/job_system";
-import { removeItem } from "../../util/misc_util";
+import { removeItem, wait } from "../../util/misc_util";
 import { BeatmapEntry } from "./beatmap_entry";
+import { VirtualFile } from "../../file_system/virtual_file";
+import { isOsuBeatmapFile } from "../../util/file_util";
 
 // Canonical ranked beatmap folders (so, most) follow this naming scheme
 const beatmapFolderRegex = /[0-9]+ (.+?) - (.+)/;
@@ -53,6 +55,9 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 	private beatmapSets: BeatmapSet[] = [];
 	private paused = true;
 	private id = 0;
+	/** The selected input directory could either be a directory of beatmap directories, or just a single beatmap directory. Which one is the case needs to be detected first, and this variable reflects the state of that detection. */
+	private currentType: 'undetermined' | 'multiple' | 'single' = 'undetermined';
+	private defectiveBeatmapSetCount = 0;
 
 	get descriptor() {return "Importing directory"}
 	get show() {return false}
@@ -74,6 +79,25 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 			if (this.processed.has(entry)) continue;
 			this.processed.add(entry);
 
+			if (entry instanceof VirtualFile) {
+				// If we already know we're searching through a list of beatmap directories, we can ignore files
+				if (this.currentType === 'multiple') continue;
+
+				if (isOsuBeatmapFile(entry.name)) {
+					// If we find a single .osu beatmap file, we can assume we're in a single beatmap folder.
+					this.currentType = 'single';
+					
+					let beatmapSet = new BeatmapSet(this.input);
+
+					// Load entries and metadata here instead of later, so that the import into the carousel is instant
+					await beatmapSet.loadEntries();
+					await beatmapSet.loadMetadata();
+
+					this.beatmapSets = beatmapSet.defective? [] : [beatmapSet];
+					break;
+				}
+			}
+
 			if (!(entry instanceof VirtualDirectory)) continue;
 
 			let match = beatmapFolderRegex.exec(entry.name);
@@ -91,19 +115,22 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 				let newSet = new BeatmapSet(entry);
 				await newSet.loadEntries();
 
-				this.beatmapSets.push(newSet);
+				if (!newSet.defective) this.beatmapSets.push(newSet);
+				else this.defectiveBeatmapSetCount++;
 			}
+
+			// If we've seen multiple beatmap directories already, we can assume we're in a directory of beatmap directories.
+			if (this.beatmapSets.length >= 5) this.currentType = 'multiple';
 		}
 
-		// Filter out defective beatmaps before adding them
-		let nonDefectiveSets = this.beatmapSets.filter(x => !x.defective);
-		let defectiveSetCount = this.beatmapSets.length - nonDefectiveSets.length;
-		if (defectiveSetCount > 0) {
-			console.info(defectiveSetCount + " beatmap set(s) not imported because they were defective.");
+		if (this.currentType === 'undetermined') this.currentType = 'multiple';
+
+		if (this.defectiveBeatmapSetCount > 0 && this.currentType === 'multiple') {
+			console.info(this.defectiveBeatmapSetCount + " beatmap set(s) not imported because they were defective.");
 		}
 
-		globalState.beatmapLibrary.addBeatmapSets(nonDefectiveSets);
-		this.setResult(nonDefectiveSets);
+		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets);
+		this.setResult(this.beatmapSets);
 	}
 
 	pause() {
@@ -118,9 +145,9 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 	}
 
 	getProgress() {
-		return {
-			dataCompleted: this.processed.size
-		};
+		return (this.currentType === 'multiple')? {
+			dataCompleted: this.beatmapSets.length
+		} : null;
 	}
 }
 

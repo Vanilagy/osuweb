@@ -1,7 +1,7 @@
 import { REFERENCE_SCREEN_HEIGHT, currentWindowDimensions } from "../../../visuals/ui";
 import { BeatmapSetPanelDrawable } from "./beatmap_set_panel_drawable";
 import { updateDarkeningOverlay, updateBeatmapDifficultyPanelMasks, updateBeatmapSetPanelMasks, updateDifficultyColorBar } from "./beatmap_panel_components";
-import { NormalizedWheelEvent, last, binarySearchLessOrEqual, removeSurroundingDoubleQuotes } from "../../../util/misc_util";
+import { NormalizedWheelEvent, last, binarySearchLessOrEqual, removeSurroundingDoubleQuotes, randomInArray } from "../../../util/misc_util";
 import { calculateRatioBasedScalingFactor } from "../../../util/graphics_util";
 import { EaseType, MathUtil } from "../../../util/math_util";
 import { InteractionGroup, InteractionRegistration } from "../../../input/interactivity";
@@ -90,6 +90,12 @@ export class BeatmapCarousel {
 		globalState.beatmapLibrary.addListener('add', (beatmapSets) => {
 			for (let key in this.collections) {
 				this.collections[key as CollectionName].onChange(beatmapSets);
+			}
+
+			// Select a random beatmap from the freshly imported ones
+			if (beatmapSets.length >= 1) {
+				let panel = randomInArray(this.collections[this.currentCollection].getPanelsByBeatmapSet(randomInArray(beatmapSets)));
+				if (panel) panel.select('random');
 			}
 		});
 		globalState.beatmapLibrary.addListener('change', (beatmapSet) => {
@@ -223,7 +229,13 @@ export class BeatmapCarousel {
 		collection.setSortingFunction(beatmapCarouselSortingTypeFunctions.get(sortingType));
 		collection.setSearchQuery(query);
 		
-		if (sortingType === BeatmapCarouselSortingType.Length) {
+		if (sortingType === BeatmapCarouselSortingType.Title) {
+			// Make sure we know the title. This may not always be the case for freshly imported beatmap sets whose entries have not yet been loaded.
+			collection.setFilter(x => !!x.beatmapSet.title);
+		} else if (sortingType === BeatmapCarouselSortingType.Artist) {
+			// Make sure we know the artist.
+			collection.setFilter(x => !!x.beatmapSet.artist);
+		} else if (sortingType === BeatmapCarouselSortingType.Length) {
 			// Make sure that metadata is loaded (otherwise we don't know the length!)
 			collection.setFilter(x => x.beatmapSet.metadataLoaded);
 		} else if (sortingType === BeatmapCarouselSortingType.Mapper) {
@@ -236,7 +248,7 @@ export class BeatmapCarousel {
 			});
 		} else {
 			// Otherwise, show all beatmap sets!
-			collection.setFilter(x => true);
+			collection.setFilter(() => true);
 		}
 
 		collection.redetermineDisplayedPanels();
@@ -597,11 +609,16 @@ export class BeatmapCarousel {
 	}
 
 	/** Compute a panel's position in the carousel. */
-	getPanelPosition(panel: BeatmapSetPanel, now: number) {
+	 getPanelPosition(panel: BeatmapSetPanel, now: number) {
 		// If n is the amount of panels, then this algorithm computes the position of a panel in O(log n) average time. This is possible because at all times, most panels will have the same height, meaning there's no need to compute every panel's height. This algorithm takes advantage of that fact and only calculates height where it is necessary.
 
 		let panels = this.getPanels();
 		let referencePanel = this.getReferencePanel();
+
+		// If there's no reference panel, run the update function in hope of it setting one.
+		if (!this.reference || binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order) === -1) this.update(now, 1e-6);
+		referencePanel = this.getReferencePanel(); // The reference might have been updated now, so re-get it
+
 		let referencePanelY: number;
 		if (this.reference instanceof BeatmapSetPanel) referencePanelY = this.referenceY;
 		else referencePanelY = this.referenceY - this.reference.y;

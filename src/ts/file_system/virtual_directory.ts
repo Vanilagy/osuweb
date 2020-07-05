@@ -123,6 +123,11 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	}
 
 	async *[Symbol.asyncIterator]() {
+		// These might not contain all entries yet if the rest hasn't been loaded
+		for (let entry of this.entries) {
+			yield entry[1];
+		}
+
 		// If we have a directory handle, use that handle's async iterator
 		if (this.directoryHandle && !this.directoryHandleEntriesIterated) {
 			let entries = await (this.directoryHandleEntries ?? (this.directoryHandleEntries = this.directoryHandle.getEntries()));
@@ -132,10 +137,7 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 				// Check if it's already been added
 				let existingEntry = this.entries.get(entry.name);
-				if (existingEntry) {
-					yield existingEntry;
-					continue;
-				}
+				if (existingEntry) continue;
 
 				// Create a new virtual file system entry based on the type
 				if (entry instanceof FileSystemFileHandle) {
@@ -151,11 +153,6 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 			// When we reach this point, we'll have iterated through the entire directory once, meaning we have cached all entries and don't need to iterate over the directory directly again.
 			this.directoryHandleEntriesIterated = true;
-			return;
-		}
-
-		for (let entry of this.entries) {
-			yield entry[1];
 		}
 	}
 

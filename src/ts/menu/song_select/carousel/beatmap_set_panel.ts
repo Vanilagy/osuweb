@@ -13,6 +13,9 @@ export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;
 export const BEATMAP_SET_PANEL_MARGIN = 10;
 
+/** For each beatmap set, remember if there has already been a panel that has loaded and displayed the image for that set. */
+const imageLoadedForBeatmapSet = new WeakMap<BeatmapSet, boolean>();
+
 export class BeatmapSetPanel implements Searchable {
 	static readonly BASE_HEIGHT = BEATMAP_SET_PANEL_HEIGHT + BEATMAP_SET_PANEL_MARGIN;
 
@@ -168,7 +171,7 @@ export class BeatmapSetPanel implements Searchable {
 		}
 
 		// Check if the image bitmap has already been loaded
-		let bitmapLoadedAlready = hasBitmapFromImageFile(imageFile, BitmapQuality.Medium);
+		let bitmapLoadedAlready = imageLoadedForBeatmapSet.get(this.beatmapSet);
 		let bitmap: ImageBitmap;
 
 		if (bitmapLoadedAlready || carouselValocity < 2500) {
@@ -179,8 +182,12 @@ export class BeatmapSetPanel implements Searchable {
 				this.imageTexture = PIXI.Texture.from(bitmap as any);
 
 				// If the bitmap has already been loaded, play no animation.
-				if (!bitmapLoadedAlready) this.imageFadeIn.start(performance.now());
-				else this.imageFadeIn.end();
+				if (!bitmapLoadedAlready) {
+					this.imageFadeIn.start(performance.now());
+					imageLoadedForBeatmapSet.set(this.beatmapSet, true);
+				} else {
+					this.imageFadeIn.end();
+				}
 			}
 		}
 	}
@@ -283,7 +290,7 @@ export class BeatmapSetPanel implements Searchable {
 
 		// Select the difficult panel at the corresponding index
 		selectDifficultyIndex = (selectDifficultyIndex === 'random') ? Math.floor(Math.random() * this.difficultyPanels.length) : MathUtil.clamp(selectDifficultyIndex, 0, this.difficultyPanels.length-1);
-		this.difficultyPanels[selectDifficultyIndex].select(snapToDifficultyPanel && doSnap, selectionTime);
+		this.difficultyPanels[selectDifficultyIndex].select(snapToDifficultyPanel && doSnap, snapToDifficultyPanel, selectionTime);
 
 		await this.beatmapSet.loadMetadata();
 	}
@@ -314,7 +321,7 @@ export class BeatmapSetPanel implements Searchable {
 		let nextIndex = index + (forward? 1 : -1);
 		if (nextIndex < 0 || nextIndex >= this.difficultyPanels.length) return false;
 
-		this.difficultyPanels[nextIndex].select(true);
+		this.difficultyPanels[nextIndex].select(true, true);
 		return true;
 	}
 

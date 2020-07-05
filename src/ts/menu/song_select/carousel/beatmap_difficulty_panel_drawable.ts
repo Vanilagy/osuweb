@@ -69,7 +69,7 @@ export class BeatmapDifficultyPanelDrawable {
 		this.parent.interactionGroup.add(this.registration);
 
 		this.registration.addButtonHandlers(
-			() => this.panel.select(),
+			() => this.panel.select(true, true),
 			() => this.panel.hoverInterpolator.setReversedState(false, performance.now()),
 			() => this.panel.hoverInterpolator.setReversedState(true, performance.now()),
 			() => this.panel.pressDownInterpolator.setReversedState(false, performance.now()),

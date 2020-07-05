@@ -271,6 +271,8 @@ export class FolderSelector {
 			if (loadingTaskProgress) {
 				let n = loadingTaskProgress.dataCompleted;
 				this.loadingText.text = `Importing ${n} beatmap ${(n === 1)? 'set' : 'sets'}...`;
+			} else {
+				this.loadingText.text = "Importing...";
 			}
 			
 			this.loadingText.pivot.x = Math.floor(this.loadingText.width / 2);

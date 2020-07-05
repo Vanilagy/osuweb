@@ -130,7 +130,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	loadMetadata() {
 		// Metadata is already loading, return the ongoing promise.
 		if (this.metadataLoadingPromise) return this.metadataLoadingPromise;
-		if (!this.basicData) return;
+		if (!this.basicData || this.defective) return;
 
 		let promise = new Promise<void>(async (resolve) => {
 			if (!this.entriesLoaded) await this.loadEntries();

@@ -69,14 +69,14 @@ export class BeatmapDifficultyPanel {
 		return this.parentPanel.carousel.selectedDifficultyPanel === this;
 	}
 
-	async select(doSnap = true, selectionTime?: number) {
+	async select(doSnap: boolean, setAsReference: boolean, selectionTime?: number) {
 		if (this.isSelected()) {
 			// Selecting it a second time means "Start the play"
 			this.trigger();
 			return;
 		}
 
-		this.parentPanel.carousel.setDifficultyPanel(this, doSnap);
+		this.parentPanel.carousel.setDifficultyPanel(this, setAsReference);
 
 		let now = performance.now();
 		this.expandInterpolator.setReversedState(false, selectionTime ?? now);

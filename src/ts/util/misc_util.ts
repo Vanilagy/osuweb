@@ -360,3 +360,7 @@ export function supportsNativeFileSystemApi() {
 }
 
 export type UnPromisify<T> = T extends Promise<infer U> ? U : T;
+
+export function wait(milliseconds: number) {
+	return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
