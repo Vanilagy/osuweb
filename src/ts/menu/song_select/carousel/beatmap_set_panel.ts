@@ -7,6 +7,7 @@ import { Searchable, createSearchableString } from "../../../util/misc_util";
 import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
 import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
 import { BeatmapSetPanelCollection } from "./beatmap_set_panel_collection";
+import { BEATMAP_SET_PANEL_SNAP_TARGET } from "./beatmap_carousel";
 
 export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;
@@ -259,7 +260,11 @@ export class BeatmapSetPanel implements Searchable {
 		if (this.isExpanded) return;
 		this.isExpanded = true;
 
-		this.carousel.setSelectedPanel(this, false); // Don't snap to it, we'll snap later in the difficulty panel
+		// If entries haven't loaded yet, we choose to jump to this panel (to avoid delays). If they have loaded, we jump to the difficulty panel instead.
+		let snapToDifficultyPanel = this.beatmapSet.entriesLoaded;
+
+		this.carousel.setSelectedPanel(this, !snapToDifficultyPanel && doSnap); // Don't snap to it, we'll snap later in the difficulty panel
+		if (!snapToDifficultyPanel && doSnap) this.carousel.snapReferencePanelPosition(this.computeY(), BEATMAP_SET_PANEL_SNAP_TARGET);
 
 		await this.beatmapSet.loadEntries();
 
@@ -278,7 +283,7 @@ export class BeatmapSetPanel implements Searchable {
 
 		// Select the difficult panel at the corresponding index
 		selectDifficultyIndex = (selectDifficultyIndex === 'random') ? Math.floor(Math.random() * this.difficultyPanels.length) : MathUtil.clamp(selectDifficultyIndex, 0, this.difficultyPanels.length-1);
-		this.difficultyPanels[selectDifficultyIndex].select(doSnap, selectionTime);
+		this.difficultyPanels[selectDifficultyIndex].select(snapToDifficultyPanel && doSnap, selectionTime);
 
 		await this.beatmapSet.loadMetadata();
 	}

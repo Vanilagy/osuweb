@@ -76,7 +76,7 @@ export class BeatmapDifficultyPanel {
 			return;
 		}
 
-		this.parentPanel.carousel.setDifficultyPanel(this, true);
+		this.parentPanel.carousel.setDifficultyPanel(this, doSnap);
 
 		let now = performance.now();
 		this.expandInterpolator.setReversedState(false, selectionTime ?? now);
