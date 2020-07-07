@@ -52,7 +52,7 @@ export class ImageCrossfader {
 			let lastId = ++this.currentAwaitId;
 
 			let bitmap = await getBitmapFromImageFile(imageFile, quality);
-			texture = PIXI.Texture.from(bitmap as any);
+			texture = bitmap? PIXI.Texture.from(bitmap as any) : PIXI.Texture.EMPTY;
 
 			// If the id has changed, that means this method was called again during decoding.
 			if (lastId !== this.currentAwaitId) return;

@@ -368,7 +368,7 @@ export class BeatmapCarousel {
 		// Only panels close to the center of the screen (update region) will be updated and drawn. This ensures good performance for huge numbers of panels.
 		// First, estimate the approximate index where the panel at the start of the update region would be, by dividing the expected distance by base height.
 		let index = referenceIndex + Math.round((UPDATE_REGION_LOW - referencePanelY) / BeatmapSetPanel.BASE_HEIGHT);
-		index = MathUtil.clamp(index, 0, panels.length);
+		index = MathUtil.clamp(index, 0, panels.length-1);
 		// Get the actual position of the panel at the estimated index
 		let position = this.getPanelPosition(panels[index], now);
 

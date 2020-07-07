@@ -272,6 +272,16 @@ export function bytesToString(bytes: Uint8Array) {
 	return str;
 }
 
+export function bytesToStringFromView(view: DataView, offset: number, length: number) {
+	let str = "";
+
+	for (let i = offset; i < offset + length; i++) {
+		str += String.fromCharCode(view.getUint8(i));
+	}
+
+	return str;
+}
+
 export function removeHTMLElement(element: HTMLElement) {
 	element.parentElement.removeChild(element);
 }

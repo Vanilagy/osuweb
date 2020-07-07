@@ -1,8 +1,12 @@
 import { VirtualFile } from "../file_system/virtual_file";
 import { startJob } from "../multithreading/job_system";
 import { Dimensions } from "./graphics_util";
-import { shallowObjectClone } from "./misc_util";
+import { shallowObjectClone, bytesToString, bytesToStringFromView } from "./misc_util";
 import { getFileExtension } from "./file_util";
+
+const PNG_SIGNATURE = 'PNG\r\n\x1a\n';
+const PNG_IMAGE_HEADER_CHUNK_NAME = 'IHDR';
+const PNG_FRIED_CHUNK_NAME = 'CgBI'; // Used to detect "fried" png's: http://www.jongware.com/pngdefry.html
 
 export enum BitmapQuality {
 	Low,
@@ -30,7 +34,13 @@ export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality
 	}
 
 	let promise = new Promise<ImageBitmap>(async (resolve) => {
-		let dimensions = await getDimensionsFromImageFile(file);
+		let dimensions: Dimensions;
+		try {
+			dimensions = await getDimensionsFromImageFile(file);
+		} catch (e) {
+			resolve(null);
+			return;
+		}
 
 		if (quality !== BitmapQuality.Full) {
 			let max = Math.max(dimensions.width, dimensions.height);
@@ -45,11 +55,20 @@ export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality
 			}
 		}
 
-		let bitmap = await startJob("getImageBitmap", {
-			resourceUrl: await file.readAsResourceUrl(),
-			resizeWidth: dimensions.width,
-			resizeHeight: dimensions.height
-		}, null, 0); // Do it all on one worker to avoid stuttering
+		let bitmap: any;
+
+		try {
+			bitmap = await startJob("getImageBitmap", {
+				resourceUrl: await file.readAsResourceUrl(),
+				resizeWidth: dimensions.width,
+				resizeHeight: dimensions.height
+			}, null, 0); // Do it all on one worker to avoid stuttering
+		} catch (e) {
+			console.error(e);
+			resolve(null);
+
+			return;
+		}
 
 		cached.set(quality, bitmap);
 		resolve(bitmap);
@@ -77,18 +96,21 @@ export function getDimensionsFromImageFile(file: VirtualFile): Promise<Dimension
 	let cached = imageDimensionsCache.get(file);
 	if (cached) return Promise.resolve(shallowObjectClone(cached));
 
-	return new Promise<Dimensions>(async (resolve) => {
+	return new Promise<Dimensions>(async (resolve, reject) => {
 		let ext = getFileExtension(file.name);
+		let dimensions: Dimensions;
 
 		if (ext === ".jpg" || ext === ".jpeg") {
-			let dimensions = await getJpgDimensions(file);
-
-			if (dimensions && dimensions.width > 0 && dimensions.height > 0) {
-				resolve(dimensions);
-				return;
-			}
+			dimensions = await getJpgDimensions(file);
 		} else if (ext === ".png") {
-			resolve(await getPngDimensions(file));
+			dimensions = await getPngDimensions(file);
+		}
+
+		// It could be that we didn't find dimensions or the dimensions are negative (idk why, but it has happened)
+		if (dimensions && dimensions.width > 0 && dimensions.height > 0) {
+			imageDimensionsCache.set(file, dimensions);
+			resolve(shallowObjectClone(dimensions));
+
 			return;
 		}
 
@@ -106,19 +128,48 @@ export function getDimensionsFromImageFile(file: VirtualFile): Promise<Dimension
 			imageDimensionsCache.set(file, dimensions);
 			resolve(shallowObjectClone(dimensions));
 		};
+		img.onerror = (e) => {
+			reject(e)
+		};
 	});
+}
+
+export function validatePng(view: DataView) {
+	if (bytesToStringFromView(view, 1, 7) === PNG_SIGNATURE) {
+		let chunkName = bytesToStringFromView(view, 12, 4);
+		if (chunkName === PNG_FRIED_CHUNK_NAME) {
+			chunkName = bytesToStringFromView(view, 28, 4);
+		}
+		if (chunkName !== PNG_IMAGE_HEADER_CHUNK_NAME) return false;
+		return true;
+	}
+
+	return false;
 }
 
 export async function getPngDimensions(file: VirtualFile): Promise<Dimensions> {
 	let blob = await file.getBlob();
-	let start = blob.slice(0, 24);
+	let start = blob.slice(0, 40);
 	let arrayBuffer = await start.arrayBuffer();
 	let view = new DataView(arrayBuffer);
 
-	return {
-		width: view.getInt32(16),
-		height: view.getInt32(20)
-	};
+	if (!validatePng(view)) return null;
+
+	if (bytesToStringFromView(view, 12, 4) === PNG_FRIED_CHUNK_NAME) {
+		return {
+			width: view.getInt32(32),
+			height: view.getInt32(36)
+		};
+	} else {
+		return {
+			width: view.getInt32(16),
+			height: view.getInt32(20)
+		};
+	}
+}
+
+export function validateJpg(view: DataView) {
+	return view.getUint8(0) === 0xff && view.getUint8(1) == 0xd8;
 }
 
 // Taken from https://github.com/nodeca/probe-image-size/blob/master/lib/parse_sync/jpeg.js
@@ -130,6 +181,8 @@ export async function getJpgDimensions(file: VirtualFile): Promise<Dimensions> {
 
 	if (data.length < 2) return null;
 	let view = new DataView(arrayBuffer);
+
+	if (!validateJpg(view)) return null;
   
 	// first marker of the file MUST be 0xFFD8
 	if (data[0] !== 0xFF || data[1] !== 0xD8) return null;
