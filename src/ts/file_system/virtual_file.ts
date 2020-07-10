@@ -1,8 +1,9 @@
 import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
-import { getFilenameWithoutExtension } from "../util/file_util";
+import { getFilenameWithoutExtension, getFileExtension } from "../util/file_util";
+import { assert } from "../util/misc_util";
 
 export class VirtualFile extends VirtualFileSystemEntry {
-	private resource: Blob | File | FileSystemFileHandle | string;
+	private resource: Blob | File | FileSystemFileHandle | string = null;
 	/** Every resource will eventually be converted to a blob. */
 	private blob: Blob = null;
 	private cachedResourceUrl: string;
@@ -11,6 +12,7 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		super();
 	}
 
+	/** Ensure the existence of a Blob for this file, based on the resource it is based on. */
 	async load() {
 		if (this.blob) return;
 
@@ -19,8 +21,10 @@ export class VirtualFile extends VirtualFileSystemEntry {
 			this.blob = await response.blob();
 		} else if (this.resource instanceof Blob) {
 			this.blob = this.resource;
-		} else if (this.resource instanceof FileSystemFileHandle) {
-			this.blob = await this.resource.getFile();
+		} else if (this.isNativeFileSystem) {
+			// TODO: Does this lead to an eventual fill-up of memory, if we keep all the blobs? Have to test for large directories.
+			let handle = await this.getHandle();
+			this.blob = await handle.getFile();
 		}
 	}
 
@@ -39,7 +43,7 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		return new Response(this.blob).arrayBuffer();
 	}
 
-	async readAsResourceUrl() {
+	async getResourceUrl() {
 		if (this.cachedResourceUrl !== undefined) return this.cachedResourceUrl;
 
 		await this.load();
@@ -51,14 +55,9 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		return this.blob;
 	}
 
-	getUrl() {
-		if (typeof this.resource === "string") return this.resource;
-		return URL.createObjectURL(this.resource);
-	}
-
-	getSize() {
+	async getSize() {
+		await this.load();
 		if (this.blob) return this.blob.size;
-		else if (this.resource instanceof File) return this.resource.size;
 		return null;
 	}
 
@@ -71,9 +70,25 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		return getFilenameWithoutExtension(this.name);
 	}
 
+	getExtension() {
+		return getFileExtension(this.name);
+	}
+
 	revokeResourceUrl() {
 		if (this.cachedResourceUrl === undefined) return;
 		URL.revokeObjectURL(this.cachedResourceUrl);
+	}
+
+	/** If this file is based on the Native File System API, get the corresponding file handle object. */
+	async getHandle(): Promise<FileSystemFileHandle> {
+		assert(this.isNativeFileSystem);
+
+		if (this.resource) return this.resource as FileSystemFileHandle;
+		else {
+			let parentHandle = await this.parent.getHandle();
+			let fileHandle = await parentHandle.getFile(this.name);
+			return fileHandle;
+		}
 	}
 
 	static fromUrl(url: string, resourceName: string) {
@@ -103,10 +118,11 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		return newFile;
 	}
 
-	static fromFileHandle(handle: FileSystemFileHandle) {
+	static fromFileHandle(handle: FileSystemFileHandle, saveHandle = true) {
 		let newFile = new VirtualFile();
 
-		newFile.resource = handle;
+		newFile.isNativeFileSystem = true;
+		if (saveHandle) newFile.resource = handle;
 		newFile.name = handle.name;
 
 		return newFile;

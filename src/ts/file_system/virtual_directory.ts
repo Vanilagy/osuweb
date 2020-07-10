@@ -1,6 +1,7 @@
 import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
 import { VirtualFile } from "./virtual_file";
 import { splitPath } from "../util/file_util";
+import { assert } from "../util/misc_util";
 
 export class VirtualDirectory extends VirtualFileSystemEntry {
 	private entries: Map<string, VirtualFileSystemEntry>;
@@ -10,13 +11,13 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	public networkFallbackUrl: string;
 	/** In order to prevent hitting the network twice for a 404 resource. */
 	private failedNetworkFallbacks: Set<string>;
+
 	/** If the directory was created using the Native File System API, this will be set. */
-	private directoryHandle: FileSystemDirectoryHandle;
+	private directoryHandle: FileSystemDirectoryHandle = null;
 	/** Cache the entries object in the hope that stuff won't freeze up (the API is still buggy!) */
 	private directoryHandleEntries: ReturnType<FileSystemDirectoryHandle["getEntries"]> = null;
 	/** Since iterating a directory handle is async, this flag will be set to true if we have successfully iterated over all entries in the directory (which then will be cached). */
-	private directoryHandleEntriesIterated = false;
-	private readied = false;
+	private directoryHandleEntriesIterated = false; 
 
 	constructor(name: string) {
 		super();
@@ -28,6 +29,7 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		this.failedNetworkFallbacks = new Set();
 	}
 
+	/** Adds an entry to this directory. */
 	addEntry(entry: VirtualFileSystemEntry) {
 		this.entries.set(entry.name, entry);
 		this.caseInsensitiveEntries.set(entry.name.toLowerCase(), entry);
@@ -35,7 +37,10 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		entry.setParent(this);
 	}
 
+	/** Removes an entry from this directory. Note: If this directory is based on the Native File System API, this method won't do anything (yet). */
 	removeEntry(entry: VirtualFileSystemEntry) {
+		if (this.isNativeFileSystem) return;
+
 		this.entries.delete(entry.name);
 		this.caseInsensitiveEntries.delete(entry.name.toLowerCase());
 	}
@@ -51,14 +56,39 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 			let part = parts[i];
 			let entry: VirtualFileSystemEntry;
 
-			await currentDirectory.ready();
-
 			if (part === '.') entry = currentDirectory; // Stay in the current directory
-			else if (part === '..') entry = currentDirectory.parent; // Go up a level!
-			else entry = caseSensitive? currentDirectory.entries.get(part) : currentDirectory.caseInsensitiveEntries.get(part.toLowerCase());
+			else if (part === '..') entry = currentDirectory.parent; // Go up a level
+			else {
+				if (currentDirectory.isNativeFileSystem) {
+					// If this directory is based on the Native File System API, finding an entry works slightly differently.
+					// First, we try and get the entry the normal way (OS file system lookup is always case-insensitive!)
+					entry = currentDirectory.caseInsensitiveEntries.get(part.toLowerCase());
+
+					if (!entry) {
+						// If no entry was found, so we'll do a file system request
+						let handle = await currentDirectory.getHandle();
+
+						try {
+							if (part.includes('.')) { // If file
+								let fileHandle = await handle.getFile(part);
+								let fileEntry = VirtualFile.fromFileHandle(fileHandle, false);
+								currentDirectory.addEntry(fileEntry);
+								entry = fileEntry;
+							} else { // If directory
+								let directoryHandle = await handle.getDirectory(part);
+								let directoryEntry = VirtualDirectory.fromDirectoryHandle(directoryHandle, false);
+								currentDirectory.addEntry(directoryEntry);
+								entry = directoryEntry;
+							}
+						} catch (e) {}
+					}
+				} else {
+					entry = caseSensitive? currentDirectory.entries.get(part) : currentDirectory.caseInsensitiveEntries.get(part.toLowerCase());
+				}
+			}
 			
 			if (entry) {
-				if (i === parts.length-1) return entry; // We found the file!
+				if (i === parts.length-1) return entry; // We found the entry!
 				else if (entry instanceof VirtualDirectory) currentDirectory = entry; // Step into the directory.
 				else break;
 			} else {
@@ -95,23 +125,6 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		return null;
 	}
 
-	/** Prepares all directory entries. */
-	async ready() {
-		if (this.readied) return;
-		if (!this.directoryHandle) {
-			this.readied = true;
-			return;
-		}
-
-		// Iterating over all elements will load them
-		for await (let e of this) {
-			// This is practically a no-op that has to be here because otherwise, the entire iterator is optimized away.
-			if (!e) console.log(e);
-		}
-
-		this.readied = true;
-	}
-
 	async getAllEntries() {
 		let entries: VirtualFileSystemEntry[] = [];
 
@@ -129,8 +142,12 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		}
 
 		// If we have a directory handle, use that handle's async iterator
-		if (this.directoryHandle && !this.directoryHandleEntriesIterated) {
-			let entries = await (this.directoryHandleEntries ?? (this.directoryHandleEntries = this.directoryHandle.getEntries()));
+		if (this.isNativeFileSystem && !this.directoryHandleEntriesIterated) {
+			let entries = await this.directoryHandleEntries;
+			if (!entries) {
+				let handle = await this.getHandle();
+				entries = await (this.directoryHandleEntries = handle.getEntries());
+			}
 
 			for await (let entry of entries) {
 				let fileSystemEntry: VirtualFileSystemEntry;
@@ -141,9 +158,9 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 				// Create a new virtual file system entry based on the type
 				if (entry instanceof FileSystemFileHandle) {
-					fileSystemEntry = VirtualFile.fromFileHandle(entry);
+					fileSystemEntry = VirtualFile.fromFileHandle(entry, false);
 				} else if (entry instanceof FileSystemDirectoryHandle) {
-					fileSystemEntry = VirtualDirectory.fromDirectoryHandle(entry);
+					fileSystemEntry = VirtualDirectory.fromDirectoryHandle(entry, false);
 				}
 
 				// Add it to the entries cache
@@ -153,6 +170,20 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 			// When we reach this point, we'll have iterated through the entire directory once, meaning we have cached all entries and don't need to iterate over the directory directly again.
 			this.directoryHandleEntriesIterated = true;
+		}
+	}
+
+	/** If this directory is based on the Native File System API, get the corresponding directory handle object. */
+	async getHandle(): Promise<FileSystemDirectoryHandle> {
+		assert(this.isNativeFileSystem);
+
+		if (this.directoryHandle) {
+			return this.directoryHandle;
+		} else {
+			let parentHandle = await this.parent.getHandle();
+			let handle = await parentHandle.getDirectory(this.name);
+
+			return handle;
 		}
 	}
 
@@ -228,9 +259,10 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	}
 
 	/** Creates a directory from a FileSystemDirectoryHandle (Native File System API) */
-	static fromDirectoryHandle(handle: FileSystemDirectoryHandle) {
+	static fromDirectoryHandle(handle: FileSystemDirectoryHandle, saveHandle = true) {
 		let root = new VirtualDirectory(handle.name);
-		root.directoryHandle = handle;
+		root.isNativeFileSystem = true;
+		if (saveHandle) root.directoryHandle = handle;
 
 		return root;
 	}
