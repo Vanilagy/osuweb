@@ -161,21 +161,19 @@ export class BeatmapSetPanel implements Searchable {
 		this.beatmapEntries = entries;
 	}
 
-	private async loadImage(carouselValocity: number) {
-		if (!this.beatmapSet.basicData || this.imageLoadingStarted) return;
-
-		let imageFile = await this.beatmapSet.directory.getFileByPath(this.beatmapSet.basicData.imageName);
-		if (!imageFile) {
-			this.imageLoadingStarted = true;
-			return;
-		}
+	private async loadImage(carouselVelocity: number) {
+		if (!this.beatmapSet.basicData || this.imageLoadingStarted) return;		
 
 		// Check if the image bitmap has already been loaded
 		let bitmapLoadedAlready = imageLoadedForBeatmapSet.get(this.beatmapSet);
 		let bitmap: ImageBitmap;
 
-		if (bitmapLoadedAlready || carouselValocity < 2500) {
+		if (bitmapLoadedAlready || carouselVelocity < 2500) {
 			this.imageLoadingStarted = true;
+
+			let imageFile = await this.beatmapSet.directory.getFileByPath(this.beatmapSet.basicData.imageName);
+			if (!imageFile) return;
+
 			bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
 
 			if (bitmap) {
