@@ -213,6 +213,9 @@ export class BeatmapCarousel {
 	}
 
 	async setSortingAndSearchQuery(sortingType: BeatmapCarouselSortingType, query: string) {
+		// Remember the current position of the selected panel for later
+		let selectedPanelPosition = this.selectedPanel?.computeY();
+
 		let newCollection: CollectionName;
 		if (sortingType === BeatmapCarouselSortingType.Difficulty) {
 			// Display all beatmap difficulties individually when showing difficulty.
@@ -257,9 +260,10 @@ export class BeatmapCarousel {
 			// If we switched collection, but had a panel selected, we'll try to reselect the corresponding panel in the new collection.
 
 			let panels = this.collections[this.currentCollection].getPanelsByBeatmapSet(this.selectedPanel.beatmapSet);
-			// Remember these values for a while
-			let referenceY = this.referenceY;
+			// Remember these values for a while:
+			let pos = selectedPanelPosition + this.selectedDifficultyPanel.y;
 			let snapToSelected = this.snapToSelected;
+			let scrollVelocity = this.scrollVelocity;
 			
 			for (let panel of panels) {
 				let index = panel.getSortedEntries().indexOf(this.selectedDifficultyPanel.entry);
@@ -268,8 +272,9 @@ export class BeatmapCarousel {
 					await panel.select(index, this.selectedPanel.expandInterpolator.getStartTime(), false);
 
 					// Restore old positioning
-					this.referenceY = referenceY;
+					this.referenceY = pos;
 					this.snapToSelected = snapToSelected;
+					this.scrollVelocity = scrollVelocity;
 
 					break;
 				}
@@ -284,7 +289,8 @@ export class BeatmapCarousel {
 		// Update the current collection
 		this.collections[this.currentCollection].update(now);
 
-		if (!this.reference || binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order) === -1) {
+		// Check if there's no reference panel or if the current reference panel isn't visible
+		if (!this.reference || panels[binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order)] !== referencePanel) {
 			if (panels.length === 0) {
 				// There are no panels currently. Hide them all.
 
@@ -609,14 +615,15 @@ export class BeatmapCarousel {
 	}
 
 	/** Compute a panel's position in the carousel. */
-	 getPanelPosition(panel: BeatmapSetPanel, now: number) {
+	getPanelPosition(panel: BeatmapSetPanel, now: number) {
 		// If n is the amount of panels, then this algorithm computes the position of a panel in O(log n) average time. This is possible because at all times, most panels will have the same height, meaning there's no need to compute every panel's height. This algorithm takes advantage of that fact and only calculates height where it is necessary.
 
+		let collection = this.collections[this.currentCollection];
 		let panels = this.getPanels();
 		let referencePanel = this.getReferencePanel();
 
 		// If there's no reference panel, run the update function in hope of it setting one.
-		if (!this.reference || binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order) === -1) this.update(now, 1e-6);
+		if (!this.reference || panels[binarySearchLessOrEqual(panels, referencePanel.order, (x) => x.order)] !== referencePanel) this.update(now, 1e-6);
 		referencePanel = this.getReferencePanel(); // The reference might have been updated now, so re-get it
 
 		let referencePanelY: number;
@@ -635,9 +642,10 @@ export class BeatmapCarousel {
 		let positionDifference = 0;
 		/** How many panels in between the reference and input panel didn't have the regular base height. */
 		let specialPanelsHandled = 0;
-		for (let otherPanel of this.collections[this.currentCollection].specialHeightPanels) {
+		for (let otherPanel of collection.specialHeightPanels) {
 			// Search for panels in between the reference and input panel
-			if (Math.min(panel.order, referencePanel.order) < otherPanel.order && otherPanel.order < Math.max(panel.order, referencePanel.order)) {
+			let panelIsPresent = collection.displayedPanelsSet.has(otherPanel);
+			if (panelIsPresent && Math.min(panel.order, referencePanel.order) < otherPanel.order && otherPanel.order < Math.max(panel.order, referencePanel.order)) {
 				positionDifference += otherPanel.getTotalHeight(now);
 				specialPanelsHandled++;
 			}
