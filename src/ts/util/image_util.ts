@@ -2,7 +2,6 @@ import { VirtualFile } from "../file_system/virtual_file";
 import { startJob } from "../multithreading/job_system";
 import { Dimensions } from "./graphics_util";
 import { shallowObjectClone, bytesToString, bytesToStringFromView } from "./misc_util";
-import { getFileExtension } from "./file_util";
 
 const PNG_SIGNATURE = 'PNG\r\n\x1a\n';
 const PNG_IMAGE_HEADER_CHUNK_NAME = 'IHDR';
@@ -59,7 +58,7 @@ export function getBitmapFromImageFile(file: VirtualFile, quality: BitmapQuality
 
 		try {
 			bitmap = await startJob("getImageBitmap", {
-				resourceUrl: await file.readAsResourceUrl(),
+				resource: await file.getBlob(),
 				resizeWidth: dimensions.width,
 				resizeHeight: dimensions.height
 			}, null, 0); // Do it all on one worker to avoid stuttering
@@ -97,12 +96,12 @@ export function getDimensionsFromImageFile(file: VirtualFile): Promise<Dimension
 	if (cached) return Promise.resolve(shallowObjectClone(cached));
 
 	return new Promise<Dimensions>(async (resolve, reject) => {
-		let ext = getFileExtension(file.name);
+		let extension = file.getExtension();
 		let dimensions: Dimensions;
 
-		if (ext === ".jpg" || ext === ".jpeg") {
+		if (extension === ".jpg" || extension === ".jpeg") {
 			dimensions = await getJpgDimensions(file);
-		} else if (ext === ".png") {
+		} else if (extension === ".png") {
 			dimensions = await getPngDimensions(file);
 		}
 
@@ -117,7 +116,7 @@ export function getDimensionsFromImageFile(file: VirtualFile): Promise<Dimension
 		// If we reach this point, then we weren't able to get the dimensions quickly. We go the long route and decode the whole thing.
 
 		let img = new Image();
-		img.src = await file.readAsResourceUrl();
+		img.src = await file.getResourceUrl();
 
 		img.onload = () => {
 			let dimensions: Dimensions = {

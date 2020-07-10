@@ -78,7 +78,7 @@ export class AudioMediaPlayer extends AudioPlayer {
 	}
 
 	async loadFile(file: VirtualFile) {
-		let url = await file.readAsResourceUrl();
+		let url = await file.getResourceUrl();
 		return this.loadUrl(url)
 	}
 

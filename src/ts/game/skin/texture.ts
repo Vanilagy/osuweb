@@ -189,8 +189,8 @@ export class OsuTexture {
         let hdBaseFile: VirtualFile;
         if (hd) hdBaseFile = await directory.getFileByPath(`${name}@2x.${extension}`);
 
-        if (sdBaseFile) newOsuTexture.sdBase = PIXI.Texture.from(await sdBaseFile.readAsResourceUrl());
-        if (hdBaseFile) newOsuTexture.hdBase = PIXI.Texture.from(await hdBaseFile.readAsResourceUrl());
+        if (sdBaseFile) newOsuTexture.sdBase = PIXI.Texture.from(await sdBaseFile.getResourceUrl());
+        if (hdBaseFile) newOsuTexture.hdBase = PIXI.Texture.from(await hdBaseFile.getResourceUrl());
 
         if (animationName) {
             let i = 0;
@@ -205,11 +205,11 @@ export class OsuTexture {
                 if (!sdFile && !hdFile) break; // No more animation states
 
                 if (sdFile) {
-                    let tex = PIXI.Texture.from(await sdFile.readAsResourceUrl());
+                    let tex = PIXI.Texture.from(await sdFile.getResourceUrl());
                     newOsuTexture.sd.push(tex);
                 }
                 if (hdFile) {
-                    let tex = PIXI.Texture.from(await hdFile.readAsResourceUrl());
+                    let tex = PIXI.Texture.from(await hdFile.getResourceUrl());
                     newOsuTexture.hd.push(tex);
                 }
 

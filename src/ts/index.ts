@@ -29,6 +29,7 @@ import { TaskManager } from './multithreading/task_manager';
 //import './tests/animation_tests';
 //import './tests/storyboard_parser_tests';
 //import './tests/audio_player_tests';
+//import './tests/file_system_tests';
 
 const osu: string | null = 'ORERU!';
 

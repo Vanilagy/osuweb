@@ -75,7 +75,7 @@ export class BackgroundManager {
 
 	/** Returns a Promise that resolves once the video is ready for playback. */
 	async setVideo(file: VirtualFile): Promise<void> {
-		let url = await file.readAsResourceUrl();
+		let url = await file.getResourceUrl();
 		if (this.videoElement.src === url) return;
 
 		this.videoElement.src = url;

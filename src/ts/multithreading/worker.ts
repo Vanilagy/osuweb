@@ -72,14 +72,11 @@ const tasks = buildTasks({
 		return BeatmapUtil.getExtendedBeatmapData(file);
 	},
 	getImageBitmap: async (data: {
-		resourceUrl: string,
+		resource: Blob,
 		resizeWidth: number,
 		resizeHeight: number
 	}, transfer) => {
-		let request = await fetch(data.resourceUrl);
-		let blob = await request.blob();
-
-		let bitmap = await (createImageBitmap as any)(blob, {
+		let bitmap = await (createImageBitmap as any)(data.resource, {
 			resizeWidth: data.resizeWidth,
 			resizeHeight: data.resizeHeight
 		});

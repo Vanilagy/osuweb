@@ -166,7 +166,7 @@ export class StoryboardPlayer {
 			}
 			if (!file) continue;
 
-			let url = await file.readAsResourceUrl();
+			let url = await file.getResourceUrl();
 
 			// We create an image here so that we can wait until it's loaded so that the PIXI.Texture can instantly start its upload to the GPU.
 			let image = new Image();

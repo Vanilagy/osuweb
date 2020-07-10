@@ -230,7 +230,7 @@ export class HighAccuracyAudioPlayer {
 					let useNativePlaybackRate = this.tempo === this.pitch;
 
 					let audioElem = new Audio();
-					audioElem.src = this.file? await this.file.readAsResourceUrl() : URL.createObjectURL(new Blob([this.data]));
+					audioElem.src = this.file? await this.file.getResourceUrl() : URL.createObjectURL(new Blob([this.data]));
 					// Wait for the metadata to load in order to retrieve duration
 					await new Promise((resolve) => audioElem.onloadedmetadata = resolve);
 
