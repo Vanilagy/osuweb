@@ -108,16 +108,23 @@ export abstract class BeatmapSetPanelCollection {
 					panel.order = 0;
 				} else if (index === 0) {
 					// If it's the first panel, give it an order lower than the next panel
-					panel.order = this.displayedPanels[1].order - 1;
+					panel.order = this.displayedPanels[1].order - 0x10000;
 				} else if (index === this.displayedPanels.length-1) {
 					// If it's the last panel, give it an order higher than the previous panel
-					panel.order = this.displayedPanels[this.displayedPanels.length-2].order + 1;
+					panel.order = this.displayedPanels[this.displayedPanels.length-2].order + 0x10000;
 				} else {
 					// If it's in between two panels, assign the order to be in the middle of the surrounding order values.
 					let lower = this.displayedPanels[index-1].order;
 					let upper = this.displayedPanels[index+1].order;
 
-					panel.order = lower + (upper - lower)/2;
+					let middle = lower + (upper - lower)/2;
+					if (middle === lower || middle === upper) {
+						// Some of these values can get extremely close. If lower was 1.5, and upper was 1.5000000000000001, then their middle would be 1.5, meaning we wouldn't get a distinct order value. In this case, which is extremely rare but CAN happen for large sets of beatmaps, we choose to instead redetermine the order from scratch for all panels.
+						this.redetermineDisplayedPanels();
+						break;
+					} else {
+						panel.order = middle;
+					}
 				}
 				
 				panel.startFadeIn(now); // Play the fade-in animation
