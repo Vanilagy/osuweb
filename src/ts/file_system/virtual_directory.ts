@@ -189,9 +189,9 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 	/** Load all files in this directory. */
 	async loadShallow() {
-		let arr: Promise<void>[] = [];
+		let arr: Promise<Blob>[] = [];
 		for await (let entry of this) {
-			if (entry instanceof VirtualFile) arr.push(entry.load());
+			if (entry instanceof VirtualFile) arr.push(entry.getBlob());
 		}
 
 		return Promise.all(arr);
@@ -199,11 +199,11 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 	/** Load all files in this directory and its subdirectories. */
 	async loadDeep() {
-		let arr: Promise<void>[] = [];
+		let arr: Promise<Blob>[] = [];
 
 		async function addFilesInDirectory(dir: VirtualDirectory) {
 			for await (let entry of dir) {
-				if (entry instanceof VirtualFile) arr.push(entry.load());
+				if (entry instanceof VirtualFile) arr.push(entry.getBlob());
 				else addFilesInDirectory(entry as VirtualDirectory);
 			}
 		}

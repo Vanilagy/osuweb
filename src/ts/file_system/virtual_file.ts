@@ -12,53 +12,41 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		super();
 	}
 
-	/** Ensure the existence of a Blob for this file, based on the resource it is based on. */
-	async load() {
-		if (this.blob) return;
+	async getBlob() {
+		if (this.blob) return this.blob;
+
+		if (this.isNativeFileSystem) {
+			let handle = await this.getHandle();
+			return await handle.getFile();
+		}
 
 		if (typeof this.resource === "string") {
 			let response = await fetch(this.resource);
-			this.blob = await response.blob();
+			return this.blob = await response.blob();
 		} else if (this.resource instanceof Blob) {
-			this.blob = this.resource;
-		} else if (this.isNativeFileSystem) {
-			// TODO: Does this lead to an eventual fill-up of memory, if we keep all the blobs? Have to test for large directories.
-			let handle = await this.getHandle();
-			this.blob = await handle.getFile();
+			return this.blob = this.resource;
 		}
 	}
 
 	async readAsText() {
-		await this.load();
-		return new Response(this.blob).text();
+		return new Response(await this.getBlob()).text();
 	}
 
 	async readAsJson() {
-		await this.load();
-		return new Response(this.blob).json();
+		return new Response(await this.getBlob()).json();
 	}
 
 	async readAsArrayBuffer() {
-		await this.load();
-		return new Response(this.blob).arrayBuffer();
+		return new Response(await this.getBlob()).arrayBuffer();
 	}
 
 	async getResourceUrl() {
 		if (this.cachedResourceUrl !== undefined) return this.cachedResourceUrl;
-
-		await this.load();
-		return this.cachedResourceUrl = URL.createObjectURL(this.blob);
-	}
-	
-	async getBlob() {
-		await this.load();
-		return this.blob;
+		return this.cachedResourceUrl = URL.createObjectURL(await this.getBlob());
 	}
 
 	async getSize() {
-		await this.load();
-		if (this.blob) return this.blob.size;
-		return null;
+		return (await this.getBlob()).size;
 	}
 
 	getLastModifiedDate() {
