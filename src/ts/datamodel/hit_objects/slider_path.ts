@@ -1,7 +1,8 @@
-import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, fitPolylineToLength, stackShiftPoint } from "../../util/point";
+import { Point, Vector2, pointDistance, pointsAreEqual, clonePoint, calculateTotalPointArrayArcLength, pointAngle, pointNormal, lerpPoints, stackShiftPoint } from "../../util/point";
 import { MathUtil, TAU } from "../../util/math_util";
 import { last, jsonClone, binarySearchLessOrEqual } from "../../util/misc_util";
 import { Slider, SliderType, SliderCurveSection } from "./slider";
+import { BézierUtil } from "../../util/bézier_util";
 
 export const SLIDER_CAPCIRCLE_SEGMENTS = 48;
 const CIRCLE_ARC_SEGMENT_LENGTH = 10; // For P sliders
@@ -16,6 +17,9 @@ interface PathCalculationResult {
 export class SliderPath {
 	public points: Point[]; // These points do not need to be equidistant.
 	public completions: number[]; // The number at every index represents the percentage of how far the point with the same index is along the curve. Using this, fixed-velocity travel along the path is possible.
+	protected visualPoints: Point[]; // The drawn points. These can be identical to the actual points, or a downsampled version of the original path.
+	protected visualCompletions: number[];
+
 	protected lineLengths: number[] = [];
 	protected lineThetas: number[] = [];
 	protected lineNormals: Vector2[] = [];
@@ -27,9 +31,18 @@ export class SliderPath {
 
 	/** Generates utility information for the path. Has to be called before any vertices are created! */
 	generatePointData() {
-		for (let i = 0; i < this.points.length-1; i++) {
-			let p1 = this.points[i],
-				p2 = this.points[i+1];
+		if (this.points.length >= 2000) {
+			// If the path has a lot of points, vertex buffers can get very big and drawing slow. In this case, downsample the path to something with less points.
+			this.visualPoints = MathUtil.downsamplePolyline(this.points, 0.5);
+			this.visualCompletions = MathUtil.fitPolylineToLength(this.visualPoints, calculateTotalPointArrayArcLength(this.visualPoints));
+		} else {
+			this.visualPoints = this.points;
+			this.visualCompletions = this.completions;
+		}
+
+		for (let i = 0; i < this.visualPoints.length-1; i++) {
+			let p1 = this.visualPoints[i],
+				p2 = this.visualPoints[i+1];
 
 			let length = pointDistance(p1, p2);
 			let theta = pointAngle(p1, p2);
@@ -70,30 +83,39 @@ export class SliderPath {
 		};
 	}
 
-	getPosFromPercentage(percentage: number) {
+	getPosFromPercentage(percentage: number, visual = false) {
+		let points = visual? this.visualPoints : this.points;
+		let completions = visual? this.visualCompletions : this.completions;
+
 		// We need to make sure we return a new instance of Point here, because whatever this function returns might be manipulated. We don't want that to change the path!
 
-		if (this.points.length <= 1) return clonePoint(this.points[0]) || null;
+		if (points.length <= 1) return clonePoint(points[0]) || null;
 
-		let p1Index = binarySearchLessOrEqual(this.completions, percentage);
-		let p1Completion = this.completions[p1Index];
+		let p1Index = binarySearchLessOrEqual(completions, percentage);
+		let p1Completion = completions[p1Index];
 
-		if (p1Completion === percentage) return clonePoint(this.points[p1Index]);
+		if (p1Completion === percentage) return clonePoint(points[p1Index]);
 
-		let p1 = this.points[p1Index],
-			p2 = this.points[p1Index+1],
-			p2Completion = this.completions[p1Index+1];
+		let p1 = points[p1Index],
+			p2 = points[p1Index+1],
+			p2Completion = completions[p1Index+1];
 		let t = (percentage - p1Completion) / (p2Completion - p1Completion);
 
 		return lerpPoints(p1, p2, t);
 	}
 
-	getAngleFromPercentage(percentage: number) {
-		if (this.points.length <= 1) return 0;
+	getAngleFromPercentage(percentage: number, visual = false) {
+		let points = visual? this.visualPoints : this.points;
+		let completions = visual? this.visualCompletions : this.completions;
 
-		let index = binarySearchLessOrEqual(this.completions, percentage);
-		if (index === this.points.length - 1) index--;
-		return this.lineThetas[index];
+		if (points.length <= 1) return 0;
+
+		let index = binarySearchLessOrEqual(completions, percentage);
+		if (index === points.length - 1) index--;
+
+		let p1 = points[index];
+		let p2 = points[index + 1];
+		return pointAngle(p1, p2);
 	}
 
 	applyStackPosition(stackHeight: number) {
@@ -185,7 +207,7 @@ export class SliderPath {
 		outputPoints.push(additionalPoint);
 
 		// TODO: Since length includes the full distance along the arc, but when this method travels along the circle trace points, it'll only count the sum of the chord lengths (https://en.wikipedia.org/wiki/Chord_(geometry)), is it necessary to subtract the length we're missing?
-		let pathCompletions = fitPolylineToLength(outputPoints, length);
+		let pathCompletions = MathUtil.fitPolylineToLength(outputPoints, length);
 
 		return {
 			points: outputPoints,
@@ -216,34 +238,21 @@ export class SliderPath {
 
 	private static calculateBézierSliderPoints(sections: SliderCurveSection[], length: number): PathCalculationResult {
 		let samplePoints: Point[] = [];
-
-		samplePoints.push(sections[0].values[0]); // Add the first point of the first segment
 	
 		for (let i = 0; i < sections.length; i++) {
 			let points = sections[i].values;
 	
 			if (points.length === 2) { // If segment is linear
-				// We don't need to do anything here, because the last segment's last point as already been pushed, which is this segment's first point. Since we'll push this segment's last point later in this function, we also needn't push that here.
+				samplePoints.push(...points);
 			} else {
-				let t = 0,
-					lastPoint = last(samplePoints);
-	
-				while (true) {
-					let curvature = MathUtil.curvatureOfBézierCurve(points, t, lastPoint);
-					let increment = Math.min(0.02, 0.01 / Math.sqrt(curvature * 300)); // Move smaller steps based on curvature. Min 0.02 guarantees we sample each curve at least 50 times.
-					t += increment;
-					if (t >= 1) break;
-	
-					lastPoint = MathUtil.pointOnBézierCurve(points, t);
-					samplePoints.push(lastPoint);
-				}
+				BézierUtil.sampleBézier(points, samplePoints);
 			}
 
-			samplePoints.push(last(points));
+			if (i !== sections.length-1) samplePoints.pop(); // Since every segment adds the start and end point, remove the end point for every non-final segment to avoid duplication of points.
 		}
-	
+
 		let arcLength = (length === 0)? calculateTotalPointArrayArcLength(samplePoints) : length;
-		let pathCompletions = fitPolylineToLength(samplePoints, arcLength);
+		let pathCompletions = MathUtil.fitPolylineToLength(samplePoints, arcLength);
 
 		return {
 			points: samplePoints,
@@ -271,7 +280,7 @@ export class SliderPath {
 		samplePoints.push(last(points));
 	
 		let arcLength = (length === 0)? calculateTotalPointArrayArcLength(samplePoints) : length;
-		let pathCompletions = fitPolylineToLength(samplePoints, arcLength);
+		let pathCompletions = MathUtil.fitPolylineToLength(samplePoints, arcLength);
 
 		return {
 			points: samplePoints,

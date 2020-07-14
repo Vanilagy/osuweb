@@ -1,4 +1,4 @@
-import { Point, pointDistanceSquared, Vector2 } from "./point";
+import { Point, pointDistanceSquared, Vector2, lerpPoints, pointNormal, pointDistance, subtractFromPoint, clonePoint, pointsAreEqual } from "./point";
 import { last } from "./misc_util";
 
 export const TAU = Math.PI * 2;
@@ -113,6 +113,156 @@ export abstract class MathUtil {
 			a2 = Math.atan2(c.y - b.y, c.x - b.x);
 
 		return Math.abs(MathUtil.getNormalizedAngleDelta(a1, a2));
+	}
+
+	/** Modifies an array representing a polyline's points to fit a certain length. Returns an array the length of the resulting point array, where each element is a number from 0 to 1 marking the percentage of how far the point at the corresponding index is along the track. */
+	static fitPolylineToLength(points: Point[], arcLength: number) {
+		let completions: number[] = [];
+		let traveledDistance = 0;
+
+		for (let i = 0; i < points.length; i++) {
+			completions.push(traveledDistance / arcLength);
+
+			let p1 = points[i],
+				p2 = points[i+1];
+
+			// This 'if' is true if we've reached the end of the array without having covered the entire arc length yet. Therefore, we need to add one extra point to cover the remaining distance by extending the last segment linearly.
+			if (!p2) {
+				// Find the index of the point closest to the end of the array that is different from the last point in the array. This has to be done so we can construct a linear segment.
+				let p3Index = i;
+				while (p3Index >= 0 && pointsAreEqual(p1, points[p3Index])) p3Index--;
+
+				let p3: Point = points[p3Index] || {x: p1.x - 1, y: p1.y}; // If no point was found, just make "that point" be 1 unit left of the last point in the array.
+				let dx = p1.x - p3.x,
+					dy = p1.y - p3.y;
+				let distance = pointDistance(p3, p1);
+				let remainingDistance = arcLength - traveledDistance;
+
+				// The additional point to add
+				let p4: Point = {
+					x: p1.x + dx / distance * remainingDistance,
+					y: p1.y + dy / distance * remainingDistance
+				};
+
+				points.push(p4);
+				completions.push(1.0);
+				break;
+			}
+
+			let distance = pointDistance(p1, p2);
+			traveledDistance += distance;
+
+			// If we've overshot our target distance with the last point, we need to remove every point after it and add an intermediate point.
+			if (traveledDistance > arcLength) {
+				let t = (arcLength - (traveledDistance - distance)) / distance;
+				let p3 = lerpPoints(p1, p2, t);
+
+				points.splice(i+1, points.length - i - 1, p3);
+				completions.push(1.0);
+
+				break;
+			}
+
+			// If we've perfectly reached our distance, remove the remaining points in the array.
+			if (traveledDistance === arcLength) {
+				points.length = i+2;
+				completions.push(1.0);
+
+				break;
+			}
+		}
+
+		return completions;
+	}
+
+	/**
+	 * Downsamples a given polyline using a modified version of the Douglas–Peucker algorithm.
+	 * @param points The points describing the polyline.
+	 * @param epsilon The epsilon used by Douglas-Peucker.
+	 * @param depth The current recursion depth.
+	 */
+	static downsamplePolyline(points: Point[], epsilon: number, depth = 0) {
+		// If a certain recursion depth is reached, terminate the algorithm. We want to prevent an overflow!
+		if (depth > 5000) return points;
+
+		let p1 = points[0];
+		let p2 = last(points);
+		let dmax = -1;
+		let indexLow = -1; // The index of the first point with dmax distance to the secant line
+		let indexHigh = -1; // The index of the last point with dmax distance to the secant line
+
+		let outsideOfSegmentFound = false; // Whether or not there was a point whose projection onto the secant line does not lie between p1 and p2.
+		let indexFarthest = -1; // The index of the overall farthest-away point from either p1 or p2
+		let farthestDistance = -1;
+
+		for (let i = 1; i < points.length-1; i++) {
+			let p0 = points[i];
+			let d = MathUtil.distanceToLineSegmentSquared(p0, p1, p2);
+
+			let otherD = Math.max(pointDistanceSquared(p0, p1), pointDistanceSquared(p0, p2));
+			if (otherD > farthestDistance) {
+				farthestDistance = otherD;
+				indexFarthest = i;
+			}
+
+			if (d > dmax) {
+				indexLow = i;
+				indexHigh = i;
+				dmax = d;
+
+				outsideOfSegmentFound = !MathUtil.isProjectionInside(p0, p1, p2);
+			} else if (d === dmax) {
+				indexHigh = i;
+
+				outsideOfSegmentFound = outsideOfSegmentFound || !MathUtil.isProjectionInside(p0, p1, p2);
+			}
+		}
+
+		let result: Point[];
+
+		if (outsideOfSegmentFound) {
+			// If we found a point that doesn't project between p1 and p2, then split the curve in half at the farthest away point. This is done for cases in which p1 and p2 are really close together and something being close to their secant line is pretty much meaningless (in which case important curve points would get dropped!)
+			let resultLeft = MathUtil.downsamplePolyline(points.slice(0, indexFarthest+1), epsilon, depth+1);
+			let resultRight = MathUtil.downsamplePolyline(points.slice(indexFarthest), epsilon, depth+1);
+			result = [...resultLeft, ...resultRight.slice(1)];
+		} else if (dmax > epsilon * epsilon) {
+			if (indexLow === indexHigh) {
+				// The classic Douglas–Peucker case
+				let resultLeft = MathUtil.downsamplePolyline(points.slice(0, indexLow+1), epsilon, depth+1);
+				let resultRight = MathUtil.downsamplePolyline(points.slice(indexLow), epsilon, depth+1);
+				result = [...resultLeft, ...resultRight.slice(1)];
+			} else {
+				// The extended case: If there are multiple points with the same distance to the secant line, split the curve into three parts instead.
+				let resultLeft = MathUtil.downsamplePolyline(points.slice(0, indexLow+1), epsilon, depth+1);
+				let resultMid = MathUtil.downsamplePolyline(points.slice(indexLow, indexHigh+1), epsilon, depth+1);
+				let resultRight = MathUtil.downsamplePolyline(points.slice(indexHigh), epsilon, depth+1);
+				result = [...resultLeft, ...resultMid.slice(1), ...resultRight.slice(1)];
+			}
+		} else {
+			result = [p1, p2];
+		}
+
+		return result;
+	}
+
+	static distanceToLineSegmentSquared(p: Point, lineStart: Point, lineEnd: Point) {
+		let segmentLengthSquared = pointDistanceSquared(lineStart, lineEnd);
+		if (segmentLengthSquared === 0) return pointDistanceSquared(p, lineStart);
+
+		let p1 = lineStart,
+			p2 = lineEnd;
+
+		return ((p2.y - p1.y) * p.x - (p2.x - p1.x) * p.y + p2.x*p1.y - p2.y*p1.x)**2 / segmentLengthSquared;
+	}
+
+	// https://stackoverflow.com/questions/35740374/orthogonal-projection-of-point-onto-line
+	/** Returns true if p, projected onto the line between p2 and p3, lies between p2 and p3. */
+	static isProjectionInside(p: Point, p2: Point, p3: Point) {
+		const eps = 1e-6;
+		let p_proj = (p.x - p2.x) * (p3.x - p2.x) + (p.y - p2.y) * (p3.y - p2.y);
+		let p3_proj = (p3.x - p2.x) * (p3.x - p2.x) + (p3.y - p2.y) * (p3.y - p2.y);
+	
+		return (p_proj >= -eps) && (p_proj <= p3_proj + eps);
 	}
 
 	static triangleArea(a: Point, b: Point, c: Point) {

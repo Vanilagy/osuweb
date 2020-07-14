@@ -65,7 +65,7 @@ export class DrawableSliderPath extends SliderPath {
 
 		this.lineRadius = circleRadiusOsuPx * SLIDER_BODY_SIZE_REDUCTION_FACTOR;
 
-		let buffer = new Float32Array((this.points.length - 1) * getMaxFloatsPerLineSegment());
+		let buffer = new Float32Array((this.visualPoints.length - 1) * getMaxFloatsPerLineSegment());
 
 		let data: VertexBufferGenerationData = {
 			buffer: buffer,
@@ -73,9 +73,9 @@ export class DrawableSliderPath extends SliderPath {
 			radius: this.lineRadius
 		};
 
-		for (let i = 0; i < this.points.length-1; i++) {
-			let p1 = this.points[i],
-				p2 = this.points[i+1],
+		for (let i = 0; i < this.visualPoints.length-1; i++) {
+			let p1 = this.visualPoints[i],
+				p2 = this.visualPoints[i+1],
 				theta = this.lineThetas[i],
 				normal = this.lineNormals[i],
 				prevTheta = this.lineThetas[i-1],
@@ -94,7 +94,7 @@ export class DrawableSliderPath extends SliderPath {
 	}
 	
 	updateVertexBuffer(completion: number, createSliderBoundsObject = false) {
-		let p1Index = binarySearchLessOrEqual(this.completions, completion);
+		let p1Index = binarySearchLessOrEqual(this.visualCompletions, completion);
 		let vboIndex = this.lineSegmentVBOIndices[p1Index - 1] || 0;
 
 		this.vertexBuffer.set(this.baseVertexBuffer.slice(0, vboIndex));
@@ -105,9 +105,9 @@ export class DrawableSliderPath extends SliderPath {
 			radius: this.lineRadius
 		};
 		
-		let firstP = this.getPosFromPercentage(0.0),
+		let firstP = this.getPosFromPercentage(0.0, true),
 			lastP: Point,
-			firstTheta = this.getAngleFromPercentage(0.0),
+			firstTheta = this.getAngleFromPercentage(0.0, true),
 			lastTheta: number;
 
 		let includedPoints: Point[] = null;
@@ -115,33 +115,33 @@ export class DrawableSliderPath extends SliderPath {
 			includedPoints = [];
 
 			for (let i = 0; i <= p1Index; i++) {
-				includedPoints.push(this.points[i]);
+				includedPoints.push(this.visualPoints[i]);
 			}
 		}
 
 		outer: if (completion < 1) {
 			// Add an additional line segment.
 
-			let p1 = this.points[p1Index];
-			let p2 = this.getPosFromPercentage(completion);
+			let p1 = this.visualPoints[p1Index];
+			let p2 = this.getPosFromPercentage(completion, true);
 
 			if (pointsAreEqual(p1, p2)) break outer;
 
 			let length = pointDistance(p1, p2);
-			let theta = this.getAngleFromPercentage(completion);
+			let theta = this.getAngleFromPercentage(completion, true);
 			let normal = pointNormal(p1, p2, length);
 			let prevTheta = this.lineThetas[p1Index - 1],
 				prevNormal = this.lineNormals[p1Index - 1];
 
-				DrawableSliderPath.addVerticesForLineSegment(data, p1, p2, theta, normal, prevTheta, prevNormal);
+			DrawableSliderPath.addVerticesForLineSegment(data, p1, p2, theta, normal, prevTheta, prevNormal);
 			if (createSliderBoundsObject) includedPoints.push(p2);
 
 			lastP = p2;
 			lastTheta = theta;
 		}
 
-		if (!lastP) lastP = this.getPosFromPercentage(1.0);
-		if (!lastTheta) lastTheta = this.getAngleFromPercentage(1.0);
+		if (!lastP) lastP = this.getPosFromPercentage(1.0, true);
+		if (!lastTheta) lastTheta = this.getAngleFromPercentage(1.0, true);
 
 		DrawableSliderPath.addLineCap(data, firstP.x, firstP.y, firstTheta + Math.PI/2, Math.PI); // Draw a semicircle
 		DrawableSliderPath.addLineCap(data, lastP.x, lastP.y, lastTheta - Math.PI/2, Math.PI);
