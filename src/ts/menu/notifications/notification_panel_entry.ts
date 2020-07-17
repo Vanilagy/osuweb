@@ -22,6 +22,7 @@ export abstract class NotificationPanelEntry {
 
 	private closeButtonInterpolator: Interpolator;
 	private fadeInInterpolator: Interpolator;
+	public closed = false;
 	/** If this is set to true, then this drawawble should be disposed. */
 	public destroyable = false;
 
@@ -121,13 +122,15 @@ export abstract class NotificationPanelEntry {
 		this.fadeInInterpolator.setReversedState(true, performance.now());
 		this.fadeInInterpolator.start(performance.now());
 		this.interactionGroup.disable();
+
+		this.closed = true;
 	}
 
 	getHeight(now: number) {
 		return this.container.height;
 	}
 
-	getMargin(now: number) {
-		return NOTIFICATION_MARGIN * this.parent.scalingFactor * this.fadeInInterpolator.getCurrentValue(now);
+	getFadeInValue(now: number) {
+		return this.fadeInInterpolator.getCurrentValue(now);
 	}
 }

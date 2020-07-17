@@ -9,7 +9,8 @@ import { KeyCode } from "../../input/input";
 import { NotificationPanelEntry } from "./notification_panel_entry";
 import { Notification } from "./notification";
 import { ScrollContainer } from "../components/scroll_container";
-import { randomInArray } from "../../util/misc_util";
+import { randomInArray, last } from "../../util/misc_util";
+import { colorToHexNumber } from "../../util/graphics_util";
 
 export const NOTIFICATION_PANEL_WIDTH = 300;
 export const NOTIFICATION_PANEL_PADDING = 12;
@@ -19,6 +20,7 @@ const sectionsNames = ["tasks", "notifications"];
 interface Section {
 	name: string,
 	headingElement: PIXI.Text,
+	headingInterpolator: Interpolator,
 	entries: NotificationPanelEntry[]
 }
 
@@ -33,6 +35,7 @@ export class NotificationPanel {
 	private panelBackground: PIXI.Sprite;
 	private scrollContainer: ScrollContainer;
 	private contentContainer: PIXI.Container;
+	private missingContentNotice: PIXI.Text; // Will show if there are no entries currently being shown
 
 	private fadeInInterpolator: Interpolator;
 
@@ -73,6 +76,12 @@ export class NotificationPanel {
 		this.panelBackground.alpha = 0.95;
 		this.panelContainer.addChild(this.panelBackground);
 
+		this.missingContentNotice = new PIXI.Text("Nothing here right now.", {
+			fontFamily: "Exo2-Light",
+			fill: colorToHexNumber({r: 192, g: 192, b: 192})
+		});
+		this.panelContainer.addChild(this.missingContentNotice);
+
 		this.scrollContainer = new ScrollContainer();
 		this.panelContainer.addChild(this.scrollContainer.container);
 		this.interactionGroup.add(this.scrollContainer.interactionGroup);
@@ -89,6 +98,13 @@ export class NotificationPanel {
 			return {
 				name,
 				headingElement,
+				headingInterpolator: new Interpolator({
+					duration: 500,
+					ease: EaseType.EaseOutCubic,
+					reverseEase: EaseType.EaseInCubic,
+					defaultToFinished: true,
+					beginReversed: true
+				}),
 				entries: []
 			};
 		});
@@ -116,11 +132,6 @@ export class NotificationPanel {
 		this.hide();
 	}
 
-	addTask(task: Task<any, any>) {
-		let drawable = new DrawableTask(this, task);
-		this.addEntryToSection(drawable, "tasks");
-	}
-
 	addEntryToSection(entry: NotificationPanelEntry, sectionName: string) {
 		let section = this.sections.find(x => x.name === sectionName);
 		if (!section) return;
@@ -128,6 +139,10 @@ export class NotificationPanel {
 		section.entries.push(entry);
 		this.contentContainer.addChild(entry.container);
 		this.scrollContainer.contentInteractionGroup.add(entry.interactionGroup);
+
+		if (section.entries.length === 1) {
+			section.headingInterpolator.setReversedState(false, performance.now());
+		}
 	}
 
 	resize() {
@@ -150,6 +165,11 @@ export class NotificationPanel {
 			section.headingElement.style.fontSize = Math.floor(12 * this.scalingFactor);
 			for (let e of section.entries) e.resize();
 		}
+
+		this.missingContentNotice.style.fontSize = Math.floor(12 * this.scalingFactor);
+		this.missingContentNotice.pivot.x = Math.floor(this.missingContentNotice.width / 2);
+		this.missingContentNotice.x = Math.floor(this.panelBackground.width / 2);
+		this.missingContentNotice.y = Math.floor(35 * this.scalingFactor);
 	}
 
 	update(now: number) {
@@ -166,12 +186,17 @@ export class NotificationPanel {
 		this.scrollContainer.update(now);
 
 		let margin = NOTIFICATION_MARGIN * this.scalingFactor;
-		let currentY = -margin;
+		let currentY = 0;
+		let biggestInterpolatorValue = 0; // Remember the biggest interpolation value of all section headings for the missing content notice
 
 		for (let section of this.sections) {
-			currentY += margin;
+			let interpolatorValue = section.headingInterpolator.getCurrentValue(now);
+			biggestInterpolatorValue = Math.max(biggestInterpolatorValue, interpolatorValue);
+
 			section.headingElement.y = Math.floor(currentY);
-			currentY += section.headingElement.height;
+			section.headingElement.alpha = interpolatorValue;
+			section.headingElement.scale.y = interpolatorValue;
+			currentY += section.headingElement.height + margin * interpolatorValue;
 
 			for (let i = 0; i < section.entries.length; i++) {
 				let entry = section.entries[i];
@@ -186,11 +211,22 @@ export class NotificationPanel {
 					continue;
 				}
 
-				currentY += entry.getMargin(now);
+				let bruh = entry.getFadeInValue(now);
+
+				// If this is the last element, we add a negative margin on top to remove the margin created by the last element.
+				if (section === last(this.sections) && i === section.entries.length-1) currentY -= margin * (1 - bruh);
 				entry.container.y = Math.floor(currentY);
-				currentY += entry.getHeight(now);
+				currentY += entry.getHeight(now) + margin * bruh;
+			}
+
+			if (section.entries.filter(x => !x.closed).length === 0) {
+				// Hide the section header if there are no non-closed entries in this section (the section is empty)
+				section.headingInterpolator.setReversedState(true, now);
 			}
 		}
+
+		// Show the missing content notice only if all sections are hidden
+		this.missingContentNotice.alpha = 1 - biggestInterpolatorValue;
 	}
 
 	show() {
