@@ -25,6 +25,7 @@ export abstract class NotificationPanelEntry {
 	public closed = false;
 	/** If this is set to true, then this drawawble should be disposed. */
 	public destroyable = false;
+	public allowManualClose = false;
 
 	constructor(parent: NotificationPanel, headingText: string, highlightColor: Color, allowManualClose: boolean) {
 		this.parent = parent;
@@ -47,6 +48,7 @@ export abstract class NotificationPanelEntry {
 		};
 		this.container.addChild(this.heading);
 
+		this.allowManualClose = allowManualClose;
 		if (allowManualClose) {
 			// Show a close button
 			this.closeButton = new PIXI.Sprite(plusTexture);

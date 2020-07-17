@@ -3,25 +3,75 @@ import { Interpolator } from "../../util/interpolation";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { globalState } from "../../global_state";
-import { DrawableTask } from "./drawable_task";
-import { Task } from "../../multithreading/task";
 import { KeyCode } from "../../input/input";
 import { NotificationPanelEntry } from "./notification_panel_entry";
 import { Notification, NotificationType } from "./notification";
 import { ScrollContainer } from "../components/scroll_container";
-import { randomInArray, last } from "../../util/misc_util";
+import { last, EMPTY_FUNCTION } from "../../util/misc_util";
 import { colorToHexNumber } from "../../util/graphics_util";
+import { svgToTexture } from "../../util/pixi_util";
 
 export const NOTIFICATION_PANEL_WIDTH = 300;
 export const NOTIFICATION_PANEL_PADDING = 12;
 export const NOTIFICATION_MARGIN = 12;
 const sectionsNames = ["tasks", "notifications"];
 
-interface Section {
-	name: string,
-	headingElement: PIXI.Text,
-	headingInterpolator: Interpolator,
-	entries: NotificationPanelEntry[]
+const circleXTexture = svgToTexture(document.querySelector('#svg-circle-x'), true);
+
+class Section {
+	public name: string;
+	public headingElement: PIXI.Text;
+	public headingInterpolator: Interpolator;
+	public closeButton: PIXI.Sprite;
+	public closeButtonInterpolator: Interpolator;
+	public entries: NotificationPanelEntry[];
+
+	constructor(parent: NotificationPanel, name: string) {
+		this.name = name;
+		this.entries = [];
+
+		this.headingElement = new PIXI.Text(name.toUpperCase());
+		this.headingElement.style = {
+			fontFamily: "Exo2-ExtraBold",
+			fill: 0xffffff
+		};
+		parent.contentContainer.addChild(this.headingElement);
+
+		this.headingInterpolator = new Interpolator({
+			duration: 500,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic,
+			defaultToFinished: true,
+			beginReversed: true
+		});
+
+		this.closeButton = new PIXI.Sprite(circleXTexture);
+		this.closeButton.anchor.set(1.0, 0.0);
+		this.closeButton.visible = false;
+		parent.contentContainer.addChild(this.closeButton);
+
+		this.closeButtonInterpolator = new Interpolator({
+			defaultToFinished: true,
+			beginReversed: true,
+			duration: 300,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInQuint
+		});
+
+		let registration = new InteractionRegistration(this.closeButton);
+		registration.addButtonHandlers(
+			() => {
+				for (let entry of this.entries) {
+					if (entry.allowManualClose) entry.close();
+				}
+			},
+			() => this.closeButtonInterpolator.setReversedState(false, performance.now()),
+			() => this.closeButtonInterpolator.setReversedState(true, performance.now()),
+			EMPTY_FUNCTION,
+			EMPTY_FUNCTION
+		);
+		parent.scrollContainer.contentInteractionGroup.add(registration);
+	}
 }
 
 export class NotificationPanel {
@@ -33,8 +83,8 @@ export class NotificationPanel {
 	/** The actual panel that slides in */
 	private panelContainer: PIXI.Container;
 	private panelBackground: PIXI.Sprite;
-	private scrollContainer: ScrollContainer;
-	private contentContainer: PIXI.Container;
+	public scrollContainer: ScrollContainer;
+	public contentContainer: PIXI.Container;
 	private missingContentNotice: PIXI.Text; // Will show if there are no entries currently being shown
 
 	private fadeInInterpolator: Interpolator;
@@ -87,27 +137,7 @@ export class NotificationPanel {
 		this.interactionGroup.add(this.scrollContainer.interactionGroup);
 		this.contentContainer = this.scrollContainer.contentContainer;
 
-		this.sections = sectionsNames.map(name => {
-			let headingElement = new PIXI.Text(name.toUpperCase());
-			headingElement.style = {
-				fontFamily: "Exo2-ExtraBold",
-				fill: 0xffffff
-			};
-			this.contentContainer.addChild(headingElement);
-
-			return {
-				name,
-				headingElement,
-				headingInterpolator: new Interpolator({
-					duration: 500,
-					ease: EaseType.EaseOutCubic,
-					reverseEase: EaseType.EaseInCubic,
-					defaultToFinished: true,
-					beginReversed: true
-				}),
-				entries: []
-			};
-		});
+		this.sections = sectionsNames.map(name => new Section(this, name));
 
 		this.fadeInInterpolator = new Interpolator({
 			duration: 500,
@@ -158,6 +188,9 @@ export class NotificationPanel {
 
 		for (let section of this.sections) {
 			section.headingElement.style.fontSize = Math.floor(12 * this.scalingFactor);
+			section.closeButton.x = this.panelBackground.width - 2 * Math.floor(NOTIFICATION_PANEL_PADDING * this.scalingFactor);
+			section.closeButton.width = section.closeButton.height = Math.floor(14 * this.scalingFactor);
+
 			for (let e of section.entries) e.resize();
 		}
 
@@ -191,6 +224,11 @@ export class NotificationPanel {
 			section.headingElement.y = Math.floor(currentY);
 			section.headingElement.alpha = interpolatorValue;
 			section.headingElement.scale.y = interpolatorValue;
+
+			section.closeButton.y = section.headingElement.y;
+			section.closeButton.height = section.closeButton.width * interpolatorValue;
+			section.closeButton.alpha = interpolatorValue * MathUtil.lerp(0.25, 0.75, section.closeButtonInterpolator.getCurrentValue(now));
+
 			currentY += section.headingElement.height + margin * interpolatorValue;
 
 			for (let i = 0; i < section.entries.length; i++) {
@@ -214,9 +252,21 @@ export class NotificationPanel {
 				currentY += entry.getHeight(now) + margin * fadeInValue;
 			}
 
-			if (section.entries.filter(x => !x.closed).length === 0) {
+			let activeEntries = section.entries.filter(x => !x.closed).length;
+			if (activeEntries === 0) {
 				// Hide the section header if there are no non-closed entries in this section (the section is empty)
 				section.headingInterpolator.setReversedState(true, now);
+			} else {
+				let text = section.name.toUpperCase() + ' (' + activeEntries + ')';
+				if (section.headingElement.text !== text) section.headingElement.text = text;
+			}
+
+			let closableEntries = section.entries.filter(x => x.allowManualClose).length;
+			if (closableEntries > 0) {
+				section.closeButton.visible = true;
+			} else if (activeEntries > 0) {
+				// No need to hide the button if the section is being hidden anyway
+				section.closeButton.visible = false;
 			}
 		}
 
