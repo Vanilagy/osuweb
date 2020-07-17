@@ -97,7 +97,7 @@ export abstract class NotificationPanelEntry {
 		this.heading.y = this.topHighlight.height + Math.floor(NOTIFICATION_PADDING * this.parent.scalingFactor);
 
 		if (this.closeButton) {
-			let padding = 12 * this.parent.scalingFactor;
+			let padding = 14 * this.parent.scalingFactor;
 			
 			this.closeButton.width = Math.floor(12 * this.parent.scalingFactor);
 			this.closeButton.height = this.closeButton.width;

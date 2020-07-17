@@ -5,10 +5,11 @@ import { Task } from "../../multithreading/task";
 import { VirtualFileSystemEntry } from "../../file_system/virtual_file_system_entry";
 import { globalState } from "../../global_state";
 import { startJob } from "../../multithreading/job_system";
-import { removeItem, wait } from "../../util/misc_util";
+import { removeItem, wait, chooseGrammaticalNumber, addNounToNumber } from "../../util/misc_util";
 import { BeatmapEntry } from "./beatmap_entry";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { isOsuBeatmapFile } from "../../util/file_util";
+import { NotificationType } from "../../menu/notifications/notification";
 
 // Canonical ranked beatmap folders (so, most) follow this naming scheme
 const beatmapFolderRegex = /[0-9]+ (.+?) - (.+)/;
@@ -28,7 +29,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 	}
 
 	/** Adds beatmap sets and begins loading their metadata. */
-	async addBeatmapSets(newBeatmapSets: BeatmapSet[]) {
+	async addBeatmapSets(newBeatmapSets: BeatmapSet[], defectiveSetCount = 0, singleImport: boolean) {
 		for (let set of newBeatmapSets) {
 			set.addListener('change', () => this.emit('change', set));
 			set.addListener('remove', () => {
@@ -41,16 +42,50 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		this.beatmapSets.push(...newBeatmapSets);
 		this.emit('add', newBeatmapSets);
 
+		// No need to do all the task wizardry if the beatmap has already been completely loaded!
+		if (singleImport) return;
+
 		let loadEntriesTask = new LoadBeatmapEntriesTask(newBeatmapSets);
 		loadEntriesTask.start();
 
 		let loadMetadataTask = new LoadBeatmapMetadataTask(newBeatmapSets);
 		loadMetadataTask.waitFor(loadEntriesTask);
+
+		loadMetadataTask.getResult().then(async () => {
+			// Generate the import completion notification
+
+			let loadMetadataResult = await loadMetadataTask.getResult();
+			loadMetadataResult.defectiveSets += defectiveSetCount; // Add the sets that were already ruled out in the initial scanthrough of the folder
+
+			let str = `${addNounToNumber(loadMetadataResult.processedBeatmaps, "beatmap", "beatmaps")} from ${addNounToNumber(newBeatmapSets.length - loadMetadataResult.defectiveSets, "beatmap set", "beatmap sets")} have been imported successfully. `;
+
+			let errorSentence = "";
+			let errorElementCount = 0;
+
+			if (loadMetadataResult.defectiveEntries > 0) {
+				errorSentence += `${addNounToNumber(loadMetadataResult.defectiveEntries, "beatmap", "beatmaps")}`;
+				errorElementCount += loadMetadataResult.defectiveEntries;
+			}
+			if (loadMetadataResult.defectiveSets > 0) {
+				if (errorSentence.length > 0) errorSentence += " and ";
+				errorSentence += `${addNounToNumber(loadMetadataResult.defectiveSets, "beatmap set", "beatmap sets")}`;
+				errorElementCount += loadMetadataResult.defectiveSets;
+			}
+			if (errorElementCount > 0) {
+				errorSentence += ` ${chooseGrammaticalNumber(errorElementCount, "was", "were")} not imported because ${chooseGrammaticalNumber(errorElementCount, "it was", "they were")} defective.`;
+				str += ' ' + errorSentence;
+			}
+
+			globalState.notificationPanel.showNotification("Beatmap import completed", str, NotificationType.Neutral);
+		});
 	}
 }
 
 /** Imports all beatmap sets from a directory. */
-export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, BeatmapSet[]> {
+export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, {
+	beatmapSets: BeatmapSet[],
+	defectiveSets: number
+}> {
 	private processed = new Set<VirtualFileSystemEntry>();
 	private beatmapSets: BeatmapSet[] = [];
 	private paused = true;
@@ -129,8 +164,11 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, Beat
 			console.info(this.defectiveBeatmapSetCount + " beatmap set(s) not imported because they were defective.");
 		}
 
-		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets);
-		this.setResult(this.beatmapSets);
+		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets, this.defectiveBeatmapSetCount, this.currentType === 'single');
+		this.setResult({
+			beatmapSets: this.beatmapSets,
+			defectiveSets: this.defectiveBeatmapSetCount
+		});
 	}
 
 	pause() {
@@ -201,12 +239,18 @@ export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
 }
 
 /** Loads the metadata for every beatmap in a list of beatmap sets. */
-export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
+export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], {
+	defectiveEntries: number,
+	defectiveSets: number,
+	processedBeatmaps: number
+}> {
 	private currentIndex = 0;
 	private paused = true;
 	private id = 0;
 	private processedBeatmaps: number = 0;
 	private totalBeatmaps: number = 0;
+	private defectiveEntries = 0;
+	private defectiveSets = 0;
 
 	get descriptor() {return "Processing beatmap metadata"}
 	get show() {return true}
@@ -233,12 +277,19 @@ export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], void> {
 			if (this.id !== idAtStart) return;
 
 			let set = this.input[this.currentIndex];
+			let entryCountBefore = set.entries.length;
 			await set.loadMetadata();
 
+			if (set.defective) this.defectiveSets++;
+			this.defectiveEntries += entryCountBefore - set.entries.length;
 			this.processedBeatmaps += set.entries.length;
 		}
 
-		this.setResult();
+		this.setResult({
+			defectiveEntries: this.defectiveEntries,
+			defectiveSets: this.defectiveSets,
+			processedBeatmaps: this.processedBeatmaps
+		});
 	}
 
 	pause() {

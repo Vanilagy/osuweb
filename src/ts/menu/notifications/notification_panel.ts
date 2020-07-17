@@ -7,7 +7,7 @@ import { DrawableTask } from "./drawable_task";
 import { Task } from "../../multithreading/task";
 import { KeyCode } from "../../input/input";
 import { NotificationPanelEntry } from "./notification_panel_entry";
-import { Notification } from "./notification";
+import { Notification, NotificationType } from "./notification";
 import { ScrollContainer } from "../components/scroll_container";
 import { randomInArray, last } from "../../util/misc_util";
 import { colorToHexNumber } from "../../util/graphics_util";
@@ -118,25 +118,20 @@ export class NotificationPanel {
 			defaultToFinished: true
 		});
 
-		for (let i = 0; i < 20; i++) {
-			let words = "Alrighty. Here is some sample text. More sample text. Very long, deep, philosophical sample text! Miles better than Lorem Ipsum, isn't it?".split(" ");
-			let len = MathUtil.getRandomInt(10, 100);
-			let text = "";
-			for (let i = 0; i < len; i++) text += randomInArray(words) + " ";
-
-			let mhh = new Notification(this, "bruh " + Math.random(), text);
-			this.addEntryToSection(mhh, "notifications");
-		}
-
 		this.resize();
 		this.hide();
 	}
 
-	addEntryToSection(entry: NotificationPanelEntry, sectionName: string) {
+	showNotification(header: string, body: string, type: NotificationType = NotificationType.Neutral) {
+		let drawable = new Notification(this, header, body, type);
+		this.addEntryToSection(drawable, "notifications", true);
+	}
+
+	addEntryToSection(entry: NotificationPanelEntry, sectionName: string, front = false) {
 		let section = this.sections.find(x => x.name === sectionName);
 		if (!section) return;
 
-		section.entries.push(entry);
+		front? section.entries.unshift(entry) : section.entries.push(entry);
 		this.contentContainer.addChild(entry.container);
 		this.scrollContainer.contentInteractionGroup.add(entry.interactionGroup);
 
@@ -211,12 +206,12 @@ export class NotificationPanel {
 					continue;
 				}
 
-				let bruh = entry.getFadeInValue(now);
+				let fadeInValue = entry.getFadeInValue(now);
 
 				// If this is the last element, we add a negative margin on top to remove the margin created by the last element.
-				if (section === last(this.sections) && i === section.entries.length-1) currentY -= margin * (1 - bruh);
+				if (section === last(this.sections) && i === section.entries.length-1) currentY -= margin * (1 - fadeInValue);
 				entry.container.y = Math.floor(currentY);
-				currentY += entry.getHeight(now) + margin * bruh;
+				currentY += entry.getHeight(now) + margin * fadeInValue;
 			}
 
 			if (section.entries.filter(x => !x.closed).length === 0) {

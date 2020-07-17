@@ -1,13 +1,25 @@
 import { NotificationPanelEntry, NOTIFICATION_PADDING } from "./notification_panel_entry";
 import { NotificationPanel } from "./notification_panel";
 import { THEME_COLORS } from "../../util/constants";
-import { colorToHexNumber } from "../../util/graphics_util";
+import { colorToHexNumber, Color, Colors } from "../../util/graphics_util";
+
+export enum NotificationType {
+	Neutral,
+	Warning,
+	Error
+}
+
+let typeToColor = new Map<NotificationType, Color>();
+typeToColor.set(NotificationType.Neutral, THEME_COLORS.PrimaryBlue);
+typeToColor.set(NotificationType.Warning, THEME_COLORS.PrimaryYellow);
+typeToColor.set(NotificationType.Error, THEME_COLORS.JudgementMiss);
 
 export class Notification extends NotificationPanelEntry {
 	private contentText: PIXI.Text;
 
-	constructor(parent: NotificationPanel, heading: string, content: string) {
-		super(parent, heading, THEME_COLORS.PrimaryBlue, true);
+	constructor(parent: NotificationPanel, heading: string, content: string, type: NotificationType) {
+		let color = typeToColor.get(type);
+		super(parent, heading, color, true);
 
 		this.contentText = new PIXI.Text(content);
 		this.contentText.style = {

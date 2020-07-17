@@ -8,6 +8,8 @@ import { isOsuBeatmapFile } from "../../util/file_util";
 import { startJob } from "../../multithreading/job_system";
 import { JobUtil } from "../../multithreading/job_util";
 import { Skin } from "../../game/skin/skin";
+import { globalState } from "../../global_state";
+import { NotificationType } from "../../menu/notifications/notification";
 
 /** Extracts artist, title, mapper and version from a beatmap file name. */
 const metadataExtractor = /^(.+) - (.+) \((.+)\) \[(.+)\]\.osu$/;
@@ -117,7 +119,10 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 				}
 			}
 
-			if (this.defective) this.remove();
+			if (this.defective) {
+				this.remove();
+				globalState.notificationPanel.showNotification("Error importing beatmap set", `Could not import the folder "${this.directory.name}".`, NotificationType.Error);
+			}
 
 			resolve();
 		});
@@ -148,6 +153,8 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 				} else {
 					console.info("Error loading metadata: ", this, data.reason);
 					this.removeEntry(entry);
+
+					globalState.notificationPanel.showNotification("Error loading beatmap difficulty", `Could not load beatmap "${entry.resource.name}" in beatmap set "${this.directory.name}"`, NotificationType.Error);
 				}
 			}
 	

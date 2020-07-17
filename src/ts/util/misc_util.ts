@@ -374,3 +374,13 @@ export type UnPromisify<T> = T extends Promise<infer U> ? U : T;
 export function wait(milliseconds: number) {
 	return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
+
+/** Selects the correct grammatical number (singular/plural) of an English word based on a supplied value. */
+export function chooseGrammaticalNumber(value: number, singular: string, plural: string) {
+	return (value === 1)? singular : plural;
+}
+
+/** Returns the number in string format, as well as the supplied noun in its correct grammatical number based on the supplied value. */
+export function addNounToNumber(value: number, singular: string, plural: string) {
+	return value.toString() + ' ' + chooseGrammaticalNumber(value, singular, plural);
+}
