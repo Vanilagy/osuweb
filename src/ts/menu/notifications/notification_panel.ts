@@ -6,10 +6,21 @@ import { globalState } from "../../global_state";
 import { DrawableTask } from "./drawable_task";
 import { Task } from "../../multithreading/task";
 import { KeyCode } from "../../input/input";
+import { NotificationPanelEntry } from "./notification_panel_entry";
+import { Notification } from "./notification";
+import { ScrollContainer } from "../components/scroll_container";
+import { randomInArray } from "../../util/misc_util";
 
 export const NOTIFICATION_PANEL_WIDTH = 300;
 export const NOTIFICATION_PANEL_PADDING = 12;
 export const NOTIFICATION_MARGIN = 12;
+const sectionsNames = ["tasks", "notifications"];
+
+interface Section {
+	name: string,
+	headingElement: PIXI.Text,
+	entries: NotificationPanelEntry[]
+}
 
 export class NotificationPanel {
 	public container: PIXI.Container;
@@ -20,11 +31,12 @@ export class NotificationPanel {
 	/** The actual panel that slides in */
 	private panelContainer: PIXI.Container;
 	private panelBackground: PIXI.Sprite;
+	private scrollContainer: ScrollContainer;
+	private contentContainer: PIXI.Container;
 
 	private fadeInInterpolator: Interpolator;
 
-	private tasksHeading: PIXI.Text;
-	private tasks: DrawableTask[] = [];
+	private sections: Section[];
 
 	/** Store the last time the notification panel is closed, so that when it is reopened again, we can run one update pass at that stored time. This is done to prevent sudden animations happening only when the panel is updated. The alternative would be to update the panel continuously even when it isn't visible, which is obviously a waste of resources. */
 	private lastHideTime = -1e6;
@@ -61,12 +73,25 @@ export class NotificationPanel {
 		this.panelBackground.alpha = 0.95;
 		this.panelContainer.addChild(this.panelBackground);
 
-		this.tasksHeading = new PIXI.Text("TASKS");
-		this.tasksHeading.style = {
-			fontFamily: "Exo2-ExtraBold",
-			fill: 0xffffff
-		};
-		this.panelContainer.addChild(this.tasksHeading);
+		this.scrollContainer = new ScrollContainer();
+		this.panelContainer.addChild(this.scrollContainer.container);
+		this.interactionGroup.add(this.scrollContainer.interactionGroup);
+		this.contentContainer = this.scrollContainer.contentContainer;
+
+		this.sections = sectionsNames.map(name => {
+			let headingElement = new PIXI.Text(name.toUpperCase());
+			headingElement.style = {
+				fontFamily: "Exo2-ExtraBold",
+				fill: 0xffffff
+			};
+			this.contentContainer.addChild(headingElement);
+
+			return {
+				name,
+				headingElement,
+				entries: []
+			};
+		});
 
 		this.fadeInInterpolator = new Interpolator({
 			duration: 500,
@@ -77,14 +102,32 @@ export class NotificationPanel {
 			defaultToFinished: true
 		});
 
+		for (let i = 0; i < 20; i++) {
+			let words = "Alrighty. Here is some sample text. More sample text. Very long, deep, philosophical sample text! Miles better than Lorem Ipsum, isn't it?".split(" ");
+			let len = MathUtil.getRandomInt(10, 100);
+			let text = "";
+			for (let i = 0; i < len; i++) text += randomInArray(words) + " ";
+
+			let mhh = new Notification(this, "bruh " + Math.random(), text);
+			this.addEntryToSection(mhh, "notifications");
+		}
+
 		this.resize();
 		this.hide();
 	}
 
 	addTask(task: Task<any, any>) {
 		let drawable = new DrawableTask(this, task);
-		this.panelContainer.addChild(drawable.container);
-		this.tasks.push(drawable);
+		this.addEntryToSection(drawable, "tasks");
+	}
+
+	addEntryToSection(entry: NotificationPanelEntry, sectionName: string) {
+		let section = this.sections.find(x => x.name === sectionName);
+		if (!section) return;
+
+		section.entries.push(entry);
+		this.contentContainer.addChild(entry.container);
+		this.scrollContainer.contentInteractionGroup.add(entry.interactionGroup);
 	}
 
 	resize() {
@@ -97,10 +140,16 @@ export class NotificationPanel {
 		this.panelBackground.width = Math.floor(NOTIFICATION_PANEL_WIDTH * this.scalingFactor);
 		this.panelBackground.height = currentWindowDimensions.height - this.panelContainer.y;
 
-		this.tasksHeading.style.fontSize = Math.floor(12 * this.scalingFactor);
-		this.tasksHeading.x = Math.floor(NOTIFICATION_PANEL_PADDING * this.scalingFactor);
+		this.scrollContainer.setHeight(this.panelBackground.height);
+		this.scrollContainer.setWidth(this.panelBackground.width);
+		this.scrollContainer.setPadding(Math.floor(NOTIFICATION_PANEL_PADDING * this.scalingFactor));
+		this.scrollContainer.setScrollScalingFactor(this.scalingFactor);
+		this.scrollContainer.setScrollbarScalingFactor(this.scalingFactor);
 
-		for (let t of this.tasks) t.resize();
+		for (let section of this.sections) {
+			section.headingElement.style.fontSize = Math.floor(12 * this.scalingFactor);
+			for (let e of section.entries) e.resize();
+		}
 	}
 
 	update(now: number) {
@@ -112,30 +161,35 @@ export class NotificationPanel {
 		this.container.visible = true;
 
 		this.background.alpha = MathUtil.lerp(0, 0.5, fadeInCompletion);
-
 		this.panelContainer.x = currentWindowDimensions.width - MathUtil.lerp(0, this.panelContainer.width, fadeInCompletion);
 
-		let currentY = Math.floor(NOTIFICATION_PANEL_PADDING * this.scalingFactor);
-		this.tasksHeading.y = currentY;
-		currentY += this.tasksHeading.height + Math.floor(NOTIFICATION_MARGIN * this.scalingFactor);
+		this.scrollContainer.update(now);
 
-		for (let i = 0; i < this.tasks.length; i++) {
-			let task = this.tasks[i];
-			task.update(now);
+		let margin = NOTIFICATION_MARGIN * this.scalingFactor;
+		let currentY = -margin;
 
-			if (task.destroyable) {
-				// Remove the task
+		for (let section of this.sections) {
+			currentY += margin;
+			section.headingElement.y = Math.floor(currentY);
+			currentY += section.headingElement.height;
 
-				this.panelContainer.removeChild(task.container);
-				this.tasks.splice(i--, 1);
+			for (let i = 0; i < section.entries.length; i++) {
+				let entry = section.entries[i];
+				entry.update(now);
 
-				continue;
+				if (entry.destroyable) {
+					// Remove the entry
+					this.contentContainer.removeChild(entry.container);
+					this.scrollContainer.contentInteractionGroup.remove(entry.interactionGroup);
+					section.entries.splice(i--, 1);
+
+					continue;
+				}
+
+				currentY += entry.getMargin(now);
+				entry.container.y = Math.floor(currentY);
+				currentY += entry.getHeight(now);
 			}
-
-			task.container.x = Math.floor(NOTIFICATION_PANEL_PADDING * this.scalingFactor);
-			task.container.y = Math.floor(currentY);
-
-			currentY += task.getHeight(now);
 		}
 	}
 

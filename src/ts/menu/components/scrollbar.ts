@@ -73,7 +73,7 @@ export class Scrollbar {
 		}
 
 		this.thumb.visible = true;
-		this.thumb.height = Math.ceil(thumbHeight);
+		this.thumb.height = Math.max(0, Math.ceil(thumbHeight));
 		this.thumb.y = Math.floor(thumbPosition);
 	}
 }

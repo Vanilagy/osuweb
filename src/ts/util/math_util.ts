@@ -53,25 +53,25 @@ const elasticOffsetHalf = Math.pow(2, -10) * Math.sin((.5 - elasticConst2) * ela
 const elasticOffsetQuarter = Math.pow(2, -10) * Math.sin((.25 - elasticConst2) * elasticConst);
 
 export abstract class MathUtil {
-	static pointOnBézierCurve(pointArray: Point[], t: number): Point {
-		let bx = 0, by = 0, n = pointArray.length - 1; // degree
+	static pointOnBézierCurve(controlPoints: Point[], t: number): Point {
+		let bx = 0, by = 0, n = controlPoints.length - 1; // degree
 		
 		if (n === 1) { // if linear
-			bx = (1 - t) * pointArray[0].x + t * pointArray[1].x;
-			by = (1 - t) * pointArray[0].y + t * pointArray[1].y;
+			bx = (1 - t) * controlPoints[0].x + t * controlPoints[1].x;
+			by = (1 - t) * controlPoints[0].y + t * controlPoints[1].y;
 		} else if (n === 2) { // if quadratic
-			bx = (1 - t) * (1 - t) * pointArray[0].x + 2 * (1 - t) * t * pointArray[1].x + t * t * pointArray[2].x;
-			by = (1 - t) * (1 - t) * pointArray[0].y + 2 * (1 - t) * t * pointArray[1].y + t * t * pointArray[2].y;
+			bx = (1 - t) * (1 - t) * controlPoints[0].x + 2 * (1 - t) * t * controlPoints[1].x + t * t * controlPoints[2].x;
+			by = (1 - t) * (1 - t) * controlPoints[0].y + 2 * (1 - t) * t * controlPoints[1].y + t * t * controlPoints[2].y;
 		} else if (n === 3) { // if cubic
-			bx = (1 - t) * (1 - t) * (1 - t) * pointArray[0].x + 3 * (1 - t) * (1 - t) * t * pointArray[1].x + 3 * (1 - t) * t * t * pointArray[2].x + t * t * t * pointArray[3].x;
-			by = (1 - t) * (1 - t) * (1 - t) * pointArray[0].y + 3 * (1 - t) * (1 - t) * t * pointArray[1].y + 3 * (1 - t) * t * t * pointArray[2].y + t * t * t * pointArray[3].y;
+			bx = (1 - t) * (1 - t) * (1 - t) * controlPoints[0].x + 3 * (1 - t) * (1 - t) * t * controlPoints[1].x + 3 * (1 - t) * t * t * controlPoints[2].x + t * t * t * controlPoints[3].x;
+			by = (1 - t) * (1 - t) * (1 - t) * controlPoints[0].y + 3 * (1 - t) * (1 - t) * t * controlPoints[1].y + 3 * (1 - t) * t * t * controlPoints[2].y + t * t * t * controlPoints[3].y;
 		} else { // generalized equation
 			// This uses De Casteljau's Algorithm, taken from https://stackoverflow.com/questions/41663348/bezier-curve-of-n-order?noredirect=1&lq=1. Probably not yet as fast as it can be, might have to look into some other form of array or WebAssembly.
 
-			let list = pointArray.slice();
+			let list = controlPoints.slice();
 
-			for (let j = pointArray.length; j > 1; j--) {
-				let firstIteration = j === pointArray.length;
+			for (let j = controlPoints.length; j > 1; j--) {
+				let firstIteration = j === controlPoints.length;
 			
 				for (let i = 0; i < j-1; i++) {
 					let x = (1-t) * list[i].x + t * list[i+1].x,
@@ -104,10 +104,10 @@ export abstract class MathUtil {
 	}
 
 	// No, this isn't some mathematically-accurate 2nd derivative calculation. It's an estimate, and it does the job. Hopefully. >.<
-	static curvatureOfBézierCurve(pointArray: Point[], t: number, middlePoint?: Point) {
-		let a = MathUtil.pointOnBézierCurve(pointArray, t - 0.001),
-			b = middlePoint || MathUtil.pointOnBézierCurve(pointArray, t),
-			c = MathUtil.pointOnBézierCurve(pointArray, t + 0.001);
+	static curvatureOfBézierCurve(controlPoints: Point[], t: number, middlePoint?: Point) {
+		let a = MathUtil.pointOnBézierCurve(controlPoints, t - 0.001),
+			b = middlePoint || MathUtil.pointOnBézierCurve(controlPoints, t),
+			c = MathUtil.pointOnBézierCurve(controlPoints, t + 0.001);
 
 		let a1 = Math.atan2(b.y - a.y, b.x - a.x),
 			a2 = Math.atan2(c.y - b.y, c.x - b.x);
@@ -488,6 +488,11 @@ export abstract class MathUtil {
 			default:
 				return x;
 		}
+	}
+
+	/** Get an approximation of the slope of an easing function at a given point. */
+	static easeSlope(type: EaseType, x: number, p?: number, epsilon = 0.00001) {
+		return (MathUtil.ease(type, x + epsilon, p) - MathUtil.ease(type, x, p)) / epsilon;
 	}
 
 	static lerp(start: number, end: number, t: number) {
