@@ -96,7 +96,7 @@ export class NotificationPanel {
 	private sections: Section[];
 
 	/** Store the last time the notification panel is closed, so that when it is reopened again, we can run one update pass at that stored time. This is done to prevent sudden animations happening only when the panel is updated. The alternative would be to update the panel continuously even when it isn't visible, which is obviously a waste of resources. */
-	private lastHideTime = -1e6;
+	private lastHideTime: number;
 
 	private popupManager: NotificationPopupManager;
 
@@ -163,6 +163,7 @@ export class NotificationPanel {
 
 		this.resize();
 		this.hide();
+		this.lastHideTime = -1e6;
 	}
 
 	get opened() {
@@ -227,7 +228,7 @@ export class NotificationPanel {
 		this.popupManager.resize();
 	}
 
-	update(now: number) {
+	update(now: number, force = false) {
 		this.popupManager.update(now);
 
 		let fadeInCompletion = this.fadeInInterpolator.getCurrentValue(now);
@@ -235,7 +236,7 @@ export class NotificationPanel {
 		this.background.alpha = MathUtil.lerp(0, 0.5, fadeInCompletion);
 		this.panelContainer.x = currentWindowDimensions.width - MathUtil.lerp(0, this.panelContainer.width, fadeInCompletion);
 
-		if (fadeInCompletion === 0) return;
+		if (fadeInCompletion === 0 && !force) return;
 
 		this.scrollContainer.update(now);
 
@@ -306,7 +307,7 @@ export class NotificationPanel {
 		this.fadeInInterpolator.setReversedState(false, performance.now());
 		this.panelInteractionGroup.enable();
 
-		this.update(this.lastHideTime);
+		this.update(this.lastHideTime, true);
 
 		this.popupManager.closeAll();
 	}
