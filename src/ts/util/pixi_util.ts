@@ -156,3 +156,31 @@ export function svgToTexture(svgImageElement: HTMLImageElement, makeWhite = fals
 	let tex = PIXI.Texture.from(canvas);
 	return tex;
 }
+
+/** Fit a certain string into a text element while respecting a max width, cutting off the text at the right point. */
+export function cutOffText(element: PIXI.Text, text: string, thresholdWidth: number, append = "...") {
+	element.text = text.trimEnd();
+	if (element.width <= thresholdWidth) return; // If the text fits naturally, no need to do anything!
+
+	element.text = text.trimEnd() + append;
+
+	// We perform a binary search over the length of the string in order to find the right point to cut
+	let low = 0;
+	let high = text.length;
+	let midVal: number;
+	
+	while (low < high) {
+		let mid = Math.floor((low + high) / 2);
+		element.text = text.slice(0, mid).trimEnd() + append;
+		midVal = element.width;
+
+		if (midVal > thresholdWidth) {
+			high = mid-1;
+		} else {
+			low = mid+1;
+		}
+	}
+
+	// For some reason, the above algorithm is always off by one.
+	if (midVal > thresholdWidth) element.text = text.slice(0, low-1).trimEnd() + append;
+}

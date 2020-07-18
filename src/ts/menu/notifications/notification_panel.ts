@@ -10,6 +10,8 @@ import { ScrollContainer } from "../components/scroll_container";
 import { last, EMPTY_FUNCTION } from "../../util/misc_util";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { svgToTexture } from "../../util/pixi_util";
+import { NotificationPopupManager } from "./notification_popup_manager";
+import { NotificationPopup } from "./notification_popup";
 
 export const NOTIFICATION_PANEL_WIDTH = 300;
 export const NOTIFICATION_PANEL_PADDING = 12;
@@ -77,9 +79,11 @@ class Section {
 export class NotificationPanel {
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
+	public panelInteractionGroup: InteractionGroup;
 	public scalingFactor: number;
 
 	private background: PIXI.Sprite;
+	private backgroundRegistration: InteractionRegistration;
 	/** The actual panel that slides in */
 	private panelContainer: PIXI.Container;
 	private panelBackground: PIXI.Sprite;
@@ -94,32 +98,41 @@ export class NotificationPanel {
 	/** Store the last time the notification panel is closed, so that when it is reopened again, we can run one update pass at that stored time. This is done to prevent sudden animations happening only when the panel is updated. The alternative would be to update the panel continuously even when it isn't visible, which is obviously a waste of resources. */
 	private lastHideTime = -1e6;
 
+	private popupManager: NotificationPopupManager;
+
 	constructor() {
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
+		this.panelInteractionGroup = new InteractionGroup();
+
+		this.popupManager = new NotificationPopupManager(this);
+		this.container.addChild(this.popupManager.container);
+
+		this.interactionGroup.add(this.popupManager.interactionGroup);
+		this.interactionGroup.add(this.panelInteractionGroup);
 
 		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.background.tint = 0x000000;
 		this.background.alpha = 0.5;
 		this.container.addChild(this.background);
 
-		let backgroundRegistration = new InteractionRegistration(this.background);
-		backgroundRegistration.enableEmptyListeners();
-		backgroundRegistration.addListener('mouseDown', () => {
+		this.backgroundRegistration = new InteractionRegistration(this.background);
+		this.backgroundRegistration.enableEmptyListeners();
+		this.backgroundRegistration.addListener('mouseDown', () => {
 			// When you click on the background, it should close the notification panel
 			this.hide();
 		});
-		backgroundRegistration.addListener('keyDown', (e) => {
+		this.backgroundRegistration.addListener('keyDown', (e) => {
 			if (e.keyCode === KeyCode.Escape) this.hide();
 		});
-		this.interactionGroup.add(backgroundRegistration);
+		this.panelInteractionGroup.add(this.backgroundRegistration);
 
 		this.panelContainer = new PIXI.Container();
 		this.container.addChild(this.panelContainer);
 
 		let panelRegistration = new InteractionRegistration(this.panelContainer);
 		panelRegistration.enableEmptyListeners();
-		this.interactionGroup.add(panelRegistration);
+		this.panelInteractionGroup.add(panelRegistration);
 
 		this.panelBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.panelBackground.tint = 0x101010;
@@ -134,7 +147,7 @@ export class NotificationPanel {
 
 		this.scrollContainer = new ScrollContainer();
 		this.panelContainer.addChild(this.scrollContainer.container);
-		this.interactionGroup.add(this.scrollContainer.interactionGroup);
+		this.panelInteractionGroup.add(this.scrollContainer.interactionGroup);
 		this.contentContainer = this.scrollContainer.contentContainer;
 
 		this.sections = sectionsNames.map(name => new Section(this, name));
@@ -152,9 +165,21 @@ export class NotificationPanel {
 		this.hide();
 	}
 
-	showNotification(header: string, body: string, type: NotificationType = NotificationType.Neutral) {
-		let drawable = new Notification(this, header, body, type);
-		this.addEntryToSection(drawable, "notifications", true);
+	get opened() {
+		return this.panelInteractionGroup.enabled;
+	}
+
+	showNotification(header: string, body: string, type: NotificationType = NotificationType.Neutral, popupOnly = false) {
+		let drawable: Notification = null;
+		if (!popupOnly) {
+			drawable = new Notification(this, header, body, type);
+			this.addEntryToSection(drawable, "notifications", true);
+		}
+
+		if (!this.opened) {
+			let popup = new NotificationPopup(this.popupManager, header, body, type, drawable);
+			this.popupManager.addPopup(popup);
+		}
 	}
 
 	addEntryToSection(entry: NotificationPanelEntry, sectionName: string, front = false) {
@@ -198,18 +223,19 @@ export class NotificationPanel {
 		this.missingContentNotice.pivot.x = Math.floor(this.missingContentNotice.width / 2);
 		this.missingContentNotice.x = Math.floor(this.panelBackground.width / 2);
 		this.missingContentNotice.y = Math.floor(35 * this.scalingFactor);
+
+		this.popupManager.resize();
 	}
 
 	update(now: number) {
+		this.popupManager.update(now);
+
 		let fadeInCompletion = this.fadeInInterpolator.getCurrentValue(now);
-		if (fadeInCompletion === 0) {
-			this.container.visible = false;
-			return;
-		}
-		this.container.visible = true;
 
 		this.background.alpha = MathUtil.lerp(0, 0.5, fadeInCompletion);
 		this.panelContainer.x = currentWindowDimensions.width - MathUtil.lerp(0, this.panelContainer.width, fadeInCompletion);
+
+		if (fadeInCompletion === 0) return;
 
 		this.scrollContainer.update(now);
 
@@ -275,23 +301,29 @@ export class NotificationPanel {
 	}
 
 	show() {
+		if (this.opened) return;
+
 		this.fadeInInterpolator.setReversedState(false, performance.now());
-		this.interactionGroup.enable();
+		this.panelInteractionGroup.enable();
 
 		this.update(this.lastHideTime);
+
+		this.popupManager.closeAll();
 	}
 
 	hide() {
+		if (!this.opened) return;
+
 		let now = performance.now();
 
 		this.fadeInInterpolator.setReversedState(true, now);
-		this.interactionGroup.disable();
+		this.panelInteractionGroup.disable();
 
 		this.lastHideTime = now;
 	}
 
 	toggle() {
-		if (this.interactionGroup.enabled) this.hide();
+		if (this.opened) this.hide();
 		else this.show();
 	}
 }

@@ -45,6 +45,8 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		// No need to do all the task wizardry if the beatmap has already been completely loaded!
 		if (singleImport) return;
 
+		globalState.notificationPanel.showNotification("Beatmap import ongoing", `Importing ${addNounToNumber(newBeatmapSets.length, "beatmap set", "beatmap sets")}...`, NotificationType.Neutral, true);
+
 		let loadEntriesTask = new LoadBeatmapEntriesTask(newBeatmapSets);
 		loadEntriesTask.start();
 

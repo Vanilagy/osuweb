@@ -103,7 +103,7 @@ export abstract class NotificationPanelEntry {
 			
 			this.closeButton.width = Math.floor(12 * this.parent.scalingFactor);
 			this.closeButton.height = this.closeButton.width;
-			this.closeButton.y = this.topHighlight.height + Math.floor(padding)
+			this.closeButton.y = this.topHighlight.height + Math.floor(padding);
 			this.closeButton.x = Math.floor(this.background.width - padding);
 		}
 	}

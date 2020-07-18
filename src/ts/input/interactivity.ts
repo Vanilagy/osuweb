@@ -423,12 +423,12 @@ inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleMou
 
 inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
 	let overlaps = reg.overlaps(pos.x, pos.y);
-	if (!overlaps) return [];
 
 	// Based on if the corresponding button was pressed down, either dispatch mouseClick or don't.
 	let returnValue: Interaction[] = (reg.pressedDown[e.button] === true)? ['mouseUp', 'mouseClick'] : ['mouseUp'];
-	reg.pressedDown[e.button] = false;
+	reg.pressedDown[e.button] = false; // Set to false always
 
+	if (!overlaps) return [];
 	return returnValue;
 }));
 

@@ -9,16 +9,16 @@ export enum NotificationType {
 	Error
 }
 
-let typeToColor = new Map<NotificationType, Color>();
-typeToColor.set(NotificationType.Neutral, THEME_COLORS.PrimaryBlue);
-typeToColor.set(NotificationType.Warning, THEME_COLORS.PrimaryYellow);
-typeToColor.set(NotificationType.Error, THEME_COLORS.JudgementMiss);
+export let notificationTypeToColor = new Map<NotificationType, Color>();
+notificationTypeToColor.set(NotificationType.Neutral, THEME_COLORS.PrimaryBlue);
+notificationTypeToColor.set(NotificationType.Warning, THEME_COLORS.PrimaryYellow);
+notificationTypeToColor.set(NotificationType.Error, THEME_COLORS.JudgementMiss);
 
 export class Notification extends NotificationPanelEntry {
 	private contentText: PIXI.Text;
 
 	constructor(parent: NotificationPanel, heading: string, content: string, type: NotificationType) {
-		let color = typeToColor.get(type);
+		let color = notificationTypeToColor.get(type);
 		super(parent, heading, color, true);
 
 		this.contentText = new PIXI.Text(content);

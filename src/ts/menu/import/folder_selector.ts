@@ -6,7 +6,7 @@ import { DEFAULT_BUTTON_HEIGHT, Button, DEFAULT_BUTTON_WIDTH, ButtonPivot } from
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { THEME_COLORS } from "../../util/constants";
-import { supportsNativeFileSystemApi, EMPTY_FUNCTION } from "../../util/misc_util";
+import { supportsNativeFileSystemApi, EMPTY_FUNCTION, addNounToNumber } from "../../util/misc_util";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { KeyCode } from "../../input/input";
 import { ImportBeatmapsFromDirectoryTask } from "../../datamodel/beatmap/beatmap_library";
@@ -270,7 +270,7 @@ export class FolderSelector {
 			let loadingTaskProgress = this.loadingTask.getProgress();
 			if (loadingTaskProgress) {
 				let n = loadingTaskProgress.dataCompleted;
-				this.loadingText.text = `Importing ${n} beatmap ${(n === 1)? 'set' : 'sets'}...`;
+				this.loadingText.text = `${addNounToNumber(n, "beatmap set", "beatmap sets")} found...`;//  `Importing ${n} beatmap ${(n === 1)? 'set' : 'sets'}...`;
 			} else {
 				this.loadingText.text = "Importing...";
 			}
