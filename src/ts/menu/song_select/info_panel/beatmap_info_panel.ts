@@ -200,11 +200,11 @@ export class BeatmapInfoPanel {
 
 	show() {
 		this.fadeInInterpolator.setReversedState(false, performance.now());
-		this.interactionGroup.disable();
+		this.interactionGroup.enable();
 	}
 
 	hide() {
 		this.fadeInInterpolator.setReversedState(true, performance.now());
-		this.interactionGroup.enable();
+		this.interactionGroup.disable();
 	}
 }
