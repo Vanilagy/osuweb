@@ -23,6 +23,7 @@ import { BeatmapLibrary } from './datamodel/beatmap/beatmap_library';
 import { FolderSelector } from './menu/import/folder_selector';
 import { NotificationPanel } from './menu/notifications/notification_panel';
 import { TaskManager } from './multithreading/task_manager';
+import { SettingsPanel } from './menu/settings/settings_panel';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -44,6 +45,7 @@ async function init() {
 	initBeatmapLibrary();
 	initToolbar(); // This should be called before most other UI elements
 	initNotificationPanel();
+	initSettingsPanel();
 	initFolderSelector();
 	initSongSelect();
 	await initBaseSkin();
@@ -86,7 +88,9 @@ function initBeatmapLibrary() {
 
 function initToolbar() {
 	let toolbar = new Toolbar();
+	stage.addChild(toolbar.screenDim);
 	stage.addChild(toolbar.container);
+	rootInteractionGroup.add(toolbar.screenDimRegistration);
 	rootInteractionGroup.add(toolbar.interactionGroup);
 
 	uiEventEmitter.addListener('resize', () => toolbar.resize());
@@ -104,6 +108,17 @@ function initNotificationPanel() {
 	addRenderingTask((now) => panel.update(now));
 
 	globalState.notificationPanel = panel;
+}
+
+function initSettingsPanel() {
+	let panel = new SettingsPanel();
+	stage.addChild(panel.container);
+	rootInteractionGroup.add(panel.interactionGroup);
+
+	uiEventEmitter.addListener('resize', () => panel.resize());
+	addRenderingTask((now) => panel.update(now));
+
+	globalState.settingsPanel = panel;
 }
 
 function initSongSelect() {
@@ -172,14 +187,18 @@ function setZIndexes() {
 	globalState.gameplayController.container.zIndex = 0;
 	globalState.scoreScreen.container.zIndex = 1;
 	globalState.songSelect.container.zIndex = 2;
-	globalState.notificationPanel.container.zIndex = 2.5;
-	globalState.toolbar.container.zIndex = 3;
+	globalState.toolbar.screenDim.zIndex = 3;
+	globalState.notificationPanel.container.zIndex = 3.3;
+	globalState.settingsPanel.container.zIndex = 3.4;
+	globalState.toolbar.container.zIndex = 3.9;
 	globalState.folderSelector.container.zIndex = 4;
 
 	globalState.gameplayController.interactionGroup.setZIndex(0);
 	globalState.songSelect.interactionGroup.setZIndex(1);
 	globalState.scoreScreen.interactionGroup.setZIndex(2);
-	globalState.notificationPanel.interactionGroup.setZIndex(2.5);
-	globalState.toolbar.interactionGroup.setZIndex(3);
+	globalState.toolbar.screenDimRegistration.setZIndex(3);
+	globalState.notificationPanel.interactionGroup.setZIndex(3.3);	
+	globalState.settingsPanel.interactionGroup.setZIndex(3.4);
+	globalState.toolbar.interactionGroup.setZIndex(3.9);
 	globalState.folderSelector.interactionGroup.setZIndex(4);
 }

@@ -10,6 +10,7 @@ import { BeatmapLibrary } from "./datamodel/beatmap/beatmap_library";
 import { FolderSelector } from "./menu/import/folder_selector";
 import { NotificationPanel } from "./menu/notifications/notification_panel";
 import { TaskManager } from "./multithreading/task_manager";
+import { SettingsPanel } from "./menu/settings/settings_panel";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -23,5 +24,6 @@ export const globalState = {
 	baseSkin: null as Skin,
 	scoreScreen: null as ScoreScreen,
 	folderSelector: null as FolderSelector,
-	taskManager: null as TaskManager
+	taskManager: null as TaskManager,
+	settingsPanel: null as SettingsPanel
 };

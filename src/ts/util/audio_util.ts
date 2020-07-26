@@ -363,4 +363,9 @@ export class AudioUtil {
 
 		return player;
 	}
+
+	/** The regular linear 0-1 gain scale feels unnatural to most users, since volume is actually logarithmic. This method rescales the linear input to make it feel better. */
+	static rescaleGain(rawGain: number) {
+		return rawGain**2;
+	}
 }

@@ -109,7 +109,7 @@ export class InteractionRegistration extends InteractionUnit {
 			this.disable();
 		}
 	}
-
+	
 	// TODO: Maybe extend CustomEventEmitter? Idk... :S
 	addListener<K extends keyof InteractionEventMap>(interaction: K, func: (data?: InteractionEventMap[K]) => any) {
 		let arr = this.listeners.get(interaction);

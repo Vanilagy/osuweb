@@ -384,3 +384,5 @@ export function chooseGrammaticalNumber(value: number, singular: string, plural:
 export function addNounToNumber(value: number, singular: string, plural: string) {
 	return value.toString() + ' ' + chooseGrammaticalNumber(value, singular, plural);
 }
+
+export type KeysWithType<T, U> = { [K in keyof T]-?: T[K] extends U ? K : never }[keyof T];

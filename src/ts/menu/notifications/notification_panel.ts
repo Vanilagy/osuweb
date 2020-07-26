@@ -82,8 +82,6 @@ export class NotificationPanel {
 	public panelInteractionGroup: InteractionGroup;
 	public scalingFactor: number;
 
-	private background: PIXI.Sprite;
-	private backgroundRegistration: InteractionRegistration;
 	/** The actual panel that slides in */
 	private panelContainer: PIXI.Container;
 	private panelBackground: PIXI.Sprite;
@@ -111,27 +109,14 @@ export class NotificationPanel {
 		this.interactionGroup.add(this.popupManager.interactionGroup);
 		this.interactionGroup.add(this.panelInteractionGroup);
 
-		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.background.tint = 0x000000;
-		this.background.alpha = 0.5;
-		this.container.addChild(this.background);
-
-		this.backgroundRegistration = new InteractionRegistration(this.background);
-		this.backgroundRegistration.enableEmptyListeners();
-		this.backgroundRegistration.addListener('mouseDown', () => {
-			// When you click on the background, it should close the notification panel
-			this.hide();
-		});
-		this.backgroundRegistration.addListener('keyDown', (e) => {
-			if (e.keyCode === KeyCode.Escape) this.hide();
-		});
-		this.panelInteractionGroup.add(this.backgroundRegistration);
-
 		this.panelContainer = new PIXI.Container();
 		this.container.addChild(this.panelContainer);
 
 		let panelRegistration = new InteractionRegistration(this.panelContainer);
 		panelRegistration.enableEmptyListeners();
+		panelRegistration.addListener('keyDown', (e) => {
+			if (e.keyCode === KeyCode.Escape) this.hide();
+		});
 		this.panelInteractionGroup.add(panelRegistration);
 
 		this.panelBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
@@ -199,9 +184,6 @@ export class NotificationPanel {
 	resize() {
 		this.scalingFactor = currentWindowDimensions.height / REFERENCE_SCREEN_HEIGHT;
 
-		this.background.width = currentWindowDimensions.width;
-		this.background.height = currentWindowDimensions.height;
-
 		this.panelContainer.y = globalState.toolbar.currentHeight;
 		this.panelBackground.width = Math.floor(NOTIFICATION_PANEL_WIDTH * this.scalingFactor);
 		this.panelBackground.height = currentWindowDimensions.height - this.panelContainer.y;
@@ -232,8 +214,6 @@ export class NotificationPanel {
 		this.popupManager.update(now);
 
 		let fadeInCompletion = this.fadeInInterpolator.getCurrentValue(now);
-
-		this.background.alpha = MathUtil.lerp(0, 0.5, fadeInCompletion);
 		this.panelContainer.x = currentWindowDimensions.width - MathUtil.lerp(0, this.panelContainer.width, fadeInCompletion);
 
 		if (fadeInCompletion === 0 && !force) return;
@@ -310,6 +290,8 @@ export class NotificationPanel {
 		this.update(this.lastHideTime, true);
 
 		this.popupManager.closeAll();
+		globalState.settingsPanel.hide();
+		globalState.toolbar.enableDim();
 	}
 
 	hide() {
@@ -321,6 +303,7 @@ export class NotificationPanel {
 		this.panelInteractionGroup.disable();
 
 		this.lastHideTime = now;
+		globalState.toolbar.disableDim();
 	}
 
 	toggle() {
