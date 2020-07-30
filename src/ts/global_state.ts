@@ -11,6 +11,8 @@ import { FolderSelector } from "./menu/import/folder_selector";
 import { NotificationPanel } from "./menu/notifications/notification_panel";
 import { TaskManager } from "./multithreading/task_manager";
 import { SettingsPanel } from "./menu/settings/settings_panel";
+import { FpsMeter } from "./menu/misc/fps_meter";
+import { Settings } from "./menu/settings/settings";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -25,5 +27,7 @@ export const globalState = {
 	scoreScreen: null as ScoreScreen,
 	folderSelector: null as FolderSelector,
 	taskManager: null as TaskManager,
-	settingsPanel: null as SettingsPanel
+	settingsPanel: null as SettingsPanel,
+	fpsMeter: null as FpsMeter,
+	settings: null as Settings
 };

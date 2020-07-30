@@ -1,16 +1,16 @@
 import { SettingsElement } from "./settings_element";
 import { SettingsPanel, SETTINGS_PANEL_WIDTH, SETTINGS_PANEL_PADDING } from "./settings_panel";
-import { settingsDescription, SettingType } from "./settings_description";
+import { settingsDescription, RangeSettingDescription } from "./settings_description";
 import { RangeSlider } from "../components/range_slider";
 import { colorToHexNumber } from "../../util/graphics_util";
-import { settings } from "./settings";
 import { KeysWithType } from "../../util/misc_util";
+import { globalState } from "../../global_state";
 
 export class RangeElement extends SettingsElement {
 	private titleElement: PIXI.Text;
 	private rangeSlider: RangeSlider;
 
-	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, {type: SettingType.Range}>) {
+	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, RangeSettingDescription>) {
 		super(parent);
 
 		let description = settingsDescription[setting];
@@ -25,9 +25,9 @@ export class RangeElement extends SettingsElement {
 		this.container.addChild(this.rangeSlider.container);
 		this.interactionGroup.add(this.rangeSlider.interactionGroup);
 
-		this.rangeSlider.setValue(settings[setting]);
+		this.rangeSlider.setValue(globalState.settings[setting]);
 		this.rangeSlider.addListener('change', (val) => {
-			settings[setting] = val;
+			globalState.settings[setting] = val;
 			description.onChange(val);
 		});
 	}

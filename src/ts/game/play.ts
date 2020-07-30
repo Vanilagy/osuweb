@@ -3,7 +3,7 @@ import { Point } from "../util/point";
 import { MathUtil, EaseType } from "../util/math_util";
 import { assert, Interval, getIntervalMidpoint, getIntervalSize } from "../util/misc_util";
 import { DrawableHeadedHitObject } from "./drawables/drawable_headed_hit_object";
-import { joinSkins, IGNORE_BEATMAP_SKIN, IGNORE_BEATMAP_SOUNDS, DEFAULT_COLORS, Skin, SkinSoundType } from "./skin/skin";
+import { joinSkins, DEFAULT_COLORS, Skin, SkinSoundType } from "./skin/skin";
 import { ModHelper, HALF_TIME_PLAYBACK_RATE, DOUBLE_TIME_PLAYBACK_RATE } from "./mods/mod_helper";
 import { DrawableBeatmap } from "./drawable_beatmap";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
@@ -26,7 +26,6 @@ import { StoryboardParser } from "./storyboard/storyboard_parser";
 import { BeatmapEventType, BeatmapEventBreak } from "../datamodel/beatmap/beatmap";
 
 const BREAK_FADE_TIME = 1000; // In ms
-const BACKGROUND_DIM = 0.85; // To figure out dimmed backgorund image opacity, that's equal to: (1 - BACKGROUND_DIM) * DEFAULT_BACKGROUND_OPACITY
 const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
 const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relative to the end of the break
@@ -43,7 +42,7 @@ export class Play {
 	public effectiveBackgroundDim: number;
 	private hasVideo: boolean = false;
 	public paused: boolean = false;
-	private playing: boolean = false;
+	public playing: boolean = false;
 	private initted: boolean = false;
 	public completed: boolean = false;
 
@@ -156,7 +155,7 @@ export class Play {
 			return HudMode.Normal;
 		})());
 
-		this.effectiveBackgroundDim = this.activeMods.has(Mod.Cinema)? 0.0 : BACKGROUND_DIM;
+		this.effectiveBackgroundDim = this.activeMods.has(Mod.Cinema)? 0.0 : globalState.settings['backgroundDim'];
 
 		await this.compose(true, true);
 
@@ -279,15 +278,15 @@ export class Play {
 		this.headedHitObjectTextureFactor = this.circleDiameter / 128;
 
 		if (updateSkin) {
-			if (IGNORE_BEATMAP_SKIN && IGNORE_BEATMAP_SOUNDS) {
+			if (globalState.settings['ignoreBeatmapSkin'] && globalState.settings['ignoreBeatmapHitSounds']) {
 				this.skin = globalState.baseSkin;
 			} else {
 				let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-				this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !IGNORE_BEATMAP_SKIN, !IGNORE_BEATMAP_SOUNDS);
+				this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !globalState.settings['ignoreBeatmapSkin'], !globalState.settings['ignoreBeatmapHitSounds']);
 			}
 
 			let colorArray: Color[];
-			if (IGNORE_BEATMAP_SKIN) {
+			if (globalState.settings['ignoreBeatmapSkin']) {
 				colorArray = this.skin.colors;
 				if (colorArray.length === 0) colorArray = DEFAULT_COLORS;
 			} else {

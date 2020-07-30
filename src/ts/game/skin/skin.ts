@@ -9,8 +9,6 @@ import { AudioPlayer } from "../../audio/audio_player";
 import { AudioUtil } from "../../util/audio_util";
 import { soundEffectsNode } from "../../audio/audio";
 
-export const IGNORE_BEATMAP_SKIN = true;
-export const IGNORE_BEATMAP_SOUNDS = true;
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
 export const DEFAULT_COLORS: Color[] = [{r: 255, g: 192, b: 0}, {r: 0, g: 202, b: 0}, {r: 18, g: 124, b: 255}, {r: 242, g: 24, b: 57}];

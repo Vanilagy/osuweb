@@ -1,10 +1,8 @@
 import { Hud } from "./hud/hud";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
-import { IGNORE_BEATMAP_SKIN } from "./skin/skin";
 import { Play } from "./play";
 import { PauseScreen, PauseScreenMode } from "../menu/gameplay/pause_screen";
 import { InteractionGroup, InteractionRegistration } from "../input/interactivity";
-import { enableRenderTimeInfoLog } from "../visuals/rendering";
 import { globalState } from "../global_state";
 import { Interpolator } from "../util/interpolation";
 import { EaseType, MathUtil } from "../util/math_util";
@@ -161,7 +159,7 @@ export class GameplayController {
 		this.autoCursor.visible = false;
 		this.pauseScreen.reset();
 
-		let processedBeatmap = new ProcessedBeatmap(beatmap, !IGNORE_BEATMAP_SKIN);
+		let processedBeatmap = new ProcessedBeatmap(beatmap, !globalState.settings['ignoreBeatmapSkin']);
 	
 		let newPlay = new Play(this, processedBeatmap, mods);
 		this.currentPlay = newPlay;
@@ -169,7 +167,6 @@ export class GameplayController {
 		await newPlay.init();
 		this.hud.init();
 		this.onPlayBegin();
-		enableRenderTimeInfoLog();
 
 		if (mods.has(Mod.Auto) || mods.has(Mod.Cinema) || mods.has(Mod.Autopilot)) {
 			let autoReplay = ModHelper.createAutoReplay(newPlay, mods.has(Mod.Autopilot));

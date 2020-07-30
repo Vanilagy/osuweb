@@ -37,6 +37,50 @@ export function fitSpriteIntoContainer(sprite: PIXI.Sprite, containerWidth: numb
 	}
 }
 
+/** Shrink a polygon by moving all points "inward". This isn't simply a scale-down of the polygon relative to some center point, but will also distort the shape of the polygon slightly */
+function shrinkPolygon(points: PIXI.Point[], shrinkDistance: number) {
+	let newPoints: PIXI.Point[] = [];
+
+	let clockwiseSum = 0,
+		counterClockwiseSum = 0;
+	for (let i = 0; i < points.length; i++) {
+		let p0 = points[MathUtil.adjustedMod(i-1, points.length)],
+			p1 = points[i],
+			p2 = points[(i+1) % points.length];
+		
+		let a1 = pointAngle(p0, p1),
+			a2 = pointAngle(p1, p2);
+		let angle = Math.PI - MathUtil.getNormalizedAngleDelta(a1, a2);
+
+		clockwiseSum += angle;
+		counterClockwiseSum += TAU - angle;
+	}
+
+	// If the points are wound clockwise, then the clockwise sum of angles will be smaller than the counter-clockwise one. Thus, we can conclude that if this is not the case, the points must be wound counter-clockwise.
+	let isCounterClockwise = clockwiseSum > counterClockwiseSum;
+
+	for (let i = 0; i < points.length; i++) {
+		let p0 = points[MathUtil.adjustedMod(i-1, points.length)],
+			p1 = points[i],
+			p2 = points[(i+1) % points.length];
+		
+		let a1 = pointAngle(p0, p1),
+			a2 = pointAngle(p1, p2);
+		let angle = Math.PI - MathUtil.getNormalizedAngleDelta(a1, a2);
+
+		let bisectorAngle = a2 + angle/2;
+		let requiredDistance = Math.abs(shrinkDistance / Math.sin(angle / 2));
+		if (isCounterClockwise) requiredDistance *= -1;
+		
+		newPoints.push(new PIXI.Point(
+			p1.x + Math.cos(bisectorAngle) * requiredDistance,
+			p1.y + Math.sin(bisectorAngle) * requiredDistance
+		));
+	}
+
+	return newPoints;
+}
+
 export function createPolygonTexture(width: number, height: number, polygon: PIXI.Point[], scalingFactor = 1.0, margin = 0, invert = false, cornerRadius = 0, resolution = 1.0) {
 	let canvas = document.createElement('canvas');
 	let ctx = canvas.getContext('2d');
@@ -47,48 +91,7 @@ export function createPolygonTexture(width: number, height: number, polygon: PIX
 	let points = polygon;
 
 	// Shrink the polygon points based on corner radius
-	if (cornerRadius > 0) {
-		let newPoints: PIXI.Point[] = [];
-
-		let clockwiseSum = 0,
-			counterClockwiseSum = 0;
-		for (let i = 0; i < points.length; i++) {
-			let p0 = points[MathUtil.adjustedMod(i-1, points.length)],
-				p1 = points[i],
-				p2 = points[(i+1) % points.length];
-			
-			let a1 = pointAngle(p0, p1),
-				a2 = pointAngle(p1, p2);
-			let angle = Math.PI - MathUtil.getNormalizedAngleDelta(a1, a2);
-
-			clockwiseSum += angle;
-			counterClockwiseSum += TAU - angle;
-		}
-
-		// If the points are wound clockwise, then the clockwise sum of angles will be smaller than the counter-clockwise one. Thus, we can conclude that if this is not the case, the points must be wound counter-clockwise.
-		let isCounterClockwise = clockwiseSum > counterClockwiseSum;
-
-		for (let i = 0; i < points.length; i++) {
-			let p0 = points[MathUtil.adjustedMod(i-1, points.length)],
-				p1 = points[i],
-				p2 = points[(i+1) % points.length];
-			
-			let a1 = pointAngle(p0, p1),
-				a2 = pointAngle(p1, p2);
-			let angle = Math.PI - MathUtil.getNormalizedAngleDelta(a1, a2);
-
-			let bisectorAngle = a2 + angle/2;
-			let requiredDistance = Math.abs(cornerRadius / Math.sin(angle / 2));
-			if (isCounterClockwise) requiredDistance *= -1;
-			
-			newPoints.push(new PIXI.Point(
-				p1.x + Math.cos(bisectorAngle) * requiredDistance,
-				p1.y + Math.sin(bisectorAngle) * requiredDistance
-			));
-		}
-
-		points = newPoints;
-	}
+	if (cornerRadius > 0) points = shrinkPolygon(points, cornerRadius);
 
 	ctx.beginPath();
 	for (let i = 0; i < points.length; i++) {
@@ -118,6 +121,23 @@ export function createPolygonTexture(width: number, height: number, polygon: PIX
 	}
 
 	return PIXI.Texture.from(canvas);
+}
+
+export function createPolygonBorderTexture(width: number, height: number, polygon: PIXI.Point[], thickness: number, scalingFactor = 1.0, margin = 0, invert = false, cornerRadius = 0, resolution = 1.0) {
+	// Basically, creates two polygon textures, and subtracts the second from the first.
+	let texOuter = createPolygonTexture(width, height, polygon, scalingFactor, margin, invert, cornerRadius, resolution);
+	let innerCornerRadius = cornerRadius * (1 - MathUtil.clamp(thickness / cornerRadius, 0, 1));
+	let texInner = createPolygonTexture(width, height, shrinkPolygon(polygon, thickness), scalingFactor, margin, invert, innerCornerRadius, resolution);
+
+	let canvasOuter = (texOuter.baseTexture.resource as any).source as HTMLCanvasElement;
+	let canvasInner = (texInner.baseTexture.resource as any).source as HTMLCanvasElement;
+	let ctx = canvasOuter.getContext('2d');
+
+	ctx.globalCompositeOperation = 'destination-out';
+	ctx.drawImage(canvasInner, 0, 0);
+
+	texOuter.update();
+	return texOuter;
 }
 
 export function createLinearGradientTexture(width: number, height: number, start: PIXI.Point, end: PIXI.Point, colorStops: [number, string][], scalingFactor = 1.0) {

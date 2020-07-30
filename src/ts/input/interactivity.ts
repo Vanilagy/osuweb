@@ -54,15 +54,11 @@ abstract class InteractionUnit {
 	enable() {
 		if (this.enabled) return;
 		this.enabled = true;
-
-		if (this.parent) insertItem(this.parent.active, this, zIndexComparator, true);
 	}
 
 	disable() {
 		if (!this.enabled) return;
 		this.enabled = false;
-
-		if (this.parent) removeItem(this.parent.active, this);
 	}
 
 	detach() {
@@ -77,16 +73,16 @@ abstract class InteractionUnit {
 		if (newZIndex === this.zIndex) return;
 
 		this.zIndex = newZIndex;
-		if (this.enabled && this.parent) {
-			removeItem(this.parent.active, this);
-			insertItem(this.parent.active, this, zIndexComparator, true);
+		if (this.parent) {
+			removeItem(this.parent.children, this);
+			insertItem(this.parent.children, this, zIndexComparator, true);
 		}
 	}
 }
 
 export class InteractionRegistration extends InteractionUnit {
 	public obj: PIXI.DisplayObject;
-	private listeners: Map<Interaction, ((data?: any) => any)[]> = new Map();
+	private listeners: Map<Interaction, ((data?: any) => void | boolean)[]> = new Map();
 	public mouseInside = false;
 	public pressedDown: {[button: number]: boolean} = {
 		// A necessary flag in order to make clicking work (CLICKING, not mouse-downing!!)
@@ -110,8 +106,8 @@ export class InteractionRegistration extends InteractionUnit {
 		}
 	}
 	
-	// TODO: Maybe extend CustomEventEmitter? Idk... :S
-	addListener<K extends keyof InteractionEventMap>(interaction: K, func: (data?: InteractionEventMap[K]) => any) {
+	/** If the listener returns 'true', that means: Stop input event propagation. */
+	addListener<K extends keyof InteractionEventMap>(interaction: K, func: (data?: InteractionEventMap[K]) => void | boolean) {
 		let arr = this.listeners.get(interaction);
 		if (!arr) {
 			arr = [];
@@ -121,7 +117,7 @@ export class InteractionRegistration extends InteractionUnit {
 		pushItemUnique(arr, func);
 	}
 
-	removeListener(interaction: Interaction, func: (data?: any) => any) {
+	removeListener(interaction: Interaction, func: (data?: any) => void | boolean) {
 		let arr = this.listeners.get(interaction);
 		if (!arr) return;
 
@@ -159,7 +155,7 @@ export class InteractionRegistration extends InteractionUnit {
 				onDragEnd: onDragEnd
 			});
 
-			if (onDragStart) onDragStart();
+			if (onDragStart) return onDragStart();
 		}
 
 		this.addListener('mouseDown', this.dragInitiationListener);
@@ -175,6 +171,9 @@ export class InteractionRegistration extends InteractionUnit {
 	overlaps(x: number, y: number) {
 		if (!this.obj) return false;
 
+		let parentOverlaps = this.parent? this.parent.overlaps(x, y) : true;
+		if (!parentOverlaps) return false;
+
 		if (this.obj.hitArea) {
 			let pos = this.obj.getGlobalPosition();
 			return this.obj.hitArea.contains(x - pos.x, y - pos.y);
@@ -182,14 +181,18 @@ export class InteractionRegistration extends InteractionUnit {
 			return this.obj.getBounds().contains(x, y);
 		}
 	}
-
+	
+	/** Note: If this method returns 'true', then that means that one of the called listeners returned true, which signals to stop the input event from propagating. */
 	trigger<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
 		let arr = this.listeners.get(interaction);
 		if (!arr) return;
 
 		for (let i = 0; i < arr.length; i++) {
-			arr[i](event);
+			let result = arr[i](event);
+			if (result === true) return true;
 		}
+
+		return false;
 	}
 
 	handlesInteraction<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
@@ -257,7 +260,8 @@ export class InteractionRegistration extends InteractionUnit {
 
 export class InteractionGroup extends InteractionUnit {
 	public children: InteractionUnit[] = [];
-	public active: InteractionUnit[] = [];
+	/** The interactive area of the group can be constrained by setting this. */
+	public hitArea: PIXI.DisplayObject["hitArea"] = null;
 
 	constructor() {
 		super();
@@ -272,16 +276,8 @@ export class InteractionGroup extends InteractionUnit {
 				newChild.parent.remove(newChild);
 			}
 
-			let doReenable = false;
-			if (newChild.enabled) {
-				doReenable = true;
-				newChild.disable();
-			}
-
-			this.children.push(newChild);
+			insertItem(this.children, newChild, zIndexComparator, true);
 			newChild.parent = this;
-			
-			if (doReenable) newChild.enable();
 		}
 	}
 
@@ -291,13 +287,17 @@ export class InteractionGroup extends InteractionUnit {
 			if (child.parent !== this) continue;
 
 			removeItem(this.children, child);
-			removeItem(this.active, child);
 			child.parent = null;
 		}
 	}
 
 	removeAll() {
 		this.remove(...this.children);
+	}
+
+	overlaps(x: number, y: number): boolean {
+		let parentOverlaps = this.parent? this.parent.overlaps(x, y) : true;
+		return parentOverlaps && (this.hitArea? this.hitArea.contains(x, y) : true);
 	}
 
 	releaseAllPresses() {
@@ -312,13 +312,15 @@ export class InteractionGroup extends InteractionUnit {
 		this.getAllRegistrations(toTrigger, interaction, event);
 
 		for (let i = 0; i < toTrigger.length; i++) {
-			toTrigger[i].trigger(interaction, event);
+			let result = toTrigger[i].trigger(interaction, event);
+			if (result) break;
 		}
 	}
 
 	private getAllRegistrations<K extends Interaction>(acc: InteractionRegistration[], interaction: K, event: InteractionEventMap[K]) {
-		for (let i = 0; i < this.active.length; i++) {
-			let unit = this.active[i];
+		for (let i = 0; i < this.children.length; i++) {
+			let unit = this.children[i];
+			if (!unit.enabled) continue;
 
 			if (unit instanceof InteractionGroup) {
 				unit.getAllRegistrations(acc, interaction, event);
@@ -342,17 +344,19 @@ export class InteractionGroup extends InteractionUnit {
 
 		// Then, one after another, we trigger them. This separation happens so that the interaction doesn't trigger additional registrations that could be added as a SIDE-EFFECT of a trigger.
 		for (let i = 0; i < toTrigger.length; i++) {
-			toTrigger[i][0].trigger(toTrigger[i][1], event);
+			let result = toTrigger[i][0].trigger(toTrigger[i][1], event);
+			if (result) break;
 		}
 	}
 
 	// Returns true if the interaction was "absorbed" by a non-passthrough interaction unit.
 	private findTriggeredMouseRegistrations(acc: [InteractionRegistration, Interaction][], event: MouseEvent | NormalizedWheelEvent, mousePosition: Point, func: (mousePosition: Point, registration: InteractionRegistration) => Interaction[]): boolean {
-		let interactionUnits = this.active;
+		let interactionUnits = this.children;
 	
 		// Determine which registrations need to be triggered, recursively
 		for (let i = 0; i < interactionUnits.length; i++) {
 			let unit = interactionUnits[i];
+			if (!unit.enabled) continue;
 
 			if (unit instanceof InteractionGroup) {
 				let absorbed = unit.findTriggeredMouseRegistrations(acc, event, mousePosition, func);
@@ -379,12 +383,13 @@ export class InteractionGroup extends InteractionUnit {
 	}
 
 	handleMouseEnterAndLeave(acc: Map<InteractionRegistration, Interaction>, mousePosition: Point, collided: boolean) {
-		let interactionUnits = this.active;
+		let interactionUnits = this.children;
 		
 		// Note! At no point in this loop do we break. This is because we wanted to update the mouse enter/leave state for every registration and not terminate early.
 
 		for (let i = 0; i < interactionUnits.length; i++) {
 			let unit = interactionUnits[i];
+			if (!unit.enabled) continue;
 
 			if (unit instanceof InteractionGroup) {
 				let causedAction = unit.handleMouseEnterAndLeave(acc, mousePosition, collided);

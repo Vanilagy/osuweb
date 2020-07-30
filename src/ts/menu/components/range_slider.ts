@@ -71,6 +71,8 @@ export class RangeSlider extends CustomEventEmitter<{change: number}> {
 		thumbRegistration.makeDraggable(() => {
 			this.positionOnDragStart = this.thumb.position.x;
 			this.pressdownInterpolator.setReversedState(false, performance.now());
+			
+			return true; // Cancel any other dragging
 		}, (e) => {
 			this.updateThumbForDrag(e.distanceFromStart.x);
 		}, () => {

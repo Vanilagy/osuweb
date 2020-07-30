@@ -88,6 +88,14 @@ class ImportMethodDropdown {
 		this.container.addChild(this.pointer);
 
 		this.selector = new ListSelector();
+		this.selector.itemHeight = 40;
+		this.selector.itemWidth = 150;
+		this.selector.itemFontSize = 14;
+		this.selector.itemIconSize = 24;
+		this.selector.itemMarginLeft = 50;
+		this.container.addChild(this.selector.container);
+		this.interactionGroup.add(this.selector.interactionGroup);
+
 		this.selector.setSchema([
 			{
 				name: 'folder',
@@ -100,9 +108,6 @@ class ImportMethodDropdown {
 				icon: downloadBoldTexture
 			}
 		]);
-		this.selector.setRawItemDimensions(150, 40, 14, 24);
-		this.container.addChild(this.selector.container);
-		this.interactionGroup.add(this.selector.interactionGroup);
 
 		this.selector.addListener('select', (name) => {
 			switch (name) {

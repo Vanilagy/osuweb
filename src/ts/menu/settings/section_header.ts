@@ -21,7 +21,7 @@ export class SectionHeader extends SettingsElement {
 	update() {}
 
 	getTopMargin() {
-		return 20 * this.parent.scalingFactor;
+		return 25 * this.parent.scalingFactor;
 	}
 
 	getHeight() {
@@ -29,6 +29,6 @@ export class SectionHeader extends SettingsElement {
 	}
 
 	getBottomMargin() {
-		return 25 * this.parent.scalingFactor;
+		return 20 * this.parent.scalingFactor;
 	}
 }

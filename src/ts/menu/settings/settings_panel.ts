@@ -10,6 +10,8 @@ import { settingsDescription, SettingType } from "./settings_description";
 import { ScrollContainer } from "../components/scroll_container";
 import { SectionHeader } from "./section_header";
 import { SettingName } from "./settings";
+import { CheckboxElement } from "./checkbox_element";
+import { SelectionElement } from "./selection_element";
 
 export const SETTINGS_PANEL_WIDTH = 300;
 export const SETTINGS_PANEL_PADDING = 12;
@@ -36,6 +38,15 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.Setting, setting: 'masterVolume' },
 	{ type: LayoutElementType.Setting, setting: 'musicVolume' },
 	{ type: LayoutElementType.Setting, setting: 'soundEffectsVolume' },
+	{ type: LayoutElementType.SectionHeader, title: 'video' },
+	{ type: LayoutElementType.Setting, setting: 'showFpsMeter' },
+	{ type: LayoutElementType.Setting, setting: 'menuFpsLimit' },
+	{ type: LayoutElementType.Setting, setting: 'gameplayFpsLimit' },
+	{ type: LayoutElementType.SectionHeader, title: 'skin' },
+	{ type: LayoutElementType.Setting, setting: 'ignoreBeatmapSkin' },
+	{ type: LayoutElementType.Setting, setting: 'ignoreBeatmapHitSounds' },
+	{ type: LayoutElementType.SectionHeader, title: 'gameplay' },
+	{ type: LayoutElementType.Setting, setting: 'backgroundDim' },
 ];
 
 export class SettingsPanel {
@@ -102,9 +113,12 @@ export class SettingsPanel {
 					elements.push(new SectionHeader(this, layoutElement.title)); break;
 				case LayoutElementType.Setting: {
 					let desc = settingsDescription[layoutElement.setting];
+					let setting = layoutElement.setting as any; // 'cause TypeScript
 
 					switch (desc.type) {
-						case SettingType.Range: elements.push(new RangeElement(this, layoutElement.setting)); break;
+						case SettingType.Range: elements.push(new RangeElement(this, setting)); break;
+						case SettingType.Checkbox: elements.push(new CheckboxElement(this, setting)); break;
+						case SettingType.Selection: elements.push(new SelectionElement(this, setting)); break;
 					}
 				}; break;
 			}
@@ -131,6 +145,11 @@ export class SettingsPanel {
 
 	update(now: number) {
 		let fadeInCompletion = this.fadeInInterpolator.getCurrentValue(now);
+		if (fadeInCompletion === 0) {
+			this.container.visible = false;
+			return;
+		}
+		this.container.visible = true;
 
 		this.panelContainer.x = MathUtil.lerp(-this.panelBackground.width, 0, fadeInCompletion);
 

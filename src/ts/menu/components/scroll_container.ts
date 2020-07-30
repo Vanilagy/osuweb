@@ -32,14 +32,15 @@ export class ScrollContainer {
 		this.container = new PIXI.Container();
 		this.container.hitArea = new PIXI.Rectangle();
 		this.interactionGroup = new InteractionGroup();
+		this.interactionGroup.hitArea = new PIXI.Rectangle(); // Add a hit area so that nothing outside of the container can be interacted with
 
 		// Set up the registration that listens to wheel and drag events
 		this.registration = new InteractionRegistration(this.container);
-		this.registration.setZIndex(1);
-		this.registration.passThrough = true;
+		this.registration.setZIndex(-1); // Put it behind the content, making sure that content input listeners are triggered first
 		this.interactionGroup.add(this.registration);
 
 		this.contentInteractionGroup = new InteractionGroup();
+		this.contentInteractionGroup.passThrough = true; // Make content interaction pass-through to the wheel and drag registration below it
 		this.interactionGroup.add(this.contentInteractionGroup);
 
 		this.contentContainer = new PIXI.Container();
@@ -68,10 +69,14 @@ export class ScrollContainer {
 			let newGoal = this.getCurrentScrollPosition(now + 1e6) + e.dy * 0.75;
 			this.scrollInterpolator.reset(this.getCurrentScrollPosition(now));
 			this.scrollInterpolator.setGoal(newGoal, now);
+
+			return true; // Cancel any other listeners that this event would trigger -> Make sure only this container is scrolled
 		});
 		this.registration.makeDraggable(() => {
 			this.scrollInterpolator.reset(this.getCurrentScrollPosition(performance.now()));
 			this.dragging = true;
+
+			return true; // Same reasoning as in wheel
 		}, (e) => {
 			if (!this.isScrollable()) return;
 
@@ -129,7 +134,7 @@ export class ScrollContainer {
 	}
 
 	private getScrollHeight() {
-		return this.contentContainer.height - (this.height - 2 * this.padding);
+		return Math.max(0, this.contentContainer.height - (this.height - 2 * this.padding));
 	}
 	
 	private isScrollable() {
@@ -181,12 +186,19 @@ export class ScrollContainer {
 		hitRec.width = this.width;
 		hitRec.height = this.height;
 
+		let interactionHitRec = this.interactionGroup.hitArea as PIXI.Rectangle;
+		interactionHitRec.width = this.width;
+		interactionHitRec.height = this.height;
+		let globalPos = this.container.getGlobalPosition();
+		interactionHitRec.x = globalPos.x;
+		interactionHitRec.y = globalPos.y;
+
 		this.contentContainer.x = this.padding;
 
 		let scrollHeight = this.getScrollHeight();
 
-		if (scrollHeight <= 0) {
-			// If there container is too small to scroll, hide the scrollbar and fix the position.
+		if (scrollHeight === 0 && this.getCurrentScrollPosition(now) === 0) {
+			// If there container is too small to scroll, hide the scrollbar and fix the position. However, the current scroll position needs to be 0 to avoid unpretty 'snapping' effects
 			this.contentContainer.y = this.padding;
 			this.scrollbar.container.visible = false;
 		} else {

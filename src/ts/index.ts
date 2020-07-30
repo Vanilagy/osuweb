@@ -24,6 +24,8 @@ import { FolderSelector } from './menu/import/folder_selector';
 import { NotificationPanel } from './menu/notifications/notification_panel';
 import { TaskManager } from './multithreading/task_manager';
 import { SettingsPanel } from './menu/settings/settings_panel';
+import { FpsMeter } from './menu/misc/fps_meter';
+import { generateDefaultSettings } from './menu/settings/settings';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -40,6 +42,8 @@ async function init() {
 
 	globalState.taskManager = new TaskManager();
 
+	initMisc();
+	globalState.settings = generateDefaultSettings();
 	initAudio();
 	initBackground();
 	initBeatmapLibrary();
@@ -48,6 +52,7 @@ async function init() {
 	initSettingsPanel();
 	initFolderSelector();
 	initSongSelect();
+
 	await initBaseSkin();
 	initGameplay();
 	initScoreGrades();
@@ -182,6 +187,16 @@ function initFolderSelector() {
 	globalState.folderSelector = folderSelector;
 }
 
+function initMisc() {
+	let fpsMeter = new FpsMeter();
+	stage.addChild(fpsMeter.container);
+
+	uiEventEmitter.addListener('resize', () => fpsMeter.resize());
+	addRenderingTask((now) => fpsMeter.update(now));
+
+	globalState.fpsMeter = fpsMeter;
+}
+
 function setZIndexes() {
 	globalState.backgroundManager.container.zIndex = -10;
 	globalState.gameplayController.container.zIndex = 0;
@@ -192,6 +207,7 @@ function setZIndexes() {
 	globalState.settingsPanel.container.zIndex = 3.4;
 	globalState.toolbar.container.zIndex = 3.9;
 	globalState.folderSelector.container.zIndex = 4;
+	globalState.fpsMeter.container.zIndex = 10;
 
 	globalState.gameplayController.interactionGroup.setZIndex(0);
 	globalState.songSelect.interactionGroup.setZIndex(1);

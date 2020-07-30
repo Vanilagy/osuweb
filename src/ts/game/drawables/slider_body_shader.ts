@@ -2,9 +2,9 @@ import { PLAYFIELD_DIMENSIONS, SLIDER_BODY_INSIDE_TO_TOTAL_RATIO, SCREEN_COORDIN
 import { Color } from "../../util/graphics_util";
 import { DrawableSlider } from "./drawable_slider";
 import { MathUtil } from "../../util/math_util";
-import { IGNORE_BEATMAP_SKIN } from "../skin/skin";
 import { SliderBounds } from "./drawable_slider_path";
 import { currentWindowDimensions } from "../../visuals/ui";
+import { globalState } from "../../global_state";
 
 export const OBSERVED_SLIDER_BODY_TEXTURE_SIZE = 32768; // Observed in osu!stable. TODO: Is this system-dependent?
 
@@ -62,11 +62,11 @@ export function updateSliderBodyShaderUniforms(shader: PIXI.Shader, slider: Draw
 	let { skin } = slider.drawableBeatmap.play;
 
 	let borderColor: Color = null;
-	if (!IGNORE_BEATMAP_SKIN) borderColor = beatmap.colors.sliderBorder;
+	if (!globalState.settings['ignoreBeatmapSkin']) borderColor = beatmap.colors.sliderBorder;
 	if (borderColor === null) borderColor = skin.config.colors.sliderBorder;
 
 	let sliderBodyColor: Color = null;
-	if (!IGNORE_BEATMAP_SKIN) sliderBodyColor = beatmap.colors.sliderTrackOverride;
+	if (!globalState.settings['ignoreBeatmapSkin']) sliderBodyColor = beatmap.colors.sliderTrackOverride;
 	if (sliderBodyColor === null) sliderBodyColor = skin.config.colors.sliderTrackOverride;
 	if (sliderBodyColor === null) sliderBodyColor = slider.color;
 

@@ -29,4 +29,3 @@ export function tickAll(now?: number) {
 }
 
 setInterval(tickAll, 0);
-addRenderingTask((now) => tickAll(now));

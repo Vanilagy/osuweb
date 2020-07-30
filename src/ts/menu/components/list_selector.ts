@@ -1,9 +1,9 @@
-import { fitSpriteIntoContainer } from "../../util/pixi_util";
+import { fitSpriteIntoContainer, createPolygonTexture } from "../../util/pixi_util";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { InteractionRegistration, InteractionGroup } from "../../input/interactivity";
-import { EMPTY_FUNCTION } from "../../util/misc_util";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
+import { Color, Colors, colorToHexNumber, lerpColors } from "../../util/graphics_util";
 
 export interface ListSelectorItem {
 	name: string,
@@ -20,8 +20,14 @@ export class ListSelector extends CustomEventEmitter<{select: string}> {
 
 	public itemWidth: number = 0;
 	public itemHeight: number = 0;
+	public itemFontFamily: string = 'Exo2-Regular';
 	public itemFontSize: number = 0;
 	public itemIconSize: number = 0;
+	public itemHoverColor: Color = Colors.White; // Color of an item when hovered over
+	public itemHighlightColor: Color = Colors.Red; // Color of a highlit item
+	public itemCornerRadius: number = 0;
+	public itemMarginLeft: number = 5;
+
 	public scalingFactor: number = 1;
 
 	constructor() {
@@ -51,13 +57,6 @@ export class ListSelector extends CustomEventEmitter<{select: string}> {
 		}
 	}
 
-	setRawItemDimensions(width: number, height: number, fontSize: number, iconSize: number) {
-		this.itemWidth = width;
-		this.itemHeight = height;
-		this.itemFontSize = fontSize;
-		this.itemIconSize = iconSize;
-	}
-
 	resize(scalingFactor: number) {
 		this.scalingFactor = scalingFactor;
 		let scaledHeight = Math.floor(scalingFactor * this.itemHeight);
@@ -75,11 +74,19 @@ export class ListSelector extends CustomEventEmitter<{select: string}> {
 			drawable.update(now);
 		}
 	}
+
+	setHighlight(name: string) {
+		// Unhighlight all other elements, highlight the specified one
+		for (let d of this.drawables) {
+			d.unhighlight();
+			if (d.item.name === name) d.highlight();
+		}
+	}
 }
 
 class ListSelectorItemDrawable {
 	private parent: ListSelector;
-	private item: ListSelectorItem;
+	public item: ListSelectorItem;
 	public container: PIXI.Container;
 	public registration: InteractionRegistration;
 
@@ -89,18 +96,19 @@ class ListSelectorItemDrawable {
 
 	private hoverInterpolator: Interpolator;
 	private pressdownInterpolator: Interpolator;
+	private highlightInterpolator: Interpolator;
 
 	constructor(parent: ListSelector, item: ListSelectorItem) {
 		this.parent = parent;
 		this.item = item;
 		this.container = new PIXI.Container;
 
-		this.highlightBackground = new PIXI.Sprite(PIXI.Texture.WHITE);;
+		this.highlightBackground = new PIXI.Sprite();
 		this.container.addChild(this.highlightBackground);
 
 		this.label = new PIXI.Text(item.label);
 		this.label.style = {
-			fontFamily: 'Exo2-Regular',
+			fontFamily: this.parent.itemFontFamily,
 			fill: 0xffffff
 		};
 		this.container.addChild(this.label);
@@ -125,6 +133,11 @@ class ListSelectorItemDrawable {
 			beginReversed: true,
 			defaultToFinished: true
 		});
+		this.highlightInterpolator = new Interpolator({
+			duration: 100,
+			beginReversed: true,
+			defaultToFinished: true
+		});
 
 		this.registration = new InteractionRegistration(this.container);
 		this.registration.addButtonHandlers(
@@ -140,13 +153,13 @@ class ListSelectorItemDrawable {
 		let width = Math.floor(this.parent.itemWidth * this.parent.scalingFactor);
 		let height = Math.floor(this.parent.itemHeight * this.parent.scalingFactor);
 
-		this.highlightBackground.width = width;
-		this.highlightBackground.height = height;
+		this.highlightBackground.texture = createPolygonTexture(width, height, [
+			new PIXI.Point(0, 0), new PIXI.Point(width, 0), new PIXI.Point(width, height), new PIXI.Point(0, height)
+		], 1, 0, false, this.parent.itemCornerRadius * this.parent.scalingFactor);
 
 		this.label.style.fontSize = Math.floor(this.parent.itemFontSize * this.parent.scalingFactor);
-		this.label.pivot.y = Math.floor(this.label.height / 2);
-		this.label.y = Math.floor(height / 2);
-		this.label.x = Math.floor(height * 1.5);
+		this.label.y = Math.floor((height - this.label.height) / 2);
+		this.label.x = Math.floor(this.parent.itemMarginLeft * this.parent.scalingFactor);
 
 		let iconSize = Math.floor(this.parent.itemIconSize * this.parent.scalingFactor);
 		fitSpriteIntoContainer(this.icon, iconSize, iconSize);
@@ -159,8 +172,21 @@ class ListSelectorItemDrawable {
 	update(now: number) {
 		let hoverCompletion = this.hoverInterpolator.getCurrentValue(now);
 		let pressdownCompletion = this.pressdownInterpolator.getCurrentValue(now);
+		let highlightCompletion = this.highlightInterpolator.getCurrentValue(now);
 
-		let backgroundAlpha = MathUtil.lerp(MathUtil.lerp(0, 0.10, hoverCompletion), 0.15, pressdownCompletion);
+		// Interpolate between the hover color and highlight color. The highlight color will shift slightly towards the hover color again, if the item is highlit and is being hovered over right now.
+		this.highlightBackground.tint = colorToHexNumber(lerpColors(this.parent.itemHoverColor, lerpColors(this.parent.itemHighlightColor, this.parent.itemHoverColor, hoverCompletion * 0.1), highlightCompletion));
+
+		// Interpolate the background's alpha based on hover, pressdown and highlight completions.
+		let backgroundAlpha = MathUtil.lerp(MathUtil.lerp(MathUtil.lerp(0, 0.10, hoverCompletion), 0.15, pressdownCompletion), 1.0, highlightCompletion);
 		this.highlightBackground.alpha = backgroundAlpha;
+	}
+	
+	highlight() {
+		this.highlightInterpolator.setReversedState(false, performance.now());
+	}
+
+	unhighlight() {
+		this.highlightInterpolator.setReversedState(true, performance.now());
 	}
 }
