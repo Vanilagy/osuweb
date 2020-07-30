@@ -1,5 +1,4 @@
 import { Circle } from "../../datamodel/hit_objects/circle";
-import { SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT } from "../../util/constants";
 import { DrawableHeadedHitObject, CircleScoring, getDefaultCircleScoring } from "./drawable_headed_hit_object";
 import { HitCirclePrimitive, HitCirclePrimitiveType } from "./hit_circle_primitive";
 import { ProcessedCircle } from "../../datamodel/processed/processed_circle";
@@ -9,6 +8,7 @@ import { ScoringValue } from "../../datamodel/scoring/score";
 import { Mod } from "../../datamodel/mods";
 import { Judgement } from "../../datamodel/scoring/judgement";
 import { HitSoundInfo, generateHitSoundInfo } from "../skin/hit_sound";
+import { globalState } from "../../global_state";
 
 export class DrawableCircle extends DrawableHeadedHitObject {
 	public parent: ProcessedCircle;
@@ -37,7 +37,7 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 		this.head = new HitCirclePrimitive({
 			fadeInStart: this.parent.startTime - approachTime,
 			hitObject: this,
-			hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.parent.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
+			hasApproachCircle: !activeMods.has(Mod.Hidden) || (this.parent.index === 0 && globalState.settings['showApproachCircleOnFirstHiddenObject']),
 			hasNumber: true,
 			type: HitCirclePrimitiveType.HitCircle
 		});

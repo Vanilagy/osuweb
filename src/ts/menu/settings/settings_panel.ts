@@ -38,6 +38,7 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.Setting, setting: 'masterVolume' },
 	{ type: LayoutElementType.Setting, setting: 'musicVolume' },
 	{ type: LayoutElementType.Setting, setting: 'soundEffectsVolume' },
+	{ type: LayoutElementType.Setting, setting: 'backgroundAudioBehavior' },
 	{ type: LayoutElementType.SectionHeader, title: 'video' },
 	{ type: LayoutElementType.Setting, setting: 'showFpsMeter' },
 	{ type: LayoutElementType.Setting, setting: 'menuFpsLimit' },
@@ -47,6 +48,16 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.Setting, setting: 'ignoreBeatmapHitSounds' },
 	{ type: LayoutElementType.SectionHeader, title: 'gameplay' },
 	{ type: LayoutElementType.Setting, setting: 'backgroundDim' },
+	{ type: LayoutElementType.Setting, setting: 'enableVideo' },
+	{ type: LayoutElementType.Setting, setting: 'enableStoryboard' },
+	{ type: LayoutElementType.Setting, setting: 'snakingSliders' },
+	{ type: LayoutElementType.Setting, setting: 'showApproachCircleOnFirstHiddenObject' },
+	{ type: LayoutElementType.Setting, setting: 'audioOffset' },
+	{ type: LayoutElementType.SectionHeader, title: 'input' },
+	{ type: LayoutElementType.Setting, setting: 'useSoftwareCursor' },
+	{ type: LayoutElementType.Setting, setting: 'mouseSensitivity' },
+	{ type: LayoutElementType.Setting, setting: 'showKeyOverlay' },
+	{ type: LayoutElementType.Setting, setting: 'disableMouseButtonsDuringGameplay' },
 ];
 
 export class SettingsPanel {

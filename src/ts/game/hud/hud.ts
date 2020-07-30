@@ -156,6 +156,8 @@ export class Hud {
 		this.sectionStateDisplayer.container.visible = mode !== HudMode.Cinema;
 		this.gameplayWarningArrows.container.visible = mode !== HudMode.Cinema;
 		this.skipButton.container.visible = mode !== HudMode.Cinema;
+
+		if (!globalState.settings['showKeyOverlay']) this.keyCounter.container.visible = false;
 	}
 
 	updateSkin() {

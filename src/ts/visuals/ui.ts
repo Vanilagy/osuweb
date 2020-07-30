@@ -39,3 +39,12 @@ function onResize() {
 onResize();
 
 window.addEventListener('resize', onResize);
+
+export let windowFocused = !document.hidden;
+
+window.addEventListener('focus', () => {
+	windowFocused = true;
+});
+window.addEventListener('blur', () => {
+	windowFocused = false;
+});

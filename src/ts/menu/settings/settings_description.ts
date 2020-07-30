@@ -76,6 +76,17 @@ export const settingsDescriptionExact = buildSettings({
 		},
 		onChange: (x) => soundEffectsNode.gain.linearRampToValueAtTime(AudioUtil.rescaleGain(x), audioContext.currentTime + 0.05)
 	},
+	'backgroundAudioBehavior': {
+		type: SettingType.Selection,
+		displayName: "Audio behavior when tab in background",
+		options: {
+			'none': "Keep at full volume",
+			'quiet': "Quiet",
+			'mute': "Mute"
+		},
+		default: 'quiet',
+		onChange: EMPTY_FUNCTION
+	},
 	'ignoreBeatmapSkin': {
 		type: SettingType.Checkbox,
 		displayName: "Ignore beatmap skin",
@@ -138,6 +149,72 @@ export const settingsDescriptionExact = buildSettings({
 			if (state) globalState.fpsMeter?.show();
 			else globalState.fpsMeter?.hide();
 		}
+	},
+	'snakingSliders': {
+		type: SettingType.Checkbox,
+		displayName: "Snaking sliders",
+		default: true,
+		onChange: EMPTY_FUNCTION
+	},
+	'enableVideo': {
+		type: SettingType.Checkbox,
+		displayName: "Show background video",
+		default: true,
+		onChange: EMPTY_FUNCTION
+	},
+	'enableStoryboard': {
+		type: SettingType.Checkbox,
+		displayName: "Show storyboard",
+		default: true,
+		onChange: EMPTY_FUNCTION
+	},
+	'showKeyOverlay': {
+		type: SettingType.Checkbox,
+		displayName: "Show key overlay",
+		default: true,
+		onChange: EMPTY_FUNCTION
+	},
+	'showApproachCircleOnFirstHiddenObject': {
+		type: SettingType.Checkbox,
+		displayName: "Show approach circle on first hidden object",
+		default: true,
+		onChange: EMPTY_FUNCTION
+	},
+	'mouseSensitivity': {
+		type: SettingType.Range,
+		displayName: "Mouse sensitivity factor",
+		default: 1.0,
+		options: {
+			min: 0.1,
+			max: 5,
+			base: 1,
+			tooltipFunction: x => 'x' + x.toFixed(2)
+		},
+		onChange: EMPTY_FUNCTION
+	},
+	'useSoftwareCursor': {
+		type: SettingType.Checkbox,
+		displayName: "Use software cursor",
+		default: false,
+		onChange: EMPTY_FUNCTION
+	},
+	'disableMouseButtonsDuringGameplay': {
+		type: SettingType.Checkbox,
+		displayName: "Disable mouse buttons during gameplay",
+		default: false,
+		onChange: EMPTY_FUNCTION
+	},
+	'audioOffset': {
+		type: SettingType.Range,
+		displayName: "Audio offset",
+		default: 0,
+		options: {
+			min: -300,
+			max: 300,
+			base: 0,
+			tooltipFunction: x => (x > 0? '+' : '') + x.toFixed(0) + ' ms'
+		},
+		onChange: EMPTY_FUNCTION
 	}
 });
 

@@ -111,6 +111,8 @@ export class RangeSlider extends CustomEventEmitter<{change: number}> {
 			thumbRegistration.trigger('mouseDown', e); // Pretend like we've clicked the thumb
 			this.positionOnDragStart = (e.clientX - this.track.getGlobalPosition().x) - this.thumb.width/2;
 			this.updateThumbForDrag(0);
+
+			return true;
 		});
 
 		this.setValue(this.options.base);

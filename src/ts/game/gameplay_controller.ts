@@ -17,7 +17,6 @@ import { GameplayInputListener } from "../input/gameplay_input_listener";
 import { Replay } from "./replay";
 import { StoryboardPlayer } from "./storyboard/storyboard_player";
 import { StoryboardParser } from "./storyboard/storyboard_parser";
-import { ENABLE_STORYBOARD } from "./storyboard/storyboard";
 import { SmokeCanvas } from "./hud/smoke_canvas";
 import { Beatmap } from "../datamodel/beatmap/beatmap";
 
@@ -200,7 +199,7 @@ export class GameplayController {
 		}
 
 		console.time("Storyboard parsing");
-		let storyboard = StoryboardParser.parse(text, ENABLE_STORYBOARD); // If storyboards are disabled, their audio component (sample playback) stays active nonetheless.
+		let storyboard = StoryboardParser.parse(text, globalState.settings['enableStoryboard']); // If storyboards are disabled, their audio component (sample playback) stays active nonetheless.
 		console.timeEnd("Storyboard parsing");
 
 		// Create an array of directories the storyboard player will have access to. The directories will be used for file loopup in array order.

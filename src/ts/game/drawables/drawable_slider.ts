@@ -1,7 +1,7 @@
 import { Slider } from "../../datamodel/hit_objects/slider";
 import { MathUtil, EaseType } from "../../util/math_util";
 import { pointDistance, Point } from "../../util/point";
-import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME, SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT, SLIDER_SETTINGS } from "../../util/constants";
+import { SLIDER_TICK_APPEARANCE_ANIMATION_DURATION, HIT_OBJECT_FADE_OUT_TIME } from "../../util/constants";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { assert, last } from "../../util/misc_util";
 import { DrawableHeadedHitObject, SliderScoring, getDefaultSliderScoring } from "./drawable_headed_hit_object";
@@ -20,6 +20,7 @@ import { PlayEvent, PlayEventType } from "../../datamodel/play_events";
 import { Judgement } from "../../datamodel/scoring/judgement";
 import { HitSoundInfo, generateHitSoundInfo, getTickHitSoundTypeFromSampleSet, determineSampleSet, determineVolume, determineSampleIndex, getSliderSlideTypesFromSampleSet, calculatePanFromOsuCoordinates } from "../skin/hit_sound";
 import { AudioBufferPlayer } from "../../audio/audio_buffer_player";
+import { globalState } from "../../global_state";
 
 export const FOLLOW_CIRCLE_HITBOX_CS_RATIO = 308/128; // Based on a comment on the osu website: "Max size: 308x308 (hitbox)"
 const FOLLOW_CIRCLE_SCALE_IN_DURATION = 200;
@@ -71,7 +72,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 	}
 
 	private getSliderBodyDefaultSnake() {
-		return SLIDER_SETTINGS.snaking? 0.0 : 1.0;
+		return globalState.settings['snakingSliders']? 0.0 : 1.0;
 	}
 
 	protected initSounds(slider: Slider, timingInfo: CurrentTimingPointInfo) {
@@ -143,7 +144,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.head = new HitCirclePrimitive({
 			fadeInStart: this.parent.startTime - approachTime,
 			hitObject: this,
-			hasApproachCircle: !hasHidden || (this.parent.index === 0 && SHOW_APPROACH_CIRCLE_ON_FIRST_HIDDEN_OBJECT),
+			hasApproachCircle: !hasHidden || (this.parent.index === 0 && globalState.settings['showApproachCircleOnFirstHiddenObject']),
 			hasNumber: true,
 			type: HitCirclePrimitiveType.SliderHead
 		});
@@ -161,7 +162,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			if (i === 0) {
 				fadeInStart = this.parent.startTime - approachTime;
 
-				if (SLIDER_SETTINGS.snaking) {
+				if (globalState.settings['snakingSliders']) {
 					fadeInStart += approachTime/3; // Snaking takes one third of approach time.
 				}
 			} else {
@@ -474,7 +475,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		let { approachTime } = this.drawableBeatmap.play;
 
 		let snakeCompletion: number;
-		if (SLIDER_SETTINGS.snaking) {
+		if (globalState.settings['snakingSliders']) {
 			snakeCompletion = (currentTime - (this.parent.startTime - approachTime)) / (approachTime/3); // Snaking takes 1/3 the approach time
 			snakeCompletion = MathUtil.clamp(snakeCompletion, 0, 1);
 		} else {

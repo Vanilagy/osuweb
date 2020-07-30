@@ -26,7 +26,6 @@ import { StoryboardParser } from "./storyboard/storyboard_parser";
 import { BeatmapEventType, BeatmapEventBreak } from "../datamodel/beatmap/beatmap";
 
 const BREAK_FADE_TIME = 1000; // In ms
-const DISABLE_VIDEO = false;
 const VIDEO_FADE_IN_DURATION = 1000; // In ms
 const GAMEPLAY_WARNING_ARROWS_FLICKER_START = -1000; // Both of these are relative to the end of the break
 const GAMEPLAY_WARNING_ARROWS_FLICKER_END = 400;
@@ -125,7 +124,7 @@ export class Play {
 		backgroundManager.setImage(backgroundImageFile, true);
 		
 		let backgroundVideoFile = await this.processedBeatmap.beatmap.getBackgroundVideoFile();
-		if (backgroundVideoFile && !DISABLE_VIDEO) {
+		if (backgroundVideoFile && globalState.settings['enableVideo']) {
 			try {
 				await backgroundManager.setVideo(backgroundVideoFile);
 				this.hasVideo = true;
@@ -662,7 +661,7 @@ export class Play {
 		}
 
 		if (globalState.gameplayAudioPlayer.isPlaying() === false) return this.startTime;
-		return globalState.gameplayAudioPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000; // The shift by baseLatency seems to make more input more correct, for now.
+		return globalState.gameplayAudioPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000 + globalState.settings['audioOffset']; // The shift by baseLatency seems to make more input more correct, for now.
 	}
 
 	toPlaybackRateIndependentTime(time: number) {
