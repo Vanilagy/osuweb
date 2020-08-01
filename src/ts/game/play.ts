@@ -386,7 +386,7 @@ export class Play {
 			}
 
 			// Start the video when it's due
-			if (currentTime >= 0 && backgroundManager.videoIsPaused()) backgroundManager.playVideo();
+			if (currentTime >= 0 && backgroundManager.videoIsPaused() && !this.paused) backgroundManager.playVideo();
 
 			let videoPlaybackRate = this.playbackRate * this.calculateFailPlaybackRateFactor();
 			backgroundManager.setVideoPlaybackRate(MathUtil.clamp(videoPlaybackRate, 0.1, 10));
