@@ -6,6 +6,7 @@ import { MathUtil, EaseType } from "../../util/math_util";
 import { EMPTY_FUNCTION } from "../../util/misc_util";
 import { Interpolator } from "../../util/interpolation";
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
+import { getCurrentMousePosition } from "../../input/input";
 
 const TRACK_HEIGHT = 5;
 const THUMB_WIDTH = 32;
@@ -19,7 +20,7 @@ export interface RangeSliderOptions {
 	tooltipFunction: (val: number) => string
 }
 
-export class RangeSlider extends CustomEventEmitter<{change: number}> {
+export class RangeSlider extends CustomEventEmitter<{change: number, release: number}> {
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
 	private width: number;
@@ -77,6 +78,7 @@ export class RangeSlider extends CustomEventEmitter<{change: number}> {
 			this.updateThumbForDrag(e.distanceFromStart.x);
 		}, () => {
 			this.pressdownInterpolator.setReversedState(true, performance.now());
+			this.emit('release', this.getValue());
 		});
 
 		thumbRegistration.addButtonHandlers(
@@ -109,7 +111,7 @@ export class RangeSlider extends CustomEventEmitter<{change: number}> {
 		this.interactionGroup.add(trackRegistration);
 		trackRegistration.addListener('mouseDown', (e) => {
 			thumbRegistration.trigger('mouseDown', e); // Pretend like we've clicked the thumb
-			this.positionOnDragStart = (e.clientX - this.track.getGlobalPosition().x) - this.thumb.width/2;
+			this.positionOnDragStart = (getCurrentMousePosition().x - this.track.getGlobalPosition().x) - this.thumb.width/2;
 			this.updateThumbForDrag(0);
 
 			return true;
@@ -204,6 +206,8 @@ export class RangeSlider extends CustomEventEmitter<{change: number}> {
 	}
 
 	private setCompletion(completion: number) {
+		let oldCompletion = this.currentCompletion;
+
 		this.currentCompletion = completion;
 		this.tooltip.text = this.options.tooltipFunction(this.getValue());
 		
@@ -211,7 +215,7 @@ export class RangeSlider extends CustomEventEmitter<{change: number}> {
 		this.setThumbPosition(visualX);
 		this.drawTrack();
 
-		this.emit('change', this.getValue());
+		if (completion !== oldCompletion) this.emit('change', this.getValue());
 	}
 
 	private setThumbPosition(x: number) {

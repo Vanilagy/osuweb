@@ -145,6 +145,10 @@ export class Skin {
 		// Skip button
 		texturePromises["playSkip"] = OsuTexture.fromFiles(this.directory, "play-skip", "png", true, "play-skip-{n}");
 
+		// Cursor
+		texturePromises["cursor"] = OsuTexture.fromFiles(this.directory, "cursor", "png", true);
+		texturePromises["cursorMiddle"] = OsuTexture.fromFiles(this.directory, "cursormiddle", "png", true);
+
 		let promises: Promise<OsuTexture>[] = [];
 		for (let name in texturePromises) {
 			promises.push(texturePromises[name]);
@@ -329,6 +333,10 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinSounds = true,
 			// If the scorebarColor texture is present, strictly copy scorebarMarker
 			if (!skin.textures["scorebarColor"].isEmpty()) {
 				baseSkin.textures["scorebarMarker"] = skin.textures["scorebarMarker"];
+			}
+			// If there's a cursor texture present, always copy the cursorMiddle, regardless of empty state
+			if (!skin.textures["cursor"].isEmpty()) {
+				baseSkin.textures["cursorMiddle"] = skin.textures["cursorMiddle"];
 			}
         }
 

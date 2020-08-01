@@ -2,6 +2,9 @@ import { Point, clonePoint } from "../util/point";
 import { CustomEventEmitter } from "../util/custom_event_emitter";
 import { normalizeWheelEvent, NormalizedWheelEvent } from "../util/misc_util";
 import { tickAll } from "../util/ticker";
+import { currentWindowDimensions, isFullscreen, windowFocused } from "../visuals/ui";
+import { globalState } from "../global_state";
+import { MathUtil } from "../util/math_util";
 
 const PREVENT_NATIVE_CONTEXT_MENU = true;
 
@@ -44,6 +47,11 @@ let currentMouseButtonState = {
 	rmb: false,
 	mmb: false
 };
+let mouseSensitivity = 1.0;
+
+export function setMouseSensitivity(value: number) {
+	mouseSensitivity = value;
+}
 
 export function getCurrentMousePosition() {
 	return clonePoint(currentMousePosition);
@@ -56,25 +64,48 @@ export function getCurrentMouseButtonState() {
 window.onmousemove = (e: MouseEvent) => {
 	tickAll();
 
-	currentMousePosition.x = e.clientX;
-	currentMousePosition.y = e.clientY;
+	if (!globalState.settings['useSoftwareCursor']) {
+		// When using a hardware cursor, just copy the pure mouse position.
+		currentMousePosition.x = e.clientX;
+		currentMousePosition.y = e.clientY;
+	} else {
+		let mode = globalState.settings['mouseInputMode']
+
+		if (mode === 'absolute') {
+			// Project the mouse position around the center of the window (the center is always a fixed point)
+			currentMousePosition.x = MathUtil.clamp(currentWindowDimensions.width/2 + (e.clientX - currentWindowDimensions.width/2) * Math.max(1, mouseSensitivity), 0, currentWindowDimensions.width);
+			currentMousePosition.y = MathUtil.clamp(currentWindowDimensions.height/2 + (e.clientY - currentWindowDimensions.height/2) * Math.max(1, mouseSensitivity), 0, currentWindowDimensions.height);
+		} else if (mode === 'raw') {
+			if (!document.pointerLockElement) return;
+
+			// Simply advance the cursor based on movement
+			currentMousePosition.x += e.movementX * mouseSensitivity;
+			currentMousePosition.y += e.movementY * mouseSensitivity;
+
+			currentMousePosition.x = MathUtil.clamp(currentMousePosition.x, 0, currentWindowDimensions.width);
+			currentMousePosition.y = MathUtil.clamp(currentMousePosition.y, 0, currentWindowDimensions.height);
+		}
+	}
 
 	inputEventEmitter.emit('mouseMove', e);
 };
 
-window.onkeydown = (e: KeyboardEvent) => {
-	tickAll();
-	inputEventEmitter.emit('keyDown', e);
-};
-
-window.onkeyup = (e: KeyboardEvent) => {
-	tickAll();
-	inputEventEmitter.emit('keyUp', e);
-};
+// Simulated a fake mousedown event to trick the browser into thinking something is "user gesture-initiated"
+function simulateMouseDown() {
+	let evt = document.createEvent("MouseEvents");
+	evt.initMouseEvent("mousedown", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+	document.body.dispatchEvent(evt);
+}
 
 // TODO: Eventually add touch support. Eventually.
 window.onmousedown = (e: MouseEvent) => {
 	tickAll();
+
+	if (globalState.settings['useSoftwareCursor'] && globalState.settings['mouseInputMode'] === 'raw' && !document.pointerLockElement) {
+		// The user has clicked into the window while they weren't pointer locked.
+		document.documentElement.requestPointerLock();
+		return;
+	}
 
 	let button = e.button;
 
@@ -95,6 +126,16 @@ window.onmouseup = (e: MouseEvent) => {
 	inputEventEmitter.emit('mouseUp', e);
 };
 
+window.onkeydown = (e: KeyboardEvent) => {
+	tickAll();
+	inputEventEmitter.emit('keyDown', e);
+};
+
+window.onkeyup = (e: KeyboardEvent) => {
+	tickAll();
+	inputEventEmitter.emit('keyUp', e);
+};
+
 // Prevent context menu from opening on right click
 window.oncontextmenu = (e: MouseEvent) => {
 	tickAll();
@@ -104,4 +145,18 @@ window.oncontextmenu = (e: MouseEvent) => {
 window.onwheel = (ev: WheelEvent) => {
 	tickAll();
 	inputEventEmitter.emit('wheel', normalizeWheelEvent(ev));
+};
+
+document.onpointerlockchange = () => {
+	if (!document.pointerLockElement && globalState.settings['useSoftwareCursor'] && globalState.settings['mouseInputMode'] === 'raw' && windowFocused) {
+		if (!isFullscreen()) {
+			// If the cursor is on the very side of the screen, assume the user has pressed ESC and wanted to exit pointer lock on purpose.
+			let mouseOnSide = currentMousePosition.x === 0 || currentMousePosition.x === currentWindowDimensions.width || currentMousePosition.y === 0 || currentMousePosition.y === currentWindowDimensions.height;
+			if (mouseOnSide) return;
+		}
+
+		simulateMouseDown();
+		// If we're here, then the window is focussed, so we assume ESC was pressed to exit pointer lock, in which case we replicate the ESC event since it was dropped.
+		window.onkeydown({keyCode: KeyCode.Escape, key: 'Escape'} as KeyboardEvent);
+	}
 };

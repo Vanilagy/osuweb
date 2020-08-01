@@ -13,6 +13,7 @@ export class CheckboxElement extends SettingsElement {
 	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, CheckboxSettingDescription>) {
 		super(parent);
 
+		this.identifier = setting;
 		let description = settingsDescription[setting];
 
 		this.titleElement = new PIXI.Text(description.displayName, {
@@ -28,7 +29,7 @@ export class CheckboxElement extends SettingsElement {
 		this.checkbox.setState(globalState.settings[setting]);
 		this.checkbox.addListener('change', (val) => {
 			globalState.settings[setting] = val;
-			description.onChange(val);
+			description.onChange?.(val);
 		});
 	}
 

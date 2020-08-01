@@ -175,7 +175,10 @@ export class OsuTexture {
     applyToSprite(sprite: PIXI.Sprite, scalingFactor: number, frame?: number, maxDimensionFactor: number = 1.0) {
         let resolution = this.getOptimalResolution(this.getBiggestDimension(scalingFactor * maxDimensionFactor), frame);
         let tex = this.getForResolution(resolution, frame);
-        if (!tex) return;
+        if (!tex) {
+			sprite.texture = PIXI.Texture.EMPTY;
+			return;
+		}
 
         sprite.texture = tex;
         sprite.width = this.getWidthForResolution(resolution, frame) * scalingFactor;

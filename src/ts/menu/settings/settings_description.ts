@@ -3,6 +3,8 @@ import { masterGain, mediaAudioNode, soundEffectsNode, audioContext } from "../.
 import { AudioUtil } from "../../util/audio_util";
 import { EMPTY_FUNCTION, toPercentageString } from "../../util/misc_util";
 import { globalState } from "../../global_state";
+import { setMouseSensitivity } from "../../input/input";
+import { NotificationType } from "../notifications/notification";
 
 export enum SettingType {
 	Range,
@@ -15,8 +17,10 @@ export interface RangeSettingDescription {
 	type: SettingType.Range,
 	displayName: string,
 	default: number,
-	options: RangeSliderOptions
-	onChange: (x: RangeSettingDescription["default"]) => void,
+	options: RangeSliderOptions,
+	onChange?: (x: RangeSettingDescription["default"]) => void,
+	/** Called when the range slider is releaased. */
+	onFinish?: (x: RangeSettingDescription["default"]) => void,
 }
 
 /** Represents an "on/off" setting */
@@ -24,7 +28,7 @@ export interface CheckboxSettingDescription {
 	type: SettingType.Checkbox,
 	displayName: string,
 	default: boolean,
-	onChange: (x: CheckboxSettingDescription["default"]) => void
+	onChange?: (x: CheckboxSettingDescription["default"]) => void
 }
 
 /** Represents a setting which can only take on specific values from a list. */
@@ -33,7 +37,7 @@ export interface SelectionSettingDescription {
 	displayName: string,
 	default: keyof SelectionSettingDescription["options"],
 	options: Record<string, string>,
-	onChange: (x: SelectionSettingDescription["default"]) => void
+	onChange?: (x: SelectionSettingDescription["default"]) => void
 }
 
 export type SettingDescription = RangeSettingDescription | CheckboxSettingDescription | SelectionSettingDescription;
@@ -84,20 +88,17 @@ export const settingsDescriptionExact = buildSettings({
 			'quiet': "Quiet",
 			'mute': "Mute"
 		},
-		default: 'quiet',
-		onChange: EMPTY_FUNCTION
+		default: 'quiet'
 	},
 	'ignoreBeatmapSkin': {
 		type: SettingType.Checkbox,
 		displayName: "Ignore beatmap skin",
-		default: false,
-		onChange: EMPTY_FUNCTION
+		default: false
 	},
 	'ignoreBeatmapHitSounds': {
 		type: SettingType.Checkbox,
 		displayName: "Ignore beatmap hit sounds",
-		default: false,
-		onChange: EMPTY_FUNCTION
+		default: false
 	},
 	'backgroundDim': {
 		type: SettingType.Range,
@@ -108,8 +109,7 @@ export const settingsDescriptionExact = buildSettings({
 			max: 1,
 			base: 0,
 			tooltipFunction: x => toPercentageString(x, 0)
-		},
-		onChange: EMPTY_FUNCTION
+		}
 	},
 	'menuFpsLimit': {
 		type: SettingType.Selection,
@@ -123,8 +123,7 @@ export const settingsDescriptionExact = buildSettings({
 			'#360': "360",
 			'uncapped': "Uncapped"
 		},
-		default: '#144',
-		onChange: EMPTY_FUNCTION
+		default: '#144'
 	},
 	'gameplayFpsLimit': {
 		type: SettingType.Selection,
@@ -138,8 +137,7 @@ export const settingsDescriptionExact = buildSettings({
 			'#360': "360",
 			'uncapped': "Uncapped"
 		},
-		default: 'uncapped',
-		onChange: EMPTY_FUNCTION
+		default: 'uncapped'
 	},
 	'showFpsMeter': {
 		type: SettingType.Checkbox,
@@ -153,56 +151,86 @@ export const settingsDescriptionExact = buildSettings({
 	'snakingSliders': {
 		type: SettingType.Checkbox,
 		displayName: "Snaking sliders",
-		default: true,
-		onChange: EMPTY_FUNCTION
+		default: true
 	},
 	'enableVideo': {
 		type: SettingType.Checkbox,
 		displayName: "Show background video",
-		default: true,
-		onChange: EMPTY_FUNCTION
+		default: true
 	},
 	'enableStoryboard': {
 		type: SettingType.Checkbox,
 		displayName: "Show storyboard",
-		default: true,
-		onChange: EMPTY_FUNCTION
+		default: true
 	},
 	'showKeyOverlay': {
 		type: SettingType.Checkbox,
 		displayName: "Show key overlay",
-		default: true,
-		onChange: EMPTY_FUNCTION
+		default: true
 	},
 	'showApproachCircleOnFirstHiddenObject': {
 		type: SettingType.Checkbox,
 		displayName: "Show approach circle on first hidden object",
-		default: true,
-		onChange: EMPTY_FUNCTION
+		default: true
+	},
+	'useSoftwareCursor': {
+		type: SettingType.Checkbox,
+		displayName: "Use software cursor",
+		default: false,
+		onChange: (val) => {
+			globalState.cursor.refresh();
+
+			if (val && globalState.settings['mouseInputMode'] === 'raw') document.documentElement.requestPointerLock();
+			else document.exitPointerLock();
+
+			if (val) {
+				globalState.settingsPanel.enableElement('mouseSensitivity');
+				globalState.settingsPanel.enableElement('mouseInputMode');
+			} else {
+				// These settings have no effect with a hardware cursor, so disable them.
+				globalState.settingsPanel.disableElement('mouseSensitivity');
+				globalState.settingsPanel.disableElement('mouseInputMode');
+			}
+		}
+	},
+	/** The main idea here is that tablet and mouse users have different needs for input. For mouse, raw input is very important, and absolutely positioning not really a factor. For a tablet, it's crucial that the same physical location map to the same location in-game. */
+	'mouseInputMode': {
+		type: SettingType.Selection,
+		displayName: "Mouse input mode",
+		default: 'absolute',
+		options: {
+			'absolute': "Absolute",
+			'raw': "Raw"
+		},
+		onChange: (setting) => {
+			if (setting === 'absolute') document.exitPointerLock();
+			else if (setting === 'raw') {
+				document.documentElement.requestPointerLock();
+				globalState.notificationPanel.showNotification("Raw mouse input activated", "To exit, move the cursor to the side and press ESC.", NotificationType.Warning);
+			}
+
+			updateLowSensitivityWarning();
+		}
 	},
 	'mouseSensitivity': {
 		type: SettingType.Range,
 		displayName: "Mouse sensitivity factor",
 		default: 1.0,
 		options: {
-			min: 0.1,
-			max: 5,
+			min: 0.4,
+			max: 6,
 			base: 1,
 			tooltipFunction: x => 'x' + x.toFixed(2)
 		},
-		onChange: EMPTY_FUNCTION
-	},
-	'useSoftwareCursor': {
-		type: SettingType.Checkbox,
-		displayName: "Use software cursor",
-		default: false,
-		onChange: EMPTY_FUNCTION
+		onFinish: (x) => {
+			setMouseSensitivity(x);
+			updateLowSensitivityWarning();
+		}
 	},
 	'disableMouseButtonsDuringGameplay': {
 		type: SettingType.Checkbox,
 		displayName: "Disable mouse buttons during gameplay",
-		default: false,
-		onChange: EMPTY_FUNCTION
+		default: false
 	},
 	'audioOffset': {
 		type: SettingType.Range,
@@ -213,8 +241,21 @@ export const settingsDescriptionExact = buildSettings({
 			max: 300,
 			base: 0,
 			tooltipFunction: x => (x > 0? '+' : '') + x.toFixed(0) + ' ms'
+		}
+	},
+	'cursorSize': {
+		type: SettingType.Range,
+		displayName: "Cursor size",
+		default: 1,
+		options: {
+			min: 0.1,
+			max: 2,
+			base: 0.1,
+			tooltipFunction: x => 'x' + x.toFixed(2)
 		},
-		onChange: EMPTY_FUNCTION
+		onChange: (x) => {
+			globalState.cursor.refresh();
+		}
 	}
 });
 
@@ -225,3 +266,11 @@ export const settingsDescription: {
 		S[K] extends CheckboxSettingDescription ? CheckboxSettingDescription :
 		SelectionSettingDescription
 } = settingsDescriptionExact;
+
+function updateLowSensitivityWarning() {
+	if (globalState.settings['mouseSensitivity'] < 1.0 && globalState.settings['mouseInputMode'] !== 'raw') {
+		globalState.settingsPanel.enableElement('lowSensitivityWarning');
+	} else {
+		globalState.settingsPanel.disableElement('lowSensitivityWarning');
+	}
+}

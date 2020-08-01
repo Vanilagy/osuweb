@@ -13,6 +13,7 @@ import { TaskManager } from "./multithreading/task_manager";
 import { SettingsPanel } from "./menu/settings/settings_panel";
 import { FpsMeter } from "./menu/misc/fps_meter";
 import { Settings } from "./menu/settings/settings";
+import { Cursor } from "./visuals/cursor";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -29,5 +30,6 @@ export const globalState = {
 	taskManager: null as TaskManager,
 	settingsPanel: null as SettingsPanel,
 	fpsMeter: null as FpsMeter,
-	settings: null as Settings
+	settings: null as Settings,
+	cursor: null as Cursor
 };

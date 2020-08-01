@@ -151,7 +151,7 @@ export class PauseScreen {
 		this.heading.pivot.x = Math.floor(this.heading.width / 2);
 	}
 
-	private requireCursorAlignment() {
+	private requiresCursorAlignment() {
 		let play = this.controller.currentPlay;
 		return !(this.controller.playbackReplay || play.activeMods.has(Mod.Relax) || play.activeMods.has(Mod.Autopilot) || play.isInBreak(play.getCurrentSongTime()));
 	}
@@ -161,7 +161,7 @@ export class PauseScreen {
 			if (this.controller.currentPlay.hasFailed()) {
 				this.controller.endPlay();
 			} else {
-				if (this.requireCursorAlignment()) {
+				if (this.requiresCursorAlignment()) {
 					this.toggleCursorAligning();
 				} else {
 					this.controller.unpause();

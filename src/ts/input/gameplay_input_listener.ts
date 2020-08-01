@@ -3,6 +3,7 @@ import { KeyCode, MouseButton, getCurrentMousePosition } from "./input";
 import { InputStateHookable } from "./input_state_hookable";
 import { GameButton } from "./gameplay_input_state";
 import { GameplayController } from "../game/gameplay_controller";
+import { globalState } from "../global_state";
 
 export const GAME_KEYS: [number, number] = [KeyCode.X, KeyCode.Y];
 const SMOKE_KEY = KeyCode.C;
@@ -47,7 +48,7 @@ export class GameplayInputListener extends InputStateHookable {
 			this.inputStateButtonHook.setButton(button, false, this.getCurrentTime());
 		});
 		this.registration.addListener('mouseDown', (e) => {
-			if (!this.inputStateButtonHook) return;
+			if (!this.inputStateButtonHook || globalState.settings['disableMouseButtonsDuringGameplay']) return;
 
 			if (e.button !== MouseButton.Left && e.button !== MouseButton.Right) return;
 
@@ -55,7 +56,7 @@ export class GameplayInputListener extends InputStateHookable {
 			this.inputStateButtonHook.setButton(button, true, this.getCurrentTime());
 		});
 		this.registration.addListener('mouseUp', (e) => {
-			if (!this.inputStateButtonHook) return;
+			if (!this.inputStateButtonHook || globalState.settings['disableMouseButtonsDuringGameplay']) return;
 
 			if (e.button !== MouseButton.Left && e.button !== MouseButton.Right) return;
 

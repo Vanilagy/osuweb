@@ -12,13 +12,15 @@ import { SectionHeader } from "./section_header";
 import { SettingName } from "./settings";
 import { CheckboxElement } from "./checkbox_element";
 import { SelectionElement } from "./selection_element";
+import { TextElement } from "./text_element";
 
 export const SETTINGS_PANEL_WIDTH = 300;
 export const SETTINGS_PANEL_PADDING = 12;
 
 enum LayoutElementType {
 	SectionHeader,
-	Setting
+	Setting,
+	Text
 }
 
 interface SectionHeaderLayoutElement {
@@ -31,7 +33,13 @@ interface SettingLayoutElement {
 	setting: SettingName
 }
 
-type LayoutElement = SectionHeaderLayoutElement | SettingLayoutElement;
+interface TextLayoutElement {
+	type: LayoutElementType.Text,
+	text: string,
+	identifier: string
+}
+
+type LayoutElement = SectionHeaderLayoutElement | SettingLayoutElement | TextLayoutElement;
 
 const layout: LayoutElement[] = [
 	{ type: LayoutElementType.SectionHeader, title: 'audio' },
@@ -46,6 +54,7 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.SectionHeader, title: 'skin' },
 	{ type: LayoutElementType.Setting, setting: 'ignoreBeatmapSkin' },
 	{ type: LayoutElementType.Setting, setting: 'ignoreBeatmapHitSounds' },
+	{ type: LayoutElementType.Setting, setting: 'cursorSize' },
 	{ type: LayoutElementType.SectionHeader, title: 'gameplay' },
 	{ type: LayoutElementType.Setting, setting: 'backgroundDim' },
 	{ type: LayoutElementType.Setting, setting: 'enableVideo' },
@@ -56,6 +65,8 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.SectionHeader, title: 'input' },
 	{ type: LayoutElementType.Setting, setting: 'useSoftwareCursor' },
 	{ type: LayoutElementType.Setting, setting: 'mouseSensitivity' },
+	{ type: LayoutElementType.Text, text: "A sensitivity factor smaller than 1.0 is only effective in raw input mode.", identifier: 'lowSensitivityWarning' },
+	{ type: LayoutElementType.Setting, setting: 'mouseInputMode' },
 	{ type: LayoutElementType.Setting, setting: 'showKeyOverlay' },
 	{ type: LayoutElementType.Setting, setting: 'disableMouseButtonsDuringGameplay' },
 ];
@@ -132,6 +143,8 @@ export class SettingsPanel {
 						case SettingType.Selection: elements.push(new SelectionElement(this, setting)); break;
 					}
 				}; break;
+				case LayoutElementType.Text:
+					elements.push(new TextElement(this, layoutElement.text, layoutElement.identifier)); break;
 			}
 		}
 
@@ -194,5 +207,13 @@ export class SettingsPanel {
 	toggle() {
 		if (this.interactionGroup.enabled) this.hide();
 		else this.show();
+	}
+
+	enableElement(name: string) {
+		this.elements.find(x => x.identifier === name)?.enable();
+	}
+
+	disableElement(name: string) {
+		this.elements.find(x => x.identifier === name)?.disable();
 	}
 }

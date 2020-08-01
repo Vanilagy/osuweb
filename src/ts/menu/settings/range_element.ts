@@ -13,6 +13,7 @@ export class RangeElement extends SettingsElement {
 	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, RangeSettingDescription>) {
 		super(parent);
 
+		this.identifier = setting;
 		let description = settingsDescription[setting];
 
 		this.titleElement = new PIXI.Text(description.displayName, {
@@ -28,7 +29,12 @@ export class RangeElement extends SettingsElement {
 		this.rangeSlider.setValue(globalState.settings[setting]);
 		this.rangeSlider.addListener('change', (val) => {
 			globalState.settings[setting] = val;
-			description.onChange(val);
+			description.onChange?.(val);
+		});
+		this.rangeSlider.addListener('release', (val) => {
+			globalState.settings[setting] = val;
+			description.onChange?.(val);
+			description.onFinish?.(val);
 		});
 	}
 

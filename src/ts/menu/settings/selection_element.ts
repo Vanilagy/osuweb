@@ -14,6 +14,7 @@ export class SelectionElement extends SettingsElement {
 	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, SelectionSettingDescription>) {
 		super(parent);
 
+		this.identifier = setting;
 		let description = settingsDescription[setting];
 
 		this.titleElement = new PIXI.Text(description.displayName, {
@@ -30,7 +31,7 @@ export class SelectionElement extends SettingsElement {
 		this.selector.setSelection(globalState.settings[setting]);
 		this.selector.addListener('change', (val) => {
 			globalState.settings[setting] = val;
-			description.onChange(val);
+			description.onChange?.(val);
 		});
 	}
 

@@ -48,3 +48,7 @@ window.addEventListener('focus', () => {
 window.addEventListener('blur', () => {
 	windowFocused = false;
 });
+
+export function isFullscreen() {
+	return window.innerWidth === screen.width && window.innerHeight === screen.height;
+}

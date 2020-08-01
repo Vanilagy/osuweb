@@ -25,7 +25,8 @@ import { NotificationPanel } from './menu/notifications/notification_panel';
 import { TaskManager } from './multithreading/task_manager';
 import { SettingsPanel } from './menu/settings/settings_panel';
 import { FpsMeter } from './menu/misc/fps_meter';
-import { generateDefaultSettings } from './menu/settings/settings';
+import { generateDefaultSettings, applySettings } from './menu/settings/settings';
+import { Cursor } from './visuals/cursor';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -41,9 +42,9 @@ async function init() {
 	//return;
 
 	globalState.taskManager = new TaskManager();
+	globalState.settings = generateDefaultSettings();
 
 	initMisc();
-	globalState.settings = generateDefaultSettings();
 	initAudio();
 	initBackground();
 	initBeatmapLibrary();
@@ -53,12 +54,16 @@ async function init() {
 	initFolderSelector();
 	initSongSelect();
 
+	applySettings();
+
 	await initBaseSkin();
 	initGameplay();
 	initScoreGrades();
 	initScoreScreen();
 	setZIndexes();
 	showChooseFile();
+
+	globalState.cursor.refresh();
 
 	console.log(osu!); // Love the syntax <3
 }
@@ -72,7 +77,7 @@ async function initBaseSkin() {
 	await defaultSkin.init(false);
 	defaultSkin.allowSliderBallExtras = true;
 
-	let selectedSkinPath = "./assets/skins/seoul";
+	let selectedSkinPath = "./assets/skins/yugen";
 	let selectedSkinDirectory = new VirtualDirectory("root");
 	selectedSkinDirectory.networkFallbackUrl = selectedSkinPath;
 
@@ -190,11 +195,15 @@ function initFolderSelector() {
 function initMisc() {
 	let fpsMeter = new FpsMeter();
 	stage.addChild(fpsMeter.container);
-
 	uiEventEmitter.addListener('resize', () => fpsMeter.resize());
 	addRenderingTask((now) => fpsMeter.update(now));
-
 	globalState.fpsMeter = fpsMeter;
+
+	let cursor = new Cursor();
+	stage.addChild(cursor.container);
+	uiEventEmitter.addListener('resize', () => cursor.refresh());
+	addRenderingTask((now) => cursor.update(now));
+	globalState.cursor = cursor;
 }
 
 function setZIndexes() {
@@ -208,6 +217,7 @@ function setZIndexes() {
 	globalState.toolbar.container.zIndex = 3.9;
 	globalState.folderSelector.container.zIndex = 4;
 	globalState.fpsMeter.container.zIndex = 10;
+	globalState.cursor.container.zIndex = 100;
 
 	globalState.gameplayController.interactionGroup.setZIndex(0);
 	globalState.songSelect.interactionGroup.setZIndex(1);
