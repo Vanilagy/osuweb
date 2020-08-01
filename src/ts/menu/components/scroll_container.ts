@@ -101,7 +101,7 @@ export class ScrollContainer {
 				this.contentInteractionGroup.releaseAllPresses();
 			}
 		}, (e) => {
-			if (this.isScrollable()) {
+			if (this.isScrollable() && e.velocity.y !== 0) {
 				// We figure out what the next scroll goal needs to be in order for the ease to begin with the same velocity that the dragging ended with.
 				let startSlope = MathUtil.easeSlope(scrollEase, 0);
 				let goalDelta = e.velocity.y * (scrollDuration / 1000)  / startSlope;
