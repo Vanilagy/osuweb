@@ -321,8 +321,8 @@ export class DrawableSpinner extends DrawableHitObject {
 	}
 
 	dispose() {
-		if (this.spinnerMeterMask) this.spinnerMeterMask.destroy();
-		this.spinnerMeter.mask = null;
+		this.spinnerMeterMask?.destroy();
+		if (this.spinnerMeter) this.spinnerMeter.mask = null;
 	}
 
 	update(currentTime: number) {
