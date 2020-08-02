@@ -111,4 +111,8 @@ export class Checkbox extends CustomEventEmitter<{change: boolean}> {
 		if (state === this.checked) return;
 		this.toggle();
 	}
+
+	getState() {
+		return this.checked;
+	}
 }

@@ -28,3 +28,8 @@ export function applySettings() {
 		if (untyped.onFinish) untyped.onFinish(globalState.settings[typedKey]); // Immediately execution the finish function to make sure the setting takes effect
 	}
 }
+
+export function changeSettingAndUpdateSettingsPanel<T extends SettingName>(setting: T, value: Settings[T]) {
+	globalState.settings[setting] = value;
+	globalState.settingsPanel.refreshElement(setting);
+}

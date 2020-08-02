@@ -14,6 +14,7 @@ import { Scrollbar } from "../components/scrollbar";
 import { BeatmapSet } from "../../datamodel/beatmap/beatmap_set";
 import { BeatmapEntry } from "../../datamodel/beatmap/beatmap_entry";
 import { BeatmapParser } from "../../datamodel/beatmap/beatmap_parser";
+import { Mod } from "../../datamodel/mods";
 
 export class SongSelect {
 	public container: PIXI.Container;
@@ -80,9 +81,6 @@ export class SongSelect {
 
 		this.keyInteraction.addListener('keyDown', (e) => {
 			switch (e.keyCode) {
-				case KeyCode.Enter: {
-					this.triggerSelectedBeatmap();
-				}; break;
 				case KeyCode.LeftArrow: {
 					this.carousel.skipSet(false, false);
 				}; break;
@@ -96,6 +94,34 @@ export class SongSelect {
 					this.carousel.skipDifficulty(true);
 				}; break;
 			}
+		});
+		this.keyInteraction.addKeybindListener('playBeatmap', 'down', () => {
+			this.triggerSelectedBeatmap();
+		});
+		this.keyInteraction.addKeybindListener('playBeatmapAuto', 'down', () => {
+			this.triggerSelectedBeatmap([Mod.Auto]);
+		});
+		this.keyInteraction.addKeybindListener('playBeatmapCinema', 'down', () => {
+			this.triggerSelectedBeatmap([Mod.Cinema]);
+		});
+		this.keyInteraction.addKeybindListener('toggleModSelect', 'down', () => {
+			this.modSelector.show();
+		});
+		this.keyInteraction.addKeybindListener('randomBeatmap', 'down', () => {
+			this.carousel.selectRandom();
+		});
+		this.keyInteraction.addKeybindListener('scrollCarouselUp', 'down', () => {
+			this.carousel.scrollPage(true);
+		});
+		this.keyInteraction.addKeybindListener('scrollCarouselDown', 'down', () => {
+			this.carousel.scrollPage(false);
+		});
+		this.keyInteraction.addKeybindListener('searchRemoveWord', 'down', () => {
+			this.searchBar.removeWord();
+		});
+		this.keyInteraction.addKeybindListener('clearSearch', 'down', () => {
+			console.log("bruh?")
+			this.searchBar.clear();
 		});
 	}
 
@@ -147,7 +173,7 @@ export class SongSelect {
 		this.infoPanel.hide();
 	}
 
-	triggerSelectedBeatmap() {
+	triggerSelectedBeatmap(additionalMods: Mod[] = []) {
 		if (!this.selectedEntry) return;
 		
 		this.hide();
@@ -156,6 +182,7 @@ export class SongSelect {
 		this.selectedEntry.resource.readAsText().then((text) => {
 			let map = BeatmapParser.parse(text, this.selectedEntry.beatmapSet, false);
 			let mods = this.modSelector.getSelectedMods();
+			for (let m of additionalMods) mods.add(m);
 	
 			globalState.gameplayController.startPlayFromBeatmap(map, mods);
 		});

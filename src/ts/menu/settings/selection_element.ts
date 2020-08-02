@@ -10,10 +10,12 @@ import { globalState } from "../../global_state";
 export class SelectionElement extends SettingsElement {
 	private titleElement: PIXI.Text;
 	private selector: DropdownSelector;
+	private setting: KeysWithType<typeof settingsDescription, SelectionSettingDescription>;
 
 	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, SelectionSettingDescription>) {
 		super(parent);
 
+		this.setting = setting;
 		this.identifier = setting;
 		let description = settingsDescription[setting];
 
@@ -53,5 +55,9 @@ export class SelectionElement extends SettingsElement {
 
 	getBottomMargin(now: number) {
 		return 10 * this.parent.scalingFactor;
+	}
+
+	refresh() {
+		this.selector.setSelection(globalState.settings[this.setting]);
 	}
 }

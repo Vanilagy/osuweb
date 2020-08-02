@@ -26,6 +26,8 @@ export class Toolbar {
 	public screenDim: PIXI.Sprite;
 	public screenDimRegistration: InteractionRegistration;
 	private screenDimInterpolator: Interpolator;
+
+	private fadeInInterpolator: Interpolator;
 	
 	constructor() {
 		this.container = new PIXI.Container();
@@ -50,6 +52,12 @@ export class Toolbar {
 			ease: EaseType.EaseOutQuint,
 			reverseEase: EaseType.EaseInQuint,
 			beginReversed: true,
+			defaultToFinished: true
+		});
+		this.fadeInInterpolator = new Interpolator({
+			duration: 500,
+			ease: EaseType.EaseOutQuint,
+			reverseEase: EaseType.EaseInQuint,
 			defaultToFinished: true
 		});
 
@@ -104,6 +112,10 @@ export class Toolbar {
 	}
 
 	update(now: number) {
+		let fadeInValue = this.fadeInInterpolator.getCurrentValue(now);
+		this.container.y = MathUtil.lerp(-this.currentHeight, 0, fadeInValue);
+		this.container.alpha = fadeInValue;
+
 		this.screenDim.alpha = MathUtil.lerp(0.0, 0.5, this.screenDimInterpolator.getCurrentValue(now));
 
 		for (let e of this.leftEntries) e.update(now);
@@ -118,5 +130,15 @@ export class Toolbar {
 	disableDim() {
 		this.screenDimInterpolator.setReversedState(true, performance.now());
 		this.screenDimRegistration.disable();
+	}
+
+	show() {
+		this.fadeInInterpolator.setReversedState(false, performance.now());
+		this.interactionGroup.enable();
+	}
+
+	hide() {
+		this.fadeInInterpolator.setReversedState(true, performance.now());
+		this.interactionGroup.disable();
 	}
 }

@@ -114,24 +114,19 @@ export class GameplayController {
 		this.interactionRegistration = new InteractionRegistration(fullscreenHitRec);
 		this.interactionRegistration.passThrough = true;
 		this.interactionGroup.add(this.interactionRegistration);
-		this.interactionRegistration.addListener('keyDown', (e) => {
-			switch (e.keyCode) {
-				case KeyCode.Escape: {
-					if (!this.currentPlay) break;
+		this.interactionRegistration.addKeybindListener('pause', 'down', () => {
+			if (!this.currentPlay) return;
 
-					if (this.currentPlay.completed) {
-						if (this.preScoreScreenTimeout !== null) this.showScoreScreen(true);
-						break;
-					}
-
-					this.pauseScreen.trigger();
-				}; break;
-				case KeyCode.Space: {
-					if (!this.currentPlay) break;
-
-					this.hud.skipButton.trigger();
-				}; break;
+			if (this.currentPlay.completed) {
+				if (this.preScoreScreenTimeout !== null) this.showScoreScreen(true);
+				return;
 			}
+
+			this.pauseScreen.trigger();
+		});
+		this.interactionRegistration.addKeybindListener('skipBreak', 'down', () => {
+			if (!this.currentPlay) return;
+			this.hud.skipButton.trigger();
 		});
 		this.interactionRegistration.addKeybindListener('restartPlay', 'down', () => {
 			this.restart();
@@ -147,6 +142,7 @@ export class GameplayController {
 	async startPlayFromBeatmap(beatmap: Beatmap, mods: Set<Mod>) {
 		assert(ModHelper.validateModSelection(mods));
 
+		globalState.toolbar.hide();
 		globalState.taskManager.pause();
 
 		this.hitObjectContainer.removeChildren();
@@ -267,6 +263,7 @@ export class GameplayController {
 		this.currentPlay = null;
 		this.hide();
 
+		globalState.toolbar.show();
 		globalState.songSelect.show();
 		globalState.backgroundManager.setGameplayState(false, 500, EaseType.EaseInQuad);
 		globalState.backgroundManager.setBlurState(true, 400, EaseType.EaseOutQuart);

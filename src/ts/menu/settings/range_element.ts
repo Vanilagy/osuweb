@@ -9,10 +9,12 @@ import { globalState } from "../../global_state";
 export class RangeElement extends SettingsElement {
 	private titleElement: PIXI.Text;
 	private rangeSlider: RangeSlider;
+	private setting: KeysWithType<typeof settingsDescription, RangeSettingDescription>;
 
 	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, RangeSettingDescription>) {
 		super(parent);
 
+		this.setting = setting;
 		this.identifier = setting;
 		let description = settingsDescription[setting];
 
@@ -51,5 +53,9 @@ export class RangeElement extends SettingsElement {
 
 	getHeight() {
 		return this.container.height;
+	}
+
+	refresh() {
+		this.rangeSlider.setValue(globalState.settings[this.setting]);
 	}
 }

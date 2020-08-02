@@ -165,6 +165,9 @@ export class ModSelectionPanel {
 		backgroundRegistration.addListener('keyDown', (e) => {
 			if (e.keyCode === KeyCode.Escape || e.keyCode === KeyCode.Enter) this.hide();
 		});
+		backgroundRegistration.addKeybindListener('toggleModSelect', 'down', () => {
+			this.hide();
+		});
 
 		this.hide();
 	}

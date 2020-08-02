@@ -9,10 +9,12 @@ import { globalState } from "../../global_state";
 export class CheckboxElement extends SettingsElement {
 	private titleElement: PIXI.Text;
 	private checkbox: Checkbox;
+	private setting: KeysWithType<typeof settingsDescription, CheckboxSettingDescription>;
 
 	constructor(parent: SettingsPanel, setting: KeysWithType<typeof settingsDescription, CheckboxSettingDescription>) {
 		super(parent);
 
+		this.setting = setting;
 		this.identifier = setting;
 		let description = settingsDescription[setting];
 
@@ -51,5 +53,9 @@ export class CheckboxElement extends SettingsElement {
 
 	getBottomMargin(now: number) {
 		return 10 * this.parent.scalingFactor;
+	}
+
+	refresh() {
+		this.checkbox.setState(globalState.settings[this.setting]);
 	}
 }

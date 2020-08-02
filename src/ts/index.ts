@@ -28,6 +28,7 @@ import { FpsMeter } from './menu/misc/fps_meter';
 import { generateDefaultSettings, applySettings } from './menu/settings/settings';
 import { Cursor } from './visuals/cursor';
 import { generateDefaultKeybindings } from './input/key_bindings';
+import { GlobalInputListener } from './input/global_input_listener';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -41,10 +42,6 @@ const osu: string | null = 'ORERU!';
 window.addEventListener('load', init);
 async function init() {
 	//return;
-
-	globalState.taskManager = new TaskManager();
-	globalState.settings = generateDefaultSettings();
-	globalState.keybindings = generateDefaultKeybindings();
 
 	initMisc();
 	initAudio();
@@ -195,6 +192,10 @@ function initFolderSelector() {
 }
 
 function initMisc() {
+	globalState.taskManager = new TaskManager();
+	globalState.settings = generateDefaultSettings();
+	globalState.keybindings = generateDefaultKeybindings();
+
 	let fpsMeter = new FpsMeter();
 	stage.addChild(fpsMeter.container);
 	uiEventEmitter.addListener('resize', () => fpsMeter.resize());
@@ -206,6 +207,10 @@ function initMisc() {
 	uiEventEmitter.addListener('resize', () => cursor.refresh());
 	addRenderingTask((now) => cursor.update(now));
 	globalState.cursor = cursor;
+
+	let globalInputListener = new GlobalInputListener();
+	rootInteractionGroup.add(globalInputListener.registration);
+	globalState.globalInputListener = globalInputListener;
 }
 
 function setZIndexes() {
@@ -229,4 +234,5 @@ function setZIndexes() {
 	globalState.settingsPanel.interactionGroup.setZIndex(3.4);
 	globalState.toolbar.interactionGroup.setZIndex(3.9);
 	globalState.folderSelector.interactionGroup.setZIndex(4);
+	globalState.globalInputListener.registration.setZIndex(100);
 }

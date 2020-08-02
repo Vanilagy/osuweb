@@ -529,6 +529,17 @@ export class BeatmapCarousel {
 			to += diff;
 		}
 
+		// Do the same with the first panel
+		let firstPanel = this.getPanels()[0];
+		let firstPanelY = firstPanel.computeY();
+
+		projectedY = firstPanelY - (from - to);
+
+		diff = projectedY - CAROUSEL_END_THRESHOLD;
+		if (diff > 0) {
+			to -= diff;
+		}
+
 		if (Math.abs(from - to) > MAX_JUMP_DISTANCE) {
 			let delta = from - to;
 			from = to + MAX_JUMP_DISTANCE * Math.sign(delta); // Cap jump distance here
@@ -664,6 +675,15 @@ export class BeatmapCarousel {
 			positionDifference += referencePanel.getTotalHeight(now);
 			return referencePanelY + positionDifference;
 		}
+	}
+
+	scrollPage(up: boolean) {
+		if (this.getPanels().length === 0) return;
+
+		let currentGoal = this.referenceY;
+		if (this.snapToSelected) currentGoal = this.snapToSelectionInterpolator.getCurrentValue(1e10);
+
+		this.snapReferencePanelPosition(currentGoal, up? currentGoal + 500 : currentGoal - 500);
 	}
 }
 

@@ -73,6 +73,6 @@ export class NotificationPopupManager {
 	}
 
 	closeAll() {
-		for (let p of this.popups) p.close();
+		for (let p of this.popups) p.close(true);
 	}
 }

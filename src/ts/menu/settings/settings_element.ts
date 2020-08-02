@@ -41,4 +41,6 @@ export abstract class SettingsElement {
 		this.alphaFilter.enabled = true;
 		this.interactionGroup.disable();
 	}
+
+	refresh() {}
 }

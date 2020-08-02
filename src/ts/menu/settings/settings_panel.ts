@@ -13,6 +13,10 @@ import { SettingName } from "./settings";
 import { CheckboxElement } from "./checkbox_element";
 import { SelectionElement } from "./selection_element";
 import { TextElement } from "./text_element";
+import { KeybindName } from "../../input/key_bindings";
+import { KeybindElement } from "./keybind_element";
+import { Color } from "../../util/graphics_util";
+import { HorizontalLine } from "./horizontal_line";
 
 export const SETTINGS_PANEL_WIDTH = 300;
 export const SETTINGS_PANEL_PADDING = 12;
@@ -20,7 +24,9 @@ export const SETTINGS_PANEL_PADDING = 12;
 enum LayoutElementType {
 	SectionHeader,
 	Setting,
-	Text
+	Text,
+	Keybinding,
+	HorizontalLine
 }
 
 interface SectionHeaderLayoutElement {
@@ -36,10 +42,20 @@ interface SettingLayoutElement {
 interface TextLayoutElement {
 	type: LayoutElementType.Text,
 	text: string,
-	identifier: string
+	identifier: string,
+	color?: Color
 }
 
-type LayoutElement = SectionHeaderLayoutElement | SettingLayoutElement | TextLayoutElement;
+interface KeybindingLayoutElement {
+	type: LayoutElementType.Keybinding,
+	keybindName: KeybindName
+}
+
+interface HorizontalLineLayoutElement {
+	type: LayoutElementType.HorizontalLine
+}
+
+type LayoutElement = SectionHeaderLayoutElement | SettingLayoutElement | TextLayoutElement | KeybindingLayoutElement | HorizontalLineLayoutElement;
 
 const layout: LayoutElement[] = [
 	{ type: LayoutElementType.SectionHeader, title: 'audio' },
@@ -69,6 +85,33 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.Setting, setting: 'mouseInputMode' },
 	{ type: LayoutElementType.Setting, setting: 'showKeyOverlay' },
 	{ type: LayoutElementType.Setting, setting: 'disableMouseButtonsDuringGameplay' },
+	{ type: LayoutElementType.SectionHeader, title: 'key configuration' },
+	{ type: LayoutElementType.Text, text: "Left-click to change, right-click to clear, left-click + shift to reset to default", color: {r: 128, g: 128, b: 128}, identifier: null },
+	{ type: LayoutElementType.HorizontalLine },
+	{ type: LayoutElementType.Keybinding, keybindName: 'gameButtonA' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'gameButtonB' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'smoke' },
+	{ type: LayoutElementType.HorizontalLine },
+	{ type: LayoutElementType.Keybinding, keybindName: 'pause' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'restartPlay' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'skipBreak' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'toggleMouseButtons' },
+	{ type: LayoutElementType.HorizontalLine },
+	{ type: LayoutElementType.Keybinding, keybindName: 'increaseVolume' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'decreaseVolume' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'playPause' },
+	{ type: LayoutElementType.HorizontalLine },
+	{ type: LayoutElementType.Keybinding, keybindName: 'toggleSettings' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'toggleNotifications' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'toggleModSelect' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'randomBeatmap' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'playBeatmap' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'playBeatmapAuto' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'playBeatmapCinema' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'scrollCarouselUp' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'scrollCarouselDown' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'searchRemoveWord' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'clearSearch' },
 ];
 
 export class SettingsPanel {
@@ -93,13 +136,11 @@ export class SettingsPanel {
 
 		let panelRegistration = new InteractionRegistration(this.panelContainer);
 		panelRegistration.enableEmptyListeners();
-		panelRegistration.addListener('keyDown', (e) => {
-			if (e.keyCode === KeyCode.Escape) this.hide();
-		});
 		this.interactionGroup.add(panelRegistration);
 
 		let keyRegistration = new InteractionRegistration(fullscreenHitRec);
 		keyRegistration.setZIndex(1);
+		keyRegistration.passThrough = true;
 		keyRegistration.addListener('keyDown', (e) => {
 			if (e.keyCode === KeyCode.Escape) this.hide();
 		});
@@ -121,6 +162,7 @@ export class SettingsPanel {
 
 		this.scrollContainer = new ScrollContainer();
 		this.panelContainer.addChild(this.scrollContainer.container);
+		this.scrollContainer.interactionGroup.setZIndex(2);
 		this.interactionGroup.add(this.scrollContainer.interactionGroup);
 
 		this.elements = this.createElements();
@@ -151,7 +193,11 @@ export class SettingsPanel {
 					}
 				}; break;
 				case LayoutElementType.Text:
-					elements.push(new TextElement(this, layoutElement.text, layoutElement.identifier)); break;
+					elements.push(new TextElement(this, layoutElement.text, layoutElement.identifier, layoutElement.color)); break;
+				case LayoutElementType.Keybinding:
+					elements.push(new KeybindElement(this, layoutElement.keybindName)); break;
+				case LayoutElementType.HorizontalLine:
+					elements.push(new HorizontalLine(this)); break;
 			}
 		}
 
@@ -209,6 +255,7 @@ export class SettingsPanel {
 		this.interactionGroup.disable();
 
 		globalState.toolbar.disableDim();
+		this.deselectAllKeybinds();
 	}
 
 	toggle() {
@@ -222,5 +269,17 @@ export class SettingsPanel {
 
 	disableElement(name: string) {
 		this.elements.find(x => x.identifier === name)?.disable();
+	}
+
+	refreshElement(name: string) {
+		this.elements.find(x => x.identifier === name)?.refresh();
+	}
+
+	private deselectAllKeybinds() {
+		for (let e of this.elements) {
+			if (e instanceof KeybindElement) {
+				e.deselectAll();
+			}
+		}
 	}
 }

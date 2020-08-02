@@ -101,7 +101,12 @@ export class ScrollContainer {
 				this.contentInteractionGroup.releaseAllPresses();
 			}
 		}, (e) => {
-			if (this.isScrollable() && e.velocity.y !== 0) {
+			let currentGoal = this.scrollInterpolator.getCurrentGoal();
+			let scrollHeight = this.getScrollHeight();
+			let goalOutside = currentGoal < 0 || currentGoal > scrollHeight / this.scrollScalingFactor;
+			
+			// If there is no dragging velocity, we don't want to reconfigure the scroll interpolator, UNLESS the container is currently out of bounds.
+			if (this.isScrollable() && (e.velocity.y !== 0 || goalOutside)) {
 				// We figure out what the next scroll goal needs to be in order for the ease to begin with the same velocity that the dragging ended with.
 				let startSlope = MathUtil.easeSlope(scrollEase, 0);
 				let goalDelta = e.velocity.y * (scrollDuration / 1000)  / startSlope;

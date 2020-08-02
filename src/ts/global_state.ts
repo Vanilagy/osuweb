@@ -15,6 +15,7 @@ import { FpsMeter } from "./menu/misc/fps_meter";
 import { Settings } from "./menu/settings/settings";
 import { Cursor } from "./visuals/cursor";
 import { Keybindings } from "./input/key_bindings";
+import { GlobalInputListener } from "./input/global_input_listener";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -33,5 +34,6 @@ export const globalState = {
 	fpsMeter: null as FpsMeter,
 	settings: null as Settings,
 	cursor: null as Cursor,
-	keybindings: null as Keybindings
+	keybindings: null as Keybindings,
+	globalInputListener: null as GlobalInputListener
 };

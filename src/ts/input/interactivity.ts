@@ -221,7 +221,13 @@ export class InteractionRegistration extends InteractionUnit {
 
 		let result: string;
 
-		if (interaction === 'keyDown' || interaction === 'keyUp') result = (event as KeyboardEvent).code;
+		if (interaction === 'keyDown' || interaction === 'keyUp') {
+			let keyboardEvent = event as KeyboardEvent;
+
+			// Incase the pressed-down button is one of these, use the 'key' property, since it doesn't include the "left/right" which we don't care about.
+			if (["Shift", "Ctrl", "Meta", "Alt"].includes(keyboardEvent.key)) result = keyboardEvent.key;
+			else result = keyboardEvent.code;
+		}
 		else if (interaction === 'mouseDown' || interaction === 'mouseUp') result = 'MB' + (event as MouseEvent).button;
 		else if (interaction === 'wheel') result = ((event as NormalizedWheelEvent).dy > 0)? 'WheelDown' : 'WheelUp';
 
@@ -229,10 +235,10 @@ export class InteractionRegistration extends InteractionUnit {
 			let keyboardEvent = event as KeyboardEvent;
 			let modifiers: string[] = [];
 
-			if (keyboardEvent.shiftKey) modifiers.push("Shift");
-			if (keyboardEvent.ctrlKey) modifiers.push("Ctrl");
-			if (keyboardEvent.metaKey) modifiers.push("Meta");
-			if (keyboardEvent.altKey) modifiers.push("Alt");
+			if (keyboardEvent.shiftKey && result !== "Shift") modifiers.push("Shift");
+			if (keyboardEvent.ctrlKey && result !== "Ctrl") modifiers.push("Ctrl");
+			if (keyboardEvent.metaKey && result !== "Meta") modifiers.push("Meta");
+			if (keyboardEvent.altKey && result !== "Alt") modifiers.push("Alt");
 
 			if (modifiers.length > 0) return modifiers.join(' ') + ' ' + result;
 			else return result;

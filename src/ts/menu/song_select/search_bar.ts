@@ -107,6 +107,18 @@ export class SearchBar {
 	update(now: number) {
 		this.sortSelector.update(now);
 	}
+
+	removeWord() {
+		let words = this.textStorage.stored.split(' ');
+		words.pop();
+		this.textStorage.stored = words.join(' ');
+		this.onInput();
+	}
+
+	clear() {
+		this.textStorage.stored = '';
+		this.onInput();
+	}
 	
 	private onInput() {
 		if (!this.textStorage.stored) {
