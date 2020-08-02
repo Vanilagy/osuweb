@@ -580,7 +580,7 @@ export class Play {
 		globalState.gameplayAudioPlayer.stop();
 		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 		this.drawableBeatmap.stopHitObjectSounds();
-		if (this.hasVideo) globalState.backgroundManager.removeVideo();
+		globalState.backgroundManager.removeVideo();
 	}
 
 	processJudgement(judgement: Judgement) {
