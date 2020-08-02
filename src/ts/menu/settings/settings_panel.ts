@@ -1,4 +1,4 @@
-import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration, fullscreenHitRec } from "../../input/interactivity";
 import { KeyCode } from "../../input/input";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
@@ -97,6 +97,13 @@ export class SettingsPanel {
 			if (e.keyCode === KeyCode.Escape) this.hide();
 		});
 		this.interactionGroup.add(panelRegistration);
+
+		let keyRegistration = new InteractionRegistration(fullscreenHitRec);
+		keyRegistration.setZIndex(1);
+		keyRegistration.addListener('keyDown', (e) => {
+			if (e.keyCode === KeyCode.Escape) this.hide();
+		});
+		this.interactionGroup.add(keyRegistration);
 
 		this.panelBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.panelBackground.tint = 0x101010;

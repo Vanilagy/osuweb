@@ -326,14 +326,10 @@ export class ModSelectionPanel {
 	hide() {
 		this.interactionGroup.disable();
 		this.fadeInInterpolator.setReversedState(true, performance.now());
-		this.songSelect.searchBar.interactionGroup.enable();
-		this.songSelect.keyInteraction.enable();
 	}
 
 	show() {
 		this.interactionGroup.enable();
 		this.fadeInInterpolator.setReversedState(false, performance.now());
-		this.songSelect.searchBar.interactionGroup.disable();
-		this.songSelect.keyInteraction.disable();
 	}
 }

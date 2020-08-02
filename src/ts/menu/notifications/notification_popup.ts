@@ -138,7 +138,7 @@ export class NotificationPopup {
 			this.snapBackInterpolator.start(performance.now());
 
 			// If the user let go with high velocity or has dragged the popup more than halfway to the right, swipe it away
-			if (e.velocity.x * this.parent.scalingFactor > 1250 || e.velocity.x >= 0 && x >= this.container.width / this.parent.scalingFactor / 2) {
+			if (e.velocity.x / this.parent.scalingFactor > 1250 || e.velocity.x >= 0 && x >= this.container.width / this.parent.scalingFactor / 2) {
 				this.close(true);
 			}
 		});

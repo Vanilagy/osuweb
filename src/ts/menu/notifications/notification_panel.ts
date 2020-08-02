@@ -1,4 +1,4 @@
-import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration, fullscreenHitRec } from "../../input/interactivity";
 import { Interpolator } from "../../util/interpolation";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
 import { MathUtil, EaseType } from "../../util/math_util";
@@ -114,10 +114,14 @@ export class NotificationPanel {
 
 		let panelRegistration = new InteractionRegistration(this.panelContainer);
 		panelRegistration.enableEmptyListeners();
-		panelRegistration.addListener('keyDown', (e) => {
+		this.panelInteractionGroup.add(panelRegistration);
+
+		let keyRegistration = new InteractionRegistration(fullscreenHitRec);
+		keyRegistration.setZIndex(1);
+		keyRegistration.addListener('keyDown', (e) => {
 			if (e.keyCode === KeyCode.Escape) this.hide();
 		});
-		this.panelInteractionGroup.add(panelRegistration);
+		this.panelInteractionGroup.add(keyRegistration);
 
 		this.panelBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.panelBackground.tint = 0x101010;

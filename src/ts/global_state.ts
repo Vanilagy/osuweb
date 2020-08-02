@@ -14,6 +14,7 @@ import { SettingsPanel } from "./menu/settings/settings_panel";
 import { FpsMeter } from "./menu/misc/fps_meter";
 import { Settings } from "./menu/settings/settings";
 import { Cursor } from "./visuals/cursor";
+import { Keybindings } from "./input/key_bindings";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -31,5 +32,6 @@ export const globalState = {
 	settingsPanel: null as SettingsPanel,
 	fpsMeter: null as FpsMeter,
 	settings: null as Settings,
-	cursor: null as Cursor
+	cursor: null as Cursor,
+	keybindings: null as Keybindings
 };

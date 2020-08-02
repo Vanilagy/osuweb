@@ -27,6 +27,7 @@ import { SettingsPanel } from './menu/settings/settings_panel';
 import { FpsMeter } from './menu/misc/fps_meter';
 import { generateDefaultSettings, applySettings } from './menu/settings/settings';
 import { Cursor } from './visuals/cursor';
+import { generateDefaultKeybindings } from './input/key_bindings';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -43,6 +44,7 @@ async function init() {
 
 	globalState.taskManager = new TaskManager();
 	globalState.settings = generateDefaultSettings();
+	globalState.keybindings = generateDefaultKeybindings();
 
 	initMisc();
 	initAudio();

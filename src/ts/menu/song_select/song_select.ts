@@ -67,13 +67,15 @@ export class SongSelect {
 	private setZIndices() {
 		this.carousel.interactionGroup.setZIndex(0);
 		this.infoPanel.interactionGroup.setZIndex(2);
-		this.searchBar.interactionGroup.setZIndex(3);
-		this.sideControlPanel.interactionGroup.setZIndex(4);
+		this.sideControlPanel.interactionGroup.setZIndex(3);
+		this.searchBar.interactionGroup.setZIndex(4);
+		this.keyInteraction.setZIndex(5);
 		this.modSelector.interactionGroup.setZIndex(10);
 	}
 	
 	private initKeyInteraction() {
-		this.keyInteraction = new InteractionRegistration();
+		this.keyInteraction = new InteractionRegistration(this.container);
+		this.keyInteraction.passThrough = true;
 		this.interactionGroup.add(this.keyInteraction);
 
 		this.keyInteraction.addListener('keyDown', (e) => {

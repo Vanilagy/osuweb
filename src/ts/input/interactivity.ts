@@ -2,6 +2,9 @@ import { inputEventEmitter, getCurrentMousePosition, getCurrentMouseButtonState,
 import { Point, Vector2, subtractFromPoint, clonePoint, scaleVector2 } from "../util/point";
 import { addRenderingTask } from "../visuals/rendering";
 import { insertItem, removeItem, pushItemUnique, EMPTY_FUNCTION, NormalizedWheelEvent, jsonClone } from "../util/misc_util";
+import { KeybindName } from "./key_bindings";
+import { globalState } from "../global_state";
+import { currentWindowDimensions, uiEventEmitter } from "../visuals/ui";
 
 interface InteractionEventMap {
 	mouseDown: MouseEvent,
@@ -36,10 +39,18 @@ interface DragMoveData {
 	readonly elapsedTime: number
 }
 
+interface KeybindEventData {
+	keyIndex: number,
+	sourceEvent: InteractionEventMap[keyof InteractionEventMap]
+}
+
 const zIndexComparator = (a: InteractionUnit, b: InteractionUnit) => b.getZIndex() - a.getZIndex();
 
-type Interaction = 'mouseDown' | 'mouseUp' | 'mouseClick' | 'mouseEnter' | 'mouseLeave' | 'mouseMove' | 'wheel' | 'keyDown' | 'keyUp';
-let mouseInteractionArray: Interaction[] = ['mouseDown', 'mouseUp', 'mouseClick', 'mouseEnter', 'mouseLeave', 'mouseMove', 'wheel'];
+let interactionArray = ['mouseDown', 'mouseUp', 'mouseClick', 'mouseEnter', 'mouseLeave', 'mouseMove', 'wheel', 'keyDown', 'keyUp'] as const;
+type Interaction = (typeof interactionArray)[number];
+type KeybindAction = 'down' | 'up';
+type KeybindListener = (data: KeybindEventData) => void | boolean;
+
 export let rootInteractionGroup: InteractionGroup;
 let currentDragActions: DragAction[] = [];
 
@@ -81,8 +92,11 @@ abstract class InteractionUnit {
 }
 
 export class InteractionRegistration extends InteractionUnit {
-	public obj: PIXI.DisplayObject;
+	public obj: PIXI.DisplayObject | PIXI.DisplayObject["hitArea"];
+
 	private listeners: Map<Interaction, ((data?: any) => void | boolean)[]> = new Map();
+	private keybindListeners: Map<KeybindName, Map<KeybindAction, KeybindListener[]>> = new Map();
+
 	public mouseInside = false;
 	public pressedDown: {[button: number]: boolean} = {
 		// A necessary flag in order to make clicking work (CLICKING, not mouse-downing!!)
@@ -93,17 +107,13 @@ export class InteractionRegistration extends InteractionUnit {
 	private allMouseButtons = false;
 	private dragInitiationListener: () => void = null;
 
-	constructor(obj?: PIXI.DisplayObject, enabled = true) {
+	constructor(obj?: InteractionRegistration["obj"], enabled = true) {
 		super();
 
 		this.obj = obj;
 
-		if (enabled) {
-			this.enabled = false;
-			this.enable();
-		} else {
-			this.disable();
-		}
+		if (enabled) this.enable();
+		else this.disable();
 	}
 	
 	/** If the listener returns 'true', that means: Stop input event propagation. */
@@ -124,15 +134,33 @@ export class InteractionRegistration extends InteractionUnit {
 		removeItem(arr, func);
 	}
 
+	addKeybindListener(keybind: KeybindName, action: KeybindAction, func: KeybindListener) {
+		if (!this.keybindListeners.get(keybind)) this.keybindListeners.set(keybind, new Map());
+		let actions = this.keybindListeners.get(keybind);
+		if (!actions.get(action)) actions.set(action, []);
+		let arr = actions.get(action);
+
+		arr.push(func);
+	}
+
+	removeKeybindListener(keybind: KeybindName, action: KeybindAction, func: KeybindListener) {
+		let actions = this.keybindListeners.get(keybind);
+		if (!actions) return;
+		let arr = actions.get(action);
+		if (!arr) return;
+
+		removeItem(arr, func);
+	}
+
 	/** Adds empty listeners to every interaction type. The point of this is that this allows a non-passthrough object to basically "catch" all interactions and not let anything pass through (good for backgrounds of containers or popups, for example) */
 	enableEmptyListeners(exclude: Interaction[] = []) {
-		for (let interaction of mouseInteractionArray) {
+		for (let interaction of interactionArray) {
 			if (!exclude.includes(interaction)) this.addListener(interaction, EMPTY_FUNCTION);
 		}
 	}
 
 	disableEmptyListeners(exclude: Interaction[] = []) {
-		for (let interaction of mouseInteractionArray) {
+		for (let interaction of interactionArray) {
 			if (!exclude.includes(interaction)) this.removeListener(interaction, EMPTY_FUNCTION);
 		}
 	}
@@ -174,28 +202,63 @@ export class InteractionRegistration extends InteractionUnit {
 		let parentOverlaps = this.parent? this.parent.overlaps(x, y) : true;
 		if (!parentOverlaps) return false;
 
-		if (this.obj.hitArea) {
-			let pos = this.obj.getGlobalPosition();
-			return this.obj.hitArea.contains(x - pos.x, y - pos.y);
+		if (this.obj instanceof PIXI.DisplayObject) {
+			if (this.obj.hitArea) {
+				let pos = this.obj.getGlobalPosition();
+				return this.obj.hitArea.contains(x - pos.x, y - pos.y);
+			} else {
+				let result = this.obj.getBounds().contains(x, y);
+				return result;
+			}
 		} else {
-			return this.obj.getBounds().contains(x, y);
+			return this.obj.contains(x, y);
 		}
 	}
-	
-	/** Note: If this method returns 'true', then that means that one of the called listeners returned true, which signals to stop the input event from propagating. */
-	trigger<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
-		let arr = this.listeners.get(interaction);
-		if (!arr) return;
 
-		for (let i = 0; i < arr.length; i++) {
-			let result = arr[i](event);
-			if (result === true) return true;
+	/** Gets the key combination associated with the event. For example, if it's a keyDown with key R, this will be "KeyR". If it's left click while shift is being held, this will be "Shift MB0". */
+	private getKeybindKeyForInteractionEvent<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
+		if (!event) return null;
+
+		let result: string;
+
+		if (interaction === 'keyDown' || interaction === 'keyUp') result = (event as KeyboardEvent).code;
+		else if (interaction === 'mouseDown' || interaction === 'mouseUp') result = 'MB' + (event as MouseEvent).button;
+		else if (interaction === 'wheel') result = ((event as NormalizedWheelEvent).dy > 0)? 'WheelDown' : 'WheelUp';
+
+		if (result) {
+			let keyboardEvent = event as KeyboardEvent;
+			let modifiers: string[] = [];
+
+			if (keyboardEvent.shiftKey) modifiers.push("Shift");
+			if (keyboardEvent.ctrlKey) modifiers.push("Ctrl");
+			if (keyboardEvent.metaKey) modifiers.push("Meta");
+			if (keyboardEvent.altKey) modifiers.push("Alt");
+
+			if (modifiers.length > 0) return modifiers.join(' ') + ' ' + result;
+			else return result;
 		}
 
-		return false;
+		return null;
+	}
+
+	/** Returns down or up based on the event. */
+	private getKeybindActionForInteractionEvent<K extends Interaction>(interaction: K, event: InteractionEventMap[K]): KeybindAction {
+		if (interaction === 'keyDown' || interaction === 'mouseDown' || interaction === 'wheel') return 'down';
+		else return 'up';
 	}
 
 	handlesInteraction<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
+		if (this.keybindListeners.size > 0) {
+			let key = this.getKeybindKeyForInteractionEvent(interaction, event);
+			if (key) {
+				let action = this.getKeybindActionForInteractionEvent(interaction, event);
+				for (let [keybindName, actions] of this.keybindListeners) {
+					if (!globalState.keybindings[keybindName].includes(key)) continue;
+					if (actions.get(action) && actions.get(action).length > 0) return true; // This interaction would cause a keybind to trigger
+				}
+			}
+		}
+
 		let arr = this.listeners.get(interaction);
 		if (!arr) return false;
 		if (arr.length === 0) return false;
@@ -206,6 +269,47 @@ export class InteractionRegistration extends InteractionUnit {
 		}
 
 		return true;
+	}
+	
+	/** Note: If this method returns 'true', then that means that one of the called listeners returned true, which signals to stop the input event from propagating. */
+	trigger<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
+		// Execute keybinds before the rest
+		if (this.keybindListeners.size > 0) {
+			let key = this.getKeybindKeyForInteractionEvent(interaction, event);
+			if (key) {
+				let action = this.getKeybindActionForInteractionEvent(interaction, event);
+				for (let [keybindName, actions] of this.keybindListeners) {
+					let keyIndex = globalState.keybindings[keybindName].indexOf(key);
+					if (keyIndex === -1) continue;
+	
+					let arr = actions.get(action);
+					if (arr && arr.length > 0) {
+						let eventData: KeybindEventData = {
+							keyIndex,
+							sourceEvent: event
+						};
+
+						// Make keybinds cancel default browser behavior. This allows something like Ctrl S not to bring up the built-in "save the website" popup.
+						(event as KeyboardEvent).preventDefault();
+ 
+						for (let i = 0; i < arr.length; i++) {
+							let result = arr[i](eventData);
+							if (result === true) return true;
+						}
+					}
+				}
+			}
+		}
+
+		let arr = this.listeners.get(interaction);
+		if (!arr) return;
+
+		for (let i = 0; i < arr.length; i++) {
+			let result = arr[i](event);
+			if (result === true) return true;
+		}
+
+		return false;
 	}
 
 	releaseAllPresses() {
@@ -306,41 +410,16 @@ export class InteractionGroup extends InteractionUnit {
 		}
 	}
 
-	/** Triggers a given interaction for every registration that handles it. Unconditionally. */
-	triggerAll<K extends Interaction>(interaction: K, event: InteractionEventMap[K]) {
-		let toTrigger: InteractionRegistration[] = [];
-		this.getAllRegistrations(toTrigger, interaction, event);
-
-		for (let i = 0; i < toTrigger.length; i++) {
-			let result = toTrigger[i].trigger(interaction, event);
-			if (result) break;
-		}
-	}
-
-	private getAllRegistrations<K extends Interaction>(acc: InteractionRegistration[], interaction: K, event: InteractionEventMap[K]) {
-		for (let i = 0; i < this.children.length; i++) {
-			let unit = this.children[i];
-			if (!unit.enabled) continue;
-
-			if (unit instanceof InteractionGroup) {
-				unit.getAllRegistrations(acc, interaction, event);
-			} else if (unit instanceof InteractionRegistration) {
-				if (!unit.handlesInteraction(interaction, event)) continue;
-				acc.push(unit);
-			}
-		}
-	}
-
 	/**
-	 * Handles mouse interactions.
-	 * @param event The mouse or wheel event triggering this mouse interaction.
+	 * Handles interactions.
+	 * @param event The event triggering this interaction.
 	 * @param func A function to run for each registration, which should then return an array of interactions triggered by this event.
 	 */
-	handleMouseInteraction(event: MouseEvent | NormalizedWheelEvent, func: (mousePosition: Point, registration: InteractionRegistration) => Interaction[]) {
+	handleInteraction(event: InteractionEventMap[keyof InteractionEventMap], func: (mousePosition: Point, registration: InteractionRegistration) => Interaction[]) {
 		let toTrigger: [InteractionRegistration, Interaction][] = [];
 
 		// First, find all the triggered interactions.
-		this.findTriggeredMouseRegistrations(toTrigger, event, getCurrentMousePosition(), func);
+		this.findTriggeredRegistrations(toTrigger, event, getCurrentMousePosition(), func);
 
 		// Then, one after another, we trigger them. This separation happens so that the interaction doesn't trigger additional registrations that could be added as a SIDE-EFFECT of a trigger.
 		for (let i = 0; i < toTrigger.length; i++) {
@@ -350,7 +429,7 @@ export class InteractionGroup extends InteractionUnit {
 	}
 
 	// Returns true if the interaction was "absorbed" by a non-passthrough interaction unit.
-	private findTriggeredMouseRegistrations(acc: [InteractionRegistration, Interaction][], event: MouseEvent | NormalizedWheelEvent, mousePosition: Point, func: (mousePosition: Point, registration: InteractionRegistration) => Interaction[]): boolean {
+	private findTriggeredRegistrations(acc: [InteractionRegistration, Interaction][], event: InteractionEventMap[keyof InteractionEventMap], mousePosition: Point, func: (mousePosition: Point, registration: InteractionRegistration) => Interaction[]): boolean {
 		let interactionUnits = this.children;
 	
 		// Determine which registrations need to be triggered, recursively
@@ -359,7 +438,7 @@ export class InteractionGroup extends InteractionUnit {
 			if (!unit.enabled) continue;
 
 			if (unit instanceof InteractionGroup) {
-				let absorbed = unit.findTriggeredMouseRegistrations(acc, event, mousePosition, func);
+				let absorbed = unit.findTriggeredRegistrations(acc, event, mousePosition, func);
 
 				if (absorbed && !unit.passThrough) return true;
 			} else if (unit instanceof InteractionRegistration) {
@@ -418,7 +497,7 @@ export class InteractionGroup extends InteractionUnit {
 }
 rootInteractionGroup = new InteractionGroup();
 
-inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
+inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleInteraction(e, (pos, reg) => {
 	let overlaps = reg.overlaps(pos.x, pos.y);
 
 	if (overlaps) reg.pressedDown[e.button] = true; // Remember that the button is pressed
@@ -426,7 +505,7 @@ inputEventEmitter.addListener('mouseDown', (e) => rootInteractionGroup.handleMou
 	return overlaps? ['mouseDown'] : [];
 }));
 
-inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
+inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleInteraction(e, (pos, reg) => {
 	let overlaps = reg.overlaps(pos.x, pos.y);
 
 	// Based on if the corresponding button was pressed down, either dispatch mouseClick or don't.
@@ -437,7 +516,7 @@ inputEventEmitter.addListener('mouseUp', (e) => rootInteractionGroup.handleMouse
 	return returnValue;
 }));
 
-inputEventEmitter.addListener('mouseMove', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
+inputEventEmitter.addListener('mouseMove', (e) => rootInteractionGroup.handleInteraction(e, (pos, reg) => {
 	return reg.overlaps(pos.x, pos.y)? ['mouseMove'] : [];
 }));
 
@@ -458,7 +537,7 @@ addRenderingTask((now) => {
 	if (now - lastMouseMoveHandleTime >= 1000/30) onMouseMove(null); // Call it, even though the mouse didn't move, so that we catch objects having moved out of or into the cursor.
 });
 
-inputEventEmitter.addListener('wheel', (e) => rootInteractionGroup.handleMouseInteraction(e, (pos, reg) => {
+inputEventEmitter.addListener('wheel', (e) => rootInteractionGroup.handleInteraction(e, (pos, reg) => {
 	return reg.overlaps(pos.x, pos.y)? ['wheel'] : [];
 }));
 
@@ -530,10 +609,19 @@ inputEventEmitter.addListener('mouseUp', () => {
 	currentDragActions.length = 0;
 });
 
-inputEventEmitter.addListener('keyDown', (e) => {
-	rootInteractionGroup.triggerAll('keyDown', e);
-});
+inputEventEmitter.addListener('keyDown', (e) => rootInteractionGroup.handleInteraction(e, (pos, reg) => {
+	let overlaps = reg.overlaps(pos.x, pos.y);
+	return overlaps? ['keyDown'] : [];
+}));
 
-inputEventEmitter.addListener('keyUp', (e) => {
-	rootInteractionGroup.triggerAll('keyUp', e);
+inputEventEmitter.addListener('keyUp', (e) => rootInteractionGroup.handleInteraction(e, (pos, reg) => {
+	let overlaps = reg.overlaps(pos.x, pos.y);
+	return overlaps? ['keyUp'] : [];
+}));
+
+/** A utility rectangle whose dimensions are always as big as the window itself. */
+export const fullscreenHitRec = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
+uiEventEmitter.addListener('resize', () => {
+	fullscreenHitRec.width = currentWindowDimensions.width;
+	fullscreenHitRec.height = currentWindowDimensions.height;
 });

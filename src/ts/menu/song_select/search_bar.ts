@@ -3,7 +3,7 @@ import { TextInputStorage } from "../../input/text_input_storage";
 import { OverridableDelay } from "../../util/misc_util";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { TabSelector } from "../components/tab_selector";
-import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration, fullscreenHitRec } from "../../input/interactivity";
 import { SongSelect } from "./song_select";
 import { calculateRatioBasedScalingFactor } from "../../util/graphics_util";
 import { TOOLBAR_HEIGHT } from "../toolbar/toolbar";
@@ -35,7 +35,7 @@ export class SearchBar {
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
 
-		let textRegistration = new InteractionRegistration();
+		let textRegistration = new InteractionRegistration(fullscreenHitRec);
 		this.interactionGroup.add(textRegistration);
 		this.textStorage = new TextInputStorage(textRegistration);
 

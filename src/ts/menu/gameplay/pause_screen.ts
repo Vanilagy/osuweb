@@ -8,7 +8,6 @@ import { GameplayController } from "../../game/gameplay_controller";
 import { Button, ButtonPivot } from "../components/button";
 import { Mod } from "../../datamodel/mods";
 import { Point, pointDistance } from "../../util/point";
-import { GAME_KEYS } from "../../input/gameplay_input_listener";
 import { getCurrentMousePosition } from "../../input/input";
 import { globalState } from "../../global_state";
 import { SkinSoundType } from "../../game/skin/skin";
@@ -111,15 +110,13 @@ export class PauseScreen {
 		this.cursorAlignmentRegistration.setZIndex(-1);
 		this.cursorAlignmentRegistration.allowAllMouseButtons();
 		this.interactionGroup.add(this.cursorAlignmentRegistration);
-		this.cursorAlignmentRegistration.addListener('mouseDown', (e) => {
-			if (e.button === 1) return;
+		this.cursorAlignmentRegistration.addKeybindListener('gameButtonA', 'down', () => {
 			this.cursorAlignmentCircle.hitTest();
 		});
-		this.cursorAlignmentRegistration.addListener('keyDown', (e) => {
-			if (!GAME_KEYS.includes(e.keyCode)) return;
+		this.cursorAlignmentRegistration.addKeybindListener('gameButtonB', 'down', () => {
 			this.cursorAlignmentCircle.hitTest();
 		});
-
+		
 		this.container.addChild(this.cursorAlignmentContainer);
 		this.container.addChild(this.centerContainer);
 

@@ -45,6 +45,7 @@ export class Hud {
 		this.controller = controller;
 		this.container = new PIXI.Container();
 		this.interactionGroup = new InteractionGroup();
+		this.interactionGroup.passThrough = true;
 
 		this.scoreDisplay = new SpriteNumber({
 			scaleFactor: 1,

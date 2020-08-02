@@ -2,7 +2,7 @@ import { Hud } from "./hud/hud";
 import { ProcessedBeatmap } from "../datamodel/processed/processed_beatmap";
 import { Play } from "./play";
 import { PauseScreen, PauseScreenMode } from "../menu/gameplay/pause_screen";
-import { InteractionGroup, InteractionRegistration } from "../input/interactivity";
+import { InteractionGroup, InteractionRegistration, fullscreenHitRec } from "../input/interactivity";
 import { globalState } from "../global_state";
 import { Interpolator } from "../util/interpolation";
 import { EaseType, MathUtil } from "../util/math_util";
@@ -29,7 +29,6 @@ export class GameplayController {
 	public smokeCanvas: SmokeCanvas;
 
 	public interactionGroup: InteractionGroup;
-	public interactionTarget: PIXI.Container;
 	public interactionRegistration: InteractionRegistration;
 	public inputState: GameplayInputState;
 	public userInputListener: GameplayInputListener;
@@ -112,9 +111,7 @@ export class GameplayController {
 			defaultToFinished: true
 		});
 
-		this.interactionTarget = new PIXI.Container();
-
-		this.interactionRegistration = new InteractionRegistration(this.interactionTarget);
+		this.interactionRegistration = new InteractionRegistration(fullscreenHitRec);
 		this.interactionRegistration.passThrough = true;
 		this.interactionGroup.add(this.interactionRegistration);
 		this.interactionRegistration.addListener('keyDown', (e) => {
@@ -135,6 +132,9 @@ export class GameplayController {
 					this.hud.skipButton.trigger();
 				}; break;
 			}
+		});
+		this.interactionRegistration.addKeybindListener('restartPlay', 'down', () => {
+			this.restart();
 		});
 
 		this.inputState = new GameplayInputState(this);
@@ -362,7 +362,6 @@ export class GameplayController {
 		if (recompose) this.currentPlay.compose(false);
 		this.hud.resize();
 		this.pauseScreen.resize();
-		this.interactionTarget.hitArea = new PIXI.Rectangle(0, 0, currentWindowDimensions.width, currentWindowDimensions.height);
 		this.flashlightOccluder.resize();
 		this.smokeCanvas.resize();
 
