@@ -232,7 +232,8 @@ export class InteractionRegistration extends InteractionUnit {
 		else if (interaction === 'wheel') result = ((event as NormalizedWheelEvent).dy > 0)? 'WheelDown' : 'WheelUp';
 
 		if (result) {
-			let keyboardEvent = event as KeyboardEvent;
+			// Special handling for wheel events since they're different
+			let keyboardEvent = ((interaction === 'wheel')? (event as NormalizedWheelEvent).event : event) as KeyboardEvent;
 			let modifiers: string[] = [];
 
 			if (keyboardEvent.shiftKey && result !== "Shift") modifiers.push("Shift");
@@ -296,7 +297,8 @@ export class InteractionRegistration extends InteractionUnit {
 						};
 
 						// Make keybinds cancel default browser behavior. This allows something like Ctrl S not to bring up the built-in "save the website" popup.
-						(event as KeyboardEvent).preventDefault();
+						// Btw: Wheel has no preventDefault.
+						if (interaction !== 'wheel') (event as KeyboardEvent).preventDefault();
  
 						for (let i = 0; i < arr.length; i++) {
 							let result = arr[i](eventData);

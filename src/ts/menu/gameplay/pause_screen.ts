@@ -86,13 +86,13 @@ export class PauseScreen {
 		this.interactionGroup.add(this.buttonsGroup);
 		this.continueButton.setupInteraction(this.buttonsGroup, () => {
 			this.trigger();
-		});
+		}, ['gameButtonA', 'gameButtonB']);
 		this.retryButton.setupInteraction(this.buttonsGroup, () => {
 			this.controller.restart();
-		});
+		}, ['gameButtonA', 'gameButtonB']);
 		this.quitButton.setupInteraction(this.buttonsGroup, () => {
 			this.controller.endPlay();
-		});
+		}, ['gameButtonA', 'gameButtonB']);
 
 		this.cursorAlignmentContainer = new PIXI.Container();
 		this.cursorAlignmentInstruction = new PIXI.Text("click the circle to resume", {

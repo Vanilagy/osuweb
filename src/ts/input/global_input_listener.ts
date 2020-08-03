@@ -19,5 +19,11 @@ export class GlobalInputListener {
 		this.registration.addKeybindListener('toggleMouseButtons', 'down', () => {
 			changeSettingAndUpdateSettingsPanel('disableMouseButtonsDuringGameplay', !globalState.settings['disableMouseButtonsDuringGameplay']);
 		});
+		this.registration.addKeybindListener('increaseVolume', 'down', () => {
+			globalState.volumeController.nudgeValue(true);
+		});
+		this.registration.addKeybindListener('decreaseVolume', 'down', () => {
+			globalState.volumeController.nudgeValue(false);
+		});
 	}
 }

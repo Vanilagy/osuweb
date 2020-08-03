@@ -14,7 +14,7 @@ songFolderSelect.addEventListener('change', async () => {
 	globalState.songSelect.show();
 });
 
-const launchButton = document.querySelector('#launch-button') as HTMLButtonElement;
+export const launchButton = document.querySelector('#launch-button') as HTMLButtonElement;
 launchButton.addEventListener('click', () => {
 	removeHTMLElement(document.querySelector('#temp-controls') as HTMLElement);
 	globalState.songSelect.show();

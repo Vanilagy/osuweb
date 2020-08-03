@@ -70,17 +70,17 @@ export class Toolbar {
 		backgroundRegistration.enableEmptyListeners();
 		this.interactionGroup.add(backgroundRegistration);
 
-		let importBeatmapsButton = new ImportBeatmapsButton(this);
-		this.container.addChild(importBeatmapsButton.container);
-		this.leftEntries.push(importBeatmapsButton);
-
 		let notificationPanelButton = new NotificationPanelButton(this);
 		this.container.addChild(notificationPanelButton.container);
 		this.rightEntries.push(notificationPanelButton);
 
 		let openSettingsButton = new OpenSettingsButton(this);
 		this.container.addChild(openSettingsButton.container);
-		this.rightEntries.push(openSettingsButton);
+		this.leftEntries.push(openSettingsButton);
+
+		let importBeatmapsButton = new ImportBeatmapsButton(this);
+		this.container.addChild(importBeatmapsButton.container);
+		this.leftEntries.push(importBeatmapsButton);
 
 		this.disableDim();
 		this.resize();
@@ -113,6 +113,12 @@ export class Toolbar {
 
 	update(now: number) {
 		let fadeInValue = this.fadeInInterpolator.getCurrentValue(now);
+		if (fadeInValue === 0) {
+			this.container.visible = false;
+			return;
+		}
+		
+		this.container.visible = true;
 		this.container.y = MathUtil.lerp(-this.currentHeight, 0, fadeInValue);
 		this.container.alpha = fadeInValue;
 

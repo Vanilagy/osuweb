@@ -118,9 +118,9 @@ export class SongSelect {
 		});
 		this.keyInteraction.addKeybindListener('searchRemoveWord', 'down', () => {
 			this.searchBar.removeWord();
+			return true;
 		});
 		this.keyInteraction.addKeybindListener('clearSearch', 'down', () => {
-			console.log("bruh?")
 			this.searchBar.clear();
 		});
 	}

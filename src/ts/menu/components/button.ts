@@ -2,6 +2,7 @@ import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { KeybindName } from "../../input/key_bindings";
 
 export const DEFAULT_BUTTON_WIDTH = 140;
 export const DEFAULT_BUTTON_HEIGHT = 35;
@@ -142,7 +143,7 @@ export class Button {
 		this.background.tint = Math.floor(MathUtil.lerp(15, 6, pressdownCompletion)) * 0x10101;
 	}
 
-	setupInteraction(group: InteractionGroup, onclick: () => any) {
+	setupInteraction(group: InteractionGroup, onclick: () => any, keybindTriggers: KeybindName[] = []) {
 		this.registration = new InteractionRegistration(this.container);
 		group.add(this.registration);
 
@@ -153,6 +154,12 @@ export class Button {
 			() => this.pressdownInterpolator.setReversedState(false, performance.now()),
 			() => this.pressdownInterpolator.setReversedState(true, performance.now())
 		);
+
+		for (let keybind of keybindTriggers) {
+			this.registration.addKeybindListener(keybind, 'down', (e) => {
+				if (!(e.sourceEvent instanceof MouseEvent)) onclick();
+			});
+		}
 	}
 
 	enable() {

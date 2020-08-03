@@ -31,5 +31,8 @@ export function applySettings() {
 
 export function changeSettingAndUpdateSettingsPanel<T extends SettingName>(setting: T, value: Settings[T]) {
 	globalState.settings[setting] = value;
+	let untypedDescription = settingsDescription[setting] as any;
+	untypedDescription.onChange?.(value);
+	untypedDescription.onFinish?.(value);
 	globalState.settingsPanel.refreshElement(setting);
 }

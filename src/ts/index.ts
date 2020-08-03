@@ -29,6 +29,8 @@ import { generateDefaultSettings, applySettings } from './menu/settings/settings
 import { Cursor } from './visuals/cursor';
 import { generateDefaultKeybindings } from './input/key_bindings';
 import { GlobalInputListener } from './input/global_input_listener';
+import { VolumeController } from './menu/misc/volume_controller';
+import { launchButton } from './menu/song_select/simple_songs_selector';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -52,8 +54,10 @@ async function init() {
 	initSettingsPanel();
 	initFolderSelector();
 	initSongSelect();
+	initVolumeController();
 
 	applySettings();
+	launchButton.click(); // temp!
 
 	await initBaseSkin();
 	initGameplay();
@@ -213,6 +217,17 @@ function initMisc() {
 	globalState.globalInputListener = globalInputListener;
 }
 
+function initVolumeController() {
+	let volumeController = new VolumeController()
+
+	stage.addChild(volumeController.container);
+	rootInteractionGroup.add(volumeController.interactionGroup);
+	uiEventEmitter.addListener('resize', () => volumeController.resize());
+	addRenderingTask((now) => volumeController.update(now));
+
+	globalState.volumeController = volumeController;
+}
+
 function setZIndexes() {
 	globalState.backgroundManager.container.zIndex = -10;
 	globalState.gameplayController.container.zIndex = 0;
@@ -223,6 +238,7 @@ function setZIndexes() {
 	globalState.settingsPanel.container.zIndex = 3.4;
 	globalState.toolbar.container.zIndex = 3.9;
 	globalState.folderSelector.container.zIndex = 4;
+	globalState.volumeController.container.zIndex = 9;
 	globalState.fpsMeter.container.zIndex = 10;
 	globalState.cursor.container.zIndex = 100;
 
@@ -234,5 +250,6 @@ function setZIndexes() {
 	globalState.settingsPanel.interactionGroup.setZIndex(3.4);
 	globalState.toolbar.interactionGroup.setZIndex(3.9);
 	globalState.folderSelector.interactionGroup.setZIndex(4);
+	globalState.volumeController.interactionGroup.setZIndex(9);
 	globalState.globalInputListener.registration.setZIndex(100);
 }
