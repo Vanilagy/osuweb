@@ -171,7 +171,7 @@ export class BeatmapSetPanel implements Searchable {
 		if (bitmapLoadedAlready || carouselVelocity < 2500) {
 			this.imageLoadingStarted = true;
 
-			let imageFile = await this.beatmapSet.directory.getFileByPath(this.beatmapSet.basicData.imageName);
+			let imageFile = await this.beatmapSet.getBackgroundImage();
 			if (!imageFile) return;
 
 			bitmap = await getBitmapFromImageFile(imageFile, BitmapQuality.Medium);
@@ -281,7 +281,6 @@ export class BeatmapSetPanel implements Searchable {
 		this.enableSpecialHeight();
 
 		this.carousel.songSelect.infoPanel.loadBeatmapSet(this.beatmapSet, this.beatmapSet.basicData);
-		this.carousel.songSelect.startAudio(this.beatmapSet, this.beatmapSet.basicData);
 
 		// Run this update function to update difficulty panel positions
 		this.update(now);

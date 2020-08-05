@@ -3,6 +3,7 @@ import { BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET } from "./beatmap_carousel";
 import { Interpolator } from "../../../util/interpolation";
 import { BeatmapSetPanel } from "./beatmap_set_panel";
 import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
+import { globalState } from "../../../global_state";
 
 export const BEATMAP_DIFFICULTY_PANEL_WIDTH = 650;
 export const BEATMAP_DIFFICULTY_PANEL_HEIGHT = 50;
@@ -58,7 +59,10 @@ export class BeatmapDifficultyPanel {
 		this.entry = entry;
 
 		// If this difficulty panel is currently selected, select the corresponding difficulty.
-		if (this.parentPanel.carousel.selectedDifficultyPanel === this) this.selectDifficulty();
+		if (this.parentPanel.carousel.selectedDifficultyPanel === this) {
+			this.selectDifficulty();
+			globalState.musicPlayer.playBeatmap(this.entry, this.entry.extendedMetadata.audioPreviewTime);
+		}
 	}
 
 	update(now: number) {
@@ -82,11 +86,14 @@ export class BeatmapDifficultyPanel {
 		this.expandInterpolator.setReversedState(false, selectionTime ?? now);
 
 		if (doSnap) {
-			let totalNormalizedY = this.y + this.parentPanel.storedY;
+			let totalNormalizedY = this.y + this.parentPanel.computeY();
 			this.parentPanel.carousel.snapReferencePanelPosition(totalNormalizedY, BEATMAP_DIFFICULTY_PANEL_SNAP_TARGET);
 		}
 
-		if (this.entry) this.selectDifficulty();
+		if (this.entry) {
+			this.selectDifficulty();
+			globalState.musicPlayer.playBeatmap(this.entry, this.entry.extendedMetadata.audioPreviewTime);
+		}
 	}
 
 	private async selectDifficulty() {

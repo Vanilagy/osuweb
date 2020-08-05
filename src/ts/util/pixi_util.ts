@@ -120,7 +120,8 @@ export function createPolygonTexture(width: number, height: number, polygon: PIX
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 	}
 
-	return PIXI.Texture.from(canvas);
+	let texture = PIXI.Texture.from(canvas);
+	return texture;
 }
 
 export function createPolygonBorderTexture(width: number, height: number, polygon: PIXI.Point[], thickness: number, scalingFactor = 1.0, margin = 0, invert = false, cornerRadius = 0, resolution = 1.0) {
@@ -203,4 +204,17 @@ export function cutOffText(element: PIXI.Text, text: string, thresholdWidth: num
 
 	// For some reason, the above algorithm is always off by one.
 	if (midVal > thresholdWidth) element.text = text.slice(0, low-1).trimEnd() + append;
+}
+
+export function createCircleTexture(radius: number) {
+	let canvas = document.createElement('canvas');
+	canvas.setAttribute('width', Math.ceil(radius * 2).toString());
+	canvas.setAttribute('height', Math.ceil(radius * 2).toString());
+	let ctx = canvas.getContext('2d');
+
+	ctx.arc(radius, radius, radius, 0, TAU);
+	ctx.fillStyle = 'white';
+	ctx.fill();
+
+	return PIXI.Texture.from(canvas);
 }

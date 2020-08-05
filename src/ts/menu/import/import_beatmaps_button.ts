@@ -13,7 +13,7 @@ const downloadBoldTexture = svgToTexture(document.querySelector('#svg-download-b
 
 export class ImportBeatmapsButton extends ToolbarButton {
 	private dropdown: ImportMethodDropdown;
-	public dropdownCompletion: Interpolator;
+	public dropdownInterpolator: Interpolator;
 
 	constructor(parent: Toolbar) {
 		super(parent, plusTexture);
@@ -23,7 +23,7 @@ export class ImportBeatmapsButton extends ToolbarButton {
 
 		this.container.addChild(this.dropdown.container);
 
-		this.dropdownCompletion = new Interpolator({
+		this.dropdownInterpolator = new Interpolator({
 			duration: 500,
 			reverseDuration: 250,
 			ease: EaseType.EaseOutElasticHalf,
@@ -34,7 +34,7 @@ export class ImportBeatmapsButton extends ToolbarButton {
 	}
 
 	onClick() {
-		this.dropdownCompletion.reverse(performance.now());
+		this.dropdownInterpolator.reverse(performance.now());
 	}
 
 	resize() {
@@ -48,7 +48,7 @@ export class ImportBeatmapsButton extends ToolbarButton {
 	update(now: number) {
 		super.update(now);
 
-		let dropdownCompletion = this.dropdownCompletion.getCurrentValue(now);
+		let dropdownCompletion = this.dropdownInterpolator.getCurrentValue(now);
 		let nudge = Math.floor(7 * this.parent.scalingFactor);
 		
 		this.dropdown.update(now);
@@ -116,7 +116,7 @@ class ImportMethodDropdown {
 				}; break;
 			}
 
-			this.button.dropdownCompletion.setReversedState(true, performance.now());
+			this.button.dropdownInterpolator.setReversedState(true, performance.now());
 		})
 	}
 
@@ -131,7 +131,7 @@ class ImportMethodDropdown {
 			new PIXI.Point(7, 0), new PIXI.Point(14, 7), new PIXI.Point(0, 7)
 		], this.button.parent.scalingFactor);
 		this.pointer.pivot.x = Math.floor(this.pointer.width / 2);
-		this.pointer.x = this.button.entryContainer.width/2 - (this.container.x - this.button.container.x);
+		this.pointer.x = this.button.entryContainer.width/2 - this.container.x;
 
 		this.background.y = this.pointer.height-1;
 		this.selector.container.y = this.pointer.height-1;

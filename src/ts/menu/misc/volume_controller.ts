@@ -10,6 +10,7 @@ import { globalState } from "../../global_state";
 import { getCurrentMousePosition } from "../../input/input";
 import { changeSettingAndUpdateSettingsPanel } from "../settings/settings";
 import { EMPTY_FUNCTION } from "../../util/misc_util";
+import { ThumblessSlider } from "../components/thumbless_slider";
 
 type VolumeSetting = 'masterVolume' | 'musicVolume' | 'soundEffectsVolume';
 
@@ -121,7 +122,7 @@ export class VolumeController {
 
 		let setting: VolumeSetting = 'masterVolume';
 		for (let s of this.sliders) {
-			if (s.mouseInside()) setting = s.setting;
+			if (s.slider.mouseInside()) setting = s.setting;
 		}
 
 		let newValue = MathUtil.clamp(globalState.settings[setting] + NUDGE_VALUE * (up? 1 : -1), 0, 1);
@@ -136,14 +137,7 @@ class VolumeSlider {
 	public setting: VolumeSetting;
 
 	private label: PIXI.Text;
-	private mask: PIXI.Sprite;
-	private background: PIXI.Sprite;
-	private slider: PIXI.Sprite;
-	private registration: InteractionRegistration;
-
-	private valueInterpolator: InterpolatedValueChanger;
-	private hoverInterpolator: Interpolator;
-	private pressdownInterpolator: Interpolator;
+	public slider: ThumblessSlider;
 
 	constructor(parent: VolumeController, setting: VolumeSetting) {
 		this.parent = parent;
@@ -158,99 +152,23 @@ class VolumeSlider {
 		});
 		this.label.alpha = 0.9;
 
-		this.mask = new PIXI.Sprite();
-
-		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.background.tint = 0x000000;
-		this.background.alpha = 0.8;
-		this.background.mask = this.mask;
+		this.slider = new ThumblessSlider({width: SLIDER_WIDTH, height: SLIDER_HEIGHT}, true, Colors.Black, lerpColors(THEME_COLORS.PrimaryViolet, Colors.White, 0.2), Colors.White);
+		this.interactionGroup.add(this.slider.interactionGroup);
 		
-		this.slider = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.slider.mask = this.mask;
+		this.container.addChild(this.label, this.slider.container);
 
-		this.container.addChild(this.label, this.mask, this.background, this.slider);
-
-		this.valueInterpolator = new InterpolatedValueChanger({
-			initial: 0,
-			duration: 150,
-			ease: EaseType.EaseOutCubic
-		});
-		this.hoverInterpolator = new Interpolator({
-			duration: 150,
-			ease: EaseType.EaseOutCubic,
-			reverseEase: EaseType.EaseInCubic,
-			reverseDuration: 400,
-			beginReversed: true,
-			defaultToFinished: true
-		});
-		this.pressdownInterpolator = new Interpolator({
-			duration: 50,
-			ease: EaseType.EaseOutCubic,
-			reverseEase: EaseType.EaseInCubic,
-			reverseDuration: 400,
-			beginReversed: true,
-			defaultToFinished: true
-		});
-
-		this.registration = new InteractionRegistration(this.background);
-		this.interactionGroup.add(this.registration);
-		
-		this.registration.addButtonHandlers(
-			EMPTY_FUNCTION,
-			() => this.hoverInterpolator.setReversedState(false, performance.now()),
-			() => this.hoverInterpolator.setReversedState(true, performance.now()),
-			EMPTY_FUNCTION,
-			EMPTY_FUNCTION
-		)
-		this.registration.makeDraggable(() => {
-			this.pressdownInterpolator.setReversedState(false, performance.now());
-			updateSliderPosition();
-		}, () => {
-			updateSliderPosition();
-		}, () => {
-			this.pressdownInterpolator.setReversedState(true, performance.now());
-		});
-
-		const updateSliderPosition = () => {
-			let mousePos = getCurrentMousePosition();
-			let bounds = this.background.getBounds();
-
-			let completion = MathUtil.clamp((mousePos.x - bounds.x) / bounds.width, 0, 1);
+		this.slider.addListener('change', (completion) => {
 			changeSettingAndUpdateSettingsPanel(this.setting, completion);
-		};
+		});
 	}
 
 	resize() {
 		this.label.style.fontSize = Math.floor(9 * this.parent.scalingFactor);
-
-		let slantWidth = SLIDER_HEIGHT / 5;
-		this.mask.texture = createPolygonTexture(SLIDER_WIDTH + slantWidth, SLIDER_HEIGHT, [
-			new PIXI.Point(0, 0), new PIXI.Point(SLIDER_WIDTH, 0), new PIXI.Point(SLIDER_WIDTH + slantWidth, SLIDER_HEIGHT), new PIXI.Point(slantWidth, SLIDER_HEIGHT)
-		], this.parent.scalingFactor, 0, false, 3);
-
-		this.background.width = this.mask.width;
-		this.background.height = this.mask.height;
-		this.slider.height = this.mask.height;
-		this.background.y = this.slider.y = this.mask.y = Math.floor(16 * this.parent.scalingFactor);
+		this.slider.resize(this.parent.scalingFactor);
 	}
 
 	update(now: number) {
-		let settingValue = globalState.settings[this.setting];
-		if (this.valueInterpolator.getCurrentGoal() !== settingValue) {
-			// Smoothly interpolate to the new value
-			this.valueInterpolator.setGoal(settingValue, now);
-		}
-
-		let currentValue = this.valueInterpolator.getCurrentValue(now);
-		this.slider.width = currentValue * this.mask.width;
-
-		let hoverValue = this.hoverInterpolator.getCurrentValue(now);
-		let pressdownValue = this.pressdownInterpolator.getCurrentValue(now);
-
-		this.slider.tint = colorToHexNumber(lerpColors(THEME_COLORS.PrimaryViolet, Colors.White, MathUtil.lerp(MathUtil.lerp(0.2, 0.6, hoverValue), 1.0, pressdownValue)));
-	}
-
-	mouseInside() {
-		return this.registration.mouseInside;
+		this.slider.setCompletion(globalState.settings[this.setting]);
+		this.slider.update(now);
 	}
 }

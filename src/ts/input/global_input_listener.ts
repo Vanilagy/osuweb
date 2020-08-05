@@ -25,5 +25,9 @@ export class GlobalInputListener {
 		this.registration.addKeybindListener('decreaseVolume', 'down', () => {
 			globalState.volumeController.nudgeValue(false);
 		});
+		this.registration.addKeybindListener('playPause', 'down', () => {
+			if (globalState.gameplayController.currentPlay) return;
+			globalState.musicPlayer.playPause();
+		});
 	}
 }

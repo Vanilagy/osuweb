@@ -23,8 +23,6 @@ export class SongSelect {
 	
 	public loadedBeatmapSets: BeatmapSet[] = [];
 	public selectedEntry: BeatmapEntry = null;
-	public currentAudioBeatmapSet: BeatmapSet;
-	public currentAudioBasicData: BasicBeatmapData;
 
 	public carousel: BeatmapCarousel;
 	public infoPanel: BeatmapInfoPanel;
@@ -177,7 +175,7 @@ export class SongSelect {
 		if (!this.selectedEntry) return;
 		
 		this.hide();
-		globalState.basicSongPlayer.pause();
+		globalState.musicPlayer.pause();
 	
 		this.selectedEntry.resource.readAsText().then((text) => {
 			let map = BeatmapParser.parse(text, this.selectedEntry.beatmapSet, false);
@@ -188,32 +186,13 @@ export class SongSelect {
 		});
 	}
 
-	async startAudio(beatmapSet: BeatmapSet, basicData: BasicBeatmapData) {
-		let songPlayer = globalState.basicSongPlayer;
-
-		// The same audio is already playing, let's not start it again.
-		if (songPlayer.isPlaying() && this.currentAudioBeatmapSet === beatmapSet) return;
-
-		let audioFile = await beatmapSet.directory.getFileByPath(basicData.audioName);
-		if (!audioFile) return;
-
-		this.currentAudioBeatmapSet = beatmapSet;
-		this.currentAudioBasicData = basicData;
-
-		await songPlayer.loadFile(audioFile);
-
-		let startTime = basicData.audioPreviewTime;
-		songPlayer.start(startTime)
-		songPlayer.setLoopBehavior(true, startTime);
-		this.sideControlPanel.resetLastBeatTime();
-	}
-
-	show() {
+	show(musicPlaybackTime?: number) {
 		this.fadeInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.enable();
 		this.visible = true;
 
-		if (this.currentAudioBeatmapSet) this.startAudio(this.currentAudioBeatmapSet, this.currentAudioBasicData);
+		globalState.musicPlayer.setLoopingState(true);
+		if (this.selectedEntry) globalState.musicPlayer.playBeatmap(this.selectedEntry, (musicPlaybackTime > 10)? musicPlaybackTime : this.selectedEntry.extendedMetadata.audioPreviewTime);
 	}
 
 	hide() {

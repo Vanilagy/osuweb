@@ -259,14 +259,16 @@ export class GameplayController {
 	endPlay() {
 		if (!this.currentPlay) return;
 
+		let gameplayTime = this.currentPlay.getCurrentSongTime();
+		
+		globalState.toolbar.show();
+		globalState.songSelect.show(this.currentPlay.completed? null : gameplayTime/1000);
+		globalState.backgroundManager.setGameplayState(false, 500, EaseType.EaseInQuad);
+		globalState.backgroundManager.setBlurState(true, 400, EaseType.EaseOutQuart);
+
 		this.currentPlay.stop();
 		this.currentPlay = null;
 		this.hide();
-
-		globalState.toolbar.show();
-		globalState.songSelect.show();
-		globalState.backgroundManager.setGameplayState(false, 500, EaseType.EaseInQuad);
-		globalState.backgroundManager.setBlurState(true, 400, EaseType.EaseOutQuart);
 
 		this.pauseScreen.turnOffSound();
 

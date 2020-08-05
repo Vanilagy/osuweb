@@ -39,7 +39,9 @@ export interface ExtendedBeatmapData {
 	difficultyAttributes: DifficultyAttributes,
 	playableLength: number,
 	msPerBeatTimings: MsPerBeatTiming[],
-	imageName: string
+	imageName: string,
+	audioName: string,
+	audioPreviewTime: number
 }
 
 export abstract class BeatmapUtil {
@@ -99,7 +101,9 @@ export abstract class BeatmapUtil {
 			difficultyAttributes: difficultyAttributes,
 			playableLength: processedBeatmap.getPlayableLength(),
 			msPerBeatTimings: msPerBeatTimings,
-			imageName: beatmap.getBackgroundImageName()
+			imageName: beatmap.getBackgroundImageName(),
+			audioName: beatmap.audioFilename,
+			audioPreviewTime: beatmap.getAudioPreviewTimeInSeconds()
 		};
 	}
 }

@@ -7,12 +7,13 @@ import { OpenSettingsButton } from "../settings/open_settings_button";
 import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { globalState } from "../../global_state";
+import { OpenMusicPlayerButton } from "../music_player/open_music_player_button";
 
 export const TOOLBAR_HEIGHT = 40;
 
 export class Toolbar {
 	public container: PIXI.Container;
-	public scalingFactor: number;
+	public scalingFactor: number = 1.0;
 	public interactionGroup: InteractionGroup;
 	public currentHeight: number = 0;
 
@@ -28,6 +29,8 @@ export class Toolbar {
 	private screenDimInterpolator: Interpolator;
 
 	private fadeInInterpolator: Interpolator;
+
+	private openMusicPlayerButton: OpenMusicPlayerButton;
 	
 	constructor() {
 		this.container = new PIXI.Container();
@@ -74,6 +77,10 @@ export class Toolbar {
 		this.container.addChild(notificationPanelButton.container);
 		this.rightEntries.push(notificationPanelButton);
 
+		this.openMusicPlayerButton = new OpenMusicPlayerButton(this);
+		this.container.addChild(this.openMusicPlayerButton.container);
+		this.rightEntries.push(this.openMusicPlayerButton);
+
 		let openSettingsButton = new OpenSettingsButton(this);
 		this.container.addChild(openSettingsButton.container);
 		this.leftEntries.push(openSettingsButton);
@@ -84,6 +91,10 @@ export class Toolbar {
 
 		this.disableDim();
 		this.resize();
+	}
+
+	getMusicPlayer() {
+		return this.openMusicPlayerButton.musicPlayer;
 	}
 
 	resize() {

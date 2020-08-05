@@ -36,7 +36,7 @@ addTickingTask(() => {
 		let blurredValue = (() => {
 			switch (globalState.settings['backgroundAudioBehavior']) {
 				case 'none': return 1;
-				case 'quiet': return 0.03;
+				case 'quiet': return 0.05;
 				case 'mute': return 0.00001; // So that the exponential ramp up doesn't complain
 			}
 		})();

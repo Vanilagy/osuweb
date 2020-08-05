@@ -197,4 +197,14 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 
 		return null;
 	}
+
+	async getBackgroundImage() {
+		return this.basicData && await this.entries[0].beatmapSet.directory.getFileByPath(this.basicData.imageName);
+	}
+
+	/** Returns an identifier for the song of this beatmap set. Can be compared to other beatmaps to see if they represent the same song. Should be fine for most cases! */
+	getSongIdentifier() {
+		// Using the "unit separator" control symbol here.
+		return this.title + '\u0031' + this.artist;
+	}
 }

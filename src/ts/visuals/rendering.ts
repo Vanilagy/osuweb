@@ -2,6 +2,7 @@ import { MathUtil } from "../util/math_util";
 import { pushItemUnique, removeItem } from "../util/misc_util";
 import { globalState } from "../global_state";
 import { tickAll } from "../util/ticker";
+import { windowFocused } from "./ui";
 
 const LOG_RENDER_INFO_INTERVAL = 5000; // In ms
 
@@ -55,6 +56,7 @@ export function disableRenderTimeInfoLog() {
 /** Computes the current target FPS, based on settings and game state. */
 export function getCurrentTargetFps() {
 	if (!globalState.settings) return 60;
+	if (!windowFocused) return 30;
 
 	let isInGameplay = false;
 	if (globalState.gameplayController?.currentPlay) {
@@ -85,7 +87,7 @@ function mainRenderingLoop() {
 	let frameTime = 1000 / getCurrentTargetFps();
 
 	// When FPS is unlocked in the browser but limited in-game, for some browser frames, the game won't draw anything. This makes the browser think it's okay to slow down the rate of requestAnimationFrame, which is not desirable in this case. Therefore we trick the browser into thinking the GPU is doing something by continuously clearing a 1x1 canvas each frame.
-	decoyCtx.clearRect(0, 0, 1, 1);
+	if (windowFocused) decoyCtx.clearRect(0, 0, 1, 1);
 
 	// Slowly fill up the budget, until it exceeds the frame time. In that case, draw a frame.
 	frameBudget += startTime - lastCallTime;

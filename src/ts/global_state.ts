@@ -17,6 +17,7 @@ import { Cursor } from "./visuals/cursor";
 import { Keybindings } from "./input/key_bindings";
 import { GlobalInputListener } from "./input/global_input_listener";
 import { VolumeController } from "./menu/misc/volume_controller";
+import { MusicPlayer } from "./menu/music_player/music_player";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -24,7 +25,7 @@ export const globalState = {
 	notificationPanel: null as NotificationPanel,
 	songSelect: null as SongSelect,
 	gameplayController: null as GameplayController,
-	basicSongPlayer: null as AudioMediaPlayer,
+	//basicSongPlayer: null as AudioMediaPlayer,
 	gameplayAudioPlayer: null as HighAccuracyAudioPlayer,
 	backgroundManager: null as BackgroundManager,
 	baseSkin: null as Skin,
@@ -37,5 +38,6 @@ export const globalState = {
 	cursor: null as Cursor,
 	keybindings: null as Keybindings,
 	globalInputListener: null as GlobalInputListener,
-	volumeController: null as VolumeController
+	volumeController: null as VolumeController,
+	musicPlayer: null as MusicPlayer
 };

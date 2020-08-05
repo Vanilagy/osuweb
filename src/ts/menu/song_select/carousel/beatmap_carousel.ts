@@ -13,6 +13,7 @@ import { BeatmapSetPanel, BEATMAP_SET_PANEL_HEIGHT } from "./beatmap_set_panel";
 import { BeatmapSetPanelCollection, beatmapCarouselSortingTypeFunctions, BeatmapCarouselSortingType } from "./beatmap_set_panel_collection";
 import { BeatmapSetPanelCollectionGrouped } from "./beatmap_set_panel_collection_grouped";
 import { BeatmapSetPanelCollectionSplit } from "./beatmap_set_panel_collection_split";
+import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
 
 export const BEATMAP_CAROUSEL_RIGHT_MARGIN = 600;
 export const BEATMAP_CAROUSEL_RADIUS_FACTOR = 3.0;
@@ -605,6 +606,19 @@ export class BeatmapCarousel {
 		}
 
 		if (panel) panel.select('random'); // Select a random difficulty
+	}
+
+	selectEntry(entry: BeatmapEntry) {
+		if (this.selectedDifficultyPanel?.entry === entry) return;
+
+		let candidates = this.collections[this.currentCollection].getPanelsByBeatmapSet(entry.beatmapSet);
+		for (let c of candidates) {
+			let index = c.beatmapEntries.indexOf(entry);
+			if (index !== -1) {
+				c.select(index);
+				return;
+			}
+		}
 	}
 
 	/** Get the current carousel movement velocity in pixels per second. */

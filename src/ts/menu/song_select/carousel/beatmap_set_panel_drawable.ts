@@ -38,6 +38,7 @@ export class BeatmapSetPanelDrawable {
 		this.container = new PIXI.Container();
 		this.container.sortableChildren = true;
 		this.interactionGroup = new InteractionGroup();
+		this.interactionGroup.disable();
 
 		this.difficultyContainer = new PIXI.Container();
 		this.difficultyContainer.sortableChildren = true;

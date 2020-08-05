@@ -287,7 +287,7 @@ class SideControlPulsar {
 			to: 0.0
         });
         
-        this.analyser = globalState.basicSongPlayer.createAnalyser(2**15);
+        this.analyser = globalState.musicPlayer.player.createAnalyser(2**15);
 
 		this.initInteraction();
 	}
@@ -328,13 +328,13 @@ class SideControlPulsar {
 	}
 
 	update(now: number) {
-		let currentEntry = this.parent.songSelect.selectedEntry;
+		let currentEntry = globalState.musicPlayer.getCurrentEntry();
 		let metadata = currentEntry?.extendedMetadata;
 
 		if (metadata && metadata.msPerBeatTimings.length > 0) {
             let { msPerBeatTimings } = metadata;
 
-			let currentTime = globalState.basicSongPlayer.getCurrentTime() * 1000;
+			let currentTime = globalState.musicPlayer.player.getCurrentTime() * 1000;
 			let latest = msPerBeatTimings[0];
 
 			// Find the timing section we're currently in
@@ -381,6 +381,6 @@ class SideControlPulsar {
 	}
 
 	resetLastBeatTime() {
-		this.lastBeatTime = globalState.basicSongPlayer.getCurrentTime() * 1000;
+		this.lastBeatTime = globalState.musicPlayer.player.getCurrentTime() * 1000;
 	}
 }
