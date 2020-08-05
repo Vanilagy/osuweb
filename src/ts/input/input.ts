@@ -1,6 +1,6 @@
 import { Point, clonePoint } from "../util/point";
 import { CustomEventEmitter } from "../util/custom_event_emitter";
-import { normalizeWheelEvent, NormalizedWheelEvent } from "../util/misc_util";
+import { normalizeWheelEvent, NormalizedWheelEvent, EMPTY_FUNCTION } from "../util/misc_util";
 import { tickAll } from "../util/ticker";
 import { currentWindowDimensions, isFullscreen, windowFocused } from "../visuals/ui";
 import { globalState } from "../global_state";
@@ -48,6 +48,8 @@ let currentMouseButtonState = {
 	mmb: false
 };
 let mouseSensitivity = 1.0;
+/** The mouse can sometimes spasm around a bit when exiting and immediately entering pointer lock - this variable tries to mitigate that. */
+let mouseMoveImmunityEnd = -Infinity;
 
 export function setMouseSensitivity(value: number) {
 	mouseSensitivity = value;
@@ -64,6 +66,8 @@ export function getCurrentMouseButtonState() {
 window.onmousemove = (e: MouseEvent) => {
 	tickAll();
 
+	if (performance.now() < mouseMoveImmunityEnd) return;
+
 	if (!globalState.settings['useSoftwareCursor']) {
 		// When using a hardware cursor, just copy the pure mouse position.
 		currentMousePosition.x = e.clientX;
@@ -73,8 +77,8 @@ window.onmousemove = (e: MouseEvent) => {
 
 		if (mode === 'absolute') {
 			// Project the mouse position around the center of the window (the center is always a fixed point)
-			currentMousePosition.x = MathUtil.clamp(currentWindowDimensions.width/2 + (e.clientX - currentWindowDimensions.width/2) * Math.max(1, mouseSensitivity), 0, currentWindowDimensions.width);
-			currentMousePosition.y = MathUtil.clamp(currentWindowDimensions.height/2 + (e.clientY - currentWindowDimensions.height/2) * Math.max(1, mouseSensitivity), 0, currentWindowDimensions.height);
+			currentMousePosition.x = MathUtil.clamp(currentWindowDimensions.width/2 + (e.clientX - currentWindowDimensions.width/2) * Math.max(1, mouseSensitivity), 0, currentWindowDimensions.width-1);
+			currentMousePosition.y = MathUtil.clamp(currentWindowDimensions.height/2 + (e.clientY - currentWindowDimensions.height/2) * Math.max(1, mouseSensitivity), 0, currentWindowDimensions.height-1);
 		} else if (mode === 'raw') {
 			if (!document.pointerLockElement) return;
 
@@ -82,8 +86,8 @@ window.onmousemove = (e: MouseEvent) => {
 			currentMousePosition.x += e.movementX * mouseSensitivity;
 			currentMousePosition.y += e.movementY * mouseSensitivity;
 
-			currentMousePosition.x = MathUtil.clamp(currentMousePosition.x, 0, currentWindowDimensions.width);
-			currentMousePosition.y = MathUtil.clamp(currentMousePosition.y, 0, currentWindowDimensions.height);
+			currentMousePosition.x = MathUtil.clamp(currentMousePosition.x, 0, currentWindowDimensions.width-1);
+			currentMousePosition.y = MathUtil.clamp(currentMousePosition.y, 0, currentWindowDimensions.height-1);
 		}
 	}
 
@@ -151,12 +155,14 @@ document.onpointerlockchange = () => {
 	if (!document.pointerLockElement && globalState.settings['useSoftwareCursor'] && globalState.settings['mouseInputMode'] === 'raw' && windowFocused) {
 		if (!isFullscreen()) {
 			// If the cursor is on the very side of the screen, assume the user has pressed ESC and wanted to exit pointer lock on purpose.
-			let mouseOnSide = currentMousePosition.x === 0 || currentMousePosition.x === currentWindowDimensions.width || currentMousePosition.y === 0 || currentMousePosition.y === currentWindowDimensions.height;
+			let mouseOnSide = currentMousePosition.x === 0 || currentMousePosition.x === currentWindowDimensions.width-1 || currentMousePosition.y === 0 || currentMousePosition.y === currentWindowDimensions.height-1;
 			if (mouseOnSide) return;
 		}
 
 		simulateMouseDown();
 		// If we're here, then the window is focussed, so we assume ESC was pressed to exit pointer lock, in which case we replicate the ESC event since it was dropped.
-		window.onkeydown({keyCode: KeyCode.Escape, key: 'Escape'} as KeyboardEvent);
+		window.onkeydown({keyCode: KeyCode.Escape, key: 'Escape', code: 'Escape', shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, preventDefault: EMPTY_FUNCTION} as KeyboardEvent);
+
+		mouseMoveImmunityEnd = performance.now() + 100;
 	}
 };
