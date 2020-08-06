@@ -31,6 +31,7 @@ import { generateDefaultKeybindings } from './input/key_bindings';
 import { GlobalInputListener } from './input/global_input_listener';
 import { VolumeController } from './menu/misc/volume_controller';
 import { launchButton } from './menu/song_select/simple_songs_selector';
+import { ToastManager } from './menu/notifications/toasts';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -215,6 +216,12 @@ function initMisc() {
 	let globalInputListener = new GlobalInputListener();
 	rootInteractionGroup.add(globalInputListener.registration);
 	globalState.globalInputListener = globalInputListener;
+
+	let toastManager = new ToastManager();
+	stage.addChild(toastManager.container);
+	uiEventEmitter.addListener('resize', () => toastManager.resize());
+	addRenderingTask((now) => toastManager.update(now));
+	globalState.toastManager = toastManager;
 }
 
 function initVolumeController() {
@@ -239,6 +246,7 @@ function setZIndexes() {
 	globalState.toolbar.container.zIndex = 3.9;
 	globalState.folderSelector.container.zIndex = 4;
 	globalState.volumeController.container.zIndex = 9;
+	globalState.toastManager.container.zIndex = 9.5;
 	globalState.fpsMeter.container.zIndex = 10;
 	globalState.cursor.container.zIndex = 100;
 

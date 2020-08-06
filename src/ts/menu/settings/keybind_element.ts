@@ -283,7 +283,7 @@ class KeyElement {
 		let value = map.get(lastPart);
 		if (value) {
 			// Use the value from the keyboard map. This maps things like KeyZ to Y for German keyboards, for example.
-			lastPartConverted = value.toUpperCase();
+			lastPartConverted = (value.toUpperCase().length > 1)? value : value.toUpperCase(); // This special handling here is for characters that turn into more than one letter when capitalized (like ß).
 		} else {
 			if (lastPart.startsWith('Key')) lastPartConverted = lastPart.slice(3);
 			else if (lastPart.startsWith('Digit')) lastPartConverted = lastPart.slice(5);

@@ -47,6 +47,16 @@ const keybindDescriptionExact = buildKeybinds({
 		count: 1,
 		default: ["F10"]
 	},
+	'audioOffsetAdd': {
+		displayName: "Add to audio offset",
+		count: 2,
+		default: ["Alt Equal", "Equal"]
+	},
+	'audioOffsetSubtract': {
+		displayName: "Subtract from audio offset",
+		count: 2,
+		default: ["Alt Minus", "Minus"]
+	},
 
 	// audio
 	"increaseVolume": {

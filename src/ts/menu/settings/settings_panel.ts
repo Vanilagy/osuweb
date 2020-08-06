@@ -96,6 +96,8 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.Keybinding, keybindName: 'restartPlay' },
 	{ type: LayoutElementType.Keybinding, keybindName: 'skipBreak' },
 	{ type: LayoutElementType.Keybinding, keybindName: 'toggleMouseButtons' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'audioOffsetSubtract' },
+	{ type: LayoutElementType.Keybinding, keybindName: 'audioOffsetAdd' },
 	{ type: LayoutElementType.HorizontalLine },
 	{ type: LayoutElementType.Keybinding, keybindName: 'increaseVolume' },
 	{ type: LayoutElementType.Keybinding, keybindName: 'decreaseVolume' },

@@ -39,7 +39,7 @@ interface DragMoveData {
 	readonly elapsedTime: number
 }
 
-interface KeybindEventData {
+export interface KeybindEventData {
 	keyIndex: number,
 	sourceEvent: InteractionEventMap[keyof InteractionEventMap]
 }
@@ -633,3 +633,7 @@ uiEventEmitter.addListener('resize', () => {
 	fullscreenHitRec.width = currentWindowDimensions.width;
 	fullscreenHitRec.height = currentWindowDimensions.height;
 });
+
+export function getSourceEventFromKeybindEvent(data: KeybindEventData) {
+	return (data.sourceEvent as NormalizedWheelEvent).event || (data.sourceEvent as KeyboardEvent | MouseEvent);
+}

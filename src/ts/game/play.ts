@@ -49,6 +49,7 @@ export class Play {
 	private hitObjectStartTime: number;
 	private hitObjectEndTime: number;
 	private endTime: number;
+	private lowerBoundTime: number; // To prevent going backwards in time (check usage)
 
 	public scoreProcessor: DrawableScoreProcessor;
 	public healthProcessor: HealthProcessor;
@@ -559,6 +560,7 @@ export class Play {
 		this.failTime = null;
 		this.currentTimeAtFail = null;
 		this.failAnimationEndTriggered = false;
+		this.lowerBoundTime = -Infinity;
 		globalState.gameplayAudioPlayer.pause();
 		globalState.gameplayAudioPlayer.disablePlaybackRateChangerNode();
 		this.percussionPlayer?.reset();
@@ -660,8 +662,14 @@ export class Play {
 			return currentSongTime;
 		}
 
-		if (globalState.gameplayAudioPlayer.isPlaying() === false) return this.startTime;
-		return globalState.gameplayAudioPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000 + globalState.settings['audioOffset']; // The shift by baseLatency seems to make more input more correct, for now.
+		let returnValue: number;
+		if (globalState.gameplayAudioPlayer.isPlaying() === false) returnValue = this.startTime;
+		returnValue = globalState.gameplayAudioPlayer.getCurrentTime() * 1000 - audioContext.baseLatency*1000 + globalState.settings['audioOffset']; // The shift by baseLatency seems to make more input more correct, for now.
+
+		if (returnValue < this.lowerBoundTime) returnValue = this.lowerBoundTime;
+		this.lowerBoundTime = returnValue;
+
+		return returnValue;
 	}
 
 	toPlaybackRateIndependentTime(time: number) {
