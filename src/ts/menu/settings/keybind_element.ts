@@ -1,7 +1,7 @@
 import { SettingsElement } from "./settings_element";
 import { SettingsPanel, SETTINGS_PANEL_WIDTH, SETTINGS_PANEL_PADDING } from "./settings_panel";
 import { colorToHexNumber, lerpColors, Colors } from "../../util/graphics_util";
-import { KeybindName, keybindDescription, KeyDescription, keyLayoutMap } from "../../input/key_bindings";
+import { KeybindName, keybindDescription, KeyDescription, keyLayoutMap, changeKeybinding } from "../../input/key_bindings";
 import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
 import { createPolygonTexture } from "../../util/pixi_util";
 import { THEME_COLORS } from "../../util/constants";
@@ -151,14 +151,14 @@ class KeyElement {
 				if (e.button === 0) {
 					if (e.shiftKey) {
 						// Reset to default
-						globalState.keybindings[this.parent.keybindName][this.keyIndex] = keybindDescription[this.parent.keybindName].default[this.keyIndex];
+						changeKeybinding(this.parent.keybindName, this.keyIndex, keybindDescription[this.parent.keybindName].default[this.keyIndex]);
 						this.setText(this.getKeybindValue());
 					} else {
 						this.select();
 					}
 				} else if (e.button === 2) {
 					// Clear
-					globalState.keybindings[this.parent.keybindName][this.keyIndex] = "";
+					changeKeybinding(this.parent.keybindName, this.keyIndex, "");
 					this.setText("");
 				}
 			}
@@ -233,7 +233,7 @@ class KeyElement {
 		}
 
 		this.setText(keyDescription);
-		globalState.keybindings[this.parent.keybindName][this.keyIndex] = keyDescription;
+		changeKeybinding(this.parent.keybindName, this.keyIndex, keyDescription);
 
 		this.inSelection = false;
 		this.currentModifiers = null;

@@ -1,3 +1,5 @@
+import { globalState } from "../global_state";
+
 /** Can be any key code (the string, not the number), or MB(n) for the nth mouse button, or WheelUp/WheelDown. Additionally, modifiers Shift, Ctrl, Meta and Alt can be added infront (in that order alone!) to narrow the description. */
 export type KeyDescription = string;
 
@@ -50,12 +52,12 @@ const keybindDescriptionExact = buildKeybinds({
 	'audioOffsetAdd': {
 		displayName: "Add to audio offset",
 		count: 2,
-		default: ["Alt Equal", "Equal"]
+		default: ["Equal", "Alt Equal"]
 	},
 	'audioOffsetSubtract': {
 		displayName: "Subtract from audio offset",
 		count: 2,
-		default: ["Alt Minus", "Minus"]
+		default: ["Minus", "Alt Minus"]
 	},
 
 	// audio
@@ -137,7 +139,10 @@ export const keybindDescription: Record<keyof typeof keybindDescriptionExact, Ke
 export type KeybindName = keyof typeof keybindDescription;
 export type Keybindings = Record<KeybindName, string[]>;
 
-export function generateDefaultKeybindings() {
+export async function loadKeybindings() {
+	let storedKeybindings = await globalState.database.keyValueStore.get('keybindings');
+	if (storedKeybindings) return storedKeybindings;
+
 	let keybindings = {} as Keybindings;
 
 	for (let key in keybindDescription) {
@@ -145,10 +150,16 @@ export function generateDefaultKeybindings() {
 		keybindings[typedKey] = keybindDescription[typedKey].default.slice();
 	}
 
+	globalState.database.keyValueStore.set('keybindings', keybindings);
 	return keybindings;
 }
 
 export let keyLayoutMap = Promise.resolve(new Map() as Map<string, string>);
 if ('keyboard' in navigator) {
 	keyLayoutMap = (navigator as any).keyboard.getLayoutMap();
+}
+
+export function changeKeybinding(keybindName: KeybindName, keyIndex: number, keyDescription: KeyDescription) {
+	globalState.keybindings[keybindName][keyIndex] = keyDescription;
+	globalState.database.keyValueStore.set('keybindings', globalState.keybindings);
 }

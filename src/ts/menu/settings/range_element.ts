@@ -5,6 +5,7 @@ import { RangeSlider } from "../components/range_slider";
 import { colorToHexNumber } from "../../util/graphics_util";
 import { KeysWithType } from "../../util/misc_util";
 import { globalState } from "../../global_state";
+import { changeSetting } from "./settings";
 
 export class RangeElement extends SettingsElement {
 	private titleElement: PIXI.Text;
@@ -34,9 +35,7 @@ export class RangeElement extends SettingsElement {
 			description.onChange?.(val);
 		});
 		this.rangeSlider.addListener('release', (val) => {
-			globalState.settings[setting] = val;
-			description.onChange?.(val);
-			description.onFinish?.(val);
+			changeSetting(setting, val);
 		});
 	}
 

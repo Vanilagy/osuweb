@@ -3,6 +3,7 @@ import { globalState } from "../global_state";
 import { changeSettingAndUpdateSettingsPanel } from "../menu/settings/settings";
 import { settingsDescription } from "../menu/settings/settings_description";
 import { THEME_COLORS } from "../util/constants";
+import { MathUtil } from "../util/math_util";
 
 export class GlobalInputListener {
 	public registration: InteractionRegistration;
@@ -47,8 +48,9 @@ function nudgeAudioOffset(direction: number, e: KeybindEventData) {
 		return;
 	}
 
-	let stepSize = ((e.keyIndex === 0)? 1 : 5) * direction; // The first key changes by 1, the second by 5
-	let newValue = Math.min(globalState.settings['audioOffset'] + stepSize, settingsDescription['audioOffset'].options.max);
+	let stepSize = ((e.keyIndex === 0)? 5 : 1) * direction; // The first key changes by 5, the second by 1
+	let newValue = MathUtil.clamp(globalState.settings['audioOffset'] + stepSize, settingsDescription['audioOffset'].options.min, settingsDescription['audioOffset'].options.max);
+	if (newValue === globalState.settings['audioOffset']) return; // Nothing's changed
 
 	changeSettingAndUpdateSettingsPanel('audioOffset', newValue);
 	let roundedValue = Number(newValue.toFixed(0));

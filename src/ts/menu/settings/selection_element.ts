@@ -6,6 +6,7 @@ import { KeysWithType } from "../../util/misc_util";
 import { DropdownSelector } from "../components/dropdown_selector";
 import { MathUtil } from "../../util/math_util";
 import { globalState } from "../../global_state";
+import { changeSetting } from "./settings";
 
 export class SelectionElement extends SettingsElement {
 	private titleElement: PIXI.Text;
@@ -32,8 +33,7 @@ export class SelectionElement extends SettingsElement {
 		this.selector.setOptions(description.options);
 		this.selector.setSelection(globalState.settings[setting]);
 		this.selector.addListener('change', (val) => {
-			globalState.settings[setting] = val;
-			description.onChange?.(val);
+			changeSetting(setting, val);
 		});
 	}
 

@@ -18,7 +18,7 @@ import { KeybindElement } from "./keybind_element";
 import { Color } from "../../util/graphics_util";
 import { HorizontalLine } from "./horizontal_line";
 
-export const SETTINGS_PANEL_WIDTH = 300;
+export const SETTINGS_PANEL_WIDTH = 350;
 export const SETTINGS_PANEL_PADDING = 12;
 
 enum LayoutElementType {

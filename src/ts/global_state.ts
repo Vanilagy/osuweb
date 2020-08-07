@@ -18,6 +18,7 @@ import { GlobalInputListener } from "./input/global_input_listener";
 import { VolumeController } from "./menu/misc/volume_controller";
 import { MusicPlayer } from "./menu/music_player/music_player";
 import { ToastManager } from "./menu/notifications/toasts";
+import { Database } from "./storage/database";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -39,5 +40,6 @@ export const globalState = {
 	globalInputListener: null as GlobalInputListener,
 	volumeController: null as VolumeController,
 	musicPlayer: null as MusicPlayer,
-	toastManager: null as ToastManager
+	toastManager: null as ToastManager,
+	database: null as Database
 };

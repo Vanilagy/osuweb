@@ -6,7 +6,10 @@ export type Settings = {
 }
 export type SettingName = keyof Settings;
 
-export function generateDefaultSettings() {
+export async function loadSettings() {
+	let storedSettings = await globalState.database.keyValueStore.get('settings');
+	if (storedSettings) return storedSettings;
+
 	let settings = {} as Settings;
 
 	for (let key in settingsDescription) {
@@ -16,6 +19,7 @@ export function generateDefaultSettings() {
 		(settings[typedKey] as any) = settingsDescription[typedKey].default; // Set it to the default value
 	}
 
+	await globalState.database.keyValueStore.set('settings', settings);
 	return settings;
 }
 
@@ -29,10 +33,16 @@ export function applySettings() {
 	}
 }
 
-export function changeSettingAndUpdateSettingsPanel<T extends SettingName>(setting: T, value: Settings[T]) {
+export function changeSetting<T extends SettingName>(setting: T, value: Settings[T]) {
 	globalState.settings[setting] = value;
 	let untypedDescription = settingsDescription[setting] as any;
 	untypedDescription.onChange?.(value);
 	untypedDescription.onFinish?.(value);
+
+	globalState.database.keyValueStore.set('settings', globalState.settings);
+}
+
+export function changeSettingAndUpdateSettingsPanel<T extends SettingName>(setting: T, value: Settings[T]) {
+	changeSetting(setting, value);
 	globalState.settingsPanel.refreshElement(setting);
 }

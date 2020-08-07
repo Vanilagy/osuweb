@@ -25,13 +25,14 @@ import { NotificationPanel } from './menu/notifications/notification_panel';
 import { TaskManager } from './multithreading/task_manager';
 import { SettingsPanel } from './menu/settings/settings_panel';
 import { FpsMeter } from './menu/misc/fps_meter';
-import { generateDefaultSettings, applySettings } from './menu/settings/settings';
+import { applySettings, loadSettings } from './menu/settings/settings';
 import { Cursor } from './visuals/cursor';
-import { generateDefaultKeybindings } from './input/key_bindings';
+import { loadKeybindings } from './input/key_bindings';
 import { GlobalInputListener } from './input/global_input_listener';
 import { VolumeController } from './menu/misc/volume_controller';
 import { launchButton } from './menu/song_select/simple_songs_selector';
 import { ToastManager } from './menu/notifications/toasts';
+import { Database } from './storage/database';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -46,7 +47,7 @@ window.addEventListener('load', init);
 async function init() {
 	//return;
 
-	initMisc();
+	await initMisc();
 	initAudio();
 	initBackground();
 	initBeatmapLibrary();
@@ -196,10 +197,12 @@ function initFolderSelector() {
 	globalState.folderSelector = folderSelector;
 }
 
-function initMisc() {
+async function initMisc() {
+	globalState.database = new Database();
+
 	globalState.taskManager = new TaskManager();
-	globalState.settings = generateDefaultSettings();
-	globalState.keybindings = generateDefaultKeybindings();
+	globalState.settings = await loadSettings();
+	globalState.keybindings = await loadKeybindings();
 
 	let fpsMeter = new FpsMeter();
 	stage.addChild(fpsMeter.container);
