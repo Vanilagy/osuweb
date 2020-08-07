@@ -13,4 +13,13 @@ export abstract class VirtualFileSystemEntry {
 			this.parent = newParent;
 		}
 	}
+
+	/** Returns a databasa-friendly description of this file system entry. */
+	abstract toDescription(): VirtualFileSystemEntryDescription;
+}
+
+export interface VirtualFileSystemEntryDescription {
+	type: 'directory' | 'file',
+	name: string,
+	isNativeFileSystem: boolean
 }

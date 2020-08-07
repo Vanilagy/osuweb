@@ -11,6 +11,7 @@ import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { KeyCode } from "../../input/input";
 import { ImportBeatmapsFromDirectoryTask } from "../../datamodel/beatmap/beatmap_library";
 import { LoadingIndicator } from "../components/loading_indicator";
+import { globalState } from "../../global_state";
 
 const PANEL_WIDTH = 420;
 const PANEL_HEIGHT = 250;
@@ -116,12 +117,28 @@ export class FolderSelector {
 			// Based on the supported method, call either the Native File System API or just a plain ol' <input type="file">.
 			if (supportsNativeFileSystemApi()) {
 				try {
-					let handle = await chooseFileSystemEntries({type: 'open-directory'});
-					let directory = VirtualDirectory.fromDirectoryHandle(handle);
+					// Find any stored directory handle
+					let handleData = await globalState.database.find('directoryHandle', () => true);
+					let handle: FileSystemDirectoryHandle;
+					let id: string;
 
+					if (handleData) {
+						handle = handleData.handle;
+						id = handleData.id;
+
+						if (await handle.queryPermission() !== 'granted') await handle.requestPermission();
+					} else {
+						handle = await chooseFileSystemEntries({type: 'open-directory'});
+						id = ULID.ulid(); // Generate a new id for the handle
+
+						await globalState.database.put('directoryHandle', { id, handle });
+					}
+
+					let directory = VirtualDirectory.fromDirectoryHandle(handle, true, id);
 					this.createTask(directory);
 				} catch (e) {} 
 			} else {
+				// Create a temporary input element, then click it
 				let inputElement = document.createElement('input');
 				inputElement.setAttribute('webkitdirectory', '');
 				inputElement.setAttribute('type', 'file');

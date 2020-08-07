@@ -1,6 +1,8 @@
 import { databaseDescription } from "./database_description";
 
-const VERSION = 10;
+/** Fetch the last-used database version from storage and increment it automatically. */
+let version = Number(localStorage.getItem('databaseVersion') ?? 0) + 1;
+localStorage.setItem('databaseVersion', version.toString());
 type CollectionName = keyof typeof databaseDescription["collections"];
 
 export class Database {
@@ -12,7 +14,7 @@ export class Database {
 		this.keyValueStore = new KeyValueStore(this);
 
 		this.idbDatabase = new Promise((resolve) => {
-			let request = indexedDB.open("main-database", VERSION);
+			let request = indexedDB.open("main-database", version);
 			request.onsuccess = (e) => {
 				resolve((e.target as any).result);
 			};
@@ -56,27 +58,36 @@ export class Database {
 		store.put(data);
 	}
 
-	/**
-	 * Gets a record based on one of its properties.
-	 * @param collectionName The collection's name
-	 * @param property The property
-	 * @param value The property's value to search for
-	 */
-	async get<K extends CollectionName, P extends keyof typeof databaseDescription["collections"][K]["format"]>(collectionName: K, property: P, value: typeof databaseDescription["collections"][K]["format"][P]): Promise<typeof databaseDescription["collections"][K]["format"]> {
+	/** The internal method to handle gets, both single and multiple-item. */
+	private async getInternal<
+		K extends CollectionName,
+		P extends keyof typeof databaseDescription["collections"][K]["format"],
+		A extends boolean
+	>(
+		collectionName: K,
+		property: P,
+		value: typeof databaseDescription["collections"][K]["format"][P],
+		all: A
+	):
+		Promise<A extends true ?
+			typeof databaseDescription["collections"][K]["format"][] :
+			typeof databaseDescription["collections"][K]["format"]
+		>
+	{
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readonly');
 		let store = transaction.objectStore(collectionName);
 		let description = databaseDescription.collections[collectionName];
 		let request: IDBRequest;
-		let result: typeof databaseDescription["collections"][K]["format"] = null;
+		let result: any = all? [] : null;
 
 		if (property === description.key) {
 			// The property is the primary key, so just do a regular get.
-			request = store.get(value as any);
+			request = all? store.getAll(value as any) : store.get(value as any);
 		} else if (description.indexes.find(x => x.property === property)) {
 			// The property has an index, so use the index to get it.
 			let index = store.index(property as string);
-			request = index.get(value as any);
+			request = all? index.getAll(value as any) : index.get(value as any);
 		} else {
 			// Otherwise, we need to search through all records to find a match. Do so with a cursor:
 			await new Promise((resolve) => {
@@ -85,9 +96,13 @@ export class Database {
 					if (cursor) {
 						let record = (cursor as any).value as typeof databaseDescription["collections"][K]["format"];
 						if (record[property] === value) {
-							result = record;
-							resolve();
-							return;
+							if (all) {
+								result.push(record);
+							} else {
+								result = record;
+								resolve();
+								return;
+							}
 						}
 						cursor.continue();
 					} else {
@@ -99,18 +114,42 @@ export class Database {
 
 		if (request) {
 			await new Promise((resolve) => request.onsuccess = resolve);
-			result = request.result || null;
+			if (request.result) result = request.result;
 		}
 
 		return result;
 	}
 
-	/** Finds a record based on a predicate. */
-	async find<K extends CollectionName>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean) {
+	/**
+	 * Gets a record based on one of its properties.
+	 * @param collectionName The collection's name
+	 * @param property The property
+	 * @param value The property's value to search for
+	 */
+	async get<K extends CollectionName, P extends keyof typeof databaseDescription["collections"][K]["format"]>(collectionName: K, property: P, value: typeof databaseDescription["collections"][K]["format"][P]) {
+		return this.getInternal(collectionName, property, value, false);
+	}
+
+	/**
+	 * Gets all records based on one of their properties.
+	 * @param collectionName The collection's name
+	 * @param property The property
+	 * @param value The property's value to search for
+	 */
+	async getAll<K extends CollectionName, P extends keyof typeof databaseDescription["collections"][K]["format"]>(collectionName: K, property: P, value: typeof databaseDescription["collections"][K]["format"][P]) {
+		return this.getInternal(collectionName, property, value, true);
+	}
+
+	/** See getInternal. */
+	private async findInternal<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean, all: A):
+		Promise<A extends true ?
+		typeof databaseDescription["collections"][K]["format"][] :
+		typeof databaseDescription["collections"][K]["format"]> {
+		
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readonly');
 		let store = transaction.objectStore(collectionName);
-		let result: typeof databaseDescription["collections"][K]["format"] = null;
+		let result: any = all? [] : null;
 
 		await new Promise((resolve) => {
 			// Loop through all records with a cursor until a match is found
@@ -119,9 +158,13 @@ export class Database {
 				if (cursor) {
 					let record = (cursor as any).value as typeof databaseDescription["collections"][K]["format"];
 					if (predicate(record)) {
-						result = record;
-						resolve();
-						return;
+						if (all) {
+							result.push(record);
+						} else {
+							result = record;
+							resolve();
+							return;
+						}
 					}
 
 					cursor.continue();
@@ -132,6 +175,16 @@ export class Database {
 		});
 
 		return result;
+	}
+
+	/** Finds a record based on a predicate. */
+	async find<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean) {
+		return this.findInternal(collectionName, predicate, false);
+	}
+
+	/** Finds all records fulfilling a predicate. */
+	async findAll<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean) {
+		return this.findInternal(collectionName, predicate, true);
 	}
 
 	/** Deletes a record from the database. */

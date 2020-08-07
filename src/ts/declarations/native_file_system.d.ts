@@ -16,8 +16,8 @@ declare class FileSystemHandle {
 	public isDirectory: boolean;
 	public isFile: boolean;
 	public name: string;
-	public queryPermission(opts: any): boolean;
-	public requestPermission(opts: any): boolean;
+	public queryPermission(opts?: any): Promise<string>;
+	public requestPermission(opts?: any): Promise<boolean>;
 }
 
 declare class FileSystemDirectoryHandle extends FileSystemHandle {

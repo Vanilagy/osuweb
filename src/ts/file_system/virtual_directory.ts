@@ -1,7 +1,8 @@
-import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
+import { VirtualFileSystemEntry, VirtualFileSystemEntryDescription } from "./virtual_file_system_entry";
 import { VirtualFile } from "./virtual_file";
 import { splitPath } from "../util/file_util";
 import { assert } from "../util/misc_util";
+import { globalState } from "../global_state";
 
 export class VirtualDirectory extends VirtualFileSystemEntry {
 	private entries: Map<string, VirtualFileSystemEntry>;
@@ -13,7 +14,9 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	private failedNetworkFallbacks: Set<string>;
 
 	/** If the directory was created using the Native File System API, this will be set. */
-	private directoryHandle: FileSystemDirectoryHandle = null;
+	private directoryHandle: FileSystemDirectoryHandle = null
+	/** The id of the handle which can be used to retrieve it from the database. */
+	public directoryHandleId: string = null;
 	/** Cache the entries object in the hope that stuff won't freeze up (the API is still buggy!) */
 	private directoryHandleEntries: ReturnType<FileSystemDirectoryHandle["getEntries"]> = null;
 	/** Since iterating a directory handle is async, this flag will be set to true if we have successfully iterated over all entries in the directory (which then will be cached). */
@@ -259,11 +262,42 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	}
 
 	/** Creates a directory from a FileSystemDirectoryHandle (Native File System API) */
-	static fromDirectoryHandle(handle: FileSystemDirectoryHandle, saveHandle = true) {
+	static fromDirectoryHandle(handle: FileSystemDirectoryHandle, saveHandle = true, handleId?: string) {
 		let root = new VirtualDirectory(handle.name);
 		root.isNativeFileSystem = true;
-		if (saveHandle) root.directoryHandle = handle;
+		if (saveHandle) {
+			root.directoryHandle = handle;
+			root.directoryHandleId = handleId;
+		}
 
 		return root;
 	}
+
+	toDescription(): VirtualDirectoryDescription {
+		return {
+			type: 'directory',
+			name: this.name,
+			isNativeFileSystem: this.isNativeFileSystem,
+			directoryHandleId: this.directoryHandleId
+		};
+	}
+
+	static async fromDescription(description: VirtualDirectoryDescription) {
+		let directory = new VirtualDirectory(description.name);
+		directory.isNativeFileSystem = description.isNativeFileSystem;
+
+		if (description.directoryHandleId) {
+			directory.directoryHandleId = description.directoryHandleId;
+			// Get the handle from the database
+			let handle = (await globalState.database.get('directoryHandle', 'id', description.directoryHandleId))?.handle;
+			if (handle) directory.directoryHandle = handle;
+		}
+
+		return directory;
+	}
+}
+
+export interface VirtualDirectoryDescription extends VirtualFileSystemEntryDescription {
+	type: 'directory',
+	directoryHandleId?: string
 }

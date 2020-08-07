@@ -1,4 +1,4 @@
-import { VirtualFileSystemEntry } from "./virtual_file_system_entry";
+import { VirtualFileSystemEntry, VirtualFileSystemEntryDescription } from "./virtual_file_system_entry";
 import { getFilenameWithoutExtension, getFileExtension } from "../util/file_util";
 import { assert } from "../util/misc_util";
 
@@ -115,4 +115,24 @@ export class VirtualFile extends VirtualFileSystemEntry {
 
 		return newFile;
 	}
+
+	toDescription(): VirtualFileDescription {
+		return {
+			type: 'file',
+			name: this.name,
+			isNativeFileSystem: this.isNativeFileSystem
+		};
+	}
+
+	static fromDescription(description: VirtualFileDescription) {
+		let file = new VirtualFile();
+		file.name = description.name;
+		file.isNativeFileSystem = description.isNativeFileSystem;
+
+		return file;
+	}
+}
+
+export interface VirtualFileDescription extends VirtualFileSystemEntryDescription {
+	type: 'file'
 }

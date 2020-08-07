@@ -1,9 +1,9 @@
 import { CustomEventEmitter } from "../../util/custom_event_emitter";
-import { Searchable, createSearchableString, removeItem } from "../../util/misc_util";
+import { Searchable, createSearchableString, removeItem, assert } from "../../util/misc_util";
 import { VirtualFile } from "../../file_system/virtual_file";
-import { VirtualDirectory } from "../../file_system/virtual_directory";
+import { VirtualDirectory, VirtualDirectoryDescription } from "../../file_system/virtual_directory";
 import { BasicBeatmapData, BeatmapUtil } from "../../util/beatmap_util";
-import { BeatmapEntry } from "./beatmap_entry";
+import { BeatmapEntry, BeatmapEntryDescription } from "./beatmap_entry";
 import { isOsuBeatmapFile } from "../../util/file_util";
 import { startJob } from "../../multithreading/job_system";
 import { JobUtil } from "../../multithreading/job_util";
@@ -15,6 +15,8 @@ import { NotificationType } from "../../menu/notifications/notification";
 const metadataExtractor = /^(.+) - (.+) \((.+)\) \[(.+)\]\.osu$/;
 
 export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, removeEntry: BeatmapEntry}> implements Searchable {
+	public id: string;
+
 	// These lower-case versions exist to enable faster sorting
 	public title: string;
 	public titleLowerCase: string;
@@ -37,12 +39,14 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	/** Whether or not this beatmap set is defective and/or as been removed. Reasons for defectiveness often include errors during file loading. Defective beatmap sets should not be used! */
 	public defective = false;
 
-	constructor(directory: VirtualDirectory) {
+	constructor(directory: VirtualDirectory, id?: string) {
 		super();
+
+		this.id = id ?? ULID.ulid(); // Generate a new ID if necessary
 		this.directory = directory;
 	}
 
-	setBasicMetadata(title: string, artist: string, creator?: string) {
+	setBasicMetadata(title: string, artist: string, creator?: string, doStore = false) {
 		this.title = title;
 		this.titleLowerCase = title.toLowerCase();
 		this.artist = artist;
@@ -51,6 +55,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		this.creatorLowerCase = creator?.toLowerCase();
 
 		this.updateSearchableString();
+		if (doStore) this.store();
 	}
 
 	updateSearchableString() {
@@ -71,6 +76,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	loadEntries() {
 		// Entries are already loading, return the ongoing promise.
 		if (this.entriesLoadingPromise) return this.entriesLoadingPromise;
+		if (this.entriesLoaded) return;
 
 		let promise = new Promise<void>(async (resolve) => {
 			for await (let fileEntry of this.directory) {
@@ -123,7 +129,8 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 				this.remove();
 				globalState.notificationPanel.showNotification("Error importing beatmap set", `Could not import the folder "${this.directory.name}".`, NotificationType.Error);
 			}
-
+			
+			await this.store();
 			resolve();
 		});
 		this.entriesLoadingPromise = promise;
@@ -136,6 +143,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		// Metadata is already loading, return the ongoing promise.
 		if (this.metadataLoadingPromise) return this.metadataLoadingPromise;
 		if (!this.basicData || this.defective) return;
+		if (this.metadataLoaded) return;
 
 		let promise = new Promise<void>(async (resolve) => {
 			if (!this.entriesLoaded) await this.loadEntries();
@@ -161,6 +169,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 			this.metadataLoaded = true;
 			this.emit('change');
 
+			await this.store();
 			resolve();
 		});
 		this.metadataLoadingPromise = promise;
@@ -172,6 +181,8 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	remove() {
 		this.defective = true;
 		this.emit('remove');
+
+		globalState.database.delete('beatmapSet', this.id);
 	}
 
 	/** Removes a specific beatmap entry. */
@@ -207,4 +218,56 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		// Using the "unit separator" control symbol here.
 		return this.title + '\u0031' + this.artist;
 	}
+
+	async store() {
+		await globalState.database.put('beatmapSet', this.toDescription());
+	}
+
+	toDescription(): BeatmapSetDescription {
+		return {
+			id: this.id,
+			directory: this.directory.toDescription(),
+			parentDirectoryHandleId: this.directory.parent?.directoryHandleId,
+			basicData: this.basicData,
+			entries: this.entries.map(entry => entry.toDescription()),
+			title: this.title,
+			artist: this.artist,
+			creator: this.creator,
+			entriesLoaded: this.entriesLoaded,
+			metadataLoaded: this.metadataLoaded,
+			defective: this.defective
+		};
+	}
+
+	static async fromDescription(description: BeatmapSetDescription, parentDirectory: VirtualDirectory) {
+		assert(!description.defective); // Defective beatmaps should never reach this method
+
+		let directory = await VirtualDirectory.fromDescription(description.directory);
+		parentDirectory.addEntry(directory);
+		let set = new BeatmapSet(directory, description.id);
+
+		set.setBasicMetadata(description.title, description.artist, description.creator);
+		set.basicData = description.basicData;
+		set.entries = description.entries.map(entry => BeatmapEntry.fromDescription(entry, set));
+		set.entriesLoaded = description.entriesLoaded;
+		set.metadataLoaded = description.metadataLoaded;
+		set.updateSearchableString();
+
+		return set;
+	}
+}
+
+export interface BeatmapSetDescription {
+	id: string,
+	directory: VirtualDirectoryDescription,
+	/** Incase the parent directory is a directory handle, store its ID so we can load this beatmap from the database when the same folder is selected again. */
+	parentDirectoryHandleId?: string,
+	basicData: BasicBeatmapData,
+	entries: BeatmapEntryDescription[],
+	title: string,
+	artist: string,
+	creator: string,
+	entriesLoaded: boolean,
+	metadataLoaded: boolean,
+	defective: boolean
 }
