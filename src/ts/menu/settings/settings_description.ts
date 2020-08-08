@@ -1,7 +1,7 @@
 import { RangeSliderOptions } from "../components/range_slider";
 import { masterGain, mediaAudioNode, soundEffectsNode, audioContext } from "../../audio/audio";
 import { AudioUtil } from "../../util/audio_util";
-import { EMPTY_FUNCTION, toPercentageString } from "../../util/misc_util";
+import { toPercentageString } from "../../util/misc_util";
 import { globalState } from "../../global_state";
 import { setMouseSensitivity } from "../../input/input";
 import { NotificationType } from "../notifications/notification";
@@ -148,6 +148,11 @@ export const settingsDescriptionExact = buildSettings({
 			else globalState.fpsMeter?.hide();
 		}
 	},
+	'reduceFpsWhenBlurred': {
+		type: SettingType.Checkbox,
+		displayName: "Reduce FPS when page is unfocused",
+		default: true
+	},
 	'snakingSliders': {
 		type: SettingType.Checkbox,
 		displayName: "Snaking sliders",
@@ -180,8 +185,12 @@ export const settingsDescriptionExact = buildSettings({
 		onChange: (val) => {
 			globalState.cursor.refresh();
 
-			if (val && globalState.settings['mouseInputMode'] === 'raw') document.documentElement.requestPointerLock();
-			else document.exitPointerLock();
+			if (val && globalState.settings['mouseInputMode'] === 'raw') {
+				document.documentElement.requestPointerLock();
+				showRawInputModeWarning();
+			} else {
+				document.exitPointerLock();
+			}
 
 			if (val) {
 				globalState.settingsPanel.enableElement('mouseSensitivity');
@@ -203,10 +212,12 @@ export const settingsDescriptionExact = buildSettings({
 			'raw': "Raw"
 		},
 		onChange: (setting) => {
+			if (!globalState.settings['useSoftwareCursor']) return;
+
 			if (setting === 'absolute') document.exitPointerLock();
 			else if (setting === 'raw') {
 				document.documentElement.requestPointerLock();
-				globalState.notificationPanel.showNotification("Raw mouse input activated", "To exit, move the cursor to the side and press ESC.", NotificationType.Warning);
+				showRawInputModeWarning();
 			}
 
 			updateLowSensitivityWarning();
@@ -266,6 +277,10 @@ export const settingsDescription: {
 		S[K] extends CheckboxSettingDescription ? CheckboxSettingDescription :
 		SelectionSettingDescription
 } = settingsDescriptionExact;
+
+function showRawInputModeWarning() {
+	globalState.notificationPanel.showNotification("Raw mouse input activated", "To exit, move the cursor to the side and press ESC.", NotificationType.Warning);
+}
 
 function updateLowSensitivityWarning() {
 	if (globalState.settings['mouseSensitivity'] < 1.0 && globalState.settings['mouseInputMode'] !== 'raw') {

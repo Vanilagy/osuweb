@@ -42,6 +42,7 @@ export class Database {
 					}
 				}
 
+				// Create the key-value store
 				try {
 					db.createObjectStore(KeyValueStore.storeName);
 				} catch (e) {}
@@ -55,7 +56,9 @@ export class Database {
 		let transaction = db.transaction(collectionName, 'readwrite');
 		let store = transaction.objectStore(collectionName);
 
-		store.put(data);
+		let request = store.put(data);
+
+		await new Promise(resolve => request.onsuccess = resolve);
 	}
 
 	/** The internal method to handle gets, both single and multiple-item. */
@@ -141,11 +144,12 @@ export class Database {
 	}
 
 	/** See getInternal. */
-	private async findInternal<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean, all: A):
+	private async findInternal<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean, all: A
+	):
 		Promise<A extends true ?
 		typeof databaseDescription["collections"][K]["format"][] :
-		typeof databaseDescription["collections"][K]["format"]> {
-		
+		typeof databaseDescription["collections"][K]["format"]>
+	{
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readonly');
 		let store = transaction.objectStore(collectionName);
@@ -211,7 +215,9 @@ class KeyValueStore {
 		let transaction = db.transaction(KeyValueStore.storeName, 'readwrite');
 		let store = transaction.objectStore(KeyValueStore.storeName);
 
-		store.put(value, key);
+		let request = store.put(value, key);
+
+		return new Promise(resolve => request.onsuccess = resolve);
 	}
 
 	async get<K extends keyof typeof databaseDescription['keyValueStore']>(key: K): Promise<typeof databaseDescription['keyValueStore'][K]> {
@@ -229,6 +235,7 @@ class KeyValueStore {
 		let db = await this.db.idbDatabase;
 		let transaction = db.transaction(KeyValueStore.storeName, 'readwrite');
 		let store = transaction.objectStore(KeyValueStore.storeName);
+
 		let request = store.delete(key);
 
 		return new Promise(resolve => request.onsuccess = resolve);
