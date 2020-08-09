@@ -9,6 +9,8 @@ export class LoadingIndicator {
 	private startTime: number = null;
 	private scalingFactor: number = 1;
 
+	private infoText: PIXI.Text;
+
 	constructor(width: number) {
 		this.container = new PIXI.Container();
 		this.width = width;
@@ -19,6 +21,15 @@ export class LoadingIndicator {
 
 		this.loadingBar = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.container.addChild(this.loadingBar);
+
+		this.infoText = new PIXI.Text("");
+		this.infoText.style = {
+			fontFamily: "Exo2-Light",
+			fill: 0xffffff
+		};
+		this.infoText.visible = false;
+		this.infoText.alpha = 0.75;
+		this.container.addChild(this.infoText);
 	}
 
 	resize(scalingFactor: number) {
@@ -26,6 +37,10 @@ export class LoadingIndicator {
 
 		this.background.width = this.loadingBar.width = Math.floor(this.width * scalingFactor);
 		this.background.height = this.loadingBar.height = Math.ceil(1 * scalingFactor);
+
+		this.infoText.style.fontSize = Math.floor(10 * this.scalingFactor);
+		this.infoText.y = Math.floor(-15 * this.scalingFactor);
+		this.infoText.x = 0;
 	}
 
 	update(now: number) {
@@ -59,5 +74,14 @@ export class LoadingIndicator {
 
 	start() {
 		this.startTime = performance.now();
+	}
+
+	setInfoText(text: string) {
+		if (text) {
+			this.infoText.text = text;
+			this.infoText.visible = true;
+		} else {
+			this.infoText.visible = false;
+		}
 	}
 }

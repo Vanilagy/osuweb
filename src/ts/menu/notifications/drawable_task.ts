@@ -80,8 +80,10 @@ export class DrawableTask extends NotificationPanelEntry {
 			this.pendingText.alpha = MathUtil.lerp(0.4, 0.666, Math.cos(now / 1000 * TAU) * 0.5 + 0.5);
 		} else {
 			let progress = this.task.getProgress();
-			if (progress) {
-				// If there is progress data, show a loading bar
+			let progressMessage = this.task.getProgressMessage();
+
+			if (progress && !progressMessage) {
+				// If there is progress data (but no progress message!), show a loading bar
 				this.progressBar.container.visible = true;
 	
 				this.progressBar.setProgress(progress.completion);
@@ -93,6 +95,7 @@ export class DrawableTask extends NotificationPanelEntry {
 				// ...otherwise, show a generic loading indicator.
 				this.loadingIndicator.container.visible = true;
 				this.loadingIndicator.update(now);
+				this.loadingIndicator.setInfoText(progressMessage);
 			}
 		}
 	}

@@ -1,7 +1,5 @@
 import { Task } from "./task";
-import { globalState } from "../global_state";
 import { removeItem } from "../util/misc_util";
-import { DrawableTask } from "../menu/notifications/drawable_task";
 
 export class TaskManager {
 	private tasks: Task<any, any>[] = [];
@@ -9,10 +7,7 @@ export class TaskManager {
 	addTask(task: Task<any, any>) {
 		this.tasks.push(task);
 
-		if (task.show) {
-			let drawable = new DrawableTask(globalState.notificationPanel, task);
-			globalState.notificationPanel.addEntryToSection(drawable, "tasks");
-		}
+		if (task.showAutomatically) task.show();
 
 		task.getResult().finally(() => {
 			removeItem(this.tasks, task);

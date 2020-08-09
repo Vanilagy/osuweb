@@ -3,10 +3,10 @@ import { DEFAULT_BUTTON_HEIGHT, Button, DEFAULT_BUTTON_WIDTH, ButtonPivot } from
 import { THEME_COLORS } from "../../util/constants";
 import { supportsNativeFileSystemApi, addNounToNumber } from "../../util/misc_util";
 import { VirtualDirectory } from "../../file_system/virtual_directory";
-import { ImportBeatmapsFromDirectoryTask } from "../../datamodel/beatmap/beatmap_library";
 import { LoadingIndicator } from "../components/loading_indicator";
 import { globalState } from "../../global_state";
 import { PopupFrame } from "../components/popup_frame";
+import { ImportBeatmapsFromDirectoriesTask } from "../../datamodel/beatmap/beatmap_library";
 
 const PANEL_WIDTH = 420;
 const PANEL_HEIGHT = 250;
@@ -21,7 +21,7 @@ export class FolderSelector extends PopupFrame {
 	private loadingText: PIXI.Text;
 	private loadingIndicator: LoadingIndicator;
 
-	private loadingTask: ImportBeatmapsFromDirectoryTask = null;
+	private loadingTask: ImportBeatmapsFromDirectoriesTask = null;
 
 	constructor() {
 		super({
@@ -48,30 +48,32 @@ export class FolderSelector extends PopupFrame {
 			// Based on the supported method, call either the Native File System API or just a plain ol' <input type="file">.
 			if (supportsNativeFileSystemApi()) {
 				try {
-					// Find any stored directory handle
-					let handleData = await globalState.database.findAll('directoryHandle', () => true);
-					let handle: FileSystemDirectoryHandle;
-					let id: string;
+					// Get all stored directory handles
+					let storedHandles = await globalState.database.findAll('directoryHandle', () => true);
+					let handle = await chooseFileSystemEntries({type: 'open-directory'});
+					let id = ULID.ulid();
+					let storedHandleFound = false;
 
-					if (confirm() && handleData) {
-						for (let bla of handleData) {
-							await bla.handle.requestPermission();
+					for (let handleData of storedHandles) {
+						// See if a stored handle matches the currently selected one. If so, import is easy.
+						if (await handleData.handle.isSameEntry(handle)) {
+							id = handleData.id;
+							storedHandleFound = true;
+							break;
 						}
-
-						/*
-						handle = handleData.handle;
-						id = handleData.id;
-
-						if (await handle.queryPermission() !== 'granted') await handle.requestPermission();*/
-					} else {
-						handle = await chooseFileSystemEntries({type: 'open-directory'});
-						id = ULID.ulid(); // Generate a new id for the handle
-
-						await globalState.database.put('directoryHandle', { id, handle });
 					}
-
+					
 					let directory = VirtualDirectory.fromDirectoryHandle(handle, true, id);
-					this.createTask(directory);
+
+					if (storedHandleFound) {
+						// Store again to update the permission state
+						await globalState.database.put('directoryHandle', { id, handle, permissionGranted: true });
+
+						globalState.beatmapLibrary.reopenImportedDirectories([directory]);
+						this.hide();
+					} else {
+						this.createTask(directory);
+					}
 				} catch (e) {} 
 			} else {
 				// Create a temporary input element, then click it
@@ -108,7 +110,7 @@ export class FolderSelector extends PopupFrame {
 	}
 
 	private createTask(directory: VirtualDirectory) {
-		let task = new ImportBeatmapsFromDirectoryTask(directory);
+		let task = new ImportBeatmapsFromDirectoriesTask([directory]);
 		task.start();
 
 		this.loadingTask = task;

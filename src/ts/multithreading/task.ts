@@ -1,4 +1,5 @@
 import { globalState } from "../global_state";
+import { DrawableTask } from "../menu/notifications/drawable_task";
 
 export interface TaskStatus {
 	settled: boolean,
@@ -38,8 +39,8 @@ export abstract class Task<U, T> {
 
 	/** Describes what this task does. */
 	abstract get descriptor(): string;
-	/** Whether or not this task should be shown in the notification panel. */
-	abstract get show(): boolean;
+	/** Whether or not this task should automatically be shown in the notification panel. */
+	abstract get showAutomatically(): boolean;
 	/** If this is set to true, then this task will automatically be paused during gameplay. */
 	abstract get isPerformanceIntensive(): boolean;
 
@@ -89,6 +90,11 @@ export abstract class Task<U, T> {
 		return null;
 	}
 
+	/** Returns a more individual message describing the progress of the task, better than getProgress could. */
+	getProgressMessage(): string {
+		return null;
+	}
+
 	waitFor(task: Task<any, any>) {
 		this.awaitingTask = task;
 
@@ -108,5 +114,11 @@ export abstract class Task<U, T> {
 		this.destroyed = true;
 		
 		globalState.taskManager.removeTask(this);
+	}
+
+	/** Display the task in the notification panel. */
+	show() {
+		let drawable = new DrawableTask(globalState.notificationPanel, this);
+		globalState.notificationPanel.addEntryToSection(drawable, "tasks");
 	}
 }

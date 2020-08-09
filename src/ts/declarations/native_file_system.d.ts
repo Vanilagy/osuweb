@@ -17,7 +17,8 @@ declare class FileSystemHandle {
 	public isFile: boolean;
 	public name: string;
 	public queryPermission(opts?: any): Promise<string>;
-	public requestPermission(opts?: any): Promise<boolean>;
+	public requestPermission(opts?: any): Promise<string>;
+	public isSameEntry(handle2: FileSystemHandle): Promise<boolean>;
 }
 
 declare class FileSystemDirectoryHandle extends FileSystemHandle {

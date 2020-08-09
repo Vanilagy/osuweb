@@ -115,7 +115,7 @@ export abstract class PopupFrame {
 			let button = new Button(DEFAULT_BUTTON_WIDTH, DEFAULT_BUTTON_HEIGHT, 15, ButtonPivot.TopRight, b.label, colorToHexNumber(b.color));
 
 			this.centerContainer.addChild(button.container);
-			button.setupInteraction(this.interactionGroup, b.onclick.bind(this));
+			button.setupInteraction(this.interactionGroup, () => b.onclick());
 			this.buttons.push(button);
 		}
 
@@ -211,5 +211,7 @@ export abstract class PopupFrame {
 		this.fadeInInterpolator.setReversedState(false, performance.now());
 	}
 
-	abstract triggerClose(): void;
+	triggerClose() {
+		this.hide();
+	}
 }

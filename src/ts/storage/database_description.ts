@@ -21,7 +21,9 @@ export const databaseDescription = buildDatabaseDescription({
 		"directoryHandle": {
 			format: null as {
 				handle: FileSystemDirectoryHandle,
-				id: string
+				id: string,
+				/** If the user last granted permission to use this directory handle. If yes, prompt them the next time to reopen the directory. */
+				permissionGranted: boolean
 			},
 			key: "id",
 			indexes: []

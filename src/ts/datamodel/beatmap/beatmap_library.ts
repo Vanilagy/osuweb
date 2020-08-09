@@ -29,7 +29,8 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 	}
 
 	/** Adds beatmap sets and begins loading their metadata. */
-	async addBeatmapSets(beatmapSets: BeatmapSet[], defectiveSetCount = 0, singleImport: boolean) {
+	/** @param areNew Indicates that all imported sets are fresh and new and haven't been imported before. */
+	async addBeatmapSets(beatmapSets: BeatmapSet[], defectiveSetCount = 0, areNew: boolean) {
 		for (let set of beatmapSets) {
 			set.addListener('change', () => this.emit('change', set));
 			set.addListener('remove', () => {
@@ -42,9 +43,6 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		this.beatmapSets.push(...beatmapSets);
 		this.emit('add', beatmapSets);
 
-		// No need to do all the task wizardry if the beatmap has already been completely loaded!
-		if (singleImport) return;
-
 		let entryLoadNeeded = beatmapSets.filter(x => !x.entriesLoaded);
 		let metadataLoadNeeded = beatmapSets.filter(x => !x.metadataLoaded);
 		let loadEntriesTask: LoadBeatmapEntriesTask;
@@ -56,7 +54,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		}
 
 		if (metadataLoadNeeded.length > 0) {
-			let loadMetadataTask = new LoadBeatmapMetadataTask(beatmapSets);
+			loadMetadataTask = new LoadBeatmapMetadataTask(metadataLoadNeeded);
 			if (loadEntriesTask) loadMetadataTask.waitFor(loadEntriesTask);
 			else loadMetadataTask.start(); // Start it directly, since there is no other task to wait for
 
@@ -66,11 +64,8 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		const complete = async () => {
 			// Generate the import completion notification
 			if (!loadMetadataTask) {
-				if (beatmapSets.length === 0) {
+				if (beatmapSets.length === 0 && areNew) {
 					globalState.notificationPanel.showNotification("Beatmap import", "No beatmaps have been imported.", NotificationType.Warning);
-				} else {
-					// In this case beatmaps were imported that have been loaded before
-					globalState.notificationPanel.showNotification("Beatmap loading complete", "All beatmaps have been loaded.", NotificationType.Neutral, true);
 				}
 
 				return;
@@ -104,44 +99,63 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		if (loadMetadataTask) loadMetadataTask.getResult().then(complete);
 		else complete();
 	}
+
+	reopenImportedDirectories(directories: VirtualDirectory[]) {
+		if (directories.length === 0) return;
+
+		let task = new ImportBeatmapsFromDirectoriesTask(directories);
+		task.start();
+		task.show(); // Actually show the task in the notification panel
+	}
 }
 
-/** Imports all beatmap sets from a directory. */
-export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, {
+/** Imports all beatmap sets from a list of directories. */
+export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], {
 	beatmapSets: BeatmapSet[],
 	defectiveSets: number
 }> {
 	private processed = new Set<VirtualFileSystemEntry>();
-	private ignoreDirectoryNames = new Set<string>();
+	/** Per directory, the names of entries that should be ignored when iterating. */
+	private ignoreDirectoryNames = new WeakMap<VirtualDirectory, Set<string>>();
 	private beatmapSets: BeatmapSet[] = [];
 	private paused = true;
 	private id = 0;
-	/** The selected input directory could either be a directory of beatmap directories, or just a single beatmap directory. Which one is the case needs to be detected first, and this variable reflects the state of that detection. */
-	private currentType: 'undetermined' | 'multiple' | 'single' = 'undetermined';
+	/** The selected input directories could either be a directory of beatmap directories, or just a single beatmap directory. Which one is the case needs to be detected first, and this variable stores the state of that detection. */
+	private currentType: WeakMap<VirtualDirectory, 'undetermined' | 'multiple' | 'single'> = new WeakMap();
 	private defectiveBeatmapSetCount = 0;
 
-	get descriptor() {return "Importing directory"}
-	get show() {return false}
+	get descriptor() {return "Scanning for new beatmaps"}
+	get showAutomatically() {return false}
 	get isPerformanceIntensive() {return true}
 
 	async init() {
-		// Query the database for stored beatmap descriptions for this directory handle
-		let storedBeatmaps = await globalState.database.getAll('beatmapSet', 'parentDirectoryHandleId', this.input.directoryHandleId);
+		let storedBeatmapSets: BeatmapSet[] = [];
 
-		for (let desc of storedBeatmaps) {
-			if (!desc.defective) {
-				// Create the beatmap set
-				let beatmapSet = await BeatmapSet.fromDescription(desc, this.input);
-				this.beatmapSets.push(beatmapSet);
+		for (let directory of this.input) {
+			// Set the default values
+			this.currentType.set(directory, 'undetermined');
+			this.ignoreDirectoryNames.set(directory, new Set());
+
+			// Query the database for stored beatmap descriptions for this directory handle
+			let storedDescriptions = await globalState.database.getAll('beatmapSet', 'parentDirectoryHandleId', directory.directoryHandleId);
+
+			for (let desc of storedDescriptions) {
+				if (!desc.defective) {
+					// Create the beatmap set
+					let beatmapSet = await BeatmapSet.fromDescription(desc, directory);
+					storedBeatmapSets.push(beatmapSet);
+				}
+				
+				// Make sure we don't reimport the beatmap with the same directory name
+				this.ignoreDirectoryNames.get(directory).add(desc.directory.name);
 			}
-			
-			// Make sure we don't reimport the beatmap with the same directory name
-			this.ignoreDirectoryNames.add(desc.directory.name);
+
+			if (storedDescriptions.length) {
+				this.currentType.set(directory, 'multiple');
+			}
 		}
 
-		if (storedBeatmaps.length) {
-			this.currentType = 'multiple';
-		}
+		globalState.beatmapLibrary.addBeatmapSets(storedBeatmapSets, 0, false);
 	}
 
 	async resume() {
@@ -151,69 +165,79 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, {
 
 		let idAtStart = this.id;
 
-		for await (let entry of this.input) {
-			if (this.id !== idAtStart) return;
-
-			// If we've already processed this entry, skip it
-			if (this.processed.has(entry)) continue;
-			this.processed.add(entry);
-
-			if (entry instanceof VirtualFile) {
-				// If we already know we're searching through a list of beatmap directories, we can ignore files
-				if (this.currentType === 'multiple') continue;
-
-				if (isOsuBeatmapFile(entry.name)) {
-					// If we find a single .osu beatmap file, we can assume we're in a single beatmap folder.
-					this.currentType = 'single';
-					
-					let beatmapSet = new BeatmapSet(this.input);
-
-					// Load entries and metadata here instead of later, so that the import into the carousel is instant
-					await beatmapSet.loadEntries();
-					await beatmapSet.loadMetadata();
-
-					this.beatmapSets = beatmapSet.defective? [] : [beatmapSet];
-					break;
+		for (let directory of this.input) {
+			for await (let entry of directory) {
+				if (this.id !== idAtStart) return;
+	
+				// If we've already processed this entry, skip it
+				if (this.processed.has(entry)) continue;
+				this.processed.add(entry);
+	
+				if (entry instanceof VirtualFile) {
+					// If we already know we're searching through a list of beatmap directories, we can ignore files
+					if (this.currentType.get(directory) === 'multiple') continue;
+	
+					if (isOsuBeatmapFile(entry.name)) {
+						// If we find a single .osu beatmap file, we can assume we're in a single beatmap folder.
+						this.currentType.set(directory, 'single');
+						
+						let beatmapSet = new BeatmapSet(directory);
+	
+						// Load entries and metadata here instead of later, so that the import into the carousel is instant
+						await beatmapSet.loadEntries();
+						await beatmapSet.loadMetadata();
+	
+						this.beatmapSets = beatmapSet.defective? [] : [beatmapSet];
+						break;
+					}
 				}
+	
+				if (!(entry instanceof VirtualDirectory)) continue;
+				if (this.ignoreDirectoryNames.get(directory).has(entry.name)) continue;
+	
+				let match = beatmapFolderRegex.exec(entry.name);
+				if (match) {
+					// Get a quick and dirty estimate of the title and arist as a placeholder before actual metadata is loaded.
+					let title = match[2];
+					let artist = match[1];
+	
+					let newSet = new BeatmapSet(entry);
+					newSet.setBasicMetadata(title, artist, null, true);
+	
+					this.beatmapSets.push(newSet);
+				} else {
+					// The folder doesn't follow the usual naming convention. In this case, we pre-parse the metadata.
+					let newSet = new BeatmapSet(entry);
+					await newSet.loadEntries();
+	
+					if (!newSet.defective) this.beatmapSets.push(newSet);
+					else this.defectiveBeatmapSetCount++;
+				}
+	
+				// If we've seen multiple beatmap directories already, we can assume we're in a directory of beatmap directories.
+				if (this.beatmapSets.length >= 5) this.currentType.set(directory, 'multiple');
 			}
-
-			if (!(entry instanceof VirtualDirectory)) continue;
-			if (this.ignoreDirectoryNames.has(entry.name)) continue;
-
-			let match = beatmapFolderRegex.exec(entry.name);
-			if (match) {
-				// Get a quick and dirty estimate of the title and arist as a placeholder before actual metadata is loaded.
-				let title = match[2];
-				let artist = match[1];
-
-				let newSet = new BeatmapSet(entry);
-				newSet.setBasicMetadata(title, artist, null, true);
-
-				this.beatmapSets.push(newSet);
-			} else {
-				// The folder doesn't follow the usual naming convention. In this case, we pre-parse the metadata.
-				let newSet = new BeatmapSet(entry);
-				await newSet.loadEntries();
-
-				if (!newSet.defective) this.beatmapSets.push(newSet);
-				else this.defectiveBeatmapSetCount++;
-			}
-
-			// If we've seen multiple beatmap directories already, we can assume we're in a directory of beatmap directories.
-			if (this.beatmapSets.length >= 5) this.currentType = 'multiple';
+	
+			if (this.currentType.get(directory) === 'undetermined') this.currentType.set(directory, 'multiple');
 		}
 
-		if (this.currentType === 'undetermined') this.currentType = 'multiple';
+		// Count it as new if there is exactly one directory input that hasn't yet been stored in the database
+		let isNew = this.input.length === 1 && !(await globalState.database.get('directoryHandle', 'id', this.input[0].directoryHandleId));
 
-		if (this.defectiveBeatmapSetCount > 0 && this.currentType === 'multiple') {
-			console.info(this.defectiveBeatmapSetCount + " beatmap set(s) not imported because they were defective.");
-		}
-
-		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets, this.defectiveBeatmapSetCount, this.currentType === 'single');
+		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets, this.defectiveBeatmapSetCount, isNew);
 		this.setResult({
 			beatmapSets: this.beatmapSets,
 			defectiveSets: this.defectiveBeatmapSetCount
 		});
+
+		// Store all directory handles
+		for (let directory of this.input) {
+			if (directory.directoryHandleId && this.currentType.get(directory) === 'multiple') await globalState.database.put('directoryHandle', {
+				handle: await directory.getHandle(),
+				id: directory.directoryHandleId,
+				permissionGranted: true
+			});
+		}
 	}
 
 	pause() {
@@ -228,9 +252,13 @@ export class ImportBeatmapsFromDirectoryTask extends Task<VirtualDirectory, {
 	}
 
 	getProgress() {
-		return (this.currentType === 'multiple')? {
+		return (this.beatmapSets.length >= 5)? {
 			dataCompleted: this.beatmapSets.length
 		} : null;
+	}
+
+	getProgressMessage() {
+		return `Found ${addNounToNumber(this.beatmapSets.length, 'new beatmap set', 'new beatmap sets')} (${this.processed.size} scanned)`;
 	}
 }
 
@@ -240,8 +268,8 @@ export class LoadBeatmapEntriesTask extends Task<BeatmapSet[], void> {
 	private paused = true;
 	private id = 0;
 
-	get descriptor() {return "Importing beatmaps"}
-	get show() {return true}
+	get descriptor() {return "Importing beatmap sets"}
+	get showAutomatically() {return true}
 	get isPerformanceIntensive() {return true}
 
 	async init() {}
@@ -298,7 +326,7 @@ export class LoadBeatmapMetadataTask extends Task<BeatmapSet[], {
 	private defectiveSets = 0;
 
 	get descriptor() {return "Processing beatmap metadata"}
-	get show() {return true}
+	get showAutomatically() {return true}
 	get isPerformanceIntensive() {return true}
 
 	async init() {

@@ -19,6 +19,7 @@ import { VolumeController } from "./menu/misc/volume_controller";
 import { MusicPlayer } from "./menu/music_player/music_player";
 import { ToastManager } from "./menu/notifications/toasts";
 import { Database } from "./storage/database";
+import { ImportedFolderRequester } from "./menu/import/imported_folder_requester";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -41,5 +42,6 @@ export const globalState = {
 	volumeController: null as VolumeController,
 	musicPlayer: null as MusicPlayer,
 	toastManager: null as ToastManager,
-	database: null as Database
+	database: null as Database,
+	importedFolderRequester: null as ImportedFolderRequester
 };

@@ -33,6 +33,7 @@ import { VolumeController } from './menu/misc/volume_controller';
 import { launchButton } from './menu/song_select/simple_songs_selector';
 import { ToastManager } from './menu/notifications/toasts';
 import { Database } from './storage/database';
+import { ImportedFolderRequester } from './menu/import/imported_folder_requester';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -54,12 +55,14 @@ async function init() {
 	initToolbar(); // This should be called before most other UI elements
 	initNotificationPanel();
 	initSettingsPanel();
-	initFolderSelector();
+	initImport();
 	initSongSelect();
 	initVolumeController();
 
 	applySettings();
 	launchButton.click(); // temp!
+
+	if (await globalState.database.get('directoryHandle', 'permissionGranted', true)) globalState.importedFolderRequester.show();
 
 	await initBaseSkin();
 	initGameplay();
@@ -186,15 +189,20 @@ function initScoreScreen() {
 	globalState.scoreScreen = scoreScreen;
 }
 
-function initFolderSelector() {
+function initImport() {
 	let folderSelector = new FolderSelector();
 	stage.addChild(folderSelector.container);
 	rootInteractionGroup.add(folderSelector.interactionGroup);
-
 	uiEventEmitter.addListener('resize', () => folderSelector.resize());
 	addRenderingTask((now) => folderSelector.update(now));
-
 	globalState.folderSelector = folderSelector;
+
+	let requester = new ImportedFolderRequester();
+	stage.addChild(requester.container);
+	rootInteractionGroup.add(requester.interactionGroup);
+	uiEventEmitter.addListener('resize', () => requester.resize());
+	addRenderingTask((now) => requester.update(now));
+	globalState.importedFolderRequester = requester;
 }
 
 async function initMisc() {
@@ -248,6 +256,7 @@ function setZIndexes() {
 	globalState.settingsPanel.container.zIndex = 3.4;
 	globalState.toolbar.container.zIndex = 3.9;
 	globalState.folderSelector.container.zIndex = 4;
+	globalState.importedFolderRequester.container.zIndex = 4;
 	globalState.volumeController.container.zIndex = 9;
 	globalState.toastManager.container.zIndex = 9.5;
 	globalState.fpsMeter.container.zIndex = 10;
@@ -261,6 +270,7 @@ function setZIndexes() {
 	globalState.settingsPanel.interactionGroup.setZIndex(3.4);
 	globalState.toolbar.interactionGroup.setZIndex(3.9);
 	globalState.folderSelector.interactionGroup.setZIndex(4);
+	globalState.importedFolderRequester.interactionGroup.setZIndex(4);
 	globalState.volumeController.interactionGroup.setZIndex(9);
 	globalState.globalInputListener.registration.setZIndex(100);
 }
