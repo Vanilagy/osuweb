@@ -386,3 +386,11 @@ export function addNounToNumber(value: number, singular: string, plural: string)
 }
 
 export type KeysWithType<T, U> = { [K in keyof T]-?: T[K] extends U ? K : never }[keyof T];
+
+export function addUnitToBytes(bytes: number) {
+	// Using base-10 units here instead of the Gibi/Mibi shit, 'cause no one thinks in that anyway.
+	if (bytes >= 10**12) return (bytes / 10**12).toFixed(2) + ' TB';
+	else if (bytes >= 10**9) return (bytes / 10**9).toFixed(2) + ' GB';
+	else if (bytes >= 10**6) return (bytes / 10**6).toFixed(2) + ' MB';
+	else return (bytes / 10**3).toFixed(2) + ' kB';
+}

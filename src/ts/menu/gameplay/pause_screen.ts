@@ -234,8 +234,8 @@ export class PauseScreen {
 	}
 
 	turnOffSound() {
-		globalState.baseSkin.sounds[SkinSoundType.PauseLoop].stop();
-		globalState.baseSkin.sounds[SkinSoundType.FailSound].stop();
+		globalState.baseSkin?.sounds[SkinSoundType.PauseLoop].stop();
+		globalState.baseSkin?.sounds[SkinSoundType.FailSound].stop();
 	}
 
 	shown() {

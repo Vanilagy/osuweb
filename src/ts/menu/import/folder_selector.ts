@@ -52,22 +52,23 @@ export class FolderSelector extends PopupFrame {
 					let storedHandles = await globalState.database.findAll('directoryHandle', () => true);
 					let handle = await chooseFileSystemEntries({type: 'open-directory'});
 					let id = ULID.ulid();
-					let storedHandleFound = false;
+					let matchingStoredHandle: typeof storedHandles[number];
 
 					for (let handleData of storedHandles) {
 						// See if a stored handle matches the currently selected one. If so, import is easy.
 						if (await handleData.handle.isSameEntry(handle)) {
 							id = handleData.id;
-							storedHandleFound = true;
+							matchingStoredHandle = handleData;
 							break;
 						}
 					}
 					
 					let directory = VirtualDirectory.fromDirectoryHandle(handle, true, id);
 
-					if (storedHandleFound) {
+					if (matchingStoredHandle) {
 						// Store again to update the permission state
-						await globalState.database.put('directoryHandle', { id, handle, permissionGranted: true });
+						matchingStoredHandle.permissionGranted = true;
+						await globalState.database.put('directoryHandle', matchingStoredHandle);
 
 						globalState.beatmapLibrary.reopenImportedDirectories([directory]);
 						this.hide();

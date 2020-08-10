@@ -16,16 +16,16 @@ beatmapFileSelect.addEventListener('change', async (e) => {
 	await beatmapSet.loadEntries();
 
 	let selectedOsuFile: VirtualFile;
-	if (beatmapSet.entries.length === 1) selectedOsuFile = beatmapSet.entries[0].resource;
+	if (beatmapSet.entries.length === 1) selectedOsuFile = await beatmapSet.entries[0].getFile();
 	else {
 		let promptStr = 'Select a beatmap by entering the number:\n';
 		beatmapSet.entries.forEach((entry, index) => {
-			let name = entry.resource.name;
+			let name = entry.path;
 			promptStr += index + ': ' + name + '\n';
 		});
 
 		let selection = prompt(promptStr);
-		if (selection !== null) selectedOsuFile = beatmapSet.entries[Number(selection)].resource;
+		if (selection !== null) selectedOsuFile = await beatmapSet.entries[Number(selection)].getFile();
 	}
 
 	if (!selectedOsuFile) return;

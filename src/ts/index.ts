@@ -34,6 +34,7 @@ import { launchButton } from './menu/song_select/simple_songs_selector';
 import { ToastManager } from './menu/notifications/toasts';
 import { Database } from './storage/database';
 import { ImportedFolderRequester } from './menu/import/imported_folder_requester';
+import { PopupManager } from './menu/misc/popup_manager';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -58,17 +59,18 @@ async function init() {
 	initImport();
 	initSongSelect();
 	initVolumeController();
-
-	applySettings();
-	launchButton.click(); // temp!
-
-	if (await globalState.database.get('directoryHandle', 'permissionGranted', true)) globalState.importedFolderRequester.show();
-
-	await initBaseSkin();
 	initGameplay();
 	initScoreGrades();
 	initScoreScreen();
 	setZIndexes();
+
+	applySettings();
+	launchButton.click(); // temp!
+	globalState.beatmapLibrary.loadStoredBeatmaps();
+
+	if (await globalState.database.get('directoryHandle', 'permissionGranted', true)) globalState.importedFolderRequester.show();
+	
+	await initBaseSkin();
 	showChooseFile();
 
 	globalState.cursor.refresh();
@@ -233,6 +235,13 @@ async function initMisc() {
 	uiEventEmitter.addListener('resize', () => toastManager.resize());
 	addRenderingTask((now) => toastManager.update(now));
 	globalState.toastManager = toastManager;
+
+	let popupManager = new PopupManager();
+	stage.addChild(popupManager.container);
+	rootInteractionGroup.add(popupManager.interactionGroup);
+	uiEventEmitter.addListener('resize', () => popupManager.resize());
+	addRenderingTask((now) => popupManager.update(now));
+	globalState.popupManager = popupManager;
 }
 
 function initVolumeController() {
@@ -257,6 +266,7 @@ function setZIndexes() {
 	globalState.toolbar.container.zIndex = 3.9;
 	globalState.folderSelector.container.zIndex = 4;
 	globalState.importedFolderRequester.container.zIndex = 4;
+	globalState.popupManager.container.zIndex = 8;
 	globalState.volumeController.container.zIndex = 9;
 	globalState.toastManager.container.zIndex = 9.5;
 	globalState.fpsMeter.container.zIndex = 10;
@@ -271,6 +281,7 @@ function setZIndexes() {
 	globalState.toolbar.interactionGroup.setZIndex(3.9);
 	globalState.folderSelector.interactionGroup.setZIndex(4);
 	globalState.importedFolderRequester.interactionGroup.setZIndex(4);
+	globalState.popupManager.interactionGroup.setZIndex(8);
 	globalState.volumeController.interactionGroup.setZIndex(9);
 	globalState.globalInputListener.registration.setZIndex(100);
 }

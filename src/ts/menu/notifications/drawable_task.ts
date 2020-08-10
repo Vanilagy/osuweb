@@ -5,6 +5,7 @@ import { MathUtil, TAU } from "../../util/math_util";
 import { LoadingIndicator } from "../components/loading_indicator";
 import { NotificationPanelEntry, NOTIFICATION_PADDING } from "./notification_panel_entry";
 import { THEME_COLORS } from "../../util/constants";
+import { globalState } from "../../global_state";
 
 const HEIGHT = 50;
 
@@ -16,7 +17,7 @@ export class DrawableTask extends NotificationPanelEntry {
 	private pendingText: PIXI.Text;
 
 	constructor(parent: NotificationPanel, task: Task<any, any>) {
-		super(parent, task.descriptor, THEME_COLORS.PrimaryViolet, false);
+		super(parent, task.descriptor, THEME_COLORS.PrimaryViolet, task.canBeCancelled);
 		this.task = task;
 
 		this.loadingIndicator = new LoadingIndicator(NOTIFICATION_PANEL_WIDTH - NOTIFICATION_PANEL_PADDING*2 - NOTIFICATION_PADDING*2);
@@ -98,5 +99,17 @@ export class DrawableTask extends NotificationPanelEntry {
 				this.loadingIndicator.setInfoText(progressMessage);
 			}
 		}
+	}
+
+	onManualClose() {
+		this.task.pause();
+		globalState.popupManager.createConfirm("Stop task", "Are you sure you want to stop this task?").then(result => {
+			if (result === 'yes') {
+				this.task.destroy();
+				this.close();
+			} else {
+				this.task.resume();
+			}
+		});
 	}
 }

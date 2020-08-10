@@ -74,8 +74,8 @@ export abstract class PopupFrame {
 		this.centerContainer.addChild(this.mask);
 
 		this.centerContainerBackground = new PIXI.Sprite(PIXI.Texture.WHITE);
-		this.centerContainerBackground.tint = 0x000000;
-		this.centerContainerBackground.alpha = 0.8;
+		this.centerContainerBackground.tint = 0x080808;
+		this.centerContainerBackground.alpha = 0.95;
 		this.centerContainerBackground.mask = this.mask;
 		this.centerContainer.addChild(this.centerContainerBackground);
 

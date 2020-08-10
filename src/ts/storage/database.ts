@@ -56,9 +56,9 @@ export class Database {
 		let transaction = db.transaction(collectionName, 'readwrite');
 		let store = transaction.objectStore(collectionName);
 
-		let request = store.put(data);
+		store.put(data);
 
-		await new Promise(resolve => request.onsuccess = resolve);
+		await new Promise(resolve => transaction.oncomplete = resolve);
 	}
 
 	/** The internal method to handle gets, both single and multiple-item. */
@@ -77,6 +77,9 @@ export class Database {
 			typeof databaseDescription["collections"][K]["format"]
 		>
 	{
+		// IDB doesn't support lookups for these values
+		if (value === undefined || value === null) return (all? [] : null) as any;
+
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readonly');
 		let store = transaction.objectStore(collectionName);
@@ -196,9 +199,9 @@ export class Database {
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readwrite');
 		let store = transaction.objectStore(collectionName);
-		let request = store.delete(key);
+		store.delete(key);
 
-		return new Promise(resolve => request.onsuccess = resolve);
+		return new Promise(resolve => transaction.oncomplete = resolve);
 	}
 }
 
@@ -215,9 +218,9 @@ class KeyValueStore {
 		let transaction = db.transaction(KeyValueStore.storeName, 'readwrite');
 		let store = transaction.objectStore(KeyValueStore.storeName);
 
-		let request = store.put(value, key);
+		store.put(value, key);
 
-		return new Promise(resolve => request.onsuccess = resolve);
+		return new Promise(resolve => transaction.oncomplete = resolve);
 	}
 
 	async get<K extends keyof typeof databaseDescription['keyValueStore']>(key: K): Promise<typeof databaseDescription['keyValueStore'][K]> {
@@ -236,8 +239,8 @@ class KeyValueStore {
 		let transaction = db.transaction(KeyValueStore.storeName, 'readwrite');
 		let store = transaction.objectStore(KeyValueStore.storeName);
 
-		let request = store.delete(key);
+		store.delete(key);
 
-		return new Promise(resolve => request.onsuccess = resolve);
+		return new Promise(resolve => transaction.oncomplete = resolve);
 	}
 }

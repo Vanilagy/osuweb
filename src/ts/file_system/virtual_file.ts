@@ -116,11 +116,13 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		return newFile;
 	}
 
-	toDescription(): VirtualFileDescription {
+	async toDescription(storeData: boolean): Promise<VirtualFileDescription> {
 		return {
 			type: 'file',
 			name: this.name,
-			isNativeFileSystem: this.isNativeFileSystem
+			id: this.id,
+			isNativeFileSystem: this.isNativeFileSystem && !storeData,
+			blob: storeData? await this.getBlob() : null
 		};
 	}
 
@@ -128,11 +130,14 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		let file = new VirtualFile();
 		file.name = description.name;
 		file.isNativeFileSystem = description.isNativeFileSystem;
+		file.id = description.id;
+		if (description.blob) file.blob = description.blob;
 
 		return file;
 	}
 }
 
 export interface VirtualFileDescription extends VirtualFileSystemEntryDescription {
-	type: 'file'
+	type: 'file',
+	blob?: Blob
 }

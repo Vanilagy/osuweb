@@ -177,7 +177,9 @@ export class SongSelect {
 		this.hide();
 		globalState.musicPlayer.pause();
 	
-		this.selectedEntry.resource.readAsText().then((text) => {
+		this.selectedEntry.getFile().then((file) => {
+			return file.readAsText();
+		}).then((text) => {
 			let map = BeatmapParser.parse(text, this.selectedEntry.beatmapSet, false);
 			let mods = this.modSelector.getSelectedMods();
 			for (let m of additionalMods) mods.add(m);

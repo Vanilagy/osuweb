@@ -1,5 +1,5 @@
 import { VirtualFileSystemEntry, VirtualFileSystemEntryDescription } from "./virtual_file_system_entry";
-import { VirtualFile } from "./virtual_file";
+import { VirtualFile, VirtualFileDescription } from "./virtual_file";
 import { splitPath } from "../util/file_util";
 import { assert } from "../util/misc_util";
 import { globalState } from "../global_state";
@@ -17,10 +17,13 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	private directoryHandle: FileSystemDirectoryHandle = null
 	/** The id of the handle which can be used to retrieve it from the database. */
 	public directoryHandleId: string = null;
-	/** Cache the entries object in the hope that stuff won't freeze up (the API is still buggy!) */
-	private directoryHandleEntries: ReturnType<FileSystemDirectoryHandle["getEntries"]> = null;
 	/** Since iterating a directory handle is async, this flag will be set to true if we have successfully iterated over all entries in the directory (which then will be cached). */
 	private directoryHandleEntriesIterated = false; 
+	/** Used to wait for the next entry to be read, see usage. */
+	private directoryHandleWaiter: Promise<void>;
+	/** If this is true, the directory's contents must be fetched from IndexedDB first. */
+	public requiresDatabaseImport = false;
+	private databaseImportPromise: Promise<void>;
 
 	constructor(name: string) {
 		super();
@@ -56,6 +59,8 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		let currentDirectory: VirtualDirectory = this;
 
 		for (let i = 0; i < parts.length; i++) {
+			if (currentDirectory.requiresDatabaseImport) await currentDirectory.importFromDatabase();
+
 			let part = parts[i];
 			let entry: VirtualFileSystemEntry;
 
@@ -138,41 +143,53 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		return entries;
 	}
 
-	async *[Symbol.asyncIterator]() {
-		// These might not contain all entries yet if the rest hasn't been loaded
-		for (let entry of this.entries) {
-			yield entry[1];
+	/** Iterates through all entries in the directory handle (native file system-only!) */
+	private async iterateHandle() {
+		let resolver: Function;
+		this.directoryHandleWaiter = new Promise(resolve => resolver = resolve);
+
+		let handle = await this.getHandle();
+		let entries = await handle.getEntries();
+
+		for await (let entry of entries) {
+			let fileSystemEntry: VirtualFileSystemEntry;
+
+			// Check if it's already been added
+			let existingEntry = this.entries.get(entry.name);
+			if (existingEntry) continue;
+
+			// Create a new virtual file system entry based on the type
+			if (entry instanceof FileSystemFileHandle) {
+				fileSystemEntry = VirtualFile.fromFileHandle(entry, false);
+			} else if (entry instanceof FileSystemDirectoryHandle) {
+				fileSystemEntry = VirtualDirectory.fromDirectoryHandle(entry, false);
+			}
+
+			// Add it to the entries cache
+			this.addEntry(fileSystemEntry);
+
+			resolver();
+			this.directoryHandleWaiter = new Promise(resolve => resolver = resolve);
 		}
 
-		// If we have a directory handle, use that handle's async iterator
-		if (this.isNativeFileSystem && !this.directoryHandleEntriesIterated) {
-			let entries = await this.directoryHandleEntries;
-			if (!entries) {
-				let handle = await this.getHandle();
-				entries = await (this.directoryHandleEntries = handle.getEntries());
-			}
+		resolver();
 
-			for await (let entry of entries) {
-				let fileSystemEntry: VirtualFileSystemEntry;
+		// When we reach this point, we'll have iterated through the entire directory once, meaning we have cached all entries and don't need to iterate over the directory directly again.
+		this.directoryHandleEntriesIterated = true;
+	}
 
-				// Check if it's already been added
-				let existingEntry = this.entries.get(entry.name);
-				if (existingEntry) continue;
+	async *[Symbol.asyncIterator]() {
+		if (this.isNativeFileSystem && !this.directoryHandleWaiter) this.iterateHandle();
+		if (this.requiresDatabaseImport) await this.importFromDatabase();
 
-				// Create a new virtual file system entry based on the type
-				if (entry instanceof FileSystemFileHandle) {
-					fileSystemEntry = VirtualFile.fromFileHandle(entry, false);
-				} else if (entry instanceof FileSystemDirectoryHandle) {
-					fileSystemEntry = VirtualDirectory.fromDirectoryHandle(entry, false);
-				}
+		await this.directoryHandleWaiter;
 
-				// Add it to the entries cache
-				this.addEntry(fileSystemEntry);
-				yield fileSystemEntry;
-			}
+		// Kind of a hacky construct going on here, because we wait inside the iterator for the iterated data structure to get larger so that iteration doesn't stop. Hey, works!
+		for (let [, entry] of this.entries) {
+			yield entry;
 
-			// When we reach this point, we'll have iterated through the entire directory once, meaning we have cached all entries and don't need to iterate over the directory directly again.
-			this.directoryHandleEntriesIterated = true;
+			// If there still are new entries coming in the pipeline, wait for them.
+			if (this.isNativeFileSystem && !this.directoryHandleEntriesIterated) await this.directoryHandleWaiter;
 		}
 	}
 
@@ -273,18 +290,31 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		return root;
 	}
 
-	toDescription(): VirtualDirectoryDescription {
+	async toDescription(storeData: boolean): Promise<VirtualDirectoryDescription> {
 		return {
 			type: 'directory',
 			name: this.name,
-			isNativeFileSystem: this.isNativeFileSystem,
-			directoryHandleId: this.directoryHandleId
+			id: this.id,
+			isNativeFileSystem: this.isNativeFileSystem && !storeData,
+			directoryHandleId: this.directoryHandleId,
+			entries: storeData? await this.decribeEntries() : null
 		};
+	}
+
+	private async decribeEntries() {
+		let descriptions: VirtualFileSystemEntryDescription[] = [];
+
+		for await (let entry of this) {
+			descriptions.push(await entry.toDescription(true));
+		}
+
+		return descriptions;
 	}
 
 	static async fromDescription(description: VirtualDirectoryDescription) {
 		let directory = new VirtualDirectory(description.name);
 		directory.isNativeFileSystem = description.isNativeFileSystem;
+		directory.id = description.id;
 
 		if (description.directoryHandleId) {
 			directory.directoryHandleId = description.directoryHandleId;
@@ -293,11 +323,55 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 			if (handle) directory.directoryHandle = handle;
 		}
 
+		if (description.entries) {
+			for (let entryDescription of description.entries) {
+				let entry;
+
+				if (entryDescription.type === 'directory') {
+					entry = await VirtualDirectory.fromDescription(entryDescription as VirtualDirectoryDescription);
+				} else {
+					entry = VirtualFile.fromDescription(entryDescription as VirtualFileDescription);
+				}
+
+				directory.addEntry(entry);
+			}
+		}
+
 		return directory;
+	}
+
+	/** Imports the directory's contents from IndexedDB. */
+	private importFromDatabase() {
+		if (!this.requiresDatabaseImport) return;
+		if (this.databaseImportPromise) return this.databaseImportPromise;
+
+		this.databaseImportPromise = new Promise(async resolve => {
+			let description = await globalState.database.get('directory', 'id', this.id);
+
+			if (description.entries) {
+				for (let entryDescription of description.entries) {
+					let entry;
+	
+					if (entryDescription.type === 'directory') {
+						entry = await VirtualDirectory.fromDescription(entryDescription as VirtualDirectoryDescription);
+					} else {
+						entry = VirtualFile.fromDescription(entryDescription as VirtualFileDescription);
+					}
+	
+					this.addEntry(entry);
+				}
+			}
+	
+			this.requiresDatabaseImport = false;
+			resolve();
+		});
+
+		return this.databaseImportPromise;
 	}
 }
 
 export interface VirtualDirectoryDescription extends VirtualFileSystemEntryDescription {
 	type: 'directory',
-	directoryHandleId?: string
+	directoryHandleId?: string,
+	entries?: VirtualFileSystemEntryDescription[]
 }

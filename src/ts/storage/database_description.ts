@@ -1,9 +1,7 @@
 import { Settings } from "../menu/settings/settings";
 import { Keybindings } from "../input/key_bindings";
-import { VirtualDirectoryDescription } from "../file_system/virtual_directory";
-import { VirtualFileDescription } from "../file_system/virtual_file";
-import { ExtendedBeatmapData, BasicBeatmapData } from "../util/beatmap_util";
 import { BeatmapSetDescription } from "../datamodel/beatmap/beatmap_set";
+import { VirtualDirectoryDescription } from "../file_system/virtual_directory";
 
 interface DatabaseDescription {
 	collections: Record<string, {
@@ -23,7 +21,8 @@ export const databaseDescription = buildDatabaseDescription({
 				handle: FileSystemDirectoryHandle,
 				id: string,
 				/** If the user last granted permission to use this directory handle. If yes, prompt them the next time to reopen the directory. */
-				permissionGranted: boolean
+				permissionGranted: boolean,
+				storeBeatmaps: boolean
 			},
 			key: "id",
 			indexes: []
@@ -32,6 +31,11 @@ export const databaseDescription = buildDatabaseDescription({
 			format: null as BeatmapSetDescription,
 			key: "id",
 			indexes: [{property: "parentDirectoryHandleId", unique: false}]
+		},
+		"directory": {
+			format: null as VirtualDirectoryDescription,
+			key: "id",
+			indexes: []
 		}
 	},
 	/** Describes all possible key/value pairs. */

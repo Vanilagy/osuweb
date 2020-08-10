@@ -26,6 +26,8 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	public creatorLowerCase: string;
 
 	public directory: VirtualDirectory;
+	/** Whether or not this entire beatmap, including all files, has been stored. */
+	public stored = false;
 	/** Basic data about the beatmap "representing" this beatmap set. Just gotta pick one. */
 	public basicData: BasicBeatmapData = null;
 	public searchableString: string = "";
@@ -55,7 +57,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		this.creatorLowerCase = creator?.toLowerCase();
 
 		this.updateSearchableString();
-		if (doStore) this.store();
+		if (doStore) this.storeMetadata();
 	}
 
 	updateSearchableString() {
@@ -84,7 +86,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 
 				outer:
 				if (isOsuBeatmapFile(fileEntry.name)) {
-					let beatmapEntry = new BeatmapEntry(this, fileEntry);
+					let beatmapEntry = new BeatmapEntry(this, fileEntry.name);
 					let match = metadataExtractor.exec(fileEntry.name);
 
 					if (match && match[4] !== undefined) {
@@ -113,7 +115,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 				this.defective = true;
 			} else {
 				try {
-					let blob = await this.entries[0].resource.getBlob();
+					let blob = await (await this.entries[0].getFile()).getBlob();
 					this.basicData = await startJob("getBasicBeatmapData", blob);
 					this.setBasicMetadata(this.basicData.title, this.basicData.artist, this.basicData.creator);
 	
@@ -130,7 +132,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 				globalState.notificationPanel.showNotification("Error importing beatmap set", `Could not import the folder "${this.directory.name}".`, NotificationType.Error);
 			}
 			
-			await this.store();
+			await this.storeMetadata();
 			resolve();
 		});
 		this.entriesLoadingPromise = promise;
@@ -148,7 +150,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		let promise = new Promise<void>(async (resolve) => {
 			if (!this.entriesLoaded) await this.loadEntries();
 
-			let allFiles = this.entries.map(x => x.resource);
+			let allFiles = await Promise.all(this.entries.map(x => x.getFile()));
 			let metadata = await JobUtil.getBeatmapMetadataAndDifficultyFromFiles(allFiles);
 			let i = 0;
 	
@@ -162,14 +164,14 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 					console.info("Error loading metadata: ", this, data.reason);
 					this.removeEntry(entry);
 
-					globalState.notificationPanel.showNotification("Error loading beatmap difficulty", `Could not load beatmap "${entry.resource.name}" in beatmap set "${this.directory.name}"`, NotificationType.Error);
+					globalState.notificationPanel.showNotification("Error loading beatmap difficulty", `Could not load beatmap "${entry.path}" in beatmap set "${this.directory.name}"`, NotificationType.Error);
 				}
 			}
 	
 			this.metadataLoaded = true;
 			this.emit('change');
 
-			await this.store();
+			await this.storeMetadata();
 			resolve();
 		});
 		this.metadataLoadingPromise = promise;
@@ -219,17 +221,30 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		return this.title + '\u0031' + this.artist;
 	}
 
-	async store() {
-		await globalState.database.put('beatmapSet', this.toDescription());
+	/** Stores the necessary metadata to, together with the files, completely reconstruct this beatmap set. */
+	async storeMetadata() {
+		await globalState.database.put('beatmapSet', await this.toDescription());
 	}
 
-	toDescription(): BeatmapSetDescription {
+	/** Stores everything, so metadata and all files. */
+	async storeDirectory() {
+		if (this.stored) return;
+
+		let description = await this.directory.toDescription(true);
+		await globalState.database.put('directory', description);
+
+		this.stored = true;
+		await this.storeMetadata();
+	}
+
+	async toDescription(): Promise<BeatmapSetDescription> {
 		return {
 			id: this.id,
-			directory: this.directory.toDescription(),
+			directory: await this.directory.toDescription(false),
 			parentDirectoryHandleId: this.directory.parent?.directoryHandleId,
+			stored: this.stored,
 			basicData: this.basicData,
-			entries: this.entries.map(entry => entry.toDescription()),
+			entries: await Promise.all(this.entries.map(entry => entry.toDescription())),
 			title: this.title,
 			artist: this.artist,
 			creator: this.creator,
@@ -243,7 +258,12 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		assert(!description.defective); // Defective beatmaps should never reach this method
 
 		let directory = await VirtualDirectory.fromDescription(description.directory);
-		parentDirectory.addEntry(directory);
+		if (description.stored) {
+			directory.requiresDatabaseImport = true;
+			directory.isNativeFileSystem = false;
+		}
+
+		parentDirectory?.addEntry(directory);
 		let set = new BeatmapSet(directory, description.id);
 
 		set.setBasicMetadata(description.title, description.artist, description.creator);
@@ -252,6 +272,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		set.entriesLoaded = description.entriesLoaded;
 		set.metadataLoaded = description.metadataLoaded;
 		set.updateSearchableString();
+		set.stored = description.stored;
 
 		return set;
 	}
@@ -262,6 +283,7 @@ export interface BeatmapSetDescription {
 	directory: VirtualDirectoryDescription,
 	/** Incase the parent directory is a directory handle, store its ID so we can load this beatmap from the database when the same folder is selected again. */
 	parentDirectoryHandleId?: string,
+	stored: boolean,
 	basicData: BasicBeatmapData,
 	entries: BeatmapEntryDescription[],
 	title: string,

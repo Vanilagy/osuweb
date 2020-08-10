@@ -64,7 +64,7 @@ class Section {
 		registration.addButtonHandlers(
 			() => {
 				for (let entry of this.entries) {
-					if (entry.allowManualClose) entry.close();
+					if (entry.allowManualClose) entry.onManualClose();
 				}
 			},
 			() => this.closeButtonInterpolator.setReversedState(false, performance.now()),

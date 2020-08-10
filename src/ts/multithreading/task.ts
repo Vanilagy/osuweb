@@ -43,6 +43,8 @@ export abstract class Task<U, T> {
 	abstract get showAutomatically(): boolean;
 	/** If this is set to true, then this task will automatically be paused during gameplay. */
 	abstract get isPerformanceIntensive(): boolean;
+	/** Whether or not the task can be manually cancelled by the user while it's running. */
+	abstract get canBeCancelled(): boolean;
 
 	/** Initiate and start the task. */
 	async start() {
@@ -65,6 +67,7 @@ export abstract class Task<U, T> {
 		this.promiseResolve(result);
 		this.settled = true;
 		this.resolved = true;
+		this.onEnd();
 	}
 
 	protected reject(reason?: any) {
@@ -72,6 +75,7 @@ export abstract class Task<U, T> {
 
 		this.promiseReject(reason);
 		this.settled = true;
+		this.onEnd();
 	}
 
 	getResult() {
@@ -114,6 +118,8 @@ export abstract class Task<U, T> {
 		this.destroyed = true;
 		
 		globalState.taskManager.removeTask(this);
+		this.onEnd();
+		this.onDestroy();
 	}
 
 	/** Display the task in the notification panel. */
@@ -121,4 +127,10 @@ export abstract class Task<U, T> {
 		let drawable = new DrawableTask(globalState.notificationPanel, this);
 		globalState.notificationPanel.addEntryToSection(drawable, "tasks");
 	}
+
+	/** Is called when the task is either completed or cancelled. */
+	onEnd() {}
+
+	/** Is called when the task is destroyed. */
+	onDestroy() {}
 }

@@ -59,7 +59,7 @@ export abstract class NotificationPanelEntry {
 			let closeButtonRegistration = new InteractionRegistration(this.closeButton);
 			this.interactionGroup.add(closeButtonRegistration);
 			closeButtonRegistration.addButtonHandlers(
-				() => this.close(),
+				() => this.onManualClose(),
 				() => this.closeButtonInterpolator.setReversedState(false, performance.now()),
 				() => this.closeButtonInterpolator.setReversedState(true, performance.now()),
 				EMPTY_FUNCTION,
@@ -118,6 +118,10 @@ export abstract class NotificationPanelEntry {
 		if (fadeInCompletion === 0 && this.fadeInInterpolator.isReversed()) {
 			this.destroyable = true;
 		}
+	}
+
+	onManualClose() {
+		this.close();
 	}
 
 	close() {
