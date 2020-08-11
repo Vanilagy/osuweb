@@ -68,6 +68,13 @@ class Popup extends PopupFrame {
 	}
 }
 
+export enum ConfirmDialogueHighlighting {
+	HighlightNone,
+	HighlightYes,
+	HighlightNo,
+	HighlightBoth
+}
+
 /** A simple utility class for showing Promise-based popups and confirmation dialogues. */
 export class PopupManager {
 	public container: PIXI.Container;
@@ -110,12 +117,12 @@ export class PopupManager {
 		});
 	}
 
-	createConfirm(header: string, description: string, highlightNo = false, warning?: string): Promise<'yes' | 'no'> {
+	createConfirm(header: string, description: string, highlight: ConfirmDialogueHighlighting = ConfirmDialogueHighlighting.HighlightYes, warning?: string): Promise<'yes' | 'no'> {
 		let buttons = [
-			{action: 'yes', label: 'yes', color: highlightNo? THEME_COLORS.SecondaryActionGray : THEME_COLORS.PrimaryBlue},
-			{action: 'no', label: 'no', color: highlightNo? THEME_COLORS.PrimaryBlue : THEME_COLORS.SecondaryActionGray}
+			{action: 'yes', label: 'yes', color: [ConfirmDialogueHighlighting.HighlightYes, ConfirmDialogueHighlighting.HighlightBoth].includes(highlight)? THEME_COLORS.PrimaryBlue : THEME_COLORS.SecondaryActionGray},
+			{action: 'no', label: 'no', color: [ConfirmDialogueHighlighting.HighlightNo, ConfirmDialogueHighlighting.HighlightBoth].includes(highlight)? THEME_COLORS.PrimaryBlue : THEME_COLORS.SecondaryActionGray}
 		];
-		if (highlightNo) buttons.reverse();
+		if (highlight === ConfirmDialogueHighlighting.HighlightNo) buttons.reverse();
 
 		return this.createPopup(header, description, buttons, 'no', warning) as any;
 	}

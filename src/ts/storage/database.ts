@@ -65,35 +65,35 @@ export class Database {
 	private async getInternal<
 		K extends CollectionName,
 		P extends keyof typeof databaseDescription["collections"][K]["format"],
-		A extends boolean
+		M extends boolean
 	>(
 		collectionName: K,
 		property: P,
 		value: typeof databaseDescription["collections"][K]["format"][P],
-		all: A
+		multiple: M
 	):
-		Promise<A extends true ?
+		Promise<M extends true ?
 			typeof databaseDescription["collections"][K]["format"][] :
 			typeof databaseDescription["collections"][K]["format"]
 		>
 	{
 		// IDB doesn't support lookups for these values
-		if (value === undefined || value === null) return (all? [] : null) as any;
+		if (value === undefined || value === null) return (multiple? [] : null) as any;
 
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readonly');
 		let store = transaction.objectStore(collectionName);
 		let description = databaseDescription.collections[collectionName];
 		let request: IDBRequest;
-		let result: any = all? [] : null;
+		let result: any = multiple? [] : null;
 
 		if (property === description.key) {
 			// The property is the primary key, so just do a regular get.
-			request = all? store.getAll(value as any) : store.get(value as any);
+			request = multiple? store.getAll(value as any) : store.get(value as any);
 		} else if (description.indexes.find(x => x.property === property)) {
 			// The property has an index, so use the index to get it.
 			let index = store.index(property as string);
-			request = all? index.getAll(value as any) : index.get(value as any);
+			request = multiple? index.getAll(value as any) : index.get(value as any);
 		} else {
 			// Otherwise, we need to search through all records to find a match. Do so with a cursor:
 			await new Promise((resolve) => {
@@ -102,7 +102,7 @@ export class Database {
 					if (cursor) {
 						let record = (cursor as any).value as typeof databaseDescription["collections"][K]["format"];
 						if (record[property] === value) {
-							if (all) {
+							if (multiple) {
 								result.push(record);
 							} else {
 								result = record;
@@ -142,21 +142,33 @@ export class Database {
 	 * @param property The property
 	 * @param value The property's value to search for
 	 */
-	async getAll<K extends CollectionName, P extends keyof typeof databaseDescription["collections"][K]["format"]>(collectionName: K, property: P, value: typeof databaseDescription["collections"][K]["format"][P]) {
+	async getMultiple<K extends CollectionName, P extends keyof typeof databaseDescription["collections"][K]["format"]>(collectionName: K, property: P, value: typeof databaseDescription["collections"][K]["format"][P]) {
 		return this.getInternal(collectionName, property, value, true);
 	}
 
+	/** Gets all records in a collection. */
+	async getAll<K extends CollectionName>(collectionName: K): Promise<typeof databaseDescription["collections"][K]["format"][]> {
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(collectionName, 'readonly');
+		let store = transaction.objectStore(collectionName);
+
+		let request = store.getAll();
+
+		await new Promise(resolve => request.onsuccess = resolve);
+		return request.result;
+	}
+
 	/** See getInternal. */
-	private async findInternal<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean, all: A
+	private async findInternal<K extends CollectionName, M extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean, multiple: M
 	):
-		Promise<A extends true ?
+		Promise<M extends true ?
 		typeof databaseDescription["collections"][K]["format"][] :
 		typeof databaseDescription["collections"][K]["format"]>
 	{
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readonly');
 		let store = transaction.objectStore(collectionName);
-		let result: any = all? [] : null;
+		let result: any = multiple? [] : null;
 
 		await new Promise((resolve) => {
 			// Loop through all records with a cursor until a match is found
@@ -165,7 +177,7 @@ export class Database {
 				if (cursor) {
 					let record = (cursor as any).value as typeof databaseDescription["collections"][K]["format"];
 					if (predicate(record)) {
-						if (all) {
+						if (multiple) {
 							result.push(record);
 						} else {
 							result = record;
@@ -190,7 +202,7 @@ export class Database {
 	}
 
 	/** Finds all records fulfilling a predicate. */
-	async findAll<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean) {
+	async findMultiple<K extends CollectionName, A extends boolean>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean) {
 		return this.findInternal(collectionName, predicate, true);
 	}
 

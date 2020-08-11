@@ -29,7 +29,7 @@ export class ImportedFolderRequester extends PopupFrame {
 	}
 
 	private async requestPermission() {
-		let storedHandles = await globalState.database.findAll('directoryHandle', () => true);
+		let storedHandles = await globalState.database.getAll('directoryHandle');
 		let directories: VirtualDirectory[] = [];
 
 		// Go through all stored handles and request permission individually
@@ -52,7 +52,7 @@ export class ImportedFolderRequester extends PopupFrame {
 
 	/** Remove the permission of all handles in the database, so that the prompt for these directories doesn't show up the next time. */
 	private async forbid() {
-		let storedHandles = await globalState.database.findAll('directoryHandle', () => true);
+		let storedHandles = await globalState.database.getAll('directoryHandle');
 		for (let data of storedHandles) {
 			data.permissionGranted = false;
 			await globalState.database.put('directoryHandle', data);

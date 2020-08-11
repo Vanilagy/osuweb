@@ -49,7 +49,7 @@ export class FolderSelector extends PopupFrame {
 			if (supportsNativeFileSystemApi()) {
 				try {
 					// Get all stored directory handles
-					let storedHandles = await globalState.database.findAll('directoryHandle', () => true);
+					let storedHandles = await globalState.database.getAll('directoryHandle');
 					let handle = await chooseFileSystemEntries({type: 'open-directory'});
 					let id = ULID.ulid();
 					let matchingStoredHandle: typeof storedHandles[number];
