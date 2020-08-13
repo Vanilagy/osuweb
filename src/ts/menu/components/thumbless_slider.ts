@@ -20,6 +20,7 @@ export class ThumblessSlider extends CustomEventEmitter<{change: number, finish:
 	private slider: PIXI.Sprite;
 	private registration: InteractionRegistration;
 	private dragging = false;
+	private lastScalingFactor: number = 1;
 
 	private valueInterpolator: InterpolatedValueChanger;
 	private hoverInterpolator: Interpolator;
@@ -27,6 +28,9 @@ export class ThumblessSlider extends CustomEventEmitter<{change: number, finish:
 
 	private baseColor: Color;
 	private interactionColor: Color;
+
+	private leftLabel: PIXI.Text;
+	private rightLabel: PIXI.Text;
 
 	constructor(dimensions: Dimensions, slanted: boolean, backgroundColor: Color, baseColor: Color, interactionColor: Color) {
 		super();
@@ -48,7 +52,17 @@ export class ThumblessSlider extends CustomEventEmitter<{change: number, finish:
 		this.slider = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.slider.mask = this.mask;
 
-		this.container.addChild(this.mask, this.background, this.slider);
+		this.leftLabel = new PIXI.Text("", {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff
+		});
+		this.rightLabel = new PIXI.Text("", {
+			fontFamily: 'Exo2-Regular',
+			fill: 0xffffff
+		});
+		this.leftLabel.alpha = this.rightLabel.alpha = 0.75;
+
+		this.container.addChild(this.mask, this.background, this.slider, this.leftLabel, this.rightLabel);
 
 		this.valueInterpolator = new InterpolatedValueChanger({
 			initial: 0,
@@ -105,6 +119,8 @@ export class ThumblessSlider extends CustomEventEmitter<{change: number, finish:
 	}
 
 	resize(scalingFactor: number) {
+		this.lastScalingFactor = scalingFactor;
+
 		let slantWidth = this.slanted? this.dimensions.height / 5 : 0;
 		this.mask.texture = createPolygonTexture(this.dimensions.width + slantWidth, this.dimensions.height, [
 			new PIXI.Point(0, 0), new PIXI.Point(this.dimensions.width, 0), new PIXI.Point(this.dimensions.width + slantWidth, this.dimensions.height), new PIXI.Point(slantWidth, this.dimensions.height)
@@ -113,7 +129,18 @@ export class ThumblessSlider extends CustomEventEmitter<{change: number, finish:
 		this.background.width = this.mask.width;
 		this.background.height = this.mask.height;
 		this.slider.height = this.mask.height;
-		this.background.y = this.slider.y = this.mask.y = Math.floor(16 * scalingFactor);
+
+		this.setLabels(this.leftLabel.text, this.rightLabel.text);
+		this.leftLabel.y = this.rightLabel.y = -Math.floor(16 * scalingFactor);
+	}
+
+	setLabels(left: string, right: string) {
+		this.leftLabel.text = left;
+		this.rightLabel.text = right;
+
+		this.leftLabel.style.fontSize = this.rightLabel.style.fontSize = Math.floor(10 * this.lastScalingFactor);
+
+		this.rightLabel.x = this.background.width - this.rightLabel.width;
 	}
 
 	update(now: number) {

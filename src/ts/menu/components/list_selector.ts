@@ -8,7 +8,8 @@ import { Color, Colors, colorToHexNumber, lerpColors } from "../../util/graphics
 export interface ListSelectorItem {
 	name: string,
 	label: string,
-	icon?: PIXI.Texture
+	icon?: PIXI.Texture,
+	color?: Color
 }
 
 /** Represents a generalized list selection interface (can be used for dropdowns, context menus, etc) */
@@ -109,7 +110,7 @@ class ListSelectorItemDrawable {
 		this.label = new PIXI.Text(item.label);
 		this.label.style = {
 			fontFamily: this.parent.itemFontFamily,
-			fill: 0xffffff
+			fill: item.color? colorToHexNumber(item.color) : 0xffffff
 		};
 		this.container.addChild(this.label);
 

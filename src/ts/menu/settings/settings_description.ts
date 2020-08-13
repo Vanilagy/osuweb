@@ -198,7 +198,7 @@ export const settingsDescriptionExact = buildSettings({
 			} else {
 				// These settings have no effect with a hardware cursor, so disable them.
 				globalState.settingsPanel.disableElement('mouseSensitivity');
-				globalState.settingsPanel.disableElement('mouseInputMode');
+				globalState.settingsPanel.disableElement('mouseInputMode'); 
 			}
 		}
 	},
@@ -267,6 +267,16 @@ export const settingsDescriptionExact = buildSettings({
 		onChange: (x) => {
 			globalState.cursor.refresh();
 		}
+	},
+	'automaticallyStoreSingleBeatmapSetImports': {
+		type: SettingType.Checkbox,
+		displayName: "Automatically store single-beatmap set imports",
+		default: true
+	},
+	'retryFailedImportsOnFolderReopen': {
+		type: SettingType.Checkbox,
+		displayName: "Retry failed imports on folder reopen",
+		default: false
 	}
 });
 

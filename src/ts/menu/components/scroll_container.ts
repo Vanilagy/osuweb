@@ -17,10 +17,16 @@ export class ScrollContainer {
 	private mask: PIXI.Sprite;
 
 	/** The padding around the content */
-	private padding: number = 0;
+	private padding = {
+		left: 0,
+		right: 0,
+		top: 0,
+		bottom: 0
+	};
 	private width: number = 100;
 	private height: number = 100;
 
+	private linkedScrollbar: Scrollbar;
 	private scrollbar: Scrollbar;
 	private scrollbarScalingFactor = 1;
 	private scrollInterpolator: InterpolatedValueChanger;
@@ -28,7 +34,8 @@ export class ScrollContainer {
 	/** Whether or not the container is currently being dragged. */
 	private dragging = false;
 
-	constructor() {
+	/** @param linkedScrollbar The alternative external scrollbar to use instead of the normal one. */
+	constructor(linkedScrollbar?: Scrollbar) {
 		this.container = new PIXI.Container();
 		this.container.hitArea = new PIXI.Rectangle();
 		this.interactionGroup = new InteractionGroup();
@@ -51,8 +58,11 @@ export class ScrollContainer {
 		this.container.addChild(this.mask);
 		this.container.mask = this.mask;
 
-		this.scrollbar = new Scrollbar();
-		this.container.addChild(this.scrollbar.container);
+		this.linkedScrollbar = linkedScrollbar;
+		if (!linkedScrollbar) {
+			this.scrollbar = new Scrollbar();
+			this.container.addChild(this.scrollbar.container);
+		}
 
 		this.scrollInterpolator = new InterpolatedValueChanger({
 			initial: 0,
@@ -118,8 +128,15 @@ export class ScrollContainer {
 		});
 	}
 
-	setPadding(padding: number) {
-		this.padding = padding;
+	setPadding(padding: number | ScrollContainer["padding"]) {
+		if (typeof padding === "number") {
+			this.padding.left = padding;
+			this.padding.right = padding;
+			this.padding.top = padding;
+			this.padding.bottom = padding;
+		} else {
+			this.padding = padding;
+		}
 	}
 
 	setWidth(width: number) {
@@ -139,7 +156,7 @@ export class ScrollContainer {
 	}
 
 	private getScrollHeight() {
-		return Math.max(0, this.contentContainer.height - (this.height - 2 * this.padding));
+		return Math.max(0, this.contentContainer.height - (this.height - this.padding.top - this.padding.bottom));
 	}
 	
 	private isScrollable() {
@@ -198,27 +215,28 @@ export class ScrollContainer {
 		interactionHitRec.x = globalPos.x;
 		interactionHitRec.y = globalPos.y;
 
-		this.contentContainer.x = this.padding;
+		this.contentContainer.x = this.padding.left;
 
 		let scrollHeight = this.getScrollHeight();
+		let scrollbar = this.linkedScrollbar || this.scrollbar;
 
 		if (scrollHeight === 0 && this.getCurrentScrollPosition(now) === 0) {
 			// If there container is too small to scroll, hide the scrollbar and fix the position. However, the current scroll position needs to be 0 to avoid unpretty 'snapping' effects
-			this.contentContainer.y = this.padding;
-			this.scrollbar.container.visible = false;
+			this.contentContainer.y = this.padding.top;
+			scrollbar.container.visible = false;
 		} else {
 			let scrollPosition = this.getCurrentScrollPosition(now);
 			let scaledScrollPosition = scrollPosition * this.scrollScalingFactor;
-			this.contentContainer.y = this.padding + Math.floor(-scaledScrollPosition);
+			this.contentContainer.y = this.padding.top + Math.floor(-scaledScrollPosition);
 
-			this.scrollbar.setScaling(this.height, this.scrollbarScalingFactor);
-			this.scrollbar.setScrollHeight(scrollHeight);
-			this.scrollbar.setPageHeight(this.height - 2 * this.padding);
-			this.scrollbar.setCurrentPosition(scaledScrollPosition);
-			this.scrollbar.update();
+			if (this.scrollbar) scrollbar.setScaling(this.height, this.scrollbarScalingFactor);
+			scrollbar.setScrollHeight(scrollHeight);
+			scrollbar.setPageHeight(this.height - this.padding.top - this.padding.bottom);
+			scrollbar.setCurrentPosition(scaledScrollPosition);
+			scrollbar.update();
 			
-			this.scrollbar.container.visible = true;
-			this.scrollbar.container.x = this.width - this.scrollbar.container.width;
+			scrollbar.container.visible = true;
+			if (this.scrollbar) scrollbar.container.x = this.width - scrollbar.container.width;
 		}
 	}
 }

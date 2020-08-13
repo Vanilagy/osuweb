@@ -165,6 +165,7 @@ class VolumeSlider {
 	resize() {
 		this.label.style.fontSize = Math.floor(9 * this.parent.scalingFactor);
 		this.slider.resize(this.parent.scalingFactor);
+		this.slider.container.y = Math.floor(16 * this.parent.scalingFactor);
 	}
 
 	update(now: number) {

@@ -1,17 +1,11 @@
-import { InteractionGroup } from "../../input/interactivity";
 import { SettingsPanel } from "./settings_panel";
+import { VerticalLayoutElement } from "../components/vertical_layout_element";
 
-export abstract class SettingsElement {
-	public container: PIXI.Container;
-	public interactionGroup: InteractionGroup;
-	public identifier: string = null;
-	protected parent: SettingsPanel;
+export abstract class SettingsElement extends VerticalLayoutElement<SettingsPanel>  {
 	private alphaFilter: PIXI.filters.AlphaFilter;
 
 	constructor(parent: SettingsPanel) {
-		this.parent = parent;
-		this.container = new PIXI.Container();
-		this.interactionGroup = new InteractionGroup();
+		super(parent);
 
 		this.alphaFilter = new PIXI.filters.AlphaFilter(0.333);
 		this.container.filters = [this.alphaFilter];
@@ -26,13 +20,13 @@ export abstract class SettingsElement {
 		return 0;
 	}
 
-	abstract getHeight(now: number): number;
-
 	getBottomMargin(now: number) {
 		return 15 * this.parent.scalingFactor;
 	}
 
 	enable() {
+		if (!this.alphaFilter) return; // A bit hacky lol
+
 		this.alphaFilter.enabled = false;
 		this.interactionGroup.enable();
 	}

@@ -158,7 +158,7 @@ export class MusicPlayer {
 			this.songIdentifiers.delete(songIdentifier);
 			removeItem(this.songs, set);
 
-			if (this.currentBeatmapEntry.beatmapSet === set) {
+			if (this.currentBeatmapEntry?.beatmapSet === set) {
 				this.stop();
 				this.slideshow.put(null);
 			}
@@ -210,7 +210,7 @@ export class MusicPlayer {
 		this.skipForwardButton.container.x = this.playPauseButton.container.x + sideMargin;
 
 		this.progressBar.resize(this.scalingFactor);
-		this.progressBar.container.y = Math.floor((THUMBNAIL_HEIGHT + 28) * this.scalingFactor);
+		this.progressBar.container.y = Math.floor((THUMBNAIL_HEIGHT + 28 + 16) * this.scalingFactor);
 		this.progressBar.container.x = Math.floor((this.container.width - this.progressBar.container.width) / 2);
 
 		let shadowFilter = this.container.filters[0] as PIXI.filters.DropShadowFilter;

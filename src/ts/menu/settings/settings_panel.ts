@@ -17,6 +17,7 @@ import { KeybindName } from "../../input/key_bindings";
 import { KeybindElement } from "./keybind_element";
 import { Color } from "../../util/graphics_util";
 import { HorizontalLine } from "./horizontal_line";
+import { ButtonElement } from "./button_element";
 
 export const SETTINGS_PANEL_WIDTH = 350;
 export const SETTINGS_PANEL_PADDING = 12;
@@ -26,7 +27,8 @@ enum LayoutElementType {
 	Setting,
 	Text,
 	Keybinding,
-	HorizontalLine
+	HorizontalLine,
+	Button
 }
 
 interface SectionHeaderLayoutElement {
@@ -55,7 +57,13 @@ interface HorizontalLineLayoutElement {
 	type: LayoutElementType.HorizontalLine
 }
 
-type LayoutElement = SectionHeaderLayoutElement | SettingLayoutElement | TextLayoutElement | KeybindingLayoutElement | HorizontalLineLayoutElement;
+interface ButtonLayoutElement {
+	type: LayoutElementType.Button,
+	label: string,
+	onclick: () => any
+}
+
+type LayoutElement = SectionHeaderLayoutElement | SettingLayoutElement | TextLayoutElement | KeybindingLayoutElement | HorizontalLineLayoutElement | ButtonLayoutElement;
 
 const layout: LayoutElement[] = [
 	{ type: LayoutElementType.SectionHeader, title: 'audio' },
@@ -79,6 +87,10 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.Setting, setting: 'snakingSliders' },
 	{ type: LayoutElementType.Setting, setting: 'showApproachCircleOnFirstHiddenObject' },
 	{ type: LayoutElementType.Setting, setting: 'audioOffset' },
+	{ type: LayoutElementType.SectionHeader, title: 'storage' },
+	{ type: LayoutElementType.Setting, setting: 'automaticallyStoreSingleBeatmapSetImports' },
+	{ type: LayoutElementType.Setting, setting: 'retryFailedImportsOnFolderReopen' },
+	{ type: LayoutElementType.Button, label: "open storage manager", onclick: () => globalState.storageManager.show() },
 	{ type: LayoutElementType.SectionHeader, title: 'input' },
 	{ type: LayoutElementType.Setting, setting: 'useSoftwareCursor' },
 	{ type: LayoutElementType.Setting, setting: 'mouseSensitivity' },
@@ -201,6 +213,8 @@ export class SettingsPanel {
 					elements.push(new KeybindElement(this, layoutElement.keybindName)); break;
 				case LayoutElementType.HorizontalLine:
 					elements.push(new HorizontalLine(this)); break;
+				case LayoutElementType.Button:
+					elements.push(new ButtonElement(this, layoutElement.label, layoutElement.onclick)); break;
 			}
 		}
 

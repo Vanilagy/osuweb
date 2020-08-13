@@ -114,7 +114,7 @@ class Toast {
 	resize() {
 		this.text.style.fontSize = Math.floor(12 * this.manager.scalingFactor);
 		
-		this.background.width = this.text.width + Math.floor(30 * this.manager.scalingFactor);
+		this.background.width = this.text.width + Math.floor(50 * this.manager.scalingFactor);
 		this.background.height = Math.floor(20 * this.manager.scalingFactor);
 
 		let slantWidth = this.background.height/5;

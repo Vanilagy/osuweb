@@ -15,7 +15,7 @@ export interface TaskProgress {
 
 /** Represents an asynchronous task with certain interfaces like pausing, resuming and getting current status. */
 export abstract class Task<U, T> {
-	protected input: U;
+	public input: U;
 	protected resultPromise: Promise<T>;
 	private promiseResolve: (value?: T | PromiseLike<T>) => void;
 	private promiseReject: (reason?: any) => void;

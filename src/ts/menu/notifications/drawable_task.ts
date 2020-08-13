@@ -103,7 +103,7 @@ export class DrawableTask extends NotificationPanelEntry {
 
 	onManualClose() {
 		this.task.pause();
-		globalState.popupManager.createConfirm("Stop task", "Are you sure you want to stop this task?").then(result => {
+		globalState.popupManager.createConfirm("stop task", "Are you sure you want to stop this task?").then(result => {
 			if (result === 'yes') {
 				this.task.destroy();
 				this.close();

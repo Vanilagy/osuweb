@@ -570,7 +570,7 @@ export abstract class MathUtil {
 
 		// An implementation of xoshiro128** found here: https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript
 		return function() {
-			var t = b << 9, r = a * 5; r = (r << 7 | r >>> 25) * 9;
+			let t = b << 9, r = a * 5; r = (r << 7 | r >>> 25) * 9;
 			c ^= a; d ^= b;
 			b ^= c; a ^= d; c ^= t;
 			d = d << 11 | d >>> 21;
@@ -585,8 +585,8 @@ export abstract class MathUtil {
 		let t = scaledX - xFloor;
 		let tRemapSmoothstep = t * t * (3 - 2 * t);
 
-		var xMin = xFloor % valueNoiseLatticePoints.length;
-		var xMax = ( xMin + 1 ) % valueNoiseLatticePoints.length;
+		let xMin = xFloor % valueNoiseLatticePoints.length;
+		let xMax = ( xMin + 1 ) % valueNoiseLatticePoints.length;
 
 		return MathUtil.lerp(valueNoiseLatticePoints[xMin], valueNoiseLatticePoints[xMax], tRemapSmoothstep);
 	}

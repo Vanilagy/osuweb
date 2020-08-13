@@ -21,6 +21,8 @@ import { ToastManager } from "./menu/notifications/toasts";
 import { Database } from "./storage/database";
 import { ImportedFolderRequester } from "./menu/import/imported_folder_requester";
 import { PopupManager } from "./menu/misc/popup_manager";
+import { StorageManager } from "./menu/settings/storage_manager";
+import { ContextMenuManager } from "./menu/misc/context_menu_manager";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -45,5 +47,7 @@ export const globalState = {
 	toastManager: null as ToastManager,
 	database: null as Database,
 	importedFolderRequester: null as ImportedFolderRequester,
-	popupManager: null as PopupManager
+	popupManager: null as PopupManager,
+	storageManager: null as StorageManager,
+	contextMenuManager: null as ContextMenuManager
 };

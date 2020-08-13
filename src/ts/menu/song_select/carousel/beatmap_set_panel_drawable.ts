@@ -6,6 +6,7 @@ import { shallowObjectClone, last } from "../../../util/misc_util";
 import { BeatmapSetPanel, BEATMAP_SET_PANEL_WIDTH, BEATMAP_SET_PANEL_HEIGHT } from "./beatmap_set_panel";
 import { BeatmapDifficultyPanelDrawable } from "./beatmap_difficulty_panel_drawable";
 import { BeatmapCarousel, getNormalizedOffsetOnCarousel } from "./beatmap_carousel";
+import { MouseButton } from "../../../input/input";
 
 /** The drawable for beatmap set panels. Note that this drawable doesn't belong to a single beatmap set panel, but instead can be dynamically reassigned to display any panel that you bind to it. */
 export class BeatmapSetPanelDrawable {
@@ -104,6 +105,7 @@ export class BeatmapSetPanelDrawable {
 	private initInteractions() {
 		let registration = new InteractionRegistration(this.panelContainer);
 		registration.setZIndex(2); // Above the difficulty panels
+		registration.allowAllMouseButtons();
 		this.interactionGroup.add(registration);
 
 		registration.addButtonHandlers(
@@ -113,6 +115,10 @@ export class BeatmapSetPanelDrawable {
 			() => this.panel.mouseDownBrightnessInterpolator.setReversedState(false, performance.now()),
 			() => this.panel.mouseDownBrightnessInterpolator.setReversedState(true, performance.now())
 		);
+		registration.addListener('mouseDown', (e) => {
+			if (e.button !== MouseButton.Right) return;
+			this.panel.showContextMenu();
+		});
 	}
 
 	resize() {

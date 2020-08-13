@@ -34,9 +34,9 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 
 	public entries: BeatmapEntry[] = [];
 
-	private entriesLoadingPromise: Promise<void>;
+	private entriesLoadingPromise: Promise<void> = null;
 	public entriesLoaded = false;
-	private metadataLoadingPromise: Promise<void>;
+	private metadataLoadingPromise: Promise<void> = null;
 	public metadataLoaded = false;
 	/** Whether or not this beatmap set is defective and/or as been removed. Reasons for defectiveness often include errors during file loading. Defective beatmap sets should not be used! */
 	public defective = false;
@@ -48,7 +48,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		this.directory = directory;
 	}
 
-	setBasicMetadata(title: string, artist: string, creator?: string, doStore = false) {
+	async setBasicMetadata(title: string, artist: string, creator?: string) {
 		this.title = title;
 		this.titleLowerCase = title.toLowerCase();
 		this.artist = artist;
@@ -57,7 +57,6 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		this.creatorLowerCase = creator?.toLowerCase();
 
 		this.updateSearchableString();
-		if (doStore) this.storeMetadata();
 	}
 
 	updateSearchableString() {
@@ -74,13 +73,26 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		}
 	}
 
+	/** Reloads all entries and metadata. */
+	async refresh() {
+		this.entriesLoadingPromise = null;
+		this.metadataLoadingPromise = null;
+		this.entriesLoaded = false;
+		this.metadataLoaded = false;
+
+		await this.loadEntries();
+		await this.loadMetadata();
+	}
+
 	/** Loads all beatmap entries (all the beatmaps of this set). Additionally, loads basic metadata about the beatmap set. */
-	loadEntries() {
+	loadEntries(store = true) {
 		// Entries are already loading, return the ongoing promise.
 		if (this.entriesLoadingPromise) return this.entriesLoadingPromise;
 		if (this.entriesLoaded) return;
 
 		let promise = new Promise<void>(async (resolve) => {
+			let newEntries: BeatmapEntry[] = [];
+
 			for await (let fileEntry of this.directory) {
 				if (!(fileEntry instanceof VirtualFile)) continue;
 
@@ -106,9 +118,12 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 						}
 					}
 
-					this.entries.push(beatmapEntry);
+					newEntries.push(beatmapEntry);
 				}
 			}
+
+			this.entries.length = 0; // Remove old entries
+			this.entries.push(...newEntries);
 
 			if (this.entries.length === 0) {
 				// Beatmap sets with zero beatmaps are practically useless and shouldn't even be considered beatmap sets.
@@ -132,7 +147,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 				globalState.notificationPanel.showNotification("Error importing beatmap set", `Could not import the folder "${this.directory.name}".`, NotificationType.Error);
 			}
 			
-			await this.storeMetadata();
+			if (store) globalState.beatmapLibrary.storeBeatmapSetMetadata(this);
 			resolve();
 		});
 		this.entriesLoadingPromise = promise;
@@ -141,7 +156,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	}
 
 	/** Loads the complete metadata of all the entries in the set (including difficulty). */
-	loadMetadata() {
+	loadMetadata(store = true) {
 		// Metadata is already loading, return the ongoing promise.
 		if (this.metadataLoadingPromise) return this.metadataLoadingPromise;
 		if (!this.basicData || this.defective) return;
@@ -171,7 +186,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 			this.metadataLoaded = true;
 			this.emit('change');
 
-			await this.storeMetadata();
+			if (store) globalState.beatmapLibrary.storeBeatmapSetMetadata(this);
 			resolve();
 		});
 		this.metadataLoadingPromise = promise;
@@ -180,11 +195,11 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	}
 
 	/** Removes this beatmap set and labels it as defective. */
-	remove() {
+	remove(store = true) {
 		this.defective = true;
 		this.emit('remove');
 
-		globalState.database.delete('beatmapSet', this.id);
+		if (store) globalState.database.delete('beatmapSet', this.id);
 	}
 
 	/** Removes a specific beatmap entry. */

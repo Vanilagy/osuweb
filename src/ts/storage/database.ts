@@ -61,6 +61,19 @@ export class Database {
 		await new Promise(resolve => transaction.oncomplete = resolve);
 	}
 
+	/** Adds or updates multiple records in one batch. */
+	async putMultiple<K extends CollectionName>(collectionName: K, records: typeof databaseDescription["collections"][K]["format"][]) {
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(collectionName, 'readwrite');
+		let store = transaction.objectStore(collectionName);
+
+		for (let record of records) {
+			store.put(record);
+		}
+
+		await new Promise(resolve => transaction.oncomplete = resolve);
+	}
+
 	/** The internal method to handle gets, both single and multiple-item. */
 	private async getInternal<
 		K extends CollectionName,
@@ -214,6 +227,38 @@ export class Database {
 		store.delete(key);
 
 		return new Promise(resolve => transaction.oncomplete = resolve);
+	}
+
+	/** Deletes multiple records from the database in one batch. */
+	async deleteMultiple(collectionName: CollectionName, keys: string[]) {
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(collectionName, 'readwrite');
+		let store = transaction.objectStore(collectionName);
+
+		for (let key of keys) store.delete(key);
+
+		return new Promise(resolve => transaction.oncomplete = resolve);
+	}
+
+	/** Deletes records that satisfy the predicate. */
+	async findAndDelete<K extends CollectionName>(collectionName: K, predicate: (record: typeof databaseDescription["collections"][K]["format"]) => boolean) {
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(collectionName, 'readwrite');
+		let store = transaction.objectStore(collectionName);
+
+		await new Promise((resolve) => {
+			// Loop through all records with a cursor until a match is found
+			store.openCursor().onsuccess = (e) => {
+				let cursor = (e.target as any).result as IDBCursor;
+				if (cursor) {
+					let record = (cursor as any).value as typeof databaseDescription["collections"][K]["format"];
+					if (predicate(record)) cursor.delete();
+					cursor.continue();
+				} else {
+					resolve();
+				}
+			}
+		});
 	}
 }
 

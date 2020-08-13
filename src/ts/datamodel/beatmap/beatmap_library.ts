@@ -4,7 +4,7 @@ import { VirtualDirectory } from "../../file_system/virtual_directory";
 import { Task } from "../../multithreading/task";
 import { VirtualFileSystemEntry } from "../../file_system/virtual_file_system_entry";
 import { globalState } from "../../global_state";
-import { removeItem, chooseGrammaticalNumber, addNounToNumber, addUnitToBytes } from "../../util/misc_util";
+import { removeItem, chooseGrammaticalNumber, addNounToNumber, addUnitToBytes, wait } from "../../util/misc_util";
 import { BeatmapEntry } from "./beatmap_entry";
 import { VirtualFile } from "../../file_system/virtual_file";
 import { isOsuBeatmapFile } from "../../util/file_util";
@@ -22,10 +22,18 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 	removeEntry: BeatmapEntry
 }> {
 	public beatmapSets: BeatmapSet[];
+	public beatmapSetIds: Set<string>;
+	/** This queue gets emptied in regular intervals to batch writes to the database. */
+	private metadataStoreQueue: Set<BeatmapSet>;
 
 	constructor() {
 		super();
+
 		this.beatmapSets = [];
+		this.beatmapSetIds = new Set();
+		this.metadataStoreQueue = new Set();
+
+		setInterval(() => this.storeLoop(), 750);
 	}
 
 	/** Loads all beatmaps that have fully been stored. */
@@ -38,32 +46,27 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 			beatmapSets.push(await BeatmapSet.fromDescription(desc, null));
 		}
 
-		this.addBeatmapSets(beatmapSets, 0, false, new WeakSet());
+		this.addBeatmapSets(beatmapSets, 0, false);
 	}
 
 	/** Adds beatmap sets and begins loading their metadata. */
 	/** @param areNew Indicates that all imported sets are fresh and new and haven't been imported before. */
-	/** @param toStore The set of beatmaps to fully store. */
-	/** @param handlesToRemoveAfterStore If a store task is spawned and finishes, remove all the directory handles with these ids. */
-	async addBeatmapSets(beatmapSets: BeatmapSet[], defectiveSetCount = 0, areNew: boolean, toStore: WeakSet<BeatmapSet>, handlesToRemoveAfterStore: string[] = []) {
+	async addBeatmapSets(beatmapSets: BeatmapSet[], defectiveSetCount = 0, areNew: boolean) {
+		beatmapSets = beatmapSets.filter(x => !this.beatmapSetIds.has(x.id)); // Filter out already imported beatmaps
+
 		for (let set of beatmapSets) {
 			set.addListener('change', () => this.emit('change', set));
 			set.addListener('remove', () => {
 				removeItem(this.beatmapSets, set);
+				this.beatmapSetIds.delete(set.id);
 				this.emit('remove', set);
 			});
 			set.addListener('removeEntry', (entry) => this.emit('removeEntry', entry));
 		}
 
 		this.beatmapSets.push(...beatmapSets);
+		for (let set of beatmapSets) this.beatmapSetIds.add(set.id);
 		this.emit('add', beatmapSets);
-
-		// Start a storing task with all beatmap sets needing storing
-		let storeNeeded = beatmapSets.filter(x => toStore.has(x) && !x.stored);
-		if (storeNeeded.length > 0) {
-			let storeTask = new StoreBeatmapsTask({ beatmapSets: storeNeeded, removeHandles: handlesToRemoveAfterStore });
-			storeTask.start();
-		}
 
 		let entryLoadNeeded = beatmapSets.filter(x => !x.entriesLoaded);
 		let metadataLoadNeeded = beatmapSets.filter(x => !x.metadataLoaded);
@@ -129,6 +132,47 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 		task.start();
 		task.show(); // Actually show the task in the notification panel
 	}
+
+	/** Start a storing task with all beatmap sets needing storing */
+	/** @param handlesToRemoveAfterStore If a store task is spawned and finishes, remove all the directory handles with these ids. */
+	async storeBeatmapSets(beatmapSets: BeatmapSet[], prompt: boolean, handlesToRemoveAfterStore: string[] = []) {
+		let storeNeeded = beatmapSets.filter(x => !x.stored); // Filter out already stored beatmaps
+		if (storeNeeded.length === 0) return true;
+
+		if (prompt) {
+			let approxSizePerBeatmap = 17_889_742_993 / 1656; // A rough estimation based on an actual osu! Songs folder
+			let estimatedCopySize = approxSizePerBeatmap * storeNeeded.length;
+			let criticalLimit = 5 * 10**9; // 5 GB seems reasonable?
+
+			// If a single beatmap was selected, or the user opts in to store, store.
+			let result = await globalState.popupManager.createConfirm(
+				"store beatmaps?",
+				`Do you want to fully store all imported beatmap sets (${storeNeeded.length}) in the browser (including all beatmaps, images, videos, etc.) so that they are available next time without a reload of this folder?\n\nEstimated data to copy: ${addUnitToBytes(estimatedCopySize)}.`, 
+				(estimatedCopySize >= criticalLimit)? ConfirmDialogueHighlighting.HighlightNo : ConfirmDialogueHighlighting.HighlightBoth,
+				(estimatedCopySize >= criticalLimit)? "WARNING: The imported folder is very large and will take a long time and a lot of additional disk space to copy." : null
+			);
+			if (result !== 'yes') return false;
+		}
+		
+		let storeTask = new StoreBeatmapsTask({ beatmapSets: storeNeeded, removeHandles: handlesToRemoveAfterStore });
+		storeTask.start();
+
+		return true;
+	}
+
+	storeBeatmapSetMetadata(beatmapSet: BeatmapSet) {
+		// Add it to the queue
+		this.metadataStoreQueue.add(beatmapSet);
+	}
+
+	async storeLoop() {
+		if (this.metadataStoreQueue.size === 0) return;
+
+		let arr = [...this.metadataStoreQueue];
+		this.metadataStoreQueue.clear();
+		let descriptions = await Promise.all(arr.map(x => x.toDescription()));
+		await globalState.database.putMultiple('beatmapSet', descriptions);
+	}
 }
 
 /** Imports all beatmap sets from a list of directories. */
@@ -154,7 +198,7 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 	/** Take care of loading beatmaps whose metadata has been stored. This is only really gonna do something for native file system directories. */
 	async init() {
 		let beatmapSets: BeatmapSet[] = [];
-		let toStore = new WeakSet<BeatmapSet>(); // Remember the beatmap sets that still need full storing
+		let toStore: BeatmapSet[] = []; // Remember the beatmap sets that still need full storing
 		let handlesToRemove = new Set<string>(); // All the directory handle ids that contain atleast one beatmap that still needs full storing
 
 		for (let directory of this.input) {
@@ -173,13 +217,13 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 					beatmapSets.push(beatmapSet);
 
 					if (handleDescription.storeBeatmaps) {
-						toStore.add(beatmapSet);
+						toStore.push(beatmapSet);
 						handlesToRemove.add(directory.directoryHandleId);
 					}
 				}
 				
-				// Make sure we don't reimport the beatmap with the same directory name
-				this.ignoreDirectoryNames.get(directory).add(desc.directory.name);
+				// Make sure we don't reimport the beatmap with the same directory name, unless its defective and the setting is right
+				if (!desc.defective || !globalState.settings["retryFailedImportsOnFolderReopen"]) this.ignoreDirectoryNames.get(directory).add(desc.directory.name);
 			}
 
 			if (storedDescriptions.length) {
@@ -187,7 +231,8 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 			}
 		}
 
-		globalState.beatmapLibrary.addBeatmapSets(beatmapSets, 0, false, toStore, [...handlesToRemove]);
+		globalState.beatmapLibrary.addBeatmapSets(beatmapSets, 0, false);
+		globalState.beatmapLibrary.storeBeatmapSets(toStore, false, [...handlesToRemove]);
 	}
 
 	async resume() {
@@ -220,8 +265,8 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 						let beatmapSet = new BeatmapSet(directory);
 	
 						// Load entries and metadata here instead of later, so that the import into the carousel is instant
-						await beatmapSet.loadEntries();
-						await beatmapSet.loadMetadata();
+						await beatmapSet.loadEntries(false);
+						await beatmapSet.loadMetadata(false);
 	
 						this.beatmapSets = beatmapSet.defective? [] : [beatmapSet];
 						break;
@@ -238,16 +283,19 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 					let artist = match[1];
 	
 					let newSet = new BeatmapSet(entry);
-					newSet.setBasicMetadata(title, artist, null, true);
+					await newSet.setBasicMetadata(title, artist, null);
 	
 					this.beatmapSets.push(newSet);
 				} else {
 					// The folder doesn't follow the usual naming convention. In this case, we pre-parse the metadata.
 					let newSet = new BeatmapSet(entry);
-					await newSet.loadEntries();
+					await newSet.loadEntries(false);
 	
 					if (!newSet.defective) this.beatmapSets.push(newSet);
-					else this.defectiveBeatmapSetCount++;
+					else {
+						this.defectiveBeatmapSetCount++;
+						await newSet.storeMetadata(); // This might be a bit odd, 'cause why would we specifically store a defective beatmap set? Well, basically because we want to remember this defective set to not import it again the next time. Also, this happens rarely enough that we can safely 'await' here without getting too slow.
+					}
 				}
 	
 				// If we've seen multiple beatmap directories already, we can assume we're in a directory of beatmap directories.
@@ -257,22 +305,16 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 			if (this.currentType.get(directory) === 'undetermined') this.currentType.set(directory, 'multiple');
 		}
 
+		// Store all descriptions at once
+		let descriptions = await Promise.all(this.beatmapSets.map(x => x.toDescription()));
+		await globalState.database.putMultiple('beatmapSet', descriptions);
+
 		// Count it as new if there is exactly one directory input that hasn't yet been stored in the database
 		let isNew = this.input.length === 1 && !(await globalState.database.get('directoryHandle', 'id', this.input[0].directoryHandleId));
+		let showPrompt = this.currentType.get(this.input[0]) !== 'single' || !globalState.settings["automaticallyStoreSingleBeatmapSetImports"];
+		let storePermitted = isNew && await globalState.beatmapLibrary.storeBeatmapSets(this.beatmapSets, showPrompt, [this.input[0].directoryHandleId]);
 
-		let approxSizePerBeatmap = 17_889_742_993 / 1656; // A rough estimation based on an actual osu! Songs folder
-		let estimatedCopySize = approxSizePerBeatmap * this.beatmapSets.length;
-		let criticalLimit = 5 * 10**9; // 5 GB seems reasonable?
-
-		// If a single beatmap was selected, or the user opts in to store, store.
-		let doStore = isNew && this.beatmapSets.length > 0 && ((this.currentType.get(this.input[0]) === 'single') || (await globalState.popupManager.createConfirm(
-			"Store beatmaps?",
-			`Do you want to fully store all imported beatmap sets (${this.beatmapSets.length}) in the browser (including all beatmaps, images, videos, etc.) so that they are available next time without a reload of this folder?\n\nEstimated data to copy: ${addUnitToBytes(estimatedCopySize)}.`, 
-			(estimatedCopySize >= criticalLimit)? ConfirmDialogueHighlighting.HighlightNo : ConfirmDialogueHighlighting.HighlightBoth,
-			(estimatedCopySize >= criticalLimit)? "WARNING: The imported folder is very large and will take a long time and a lot of additional disk space to copy." : null
-		)) === 'yes');
-
-		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets, this.defectiveBeatmapSetCount, isNew, new WeakSet(doStore? this.beatmapSets : []), [this.input[0].directoryHandleId]);
+		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets, this.defectiveBeatmapSetCount, isNew);
 		this.setResult({
 			beatmapSets: this.beatmapSets,
 			defectiveSets: this.defectiveBeatmapSetCount
@@ -287,7 +329,7 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 					handle: await directory.getHandle(),
 					id: directory.directoryHandleId,
 					permissionGranted: true,
-					storeBeatmaps: doStore
+					storeBeatmaps: storePermitted
 				};
 
 				await globalState.database.put('directoryHandle', data);

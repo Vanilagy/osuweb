@@ -30,7 +30,7 @@ export interface PopupFrameOptions {
 export abstract class PopupFrame {
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
-	protected scalingFactor: number = 1.0;
+	public scalingFactor: number = 1.0;
 	protected options: PopupFrameOptions;
 
 	protected background: PIXI.Sprite;

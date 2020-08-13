@@ -8,6 +8,8 @@ import { BeatmapSet } from "../../../datamodel/beatmap/beatmap_set";
 import { BeatmapEntry } from "../../../datamodel/beatmap/beatmap_entry";
 import { BeatmapSetPanelCollection } from "./beatmap_set_panel_collection";
 import { BEATMAP_SET_PANEL_SNAP_TARGET } from "./beatmap_carousel";
+import { globalState } from "../../../global_state";
+import { THEME_COLORS } from "../../../util/constants";
 
 export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;
@@ -330,5 +332,31 @@ export class BeatmapSetPanel implements Searchable {
 	startFadeOut(now: number) {
 		this.fadeInInterpolator.setReversedState(true, now);
 		this.enableSpecialHeight();
+	}
+
+	async showContextMenu() {
+		let action = await globalState.contextMenuManager.showContextMenu([
+			{ action: 'refresh', label: 'refresh' }, { action: 'delete', label: 'delete', color: THEME_COLORS.JudgementMiss }
+		]);
+
+		if (action === 'refresh') {
+			this.beatmapSet.refresh();
+		} else if (action === 'delete') {
+			let choice = await globalState.popupManager.createPopup("delete beatmap set", "Are you sure you want to delete this beatmap set and all its difficulties?", [
+				{
+					action: 'yes',
+					label: 'yes',
+					color: THEME_COLORS.JudgementMiss
+				},
+				{
+					action: 'no',
+					label: 'no',
+					color: THEME_COLORS.SecondaryActionGray
+				}
+			]);
+			if (choice !== 'yes') return;
+
+			this.beatmapSet.remove();
+		}
 	}
 }

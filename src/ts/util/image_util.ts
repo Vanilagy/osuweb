@@ -186,15 +186,15 @@ export async function getJpgDimensions(file: VirtualFile): Promise<Dimensions> {
 	// first marker of the file MUST be 0xFFD8
 	if (data[0] !== 0xFF || data[1] !== 0xD8) return null;
   
-	var offset = 2;
+	let offset = 2;
   
 	for (;;) {
 		if (data.length - offset < 2) return null;
 		// not a JPEG marker
 		if (data[offset++] !== 0xFF) return null;
 	
-		var code = data[offset++];
-		var length;
+		let code = data[offset++];
+		let length;
 	
 		// skip padding bytes
 		while (code === 0xFF) code = data[offset++];

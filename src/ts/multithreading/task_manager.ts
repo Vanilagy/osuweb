@@ -2,7 +2,7 @@ import { Task } from "./task";
 import { removeItem } from "../util/misc_util";
 
 export class TaskManager {
-	private tasks: Task<any, any>[] = [];
+	public tasks: Task<any, any>[] = [];
 
 	addTask(task: Task<any, any>) {
 		this.tasks.push(task);

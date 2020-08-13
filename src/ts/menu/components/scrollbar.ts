@@ -68,8 +68,8 @@ export class Scrollbar {
 			// Squish the thumb based on overflow
 			thumbHeight -= -thumbPosition;
 			thumbPosition = 0;
-		} else if (thumbPosition > this.scaledHeight) {
-			thumbHeight -= thumbPosition - this.scaledHeight;
+		} else if (thumbPosition > this.scaledHeight - thumbHeight) {
+			thumbHeight = this.scaledHeight - thumbPosition;
 		}
 
 		this.thumb.visible = true;

@@ -35,6 +35,8 @@ import { ToastManager } from './menu/notifications/toasts';
 import { Database } from './storage/database';
 import { ImportedFolderRequester } from './menu/import/imported_folder_requester';
 import { PopupManager } from './menu/misc/popup_manager';
+import { StorageManager } from './menu/settings/storage_manager';
+import { ContextMenuManager } from './menu/misc/context_menu_manager';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -242,6 +244,20 @@ async function initMisc() {
 	uiEventEmitter.addListener('resize', () => popupManager.resize());
 	addRenderingTask((now) => popupManager.update(now));
 	globalState.popupManager = popupManager;
+
+	let storageManager = new StorageManager();
+	stage.addChild(storageManager.container);
+	rootInteractionGroup.add(storageManager.interactionGroup);
+	uiEventEmitter.addListener('resize', () => storageManager.resize());
+	addRenderingTask((now) => storageManager.update(now));
+	globalState.storageManager = storageManager;
+
+	let contextMenuManager = new ContextMenuManager();
+	stage.addChild(contextMenuManager.container);
+	rootInteractionGroup.add(contextMenuManager.interactionGroup);
+	uiEventEmitter.addListener('resize', () => contextMenuManager.resize());
+	addRenderingTask((now) => contextMenuManager.update(now));
+	globalState.contextMenuManager = contextMenuManager;
 }
 
 function initVolumeController() {
@@ -264,10 +280,12 @@ function setZIndexes() {
 	globalState.notificationPanel.container.zIndex = 3.3;
 	globalState.settingsPanel.container.zIndex = 3.4;
 	globalState.toolbar.container.zIndex = 3.9;
+	globalState.storageManager.container.zIndex = 3.95;
 	globalState.folderSelector.container.zIndex = 4;
 	globalState.importedFolderRequester.container.zIndex = 4;
 	globalState.popupManager.container.zIndex = 8;
 	globalState.volumeController.container.zIndex = 9;
+	globalState.contextMenuManager.container.zIndex = 9.3;
 	globalState.toastManager.container.zIndex = 9.5;
 	globalState.fpsMeter.container.zIndex = 10;
 	globalState.cursor.container.zIndex = 100;
@@ -279,9 +297,11 @@ function setZIndexes() {
 	globalState.notificationPanel.interactionGroup.setZIndex(3.3);	
 	globalState.settingsPanel.interactionGroup.setZIndex(3.4);
 	globalState.toolbar.interactionGroup.setZIndex(3.9);
+	globalState.storageManager.interactionGroup.setZIndex(3.95);
 	globalState.folderSelector.interactionGroup.setZIndex(4);
 	globalState.importedFolderRequester.interactionGroup.setZIndex(4);
 	globalState.popupManager.interactionGroup.setZIndex(8);
 	globalState.volumeController.interactionGroup.setZIndex(9);
+	globalState.contextMenuManager.interactionGroup.setZIndex(9.3);
 	globalState.globalInputListener.registration.setZIndex(100);
 }
