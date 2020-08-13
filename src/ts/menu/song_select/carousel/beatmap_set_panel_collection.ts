@@ -23,7 +23,7 @@ beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Title, (a, b)
 beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Artist, (a, b) => compareStrings(a.beatmapSet.artistLowerCase, b.beatmapSet.artistLowerCase));
 beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Difficulty, (a, b) => a.beatmapEntries[0].extendedMetadata.difficultyAttributes.starRating - b.beatmapEntries[0].extendedMetadata.difficultyAttributes.starRating);
 beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Length, (a, b) => a.beatmapEntries[0].extendedMetadata.playableLength - b.beatmapEntries[0].extendedMetadata.playableLength);
-beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.DateAdded, (a, b) => 0);
+beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.DateAdded, (a, b) => b.beatmapSet.creationTime - a.beatmapSet.creationTime); // New ones first
 beatmapCarouselSortingTypeFunctions.set(BeatmapCarouselSortingType.Mapper, (a, b) => compareStrings(a.beatmapSet.creatorLowerCase, b.beatmapSet.creatorLowerCase));
 
 type BeatmapSetPanelFilter = (x: BeatmapSetPanel) => boolean;

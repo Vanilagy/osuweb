@@ -16,6 +16,7 @@ const metadataExtractor = /^(.+) - (.+) \((.+)\) \[(.+)\]\.osu$/;
 
 export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, removeEntry: BeatmapEntry}> implements Searchable {
 	public id: string;
+	public creationTime: number;
 
 	// These lower-case versions exist to enable faster sorting
 	public title: string;
@@ -41,10 +42,11 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	/** Whether or not this beatmap set is defective and/or as been removed. Reasons for defectiveness often include errors during file loading. Defective beatmap sets should not be used! */
 	public defective = false;
 
-	constructor(directory: VirtualDirectory, id?: string) {
+	constructor(directory: VirtualDirectory, id?: string, creationTime?: number) {
 		super();
 
 		this.id = id ?? ULID.ulid(); // Generate a new ID if necessary
+		this.creationTime = creationTime ?? Date.now();
 		this.directory = directory;
 	}
 
@@ -255,6 +257,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	async toDescription(): Promise<BeatmapSetDescription> {
 		return {
 			id: this.id,
+			creationTime: this.creationTime,
 			directory: await this.directory.toDescription(false),
 			parentDirectoryHandleId: this.directory.parent?.directoryHandleId,
 			stored: this.stored,
@@ -279,7 +282,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		}
 
 		parentDirectory?.addEntry(directory);
-		let set = new BeatmapSet(directory, description.id);
+		let set = new BeatmapSet(directory, description.id, description.creationTime);
 
 		set.setBasicMetadata(description.title, description.artist, description.creator);
 		set.basicData = description.basicData;
@@ -295,6 +298,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 
 export interface BeatmapSetDescription {
 	id: string,
+	creationTime: number,
 	directory: VirtualDirectoryDescription,
 	/** Incase the parent directory is a directory handle, store its ID so we can load this beatmap from the database when the same folder is selected again. */
 	parentDirectoryHandleId?: string,
