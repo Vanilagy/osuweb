@@ -146,6 +146,13 @@ export class DropImporter {
 		let fadeInValue = this.fadeInInterpolator.getCurrentValue(now);
 		let activeValue = this.activeInterpolator.getCurrentValue(now);
 
+		if (fadeInValue === 0) {
+			this.container.visible = false;
+			return;
+		} else {
+			this.container.visible = true;
+		}
+
 		this.container.alpha = fadeInValue;
 
 		if (this.statusDisplay.task) {
