@@ -55,6 +55,10 @@ export function isOsuBeatmapFile(filename: string) {
 	return OSU_BEATMAP_FILE_EXTENSIONS.includes(extension);
 }
 
+export function isOsuArchiveFile(filename: string) {
+	return filename.endsWith('.osz');
+}
+
 /** Splits a path into its components. Should work both for POSIX and for Windows-y paths. */
 export function splitPath(path: string) {
 	let splitPosix = path.split('/');

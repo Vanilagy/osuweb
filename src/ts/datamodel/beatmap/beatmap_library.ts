@@ -147,7 +147,7 @@ export class BeatmapLibrary extends CustomEventEmitter<{
 			// If a single beatmap was selected, or the user opts in to store, store.
 			let result = await globalState.popupManager.createConfirm(
 				"store beatmaps?",
-				`Do you want to fully store all imported beatmap sets (${storeNeeded.length}) in the browser (including all beatmaps, images, videos, etc.) so that they are available next time without a reload of this folder?\n\nEstimated data to copy: ${addUnitToBytes(estimatedCopySize)}.`, 
+				`Do you want to fully store all imported beatmap sets (${storeNeeded.length}) in the browser (including all beatmaps, images, videos, etc.) so that they are available next time without a reload of this folder?\n\nEstimated data to copy: ${addUnitToBytes(estimatedCopySize)}`, 
 				(estimatedCopySize >= criticalLimit)? ConfirmDialogueHighlighting.HighlightNo : ConfirmDialogueHighlighting.HighlightBoth,
 				(estimatedCopySize >= criticalLimit)? "WARNING: The imported folder is very large and will take a long time and a lot of additional disk space to copy." : null
 			);
@@ -189,6 +189,9 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 	/** The selected input directories could either be a directory of beatmap directories, or just a single beatmap directory. Which one is the case needs to be detected first, and this variable stores the state of that detection. */
 	private currentType: WeakMap<VirtualDirectory, 'undetermined' | 'multiple' | 'single'> = new WeakMap();
 	private defectiveBeatmapSetCount = 0;
+
+	/** Is set to true when all directories have been iterated and the import is at its final step. */
+	public entryReadingComplete = false;
 
 	get descriptor() {return "Scanning for new beatmaps"}
 	get showAutomatically() {return false}
@@ -253,6 +256,11 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 				// If we've already processed this entry, skip it
 				if (this.processed.has(entry)) continue;
 				this.processed.add(entry);
+
+				// If there's an .osz archive file, unzip it on the fly, but don't add the unzipped version to the directory
+				if (entry instanceof VirtualFile && entry.name.endsWith('.osz')) {
+					entry = await VirtualDirectory.fromZipFile(entry);
+				}
 	
 				if (entry instanceof VirtualFile) {
 					// If we already know we're searching through a list of beatmap directories, we can ignore files
@@ -309,9 +317,11 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 		let descriptions = await Promise.all(this.beatmapSets.map(x => x.toDescription()));
 		await globalState.database.putMultiple('beatmapSet', descriptions);
 
+		this.entryReadingComplete = true;
+
 		// Count it as new if there is exactly one directory input that hasn't yet been stored in the database
 		let isNew = this.input.length === 1 && !(await globalState.database.get('directoryHandle', 'id', this.input[0].directoryHandleId));
-		let showPrompt = this.currentType.get(this.input[0]) !== 'single' || !globalState.settings["automaticallyStoreSingleBeatmapSetImports"];
+		let showPrompt = this.beatmapSets.length > 1 || !globalState.settings["automaticallyStoreSingleBeatmapSetImports"];
 		let storePermitted = isNew && await globalState.beatmapLibrary.storeBeatmapSets(this.beatmapSets, showPrompt, [this.input[0].directoryHandleId]);
 
 		globalState.beatmapLibrary.addBeatmapSets(this.beatmapSets, this.defectiveBeatmapSetCount, isNew);
@@ -333,7 +343,7 @@ export class ImportBeatmapsFromDirectoriesTask extends Task<VirtualDirectory[], 
 				};
 
 				await globalState.database.put('directoryHandle', data);
-			} 
+			}
 		}
 	}
 
@@ -517,12 +527,10 @@ export class StoreBeatmapsTask extends Task<{
 		}
 
 		this.setResult();
-		globalState.notificationPanel.showNotification("Beatmap storing complete", "All beatmaps have been stored successfully and will now persist between page loads.");
+		if (this.input.beatmapSets.length > 1) globalState.notificationPanel.showNotification("Beatmap storing complete", "All beatmaps have been stored successfully and will now persist between page loads.");
 
 		// Remove all the handles since their contents have been completely stored and we don't want to annoy the user with a permission popup despite there being absolutely no need for a folder import.
-		for (let id of this.input.removeHandles) {
-			globalState.database.delete('directoryHandle', id);
-		}
+		globalState.database.deleteMultiple('directoryHandle', this.input.removeHandles);
 	}
 
 	pause() {

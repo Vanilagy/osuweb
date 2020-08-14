@@ -23,6 +23,7 @@ import { ImportedFolderRequester } from "./menu/import/imported_folder_requester
 import { PopupManager } from "./menu/misc/popup_manager";
 import { StorageManager } from "./menu/settings/storage_manager";
 import { ContextMenuManager } from "./menu/misc/context_menu_manager";
+import { DropImporter } from "./menu/import/drop_importer";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -49,5 +50,6 @@ export const globalState = {
 	importedFolderRequester: null as ImportedFolderRequester,
 	popupManager: null as PopupManager,
 	storageManager: null as StorageManager,
-	contextMenuManager: null as ContextMenuManager
+	contextMenuManager: null as ContextMenuManager,
+	dropImporter: null as DropImporter
 };

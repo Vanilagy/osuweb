@@ -7,6 +7,8 @@ export class VirtualFile extends VirtualFileSystemEntry {
 	/** Every resource will eventually be converted to a blob. */
 	private blob: Blob = null;
 	private cachedResourceUrl: string;
+	private fileEntry: FileSystemFileEntry;
+	private zipObject: JSZip.JSZipObject;
 
 	private constructor() {
 		super();
@@ -18,6 +20,14 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		if (this.isNativeFileSystem) {
 			let handle = await this.getHandle();
 			return await handle.getFile();
+		}
+
+		if (this.fileEntry) {
+			return await new Promise(resolve => this.fileEntry.file(resolve)) as File;
+		}
+
+		if (this.zipObject) {
+			return this.blob = await this.zipObject.async('blob');
 		}
 
 		if (typeof this.resource === "string") {
@@ -116,6 +126,15 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		return newFile;
 	}
 
+	static fromFileEntry(entry: FileSystemFileEntry) {
+		let newFile = new VirtualFile();
+
+		newFile.name = entry.name;
+		newFile.fileEntry = entry;
+
+		return newFile;
+	}
+
 	async toDescription(storeData: boolean): Promise<VirtualFileDescription> {
 		return {
 			type: 'file',
@@ -132,6 +151,15 @@ export class VirtualFile extends VirtualFileSystemEntry {
 		file.isNativeFileSystem = description.isNativeFileSystem;
 		file.id = description.id;
 		if (description.blob) file.blob = description.blob;
+
+		return file;
+	}
+
+	static fromZipObject(zipObject: JSZip.JSZipObject) {
+		let file = new VirtualFile();
+
+		file.name = zipObject.name.slice(zipObject.name.lastIndexOf('/') + 1);
+		file.zipObject = zipObject;
 
 		return file;
 	}

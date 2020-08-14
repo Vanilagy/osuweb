@@ -75,17 +75,6 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		}
 	}
 
-	/** Reloads all entries and metadata. */
-	async refresh() {
-		this.entriesLoadingPromise = null;
-		this.metadataLoadingPromise = null;
-		this.entriesLoaded = false;
-		this.metadataLoaded = false;
-
-		await this.loadEntries();
-		await this.loadMetadata();
-	}
-
 	/** Loads all beatmap entries (all the beatmaps of this set). Additionally, loads basic metadata about the beatmap set. */
 	loadEntries(store = true) {
 		// Entries are already loading, return the ongoing promise.
@@ -194,6 +183,18 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		this.metadataLoadingPromise = promise;
 
 		return promise;
+	}
+
+	/** Reloads all entries and metadata. */
+	async refresh() {
+		this.entriesLoadingPromise = null;
+		this.metadataLoadingPromise = null;
+		this.entriesLoaded = false;
+		this.metadataLoaded = false;
+
+		this.directory.refresh();
+		await this.loadEntries();
+		await this.loadMetadata();
 	}
 
 	/** Removes this beatmap set and labels it as defective. */

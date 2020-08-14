@@ -17,13 +17,15 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	private directoryHandle: FileSystemDirectoryHandle = null
 	/** The id of the handle which can be used to retrieve it from the database. */
 	public directoryHandleId: string = null;
-	/** Since iterating a directory handle is async, this flag will be set to true if we have successfully iterated over all entries in the directory (which then will be cached). */
-	private directoryHandleEntriesIterated = false; 
 	/** Used to wait for the next entry to be read, see usage. */
-	private directoryHandleWaiter: Promise<void>;
+	private iterationWaiter: Promise<void>;
 	/** If this is true, the directory's contents must be fetched from IndexedDB first. */
 	public requiresDatabaseImport = false;
 	private databaseImportPromise: Promise<void>;
+
+	private directoryEntry: FileSystemDirectoryEntry;
+	/** Is used together with directoryEntry. */
+	private readied = true;
 
 	constructor(name: string) {
 		super();
@@ -60,6 +62,7 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 
 		for (let i = 0; i < parts.length; i++) {
 			if (currentDirectory.requiresDatabaseImport) await currentDirectory.importFromDatabase();
+			if (!currentDirectory.readied) await currentDirectory.ready();
 
 			let part = parts[i];
 			let entry: VirtualFileSystemEntry;
@@ -146,7 +149,7 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	/** Iterates through all entries in the directory handle (native file system-only!) */
 	private async iterateHandle() {
 		let resolver: Function;
-		this.directoryHandleWaiter = new Promise(resolve => resolver = resolve);
+		this.iterationWaiter = new Promise(resolve => resolver = resolve);
 
 		let handle = await this.getHandle();
 		let entries = await handle.getEntries();
@@ -169,27 +172,62 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 			this.addEntry(fileSystemEntry);
 
 			resolver();
-			this.directoryHandleWaiter = new Promise(resolve => resolver = resolve);
+			this.iterationWaiter = new Promise(resolve => resolver = resolve);
 		}
 
 		resolver();
+	}
 
-		// When we reach this point, we'll have iterated through the entire directory once, meaning we have cached all entries and don't need to iterate over the directory directly again.
-		this.directoryHandleEntriesIterated = true;
+	/** Iterates through all entries in the directory entry, obtained from drag-and-drop. */
+	private async iterateEntry() {
+		let resolver: Function;
+		this.iterationWaiter = new Promise(resolve => resolver = resolve);
+
+		let reader = this.directoryEntry.createReader();
+
+		const getEntries = async () => {
+			// Read the next bit of entries (usually ~100)
+			let entries = await new Promise(resolve => reader.readEntries(resolve)) as FileSystemEntry[];
+			if (!entries.length) return; // Terminate
+
+			for (let i = 0; i < entries.length; i++) {
+				let item = entries[i];
+
+				if (item.isFile) {
+					this.addEntry(VirtualFile.fromFileEntry(item as FileSystemFileEntry));
+				} else {
+					this.addEntry(VirtualDirectory.fromDirectoryEntry(item as FileSystemDirectoryEntry));
+				}
+			}
+
+			resolver();
+			this.iterationWaiter = new Promise(resolve => resolver = resolve);
+
+			// Keep reading more
+			await getEntries();
+		};
+		await getEntries();
+
+		resolver();
 	}
 
 	async *[Symbol.asyncIterator]() {
-		if (this.isNativeFileSystem && !this.directoryHandleWaiter) this.iterateHandle();
+		if (this.isNativeFileSystem && !this.iterationWaiter) this.iterateHandle();
+		if (this.directoryEntry && !this.iterationWaiter) this.iterateEntry();
 		if (this.requiresDatabaseImport) await this.importFromDatabase();
 
-		await this.directoryHandleWaiter;
+		await this.iterationWaiter;
+
+		let iteratedCount = 0;
 
 		// Kind of a hacky construct going on here, because we wait inside the iterator for the iterated data structure to get larger so that iteration doesn't stop. Hey, works!
 		for (let [, entry] of this.entries) {
 			yield entry;
 
-			// If there still are new entries coming in the pipeline, wait for them.
-			if (this.isNativeFileSystem && !this.directoryHandleEntriesIterated) await this.directoryHandleWaiter;
+			iteratedCount++;
+
+			// If we're at the end of the list and there still are new entries coming in the pipeline, wait for them.
+			if (this.iterationWaiter && iteratedCount === this.entries.size) await this.iterationWaiter;
 		}
 	}
 
@@ -230,6 +268,25 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		await addFilesInDirectory(this);
 
 		return Promise.all(arr);
+	}
+
+	/** If there's a way to get the entries again, this clears all entries and resets the necessary state accordingly. */
+	refresh() {
+		if (this.isNativeFileSystem || this.directoryEntry) {
+			this.entries.clear();
+			this.caseInsensitiveEntries.clear();
+
+			this.iterationWaiter = null;
+			if (this.directoryEntry) this.readied = false;
+		}
+
+		if (this.databaseImportPromise) {
+			this.entries.clear();
+			this.caseInsensitiveEntries.clear();
+
+			this.requiresDatabaseImport = true;
+			this.databaseImportPromise = null;
+		}
 	}
 
 	/** Creates a directory structure from a FileList, which is what you get from an <input type="file"> thing. */
@@ -367,6 +424,58 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 		});
 
 		return this.databaseImportPromise;
+	}
+
+	/** ...meaning from https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryEntry */
+	static fromDirectoryEntry(entry: FileSystemDirectoryEntry) {
+		let directory = new VirtualDirectory(entry.name);
+		directory.directoryEntry = entry;
+		directory.readied = false;
+
+		return directory;
+	}
+
+	async ready() {
+		if (this.readied) return;
+
+		for await (let e of this) if (!e) console.log(e);
+		this.readied = true;
+	}
+
+	static async fromZipFile(file: VirtualFile) {
+		let arrayBuffer = await file.readAsArrayBuffer();
+		let zip = await JSZip.loadAsync(arrayBuffer);
+		let root = new VirtualDirectory(file.getNameWithoutExtension());
+
+		for (let path in zip.files) {
+			let zipFile = zip.files[path];
+			let directoryPath = path.slice(0, Math.max(path.lastIndexOf('/'), 0));
+
+			let directory = directoryPath? await root.getEntryByPath(directoryPath) as VirtualDirectory : root;
+			if (!directory) {
+				// Create the needed subdirectories
+				
+				let parts = directoryPath.split('/');
+				directory = root;
+
+				for (let part of parts) {
+					let subDir = await directory.getEntryByPath(part) as VirtualDirectory;
+					if (!subDir) {
+						subDir = new VirtualDirectory(part);
+						directory.addEntry(subDir);	
+					}
+
+					directory = subDir;
+				}
+			}
+
+			if (zipFile.dir) continue;
+
+			let file = VirtualFile.fromZipObject(zipFile);
+			directory.addEntry(file);
+		}
+
+		return root;
 	}
 }
 

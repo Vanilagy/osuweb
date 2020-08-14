@@ -37,6 +37,7 @@ import { ImportedFolderRequester } from './menu/import/imported_folder_requester
 import { PopupManager } from './menu/misc/popup_manager';
 import { StorageManager } from './menu/settings/storage_manager';
 import { ContextMenuManager } from './menu/misc/context_menu_manager';
+import { DropImporter } from './menu/import/drop_importer';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -207,6 +208,13 @@ function initImport() {
 	uiEventEmitter.addListener('resize', () => requester.resize());
 	addRenderingTask((now) => requester.update(now));
 	globalState.importedFolderRequester = requester;
+
+	let dropImporter = new DropImporter();
+	stage.addChild(dropImporter.container);
+	rootInteractionGroup.add(dropImporter.interactionGroup);
+	uiEventEmitter.addListener('resize', () => dropImporter.resize());
+	addRenderingTask((now) => dropImporter.update(now));
+	globalState.dropImporter = dropImporter;
 }
 
 async function initMisc() {
@@ -286,6 +294,7 @@ function setZIndexes() {
 	globalState.popupManager.container.zIndex = 8;
 	globalState.volumeController.container.zIndex = 9;
 	globalState.contextMenuManager.container.zIndex = 9.3;
+	globalState.dropImporter.container.zIndex = 9.4;
 	globalState.toastManager.container.zIndex = 9.5;
 	globalState.fpsMeter.container.zIndex = 10;
 	globalState.cursor.container.zIndex = 100;
@@ -303,5 +312,6 @@ function setZIndexes() {
 	globalState.popupManager.interactionGroup.setZIndex(8);
 	globalState.volumeController.interactionGroup.setZIndex(9);
 	globalState.contextMenuManager.interactionGroup.setZIndex(9.3);
+	globalState.dropImporter.interactionGroup.setZIndex(9.4);
 	globalState.globalInputListener.registration.setZIndex(100);
 }

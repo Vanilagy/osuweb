@@ -221,6 +221,8 @@ export class Database {
 
 	/** Deletes a record from the database. */
 	async delete(collectionName: CollectionName, key: string) {
+		if (key === undefined || key === null) return;
+
 		let db = await this.idbDatabase;
 		let transaction = db.transaction(collectionName, 'readwrite');
 		let store = transaction.objectStore(collectionName);
@@ -235,7 +237,7 @@ export class Database {
 		let transaction = db.transaction(collectionName, 'readwrite');
 		let store = transaction.objectStore(collectionName);
 
-		for (let key of keys) store.delete(key);
+		for (let key of keys) if (key !== undefined && key !== null) store.delete(key);
 
 		return new Promise(resolve => transaction.oncomplete = resolve);
 	}

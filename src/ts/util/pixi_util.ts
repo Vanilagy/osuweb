@@ -158,8 +158,7 @@ export function createLinearGradientTexture(width: number, height: number, start
 }
 
 // TODO: Support non-square SVGs
-export function svgToTexture(svgImageElement: HTMLImageElement, makeWhite = false) {
-	const dim = 48; // 2x size of a 24x24 SVG
+export function svgToTexture(svgImageElement: HTMLImageElement, makeWhite = false, dim = 48 /* 2x size of a 24x24 SVG */) {
 	let canvas = document.createElement('canvas');
 	let ctx = canvas.getContext('2d');
 
