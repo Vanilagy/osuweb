@@ -36,7 +36,6 @@ export class AudioBufferPlayer extends AudioPlayer {
 		try {
 			this.audioBuffer = await audioContext.decodeAudioData(buffer);
 		} catch (e) {
-			console.error(e);
 			this.audioBuffer = EMPTY_AUDIO_BUFFER;
 		}
 	}

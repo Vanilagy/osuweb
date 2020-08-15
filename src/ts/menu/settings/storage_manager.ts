@@ -1,17 +1,23 @@
 import { PopupFrame } from "../components/popup_frame";
 import { VerticalLayoutElement } from "../components/vertical_layout_element";
 import { Button, ButtonPivot } from "../components/button";
-import { Color, colorToHexNumber, Colors } from "../../util/graphics_util";
+import { Color, colorToHexNumber, Colors, lerpColors } from "../../util/graphics_util";
 import { THEME_COLORS } from "../../util/constants";
-import { addUnitToBytes, addNounToNumber } from "../../util/misc_util";
+import { addUnitToBytes, addNounToNumber, EMPTY_FUNCTION, removeItem } from "../../util/misc_util";
 import { ThumblessSlider } from "../components/thumbless_slider";
 import { ScrollContainer } from "../components/scroll_container";
 import { Scrollbar } from "../components/scrollbar";
 import { globalState } from "../../global_state";
 import { StoreBeatmapsTask } from "../../datamodel/beatmap/beatmap_library";
 import { BeatmapSet } from "../../datamodel/beatmap/beatmap_set";
+import { Skin } from "../../game/skin/skin";
+import { svgToTexture } from "../../util/pixi_util";
+import { Interpolator } from "../../util/interpolation";
+import { EaseType } from "../../util/math_util";
+import { InteractionRegistration } from "../../input/interactivity";
 
 const CONTENT_WIDTH = 450;
+const circleMinusTexture = svgToTexture(document.querySelector('#svg-circle-minus'), true);
 
 export class StorageManager extends PopupFrame {
 	private scrollContainer: ScrollContainer;
@@ -56,6 +62,7 @@ export class StorageManager extends PopupFrame {
 
 			globalState.toastManager.showToast("Started deletion process.", THEME_COLORS.JudgementMiss);
 			await globalState.database.findAndDelete('beatmapSet', () => true);
+			await globalState.skinManager.deleteAll();
 			await globalState.database.findAndDelete('directory', () => true);
 			await globalState.database.findAndDelete('directoryHandle', () => true);
 			globalState.toastManager.showToast("Deletion complete.", THEME_COLORS.PrimaryBlue);
@@ -124,7 +131,22 @@ export class StorageManager extends PopupFrame {
 			await globalState.database.deleteMultiple('directory', directoryIds);
 			globalState.toastManager.showToast("Deletion complete.", THEME_COLORS.PrimaryBlue);
 		}));
-		//this.elements.push(new SectionHeader(this, "skins"));
+		this.elements.push(new SectionHeader(this, "skins"));
+		this.elements.push(new SkinList(this));
+		this.elements.push(new ButtonWithDescription(this, "delete all skins", "Deletes all non-default skins. You’ll need to reimport these skins to use them again.", THEME_COLORS.JudgementMiss, async () => {
+			if (!globalState.skinManager.skins.find(x => !x.isBaseSkin)) {
+				globalState.toastManager.showToast("No skins to delete.", THEME_COLORS.PrimaryYellow);
+				return;
+			}
+
+			let result = await globalState.popupManager.createPopup("delete all skins", "Are you sure you want to permanently delete all non-default skins?", [
+				{action: 'confirm', label: 'yes, delete them', color: THEME_COLORS.JudgementMiss}, {action: 'cancel', label: 'cancel', color: THEME_COLORS.SecondaryActionGray}
+			], 'cancel');
+
+			if (result !== 'confirm') return;
+
+			globalState.skinManager.deleteAll();
+		}));
 
 		for (let e of this.elements) {
 			this.scrollContainer.contentContainer.addChild(e.container);
@@ -367,5 +389,188 @@ class BeatmapInfo extends VerticalLayoutElement<StorageManager> {
 		this.text2.text = `${storedBeatmaps} stored / ${unstoredBeatmaps} unstored${storingBeatmaps? ' / ' : ''}`;
 		this.text3.text = storingBeatmaps? `${storingBeatmaps} storing` : '';
 		this.text3.x = this.text2.width;
+	}
+}
+
+class SkinList extends VerticalLayoutElement<StorageManager> {
+	private elements: SkinListElement[] = [];
+
+	constructor(parent: StorageManager) {
+		super(parent);
+	}
+
+	getTopMargin() {
+		return -5 * this.parent.scalingFactor;
+	}
+
+	getHeight() {
+		return this.container.height;
+	}
+
+	getBottomMargin() {
+		return 20 * this.parent.scalingFactor;
+	}
+
+	resize() {
+		for (let e of this.elements) e.resize();
+	}
+
+	update(now: number) {
+		for (let skin of globalState.skinManager.skins) {
+			if (!this.elements.find(x => x.skin === skin)) {
+				let newElement = new SkinListElement(this, skin);
+				
+				this.elements.push(newElement);
+				this.container.addChild(newElement.container);
+				this.interactionGroup.add(newElement.interactionGroup);
+
+				newElement.resize();
+			}
+		}
+
+		let currentY = 0;
+		for (let i = 0; i < this.elements.length; i++) {
+			let e = this.elements[i];
+
+			if (e.canBeRemoved(now)) {
+				this.container.removeChild(e.container);
+				this.interactionGroup.remove(e.interactionGroup);
+				this.elements.splice(i--, 1);
+
+				continue;
+			}
+
+			e.update(now);
+
+			if (currentY > 0) currentY += e.getTopMargin(now);
+			e.container.y = Math.floor(currentY);
+			currentY += e.getHeight(now) + e.getBottomMargin(now);
+
+			if (!globalState.skinManager.skins.includes(e.skin)) {
+				e.hide();
+			}
+		}
+
+		return true;
+	}
+}
+
+class SkinListElement extends VerticalLayoutElement<SkinList> {
+	private background: PIXI.Sprite;
+	private text: PIXI.Text;
+	private deleteIcon: PIXI.Sprite;
+
+	public skin: Skin;
+
+	private hoverInterpolator: Interpolator;
+	private fadeInInterpolator: Interpolator;
+
+	constructor(parent: SkinList, skin: Skin) {
+		super(parent);
+		this.skin = skin;
+
+		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
+		this.background.tint = 0x0f0f0f;
+		this.container.addChild(this.background);
+
+		this.text = new PIXI.Text(skin.getDisplayName(), {
+			fontFamily: 'Exo2-Bold',
+			fill: 0xffffff
+		});
+		this.text.alpha = 0.8;
+		this.container.addChild(this.text);
+
+		this.deleteIcon = new PIXI.Sprite(circleMinusTexture);
+		this.container.addChild(this.deleteIcon);
+
+		let deleteIconRegistration = new InteractionRegistration(this.deleteIcon);
+		this.interactionGroup.add(deleteIconRegistration);
+		deleteIconRegistration.addButtonHandlers(
+			async () => {
+				let answer = await globalState.popupManager.createPopup("delete skin", `Are you sure you want to delete the skin "${this.skin.getDisplayName()}"?`, [
+					{
+						action: 'yes',
+						label: 'yes',
+						color: THEME_COLORS.JudgementMiss
+					},
+					{
+						action: 'no',
+						label: 'no',
+						color: THEME_COLORS.SecondaryActionGray
+					}
+				]);
+
+				if (answer !== 'yes') return;
+
+				globalState.skinManager.deleteSkin(this.skin.id);
+			},
+			() => this.hoverInterpolator.setReversedState(false, performance.now()),
+			() => this.hoverInterpolator.setReversedState(true, performance.now()),
+			EMPTY_FUNCTION,
+			EMPTY_FUNCTION,
+		);
+		if (skin.isBaseSkin) {
+			deleteIconRegistration.disable();
+			this.deleteIcon.alpha = 0.25;
+		}
+
+		this.hoverInterpolator = new Interpolator({
+			duration: 150,
+			ease: EaseType.EaseOutCubic,
+			reverseEase: EaseType.EaseInCubic,
+			reverseDuration: 400,
+			beginReversed: true,
+			defaultToFinished: true
+		});
+
+		this.fadeInInterpolator = new Interpolator({
+			duration: 300,
+			reverseEase: EaseType.EaseInCubic,
+			defaultToFinished: true
+		});
+	}
+
+	getTopMargin(now: number) {
+		return 0 * 5 * this.parent.parent.scalingFactor;
+	}
+
+	getHeight(now: number) {
+		return this.container.height;
+	}
+
+	getBottomMargin(now: number) {
+		return 5 * this.parent.parent.scalingFactor * this.fadeInInterpolator.getCurrentValue(now);
+	}
+
+	resize() {
+		this.background.width = Math.floor(CONTENT_WIDTH * this.parent.parent.scalingFactor);
+		this.background.height = Math.floor(25 * this.parent.parent.scalingFactor);
+
+		this.text.style.fontSize = Math.floor(10 * this.parent.parent.scalingFactor);
+		this.text.y = Math.floor((this.background.height - this.text.height) / 2);
+		this.text.x = Math.floor(15 * this.parent.parent.scalingFactor);
+
+		this.deleteIcon.width = this.deleteIcon.height = Math.floor(16 * this.parent.parent.scalingFactor);
+		this.deleteIcon.y = Math.floor((this.background.height - this.deleteIcon.height) / 2);
+		this.deleteIcon.x = Math.floor(this.background.width - this.deleteIcon.width - (this.background.height - this.deleteIcon.height) / 2);
+	}
+
+	update(now: number) {
+		let hoverValue = this.hoverInterpolator.getCurrentValue(now);
+		let fadeInValue = this.fadeInInterpolator.getCurrentValue(now);
+
+		this.container.scale.y = fadeInValue;
+		this.container.alpha = fadeInValue;
+
+		this.deleteIcon.tint = colorToHexNumber(lerpColors(THEME_COLORS.JudgementMiss, Colors.White, hoverValue));
+	}
+
+	hide() {
+		this.fadeInInterpolator.setReversedState(true, performance.now());
+		this.interactionGroup.disable();
+	}
+
+	canBeRemoved(now: number) {
+		return this.fadeInInterpolator.isReversed() && this.fadeInInterpolator.getCurrentValue(now) === 0;
 	}
 }

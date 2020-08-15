@@ -107,8 +107,6 @@ export const DEFAULT_SKIN_CONFIG: SkinConfiguration = {
 
 /** For parsing Skin.ini files */
 export function parseSkinConfiguration(text: string) {
-	console.time("Skin configuration parse");
-
 	let config = jsonClone(DEFAULT_SKIN_CONFIG);
 	let lines = text.split("\n");
 	let currentSection: string;
@@ -174,8 +172,6 @@ export function parseSkinConfiguration(text: string) {
 		else if (line === "[Colours]") currentSection = "colors";
 		else if (line === "[Fonts]") currentSection = "fonts";
 	}
-
-	console.timeEnd("Skin configuration parse");
 
 	return config;
 }

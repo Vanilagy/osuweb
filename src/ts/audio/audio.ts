@@ -5,7 +5,6 @@ import { globalState } from "../global_state";
 const DEFAULT_MASTER_GAIN_VOLUME = 0.15;
 
 export let audioContext = new AudioContext();
-if (audioContext.state === "suspended") console.warn("AUDIO CONTEXT IS SUSPENDED. MAKE SURE TO RESUME IT BEFORE DOING ANYTHING IMPORTANT!");
 
 export let globalGain = audioContext.createGain();
 globalGain.connect(audioContext.destination);

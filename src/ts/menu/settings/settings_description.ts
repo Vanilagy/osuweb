@@ -43,7 +43,7 @@ export interface SelectionSettingDescription {
 export type SettingDescription = RangeSettingDescription | CheckboxSettingDescription | SelectionSettingDescription;
 
 const buildSettings = <T extends Record<string, SettingDescription>>(settings: T) => settings;
-export const settingsDescriptionExact = buildSettings({
+const settingsDescriptionExact = buildSettings({
 	'masterVolume': {
 		type: SettingType.Range,
 		displayName: "Master",
@@ -89,6 +89,13 @@ export const settingsDescriptionExact = buildSettings({
 			'mute': "Mute"
 		},
 		default: 'quiet'
+	},
+	'selectedSkin': {
+		type: SettingType.Selection,
+		displayName: "Selected skin",
+		options: {},
+		default: null,
+		onChange: (x) => { globalState.skinManager?.selectSkin(x); }
 	},
 	'ignoreBeatmapSkin': {
 		type: SettingType.Checkbox,

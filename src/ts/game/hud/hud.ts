@@ -221,7 +221,7 @@ export class Hud {
 		this.accuracyDisplay.setValue(100); // Temporarily, so that we can do correct positioning
 
 		this.progressIndicator.changeDiameter(currentWindowDimensions.height * 0.043);
-		this.progressIndicator.container.x = Math.floor(this.accuracyDisplay.container.x - this.accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (globalState.baseSkin.config.fonts.scoreOverlap  * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
+		this.progressIndicator.container.x = Math.floor(this.accuracyDisplay.container.x - this.accuracyDisplay.lastComputedWidth - currentWindowDimensions.height * 0.035 - (this.controller.currentPlay.skin.config.fonts.scoreOverlap * accuracyHeight / USUAL_SCORE_DIGIT_HEIGHT));
 		this.progressIndicator.container.y = Math.floor(this.accuracyDisplay.container.y + Math.min(accuracyHeight/2, this.accuracyDisplay.lastComputedHeight/2));
 
 		this.accuracyDisplay.setValue(lastAccuracyDisplayValue); // Set it back

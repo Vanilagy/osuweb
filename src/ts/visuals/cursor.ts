@@ -2,6 +2,7 @@ import { globalState } from "../global_state";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "./ui";
 import { getCurrentMousePosition } from "../input/input";
 import { TAU } from "../util/math_util";
+import { Skin } from "../game/skin/skin";
 
 // Chrome renders a fully invisible cursor as an opaque black thing, for some reason. Therefore we need this:
 // We don't use cursor: none, because that's also bugged currently and not reliable.
@@ -29,6 +30,7 @@ export class Cursor {
 	private softwareCursorContainer: PIXI.Container;
 	private softwareCursorMain: PIXI.Sprite;
 	private softwareCursorMiddle: PIXI.Sprite;
+	private lastSkin: Skin = null;
 
 	constructor() {
 		this.hardwareCursorCanvas = document.createElement('canvas');
@@ -49,7 +51,7 @@ export class Cursor {
 
 	/** Resize and redraw the cursor. */
 	refresh() {
-		let skin = globalState.baseSkin;
+		let skin = globalState.skinManager?.currentSkin;
 		if (!skin) return;
 
 		let scaling = currentWindowDimensions.height / REFERENCE_SCREEN_HEIGHT * globalState.settings['cursorSize'];
@@ -120,12 +122,12 @@ export class Cursor {
 		let mousePos = getCurrentMousePosition();
 
 		this.softwareCursorContainer.position.set(Math.floor(mousePos.x), Math.floor(mousePos.y));
-		if (globalState.baseSkin?.config.general.cursorRotate) {
+		if (globalState.skinManager?.currentSkin?.config.general.cursorRotate) {
 			this.softwareCursorMain.rotation = (now * 0.0006) % TAU;
 		}
 
 		if (globalState.settings['useSoftwareCursor']) {
-			if (!globalState.baseSkin) {
+			if (!globalState.skinManager?.currentSkin) {
 				// If there's no skin yet, show the normal cursor.
 				document.documentElement.style.cursor = 'auto';
 			} else if (globalState.settings['mouseInputMode'] === 'raw' && !document.pointerLockElement) {
@@ -135,6 +137,11 @@ export class Cursor {
 				// Otherwise, hide the hardware cursor.
 				document.documentElement.style.cursor = `url('${almostInvisiblePngUrl}') 8 8, auto`;
 			}
+		}
+
+		if (globalState.skinManager?.currentSkin && globalState.skinManager.currentSkin !== this.lastSkin) {
+			this.lastSkin = globalState.skinManager.currentSkin;
+			this.refresh();
 		}
 	}
 }

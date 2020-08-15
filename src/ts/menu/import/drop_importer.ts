@@ -61,9 +61,12 @@ export class DropImporter {
 			defaultToFinished: true
 		});
 
-		document.documentElement.addEventListener('dragenter', () => this.isDroppable() && this.show());
+		document.documentElement.addEventListener('dragenter', (e) => this.isDroppable() && this.show());
 		document.documentElement.addEventListener('dragleave', () => this.hide());
-		document.documentElement.addEventListener('dragover', (e) => e.preventDefault());
+		document.documentElement.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "copy";
+		});
 		document.documentElement.addEventListener('drop', async (e) => {
 			e.preventDefault();
 			if (!this.isDroppable()) return;

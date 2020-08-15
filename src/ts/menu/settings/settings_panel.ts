@@ -77,6 +77,8 @@ const layout: LayoutElement[] = [
 	{ type: LayoutElementType.Setting, setting: 'showFpsMeter' },
 	{ type: LayoutElementType.Setting, setting: 'reduceFpsWhenBlurred' },
 	{ type: LayoutElementType.SectionHeader, title: 'skin' },
+	{ type: LayoutElementType.Setting, setting: 'selectedSkin' },
+	{ type: LayoutElementType.Button, label: "add skin", onclick: () => globalState.skinManager?.showImportPrompt() },
 	{ type: LayoutElementType.Setting, setting: 'ignoreBeatmapSkin' },
 	{ type: LayoutElementType.Setting, setting: 'ignoreBeatmapHitSounds' },
 	{ type: LayoutElementType.Setting, setting: 'cursorSize' },

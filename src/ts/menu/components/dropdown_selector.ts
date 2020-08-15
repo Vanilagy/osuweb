@@ -139,6 +139,7 @@ export class DropdownSelector extends CustomEventEmitter<{change: string}> {
 		}
 
 		this.listSelector.setSchema(schema);
+		this.resize(this.scalingFactor);
 	}
 
 	setSelection(name: string) {

@@ -234,7 +234,7 @@ export class ScoreScreen {
 		this.fadeOutInterpolator.setReversedState(false, performance.now());
 		this.interactionGroup.disable();
 
-		globalState.baseSkin?.sounds[SkinSoundType.Applause].stop();
+		globalState.skinManager?.currentSkin.sounds[SkinSoundType.Applause].stop();
 	}
 
 	show() {
@@ -244,7 +244,7 @@ export class ScoreScreen {
 		this.fadeOutInterpolator.end();
 		this.animationPlayer.start(performance.now());
 
-		globalState.baseSkin?.sounds[SkinSoundType.Applause].start(0);
+		globalState.skinManager?.currentSkin.sounds[SkinSoundType.Applause].start(0);
 	}
 
 	private close() {

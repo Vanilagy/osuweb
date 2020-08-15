@@ -279,10 +279,10 @@ export class Play {
 
 		if (updateSkin) {
 			if (globalState.settings['ignoreBeatmapSkin'] && globalState.settings['ignoreBeatmapHitSounds']) {
-				this.skin = globalState.baseSkin;
+				this.skin = globalState.skinManager.currentSkin;
 			} else {
 				let beatmapSkin = await this.processedBeatmap.beatmap.beatmapSet.getBeatmapSkin();
-				this.skin = joinSkins([globalState.baseSkin, beatmapSkin], !globalState.settings['ignoreBeatmapSkin'], !globalState.settings['ignoreBeatmapHitSounds']);
+				this.skin = joinSkins([globalState.skinManager.currentSkin, beatmapSkin], !globalState.settings['ignoreBeatmapSkin'], !globalState.settings['ignoreBeatmapHitSounds']);
 			}
 
 			let colorArray: Color[];
@@ -784,7 +784,7 @@ export class Play {
 		globalState.gameplayAudioPlayer.enablePlaybackRateChangerNode();
 
 		this.drawableBeatmap.stopHitObjectSounds();
-		globalState.baseSkin.sounds[SkinSoundType.FailSound].start(0);
+		this.skin.sounds[SkinSoundType.FailSound].start(0);
 	}
 
 	hasFailed() {

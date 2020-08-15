@@ -38,6 +38,7 @@ import { PopupManager } from './menu/misc/popup_manager';
 import { StorageManager } from './menu/settings/storage_manager';
 import { ContextMenuManager } from './menu/misc/context_menu_manager';
 import { DropImporter } from './menu/import/drop_importer';
+import { SkinManager } from './game/skin/skin_manager';
 //import './tests/interactivity_playground';
 //import './tests/high_accuracy_audio_player_tester';
 //import './tests/polygon_tests';
@@ -52,6 +53,7 @@ window.addEventListener('load', init);
 async function init() {
 	//return;
 
+	
 	await initMisc();
 	initAudio();
 	initBackground();
@@ -73,35 +75,17 @@ async function init() {
 
 	if (await globalState.database.get('directoryHandle', 'permissionGranted', true)) globalState.importedFolderRequester.show();
 	
-	await initBaseSkin();
+	await initSkinManager();
 	showChooseFile();
-
-	globalState.cursor.refresh();
 
 	console.log(osu!); // Love the syntax <3
 }
 
-async function initBaseSkin() {
-	let defaultSkinPath = "./assets/skins/default";
-	let defaultSkinDirectory = new VirtualDirectory("root");
-	defaultSkinDirectory.networkFallbackUrl = defaultSkinPath;
-	
-	let defaultSkin = new Skin(defaultSkinDirectory);
-	await defaultSkin.init(false);
-	defaultSkin.allowSliderBallExtras = true;
+async function initSkinManager() {
+	let manager = new SkinManager();
+	globalState.skinManager = manager;
 
-	let selectedSkinPath = "./assets/skins/yugen";
-	let selectedSkinDirectory = new VirtualDirectory("root");
-	selectedSkinDirectory.networkFallbackUrl = selectedSkinPath;
-
-	let selectedSkin = new Skin(selectedSkinDirectory);
-	await selectedSkin.init(false);
-	if (selectedSkinPath === defaultSkinPath) selectedSkin.allowSliderBallExtras = true; // Kinda tempy
-
-	let baseSkin = joinSkins([defaultSkin, selectedSkin], true, true, true);
-	await baseSkin.readyAssets();
-
-	globalState.baseSkin = baseSkin;
+	await manager.init();
 }
 
 function initBeatmapLibrary() {

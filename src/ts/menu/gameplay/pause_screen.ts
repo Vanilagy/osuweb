@@ -190,11 +190,11 @@ export class PauseScreen {
 
 			this.cursorAlignmentRegistration.enable();
 			this.buttonsGroup.disable();
-			globalState.baseSkin.sounds[SkinSoundType.PauseLoop].stop();
+			this.controller.currentPlay.skin.sounds[SkinSoundType.PauseLoop].stop();
 		} else {
 			this.cursorAlignmentRegistration.disable();
 			this.buttonsGroup.enable();
-			if (this.currentMode === PauseScreenMode.Paused || this.currentMode === PauseScreenMode.PausedReplay) globalState.baseSkin.sounds[SkinSoundType.PauseLoop].start(0);
+			if (this.currentMode === PauseScreenMode.Paused || this.currentMode === PauseScreenMode.PausedReplay) this.controller.currentPlay.skin.sounds[SkinSoundType.PauseLoop].start(0);
 		}
 	}
 
@@ -234,8 +234,8 @@ export class PauseScreen {
 	}
 
 	turnOffSound() {
-		globalState.baseSkin?.sounds[SkinSoundType.PauseLoop].stop();
-		globalState.baseSkin?.sounds[SkinSoundType.FailSound].stop();
+		this.controller.currentPlay?.skin.sounds[SkinSoundType.PauseLoop].stop();
+		this.controller.currentPlay?.skin.sounds[SkinSoundType.FailSound].stop();
 	}
 
 	shown() {

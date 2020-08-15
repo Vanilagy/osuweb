@@ -58,6 +58,9 @@ export class SelectionElement extends SettingsElement {
 	}
 
 	refresh() {
+		let description = settingsDescription[this.setting];
+
+		this.selector.setOptions(description.options);
 		this.selector.setSelection(globalState.settings[this.setting]);
 	}
 }

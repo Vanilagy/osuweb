@@ -2,7 +2,6 @@ import { SongSelect } from "./menu/song_select/song_select";
 import { GameplayController } from "./game/gameplay_controller";
 import { HighAccuracyAudioPlayer } from "./audio/high_accuracy_audio_player";
 import { BackgroundManager } from "./visuals/background";
-import { Skin } from "./game/skin/skin";
 import { ScoreScreen } from "./menu/score/score_screen";
 import { Toolbar } from "./menu/toolbar/toolbar";
 import { BeatmapLibrary } from "./datamodel/beatmap/beatmap_library";
@@ -24,6 +23,7 @@ import { PopupManager } from "./menu/misc/popup_manager";
 import { StorageManager } from "./menu/settings/storage_manager";
 import { ContextMenuManager } from "./menu/misc/context_menu_manager";
 import { DropImporter } from "./menu/import/drop_importer";
+import { SkinManager } from "./game/skin/skin_manager";
 
 export const globalState = {
 	beatmapLibrary: null as BeatmapLibrary,
@@ -33,7 +33,7 @@ export const globalState = {
 	gameplayController: null as GameplayController,
 	gameplayAudioPlayer: null as HighAccuracyAudioPlayer,
 	backgroundManager: null as BackgroundManager,
-	baseSkin: null as Skin,
+	skinManager: null as SkinManager,
 	scoreScreen: null as ScoreScreen,
 	folderSelector: null as FolderSelector,
 	taskManager: null as TaskManager,

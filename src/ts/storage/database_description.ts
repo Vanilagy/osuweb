@@ -2,6 +2,7 @@ import { Settings } from "../menu/settings/settings";
 import { Keybindings } from "../input/key_bindings";
 import { BeatmapSetDescription } from "../datamodel/beatmap/beatmap_set";
 import { VirtualDirectoryDescription } from "../file_system/virtual_directory";
+import { SkinDescription } from "../game/skin/skin";
 
 interface DatabaseDescription {
 	collections: Record<string, {
@@ -34,6 +35,11 @@ export const databaseDescription = buildDatabaseDescription({
 		},
 		"directory": {
 			format: null as VirtualDirectoryDescription,
+			key: "id",
+			indexes: []
+		},
+		"skin": {
+			format: null as SkinDescription,
 			key: "id",
 			indexes: []
 		}

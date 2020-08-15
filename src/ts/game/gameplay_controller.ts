@@ -198,7 +198,7 @@ export class GameplayController {
 		let storyboard = StoryboardParser.parse(text, globalState.settings['enableStoryboard']); // If storyboards are disabled, their audio component (sample playback) stays active nonetheless.
 		console.timeEnd("Storyboard parsing");
 
-		// Create an array of directories the storyboard player will have access to. The directories will be used for file loopup in array order.
+		// Create an array of directories the storyboard player will have access to. The directories will be used for file lookup in array order.
 		let directories = [beatmap.beatmapSet.directory];
 		if (beatmap.useSkinSprites) {
 			directories.unshift(...this.currentPlay.skin.parentDirectories.slice().reverse(), this.currentPlay.skin.directory);

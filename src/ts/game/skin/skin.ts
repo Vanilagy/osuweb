@@ -1,5 +1,5 @@
 import { SpriteNumberTextures } from "../../visuals/sprite_number";
-import { VirtualDirectory } from "../../file_system/virtual_directory";
+import { VirtualDirectory, VirtualDirectoryDescription } from "../../file_system/virtual_directory";
 import { SkinConfiguration, DEFAULT_SKIN_CONFIG, parseSkinConfiguration } from "../../datamodel/skin_configuration";
 import { Color } from "../../util/graphics_util";
 import { assert, jsonClone, shallowObjectClone, last, retryUntil } from "../../util/misc_util";
@@ -8,6 +8,7 @@ import { HitSound, HitSoundType, hitSoundFilenames } from "./hit_sound";
 import { AudioPlayer } from "../../audio/audio_player";
 import { AudioUtil } from "../../util/audio_util";
 import { soundEffectsNode } from "../../audio/audio";
+import { globalState } from "../../global_state";
 
 const HIT_CIRCLE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SCORE_NUMBER_SUFFIXES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "comma", "dot", "percent", "x"];
@@ -30,6 +31,10 @@ export enum SkinSoundType {
 }
 
 export class Skin {
+	public id: string;
+	public order: number = 0;
+	public isBaseSkin: boolean = false;
+
 	public directory: VirtualDirectory;
 	public parentDirectories: VirtualDirectory[] = [];
     public config: SkinConfiguration;
@@ -45,6 +50,7 @@ export class Skin {
 	public allowSliderBallExtras: boolean;
 
     constructor(directory: VirtualDirectory) {
+		this.id = ULID.ulid();
         this.directory = directory;
         this.textures = {};
         this.hitCircleNumberTextures = null;
@@ -57,8 +63,6 @@ export class Skin {
 	}
 
     async init(readyAssets = true) {
-        console.time("Skin init");
-
         let skinConfigurationFile = await this.directory.getFileByPath("skin.ini") || await this.directory.getFileByPath("Skin.ini");
         if (skinConfigurationFile) {
             this.config = parseSkinConfiguration(await skinConfigurationFile.readAsText());
@@ -217,13 +221,9 @@ export class Skin {
 		this.sounds[SkinSoundType.NightcoreFinish] = await AudioUtil.createSoundPlayerFromFilename(this.directory, "nightcore-finish", "audioBufferPlayer", soundEffectsNode);
 		
 		if (readyAssets) await this.readyAssets();
-
-        console.timeEnd("Skin init");
     }
 
     async readyAssets() {
-		console.time("Hit sounds load");
-
         let hitSoundReadyPromises: Promise<void>[] = [];
 
         for (let key in this.hitSounds) {
@@ -233,8 +233,6 @@ export class Skin {
 
         await Promise.all(hitSoundReadyPromises);
 
-		console.timeEnd("Hit sounds load");
-
 		// Wait until all textures assets have loaded
 		await retryUntil(() => {
 			for (let key in this.textures) {
@@ -243,16 +241,15 @@ export class Skin {
 			return true;
 		});
 
-        console.time("Texture upload to GPU");
         for (let key in this.textures) {
             this.textures[key].uploadToGpu();
         }
-        console.timeEnd("Texture upload to GPU");
 	}
 
     clone() {
         let newSkin = new Skin(this.directory);
 
+		newSkin.id = this.id;
         newSkin.config = this.config;
         newSkin.textures = shallowObjectClone(this.textures);
         newSkin.hitCircleNumberTextures = shallowObjectClone(this.hitCircleNumberTextures);
@@ -269,7 +266,46 @@ export class Skin {
     getVersionNumber() {
         if (this.config.general.version === 'latest') return CURRENT_LATEST_SKIN_VERSION;
         return this.config.general.version;
-    }
+	}
+	
+	async toDescription(): Promise<SkinDescription> {
+		return {
+			id: this.id,
+			order: this.order,
+			isBaseSkin: this.isBaseSkin,
+			directory: await this.directory.toDescription(true),
+			config: this.config
+		};
+	}
+
+	static async fromDescription(description: SkinDescription) {
+		let directory = await VirtualDirectory.fromDescription(description.directory);
+
+		let skin = new Skin(directory);
+		skin.id = description.id;
+		skin.order = description.order;
+		skin.isBaseSkin = description.isBaseSkin;
+		skin.config = description.config;
+
+		return skin;
+	}
+
+	async store() {
+		let description = await this.toDescription();
+		await globalState.database.put('skin', description);
+	}
+
+	getDisplayName() {
+		return this.config.general.name ?? "<unnamed>";
+	}
+}
+
+export interface SkinDescription {
+	id: string,
+	order: number,
+	isBaseSkin: boolean,
+	directory: VirtualDirectoryDescription,
+	config: SkinConfiguration
 }
 
 export function joinSkins(skins: Skin[], joinTextures = true, joinSounds = true, useLastConfig = false) {
@@ -281,6 +317,8 @@ export function joinSkins(skins: Skin[], joinTextures = true, joinSounds = true,
     for (let i = 1; i < skins.length; i++) {
 		let skin = skins[i];
 		directories.unshift(skin.directory, ...skin.parentDirectories);
+
+		baseSkin.id = skin.id;
 
         if (joinTextures) {
             for (let key in skin.textures) {

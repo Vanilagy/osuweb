@@ -5,7 +5,7 @@ export abstract class VerticalLayoutElement <T> {
 	public container: PIXI.Container;
 	public interactionGroup: InteractionGroup;
 	public identifier: string = null;
-	protected parent: T;
+	public parent: T;
 
 	constructor(parent: T) {
 		this.parent = parent;

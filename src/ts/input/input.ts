@@ -68,7 +68,7 @@ window.onmousemove = (e: MouseEvent) => {
 
 	if (performance.now() < mouseMoveImmunityEnd) return;
 
-	if (!globalState.settings['useSoftwareCursor']) {
+	if (!globalState.settings?.['useSoftwareCursor']) {
 		// When using a hardware cursor, just copy the pure mouse position.
 		currentMousePosition.x = e.clientX;
 		currentMousePosition.y = e.clientY;
@@ -105,7 +105,7 @@ function simulateMouseDown() {
 window.onmousedown = (e: MouseEvent) => {
 	tickAll();
 
-	if (globalState.settings['useSoftwareCursor'] && globalState.settings['mouseInputMode'] === 'raw' && !document.pointerLockElement) {
+	if (globalState.settings?.['useSoftwareCursor'] && globalState.settings['mouseInputMode'] === 'raw' && !document.pointerLockElement) {
 		// The user has clicked into the window while they weren't pointer locked.
 		document.documentElement.requestPointerLock();
 		return;
@@ -152,7 +152,7 @@ window.onwheel = (ev: WheelEvent) => {
 };
 
 document.onpointerlockchange = () => {
-	if (!document.pointerLockElement && globalState.settings['useSoftwareCursor'] && globalState.settings['mouseInputMode'] === 'raw' && windowFocused) {
+	if (!document.pointerLockElement && globalState.settings?.['useSoftwareCursor'] && globalState.settings['mouseInputMode'] === 'raw' && windowFocused) {
 		if (!isFullscreen()) {
 			// If the cursor is on the very side of the screen, assume the user has pressed ESC and wanted to exit pointer lock on purpose.
 			let mouseOnSide = currentMousePosition.x === 0 || currentMousePosition.x === currentWindowDimensions.width-1 || currentMousePosition.y === 0 || currentMousePosition.y === currentWindowDimensions.height-1;
