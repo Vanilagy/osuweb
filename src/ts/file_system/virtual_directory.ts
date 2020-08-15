@@ -150,32 +150,43 @@ export class VirtualDirectory extends VirtualFileSystemEntry {
 	private async iterateHandle() {
 		let resolver: Function;
 		this.iterationWaiter = new Promise(resolve => resolver = resolve);
+		
+		// Explanation: The NativeFileSystemAPI seems buggy and directory iteration can silently terminate when there are multiple disk accesses at once, however iteration stays stuck in the middle of the iterator. Here, if we don't see a new file within 10 seconds, we retry the whole thing and give it another shot.
 
-		let handle = await this.getHandle();
-		let entries = await handle.getEntries();
+		const iterate = async () => {
+			let timeoutId = setTimeout(() => iterate(), 10000);
 
-		for await (let entry of entries) {
-			let fileSystemEntry: VirtualFileSystemEntry;
+			let handle = await this.getHandle();
+			let entries = await handle.getEntries();
 
-			// Check if it's already been added
-			let existingEntry = this.entries.get(entry.name);
-			if (existingEntry) continue;
+			for await (let entry of entries) {
+				clearTimeout(timeoutId);
+				timeoutId = setTimeout(() => iterate(), 10000);
 
-			// Create a new virtual file system entry based on the type
-			if (entry instanceof FileSystemFileHandle) {
-				fileSystemEntry = VirtualFile.fromFileHandle(entry, false);
-			} else if (entry instanceof FileSystemDirectoryHandle) {
-				fileSystemEntry = VirtualDirectory.fromDirectoryHandle(entry, false);
+				let fileSystemEntry: VirtualFileSystemEntry;
+	
+				// Check if it's already been added
+				let existingEntry = this.entries.get(entry.name);
+				if (existingEntry) continue;
+	
+				// Create a new virtual file system entry based on the type
+				if (entry instanceof FileSystemFileHandle) {
+					fileSystemEntry = VirtualFile.fromFileHandle(entry, false);
+				} else if (entry instanceof FileSystemDirectoryHandle) {
+					fileSystemEntry = VirtualDirectory.fromDirectoryHandle(entry, false);
+				}
+	
+				// Add it to the entries cache
+				this.addEntry(fileSystemEntry);
+	
+				resolver();
+				this.iterationWaiter = new Promise(resolve => resolver = resolve);
 			}
 
-			// Add it to the entries cache
-			this.addEntry(fileSystemEntry);
-
+			clearTimeout(timeoutId);
 			resolver();
-			this.iterationWaiter = new Promise(resolve => resolver = resolve);
-		}
-
-		resolver();
+		};
+		iterate();
 	}
 
 	/** Iterates through all entries in the directory entry, obtained from drag-and-drop. */

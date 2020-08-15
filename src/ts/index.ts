@@ -52,7 +52,6 @@ const osu: string | null = 'ORERU!';
 window.addEventListener('load', init);
 async function init() {
 	//return;
-
 	
 	await initMisc();
 	initAudio();

@@ -266,10 +266,6 @@ export class GameplayController {
 		globalState.backgroundManager.setGameplayState(false, 500, EaseType.EaseInQuad);
 		globalState.backgroundManager.setBlurState(true, 400, EaseType.EaseOutQuart);
 
-		this.currentPlay.stop();
-		this.currentPlay = null;
-		this.hide();
-
 		this.pauseScreen.turnOffSound();
 
 		this.recordingReplay = null;
@@ -278,6 +274,10 @@ export class GameplayController {
 		this.currentStoryboard?.pause();
 		this.currentStoryboard?.dispose();
 		this.currentStoryboard = null;
+
+		this.currentPlay.stop();
+		this.currentPlay = null;
+		this.hide();
 
 		globalState.taskManager.resume();
 	}
