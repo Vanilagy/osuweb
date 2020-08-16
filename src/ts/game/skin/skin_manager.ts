@@ -24,6 +24,7 @@ export class SkinManager {
 		let baseSkin = this.skins.find(x => x.isBaseSkin);
 		if (baseSkin) {
 			await baseSkin.init(false);
+			baseSkin.allowSliderBallExtras = true;
 		} else {
 			// Fetch the base skin
 

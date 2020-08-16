@@ -498,7 +498,7 @@ class SkinListElement extends VerticalLayoutElement<SkinList> {
 						label: 'no',
 						color: THEME_COLORS.SecondaryActionGray
 					}
-				]);
+				], 'no');
 
 				if (answer !== 'yes') return;
 

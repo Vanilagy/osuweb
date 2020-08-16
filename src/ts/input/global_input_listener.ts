@@ -21,7 +21,7 @@ export class GlobalInputListener {
 		});
 		this.registration.addKeybindListener('toggleMouseButtons', 'down', () => {
 			changeSettingAndUpdateSettingsPanel('disableMouseButtonsDuringGameplay', !globalState.settings['disableMouseButtonsDuringGameplay']);
-			globalState.toastManager.showToast(globalState.settings['disableMouseButtonsDuringGameplay']? "Mouse buttons disabled during gameplay" : "Mouse buttons enabled during gameplay", THEME_COLORS.PrimaryViolet);
+			globalState.toastManager.showToast(globalState.settings['disableMouseButtonsDuringGameplay']? "Mouse buttons disabled during gameplay." : "Mouse buttons enabled during gameplay.", THEME_COLORS.PrimaryViolet);
 		});
 		this.registration.addKeybindListener('increaseVolume', 'down', () => {
 			globalState.volumeController.nudgeValue(true);

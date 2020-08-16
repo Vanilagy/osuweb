@@ -32,6 +32,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 	/** Basic data about the beatmap "representing" this beatmap set. Just gotta pick one. */
 	public basicData: BasicBeatmapData = null;
 	public searchableString: string = "";
+	private storedParentDirectoryHandleId: string;
 
 	public entries: BeatmapEntry[] = [];
 
@@ -203,6 +204,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		this.emit('remove');
 
 		if (store) globalState.database.delete('beatmapSet', this.id);
+		if (this.stored) globalState.database.delete('directory', this.directory.id);
 	}
 
 	/** Removes a specific beatmap entry. */
@@ -260,7 +262,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 			id: this.id,
 			creationTime: this.creationTime,
 			directory: await this.directory.toDescription(false),
-			parentDirectoryHandleId: this.directory.parent?.directoryHandleId,
+			parentDirectoryHandleId: this.storedParentDirectoryHandleId ?? this.directory.parent?.directoryHandleId,
 			stored: this.stored,
 			basicData: this.basicData,
 			entries: await Promise.all(this.entries.map(entry => entry.toDescription())),
@@ -292,6 +294,7 @@ export class BeatmapSet extends CustomEventEmitter<{change: void, remove: void, 
 		set.metadataLoaded = description.metadataLoaded;
 		set.updateSearchableString();
 		set.stored = description.stored;
+		set.storedParentDirectoryHandleId = description.parentDirectoryHandleId;
 
 		return set;
 	}

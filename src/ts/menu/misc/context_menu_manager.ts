@@ -8,7 +8,7 @@ import { Interpolator } from "../../util/interpolation";
 import { EaseType, MathUtil } from "../../util/math_util";
 import { removeItem } from "../../util/misc_util";
 
-type ContextMenuDescription = {
+export type ContextMenuDescription = {
 	action: string,
 	label: string,
 	color?: Color

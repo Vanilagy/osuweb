@@ -10,6 +10,7 @@ import { BeatmapSetPanelCollection } from "./beatmap_set_panel_collection";
 import { BEATMAP_SET_PANEL_SNAP_TARGET } from "./beatmap_carousel";
 import { globalState } from "../../../global_state";
 import { THEME_COLORS } from "../../../util/constants";
+import { ContextMenuDescription } from "../../misc/context_menu_manager";
 
 export const BEATMAP_SET_PANEL_WIDTH = 700;
 export const BEATMAP_SET_PANEL_HEIGHT = 100;
@@ -335,13 +336,19 @@ export class BeatmapSetPanel implements Searchable {
 	}
 
 	async showContextMenu() {
-		let action = await globalState.contextMenuManager.showContextMenu([
-			{ action: 'refresh', label: 'refresh' }, { action: 'delete', label: 'delete', color: THEME_COLORS.JudgementMiss }
-		]);
+		let description: ContextMenuDescription = [];
+		description.push({ action: 'refresh', label: 'refresh' });
+		if (!this.beatmapSet.stored) description.push({ action: 'store', label: 'store' });
+		description.push({ action: 'delete', label: 'delete', color: THEME_COLORS.JudgementMiss });
+
+		let action = await globalState.contextMenuManager.showContextMenu(description);
 
 		if (action === 'refresh') {
 			this.beatmapSet.refresh();
 			this.imageLoadingStarted = false;
+		} else if (action === 'store') {
+			await this.beatmapSet.storeDirectory();
+			globalState.toastManager.showToast("Beatmap set stored.", THEME_COLORS.PrimaryBlue);
 		} else if (action === 'delete') {
 			let choice = await globalState.popupManager.createPopup("delete beatmap set", "Are you sure you want to delete this beatmap set and all its difficulties?", [
 				{
@@ -354,7 +361,7 @@ export class BeatmapSetPanel implements Searchable {
 					label: 'no',
 					color: THEME_COLORS.SecondaryActionGray
 				}
-			]);
+			], 'no');
 			if (choice !== 'yes') return;
 
 			this.beatmapSet.remove();
