@@ -341,6 +341,7 @@ export class BeatmapSetPanel implements Searchable {
 
 		if (action === 'refresh') {
 			this.beatmapSet.refresh();
+			this.imageLoadingStarted = false;
 		} else if (action === 'delete') {
 			let choice = await globalState.popupManager.createPopup("delete beatmap set", "Are you sure you want to delete this beatmap set and all its difficulties?", [
 				{

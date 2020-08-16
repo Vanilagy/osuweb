@@ -295,7 +295,14 @@ export const settingsDescription: {
 		SelectionSettingDescription
 } = settingsDescriptionExact;
 
+
+let lastWarningTime = -Infinity;
 function showRawInputModeWarning() {
+	// A bit of hackery so that the warning doesn't appear twice (there's probably a cleaner solution, but this'll do for now)
+	let now = performance.now();
+	if (now - lastWarningTime < 50) return;
+	lastWarningTime = now;
+
 	globalState.notificationPanel.showNotification("Raw mouse input activated", "To exit, move the cursor to the side and press ESC.", NotificationType.Warning);
 }
 
