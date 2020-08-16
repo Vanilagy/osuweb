@@ -8,6 +8,7 @@ import { PLAYFIELD_DIMENSIONS } from "../../util/constants";
 import { AudioBufferPlayer } from "../../audio/audio_buffer_player";
 import { EMPTY_AUDIO_BUFFER } from "../../util/audio_util";
 import { TimingPoint } from "../../datamodel/beatmap/beatmap";
+import { DrawableHitObject } from "../drawables/drawable_hit_object";
 
 const HIT_SOUND_PAN_DIVISOR = 800; // How many osu!pixels from the center of the screen one has to move for the hit sound to be fully on either the left or right audio channel
 
@@ -158,14 +159,15 @@ export function determineSampleIndex(sampleIndex: number, timingPoint: TimingPoi
     return sampleIndex || timingPoint.sampleIndex || 1;
 }
 
-export function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, sampleIndex: number, timingPoint: TimingPoint, position?: Point) {
+export function generateHitSoundInfo(hitSound: number, baseSet: number, additionSet: number, volume: number, sampleIndex: number, timingPoint: TimingPoint, drawable: DrawableHitObject, position?: Point) {
     baseSet = determineSampleSet(baseSet, timingPoint);
     additionSet = determineSampleSet(additionSet || baseSet, timingPoint); // "Today, additionSet inherits from sampleSet. Otherwise, it inherits from the timing point."
     volume = determineVolume(volume, timingPoint);
-    sampleIndex = determineSampleIndex(sampleIndex, timingPoint);
-
-    let baseType = getHitSoundTypesFromSampleSetAndBitfield(baseSet, 1)[0]; // "The normal sound is always played, so bit 0 is irrelevant today."
-    let additionTypes = getHitSoundTypesFromSampleSetAndBitfield(additionSet, hitSound & ~1);
+	sampleIndex = determineSampleIndex(sampleIndex, timingPoint);
+	
+	let alwaysPlayNormalSound = drawable.drawableBeatmap.play.skin.config.general.layeredHitSounds; // Will almost always be true, meaning the normal sound will almost always be played
+    let baseType = getHitSoundTypesFromSampleSetAndBitfield(baseSet, alwaysPlayNormalSound? 1 : (hitSound & 1))[0];
+	let additionTypes = getHitSoundTypesFromSampleSetAndBitfield(additionSet, hitSound & ~1);
 
     let info: HitSoundInfo = {
         base: baseType,
@@ -265,7 +267,10 @@ export class HitSound {
                 let char = rawName.charAt(endIndex - 1);
                 if (charIsDigit(char)) endIndex--;
                 else break;
-            }
+			}
+			
+			// For example, Yugen has files named "soft-hitnormalhh" which we want to filter out.
+			if (rawName.slice(0, endIndex) !== filename) continue;
 
             let indexString = rawName.slice(endIndex);
             let index = 1;

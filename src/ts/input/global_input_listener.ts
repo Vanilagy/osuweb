@@ -21,6 +21,7 @@ export class GlobalInputListener {
 		});
 		this.registration.addKeybindListener('toggleMouseButtons', 'down', () => {
 			changeSettingAndUpdateSettingsPanel('disableMouseButtonsDuringGameplay', !globalState.settings['disableMouseButtonsDuringGameplay']);
+			globalState.toastManager.showToast(globalState.settings['disableMouseButtonsDuringGameplay']? "Mouse buttons disabled during gameplay" : "Mouse buttons enabled during gameplay", THEME_COLORS.PrimaryViolet);
 		});
 		this.registration.addKeybindListener('increaseVolume', 'down', () => {
 			globalState.volumeController.nudgeValue(true);
@@ -31,6 +32,8 @@ export class GlobalInputListener {
 		this.registration.addKeybindListener('playPause', 'down', () => {
 			if (globalState.gameplayController.currentPlay) return;
 			globalState.musicPlayer.playPause();
+
+			globalState.toastManager.showToast(globalState.musicPlayer.player.isPaused()? "Pause" : "Play", THEME_COLORS.PrimaryBlue);
 		});
 		this.registration.addKeybindListener('audioOffsetAdd', 'down', (e) => {
 			nudgeAudioOffset(1, e);

@@ -46,6 +46,9 @@ export abstract class DrawableHitObject {
 		this.color = colorArray[this.colorIndex];
 
 		this.position();
+
+		// The sounds *could* change depending on skin config
+		if (updateSkin) this.initSounds(this.parent.hitObject, this.parent.timingInfo);
 	}
 
 	abstract show(currentTime: number): void;

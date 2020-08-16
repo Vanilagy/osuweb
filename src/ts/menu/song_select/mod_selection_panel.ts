@@ -222,7 +222,7 @@ export class ModSelectionPanel extends PopupFrame {
 		for (let i = 0; i < this.sectionHeaders.length; i++) {
 			let sectionHeader = this.sectionHeaders[i];
 			let nudge = (1 - fadeInCompletion) * (-15) * (3-i) * this.scalingFactor;
-			sectionHeader.x = Math.floor(leftMargin * this.scalingFactor + nudge);
+			sectionHeader.x = Math.floor(leftMargin + nudge);
 
 			let icons = this.modIcons[i];
 			for (let j = 0; j < icons.length; j++) {

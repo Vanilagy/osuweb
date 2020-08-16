@@ -20,7 +20,7 @@ import { PauseScreenMode } from "../menu/gameplay/pause_screen";
 import { HealthProcessor } from "../datamodel/scoring/health_processor";
 import { DrawableScoreProcessor } from "./scoring/drawable_score_processor";
 import { Judgement } from "../datamodel/scoring/judgement";
-import { HitSoundInfo, calculatePanFromOsuCoordinates, hitSoundTypeToAdditionType, AdditionType } from "./skin/hit_sound";
+import { HitSoundInfo, calculatePanFromOsuCoordinates, hitSoundTypeToAdditionType, AdditionType, HitSoundType } from "./skin/hit_sound";
 import { PercussionPlayer } from "./mods/percussion_player";
 import { StoryboardParser } from "./storyboard/storyboard_parser";
 import { BeatmapEventType, BeatmapEventBreak } from "../datamodel/beatmap/beatmap";
@@ -745,7 +745,7 @@ export class Play {
 		let playbackRate = this.getHitSoundPlaybackRate();
 
 		let baseSound = skin.hitSounds[info.base];
-        baseSound.play(info.volume, info.sampleIndex, pan, playbackRate);
+        baseSound?.play(info.volume, info.sampleIndex, pan, playbackRate);
 
         if (info.additions) {
             for (let i = 0; i < info.additions.length; i++) {

@@ -83,7 +83,7 @@ class Toast {
 
 		this.background = new PIXI.Sprite(PIXI.Texture.WHITE);
 		this.background.tint = 0x101010;
-		this.background.alpha = 0.6;
+		this.background.alpha = 0.65;
 		this.container.addChild(this.background);
 
 		this.topHighlight = new PIXI.Sprite(PIXI.Texture.WHITE);
@@ -94,7 +94,7 @@ class Toast {
 			fontFamily: 'Exo2-Regular',
 			fill: 0xffffff
 		});
-		this.text.alpha = 0.7;
+		this.text.alpha = 0.9;
 		this.container.addChild(this.text);
 
 		this.spawnTime = performance.now();

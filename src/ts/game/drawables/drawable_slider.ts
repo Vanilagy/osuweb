@@ -67,8 +67,6 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 		this.drawablePath = DrawableSliderPath.fromSliderPath(processedSlider.path, this);
 		this.bounds = this.drawablePath.calculateBounds();
 		this.scoring = getDefaultSliderScoring();
-
-		this.initSounds(processedSlider.hitObject, processedSlider.timingInfo);
 	}
 
 	private getSliderBodyDefaultSnake() {
@@ -87,7 +85,7 @@ export class DrawableSlider extends DrawableHeadedHitObject {
 			let sampling = slider.edgeSamplings[i];
 			let position = (i % 2 === 0)? this.parent.startPoint : this.parent.tailPoint;
 
-			let info = generateHitSoundInfo(hitSound, sampling.sampleSet, sampling.additionSet, null, null, timingPoint, position);
+			let info = generateHitSoundInfo(hitSound, sampling.sampleSet, sampling.additionSet, null, null, timingPoint, this, position);
 			hitSounds.push(info);
 		}
 		this.hitSounds = hitSounds;

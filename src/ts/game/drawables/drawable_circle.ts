@@ -20,13 +20,12 @@ export class DrawableCircle extends DrawableHeadedHitObject {
 		super(drawableBeatmap, processedCircle);
 
 		this.reset();
-		this.initSounds(processedCircle.hitObject, processedCircle.timingInfo);
 	}
 
 	protected initSounds(circle: Circle, timingInfo: CurrentTimingPointInfo) {
 		let currentTimingPoint = timingInfo.timingPoint;
 
-		this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this.parent.startPoint);
+		this.hitSound = generateHitSoundInfo(circle.hitSound, circle.extras.sampleSet, circle.extras.additionSet, circle.extras.sampleVolume, circle.extras.customIndex, currentTimingPoint, this, this.parent.startPoint);
 	}
 
 	draw() {

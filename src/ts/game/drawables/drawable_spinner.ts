@@ -97,13 +97,12 @@ export class DrawableSpinner extends DrawableHitObject {
 		});
 
 		this.reset();
-		this.initSounds(processedSpinner.hitObject, processedSpinner.timingInfo);
 	}
 
 	protected initSounds(spinner: Spinner, timingInfo: CurrentTimingPointInfo) {
 		let currentTimingPoint = timingInfo.timingPoint;
 
-		this.hitSound = generateHitSoundInfo(spinner.hitSound, spinner.extras.sampleSet, spinner.extras.additionSet, spinner.extras.sampleVolume, spinner.extras.customIndex, currentTimingPoint);
+		this.hitSound = generateHitSoundInfo(spinner.hitSound, spinner.extras.sampleSet, spinner.extras.additionSet, spinner.extras.sampleVolume, spinner.extras.customIndex, currentTimingPoint, this);
 	}
 
 	reset() {
