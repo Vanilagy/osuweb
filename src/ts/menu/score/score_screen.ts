@@ -1,6 +1,6 @@
 import { ExtendedBeatmapData } from "../../util/beatmap_util";
 import { currentWindowDimensions, REFERENCE_SCREEN_HEIGHT } from "../../visuals/ui";
-import { InteractionGroup, InteractionRegistration } from "../../input/interactivity";
+import { InteractionGroup, InteractionRegistration, fullscreenHitRec } from "../../input/interactivity";
 import { calculateRatioBasedScalingFactor, colorToHexNumber } from "../../util/graphics_util";
 import { THEME_COLORS } from "../../util/constants";
 import { scoreGradeTextures } from "../components/score_grade_icon";
@@ -120,7 +120,7 @@ export class ScoreScreen {
 		this.container.addChild(this.centerContainer);
 
 		this.interactionGroup = new InteractionGroup();
-		this.keyRegistration = new InteractionRegistration();
+		this.keyRegistration = new InteractionRegistration(fullscreenHitRec);
 		this.interactionGroup.add(this.keyRegistration);
 		this.keyRegistration.addListener('keyDown', (e) => {
 			if (e.keyCode !== KeyCode.Escape) return;

@@ -157,7 +157,9 @@ export class Play {
 
 		this.effectiveBackgroundDim = this.activeMods.has(Mod.Cinema)? 0.0 : globalState.settings['backgroundDim'];
 
+		console.time("Beatmap compose");
 		await this.compose(true, true);
+		console.timeEnd("Beatmap compose");
 
 		// Init storyboard (always!)
 		await this.controller.initStoryboard();
